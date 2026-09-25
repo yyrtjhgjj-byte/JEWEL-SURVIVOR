@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JEWEL SURVIVOR">
+  <meta name="theme-color" content="#06060b">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="description" content="宝石の力で闇を殲滅する、光とパーティクル全開のヴァンサバライク。">
+  <title>JEWEL SURVIVOR</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="game"></canvas>
+
+    <div id="hud" class="hidden">
+      <div id="xpbar"><div id="xpfill"></div></div>
+      <div id="hudtop">
+        <div id="hudleft">
+          <div id="lvtext">LV 1</div>
+          <div class="stat"><span class="k">KILL</span><b id="kills">0</b></div>
+          <div class="stat" id="coinstat"><span class="k">COIN</span><b id="coins">0</b></div>
+        </div>
+        <div id="timer">00:00</div>
+        <button id="pausebtn" aria-label="ポーズ"><span></span><span></span></button>
+      </div>
+      <div id="slots"></div>
+      <div id="bossbar" class="hidden"><div class="bname"></div><div class="btrack"><div class="bfill"></div></div></div>
+      <div id="combo" class="hidden"><b>0</b><span>COMBO</span></div>
+      <div id="feverwrap"><div id="fever"><div id="feverfill"></div></div><span id="fevertext">FEVER</span></div>
+    </div>
+
+    <div id="movehint" class="hidden">画面をドラッグして移動</div>
+    <div id="joy"><div id="joybase"><div id="joyknob"></div></div></div>
+    <div id="banners"></div>
+    <div id="screens"></div>
+    <div id="toasts"></div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
