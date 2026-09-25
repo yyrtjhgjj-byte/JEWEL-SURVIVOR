@@ -61,7 +61,8 @@ function TINT(type, tint) {
 const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000];
 
 // さいしょは すぐ レベルアップ → だんだん ゆっくり
-const xpFor = (l) => 3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10;
+// 必要経験値（旧カーブの 1.75 倍）
+const xpFor = (l) => Math.round(1.75 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
 
 export class Game {
   constructor(canvas, hooks, opts = {}) {
@@ -1025,7 +1026,6 @@ export class Game {
     this.hooks.fever(true);
     this.fx.screenFlash(0.5, '#ffe6ff');
     this.fx.confetti(this.player.x, this.player.y, 50, 420);
-    for (const pk of this.pickups) if (pk.kind === 'xp') pk.vac = true;
   }
 
   // ---------------------------------------------------------------- プレイヤー
@@ -1102,7 +1102,8 @@ export class Game {
 
   updatePickups(dt) {
     const p = this.player;
-    const mR = 62 * this.stats.magnet;
+    // フィーバー中は回収範囲が 10 秒かけて外側へ広がる（近い石から順に少しずつ集まる）
+    const mR = 62 * this.stats.magnet * (this.feverT > 0 ? 2 : 1) + (this.feverT > 0 ? (1 - this.feverT / 10) * 1500 : 0);
     const mR2 = mR * mR;
     let keep = 0;
     const list = this.pickups;
@@ -1637,9 +1638,15 @@ export class Game {
         const t = pr.life / pr.max;
         ctx.globalCompositeOperation = 'lighter';
         const spr = softSprite(t > 0.6 ? '#ffb84a' : t > 0.3 ? '#ff6a3d' : '#d62d6a');
-        const s = pr.r * 0.9;
-        ctx.globalAlpha = Math.min(0.4, t * 0.8);
+        const s = pr.r * 1.15;
+        ctx.globalAlpha = Math.min(0.72, t * 1.3);
         ctx.drawImage(spr, pr.x - s, pr.y - s, s * 2, s * 2);
+        if (t > 0.35) {
+          // 芯（白飛びしない程度の明るいオレンジ）
+          const c = pr.r * 0.5;
+          ctx.globalAlpha = Math.min(0.5, (t - 0.35) * 1.2);
+          ctx.drawImage(softSprite('#ffcf6a'), pr.x - c, pr.y - c, c * 2, c * 2);
+        }
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
         continue;

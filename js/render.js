@@ -950,13 +950,9 @@ export function drawPlayer(ctx, p, time, gemId) {
 
   ctx.translate(0, bob - 2);
   ctx.scale(p.face, 1);
-  // からだ（暗いガラス）
+  // からだ（黒地）
   silhouette(ctx, r);
-  const bg = ctx.createRadialGradient(-r * 0.35, -r * 0.45, 1, 0, 0, r * 1.3);
-  bg.addColorStop(0, hurt ? 'rgba(255,80,110,0.6)' : 'rgba(255,255,255,0.22)');
-  bg.addColorStop(0.55, rgba(glow, 0.14));
-  bg.addColorStop(1, 'rgba(8,8,16,0.88)');
-  ctx.fillStyle = bg;
+  ctx.fillStyle = hurt ? '#3a0a14' : '#060609';
   ctx.fill();
   // 輪郭
   ctx.shadowColor = hurt ? '#ff2d55' : glow;
