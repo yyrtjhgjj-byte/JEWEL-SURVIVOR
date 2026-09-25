@@ -188,6 +188,49 @@ export function gemSprite(id, size = 32, cutOverride) {
 }
 
 const iconCache = new Map();
+// コイン報酬のアイコン（3枚重ねの金貨）
+export function coinIcon(size = 72) {
+  const key = 'coin:' + size;
+  let u = iconCache.get(key);
+  if (u) return u;
+  const c = makeCanvas(size * 2, size * 2);
+  const ctx = c.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.translate(size / 2, size / 2);
+  const coin = (x, y, r) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.shadowColor = 'rgba(255,190,40,0.6)';
+    ctx.shadowBlur = r * 0.5;
+    const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, 1, 0, 0, r);
+    g.addColorStop(0, '#fff8c4');
+    g.addColorStop(0.6, '#ffc21a');
+    g.addColorStop(1, '#c47a00');
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, TAU);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#8a5200';
+    ctx.lineWidth = r * 0.1;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.72, 0, TAU);
+    ctx.strokeStyle = 'rgba(138,82,0,0.55)';
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    sparkle(ctx, 0, 0, r * 0.45, '#fff6b0');
+    ctx.restore();
+  };
+  const r = size * 0.2;
+  coin(-size * 0.15, size * 0.08, r);
+  coin(size * 0.15, size * 0.1, r);
+  coin(0, -size * 0.08, r * 1.08);
+  u = c.toDataURL();
+  iconCache.set(key, u);
+  return u;
+}
+
 export function gemIcon(id, size = 72) {
   const key = id + ':' + size;
   let u = iconCache.get(key);

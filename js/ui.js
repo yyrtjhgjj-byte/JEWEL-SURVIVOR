@@ -5,7 +5,7 @@ import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_SLOTS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST,
 } from './data.js';
-import { gemIcon, enemySprite } from './render.js';
+import { gemIcon, coinIcon, enemySprite } from './render.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
 import { audio } from './audio.js';
@@ -441,7 +441,7 @@ export function showGacha() {
 const rankNum = (r) => ({ R: 1, SR: 2, SSR: 3, UR: 4 })[r] || 0;
 function gachaCardHTML(r, big) {
   let icon, name;
-  if (r.kind === 'coins') { icon = gemIcon('amber', 96); name = `${fmt(r.value)} コイン`; }
+  if (r.kind === 'coins') { icon = coinIcon(96); name = `${fmt(r.value)} コイン`; }
   else if (r.kind === 'char') { icon = gemIcon(r.id, 120); name = GEMS[r.id].jp; }
   else { icon = gemIcon(r.id, 120); name = `${GEMS[r.id].jp} 覚醒★${r.level}`; }
   if (big) {
@@ -707,7 +707,7 @@ function choiceInfo(g, c) {
     const next = Math.min(P.max, p.level + (c.double ? 2 : 1));
     return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LV ${p.level} → ${next}`, desc: P.t + (c.double ? ' ×2' : ''), word, rar: c.double ? 'SSR' : 'N', tags: evoTagsForCharm(g, c.id, true) };
   }
-  if (c.type === 'coins') return { icon: gemIcon('amber', 96), name: 'コイン', lv: '', desc: `${c.value} コイン獲得`, word: '', rar: 'N' };
+  if (c.type === 'coins') return { icon: coinIcon(96), name: 'コイン', lv: '', desc: `${c.value} コイン獲得`, word: '', rar: 'N' };
   return { icon: gemIcon('garnet', 96), name: '全回復', lv: '', desc: 'HPを全回復', word: '', rar: 'N' };
 }
 
@@ -794,7 +794,7 @@ export function evolveScene(w, done) {
 
 // ================================================================== 宝箱
 function itemIcon(c) {
-  if (c.type === 'coins') return gemIcon('amber', 72);
+  if (c.type === 'coins') return coinIcon(72);
   if (c.type === 'wup' || c.type === 'evo') return gemIcon(WEAPONS[c.id].gem, 72);
   return gemIcon(PASSIVES[c.id].gem, 72);
 }
