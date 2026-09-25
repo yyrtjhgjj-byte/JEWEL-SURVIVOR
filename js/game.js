@@ -357,7 +357,7 @@ export class Game {
   }
   hpScale() {
     const m = this.time / 60;
-    let s = 1 + 0.35 * m + 0.085 * m * m;
+    let s = 1 + 0.375 * m + 0.09 * m * m;
     if (m > 10) s *= 1 + (m - 10) * 0.25; // エンドレス
     return s;
   }

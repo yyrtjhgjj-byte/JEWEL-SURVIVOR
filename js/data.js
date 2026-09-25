@@ -93,6 +93,7 @@ export const GEMS = {
 export const WEAPONS = {
   ruby: {
     gem: 'ruby', name: 'ブレイブ・バレット',
+    dmgMul: 2.5, // バランス調整（Lv帯）
     desc: '最も近い敵へ紅玉の弾丸を撃ち込む',
     base: { dmg: 95, cd: 1.1, amount: 1, speed: 1, pierce: 0, area: 1, life: 1.4 },
     levels: [
@@ -105,12 +106,13 @@ export const WEAPONS = {
       { dmg: 90, pierce: 1, t: 'ダメージ +90 / 貫通 +1' },
     ],
     evo: {
-      with: 'jasper', name: 'ブレイブハート・バースト',
+      mul: 0.22, with: 'jasper', name: 'ブレイブハート・バースト',
       desc: '着弾時に爆発。HP50%以下でダメージ2倍',
     },
   },
   sapphire: {
     gem: 'sapphire', name: 'ボンド・オービット',
+    dmgMul: 2.8, // バランス調整（Lv帯）
     desc: '周囲を旋回する蒼玉。近くの敵へ援護射撃も行う',
     base: { dmg: 85, cd: 1.8, amount: 2, speed: 1, area: 1, duration: 4 },
     levels: [
@@ -122,10 +124,11 @@ export const WEAPONS = {
       { dmg: 40, t: 'ダメージ +40' },
       { amount: 1, dmg: 30, t: 'オーブ +1 / ダメージ +30' },
     ],
-    evo: { with: 'nephrite', name: 'エターナル・ボンド', desc: '二重の軌道が途切れることなく回り続ける' },
+    evo: { mul: 0.6, with: 'nephrite', name: 'エターナル・ボンド', desc: '二重の軌道が途切れることなく回り続ける' },
   },
   garnet: {
     gem: 'garnet', name: 'アムール・ハート',
+    dmgMul: 1.2, // バランス調整（Lv帯）
     desc: '放物線を描くハートを投擲。命中するとHPを吸収',
     base: { dmg: 150, cd: 1.5, amount: 1, speed: 1, area: 1, pierce: 4 },
     levels: [
@@ -137,10 +140,11 @@ export const WEAPONS = {
       { dmg: 70, t: 'ダメージ +70' },
       { amount: 1, t: '投擲数 +1' },
     ],
-    evo: { with: 'milkyquartz', name: 'アムール・テンペスト', desc: '周囲にハートが降り注ぐ。吸収量アップ' },
+    evo: { mul: 1.25, with: 'milkyquartz', name: 'アムール・テンペスト', desc: '周囲にハートが降り注ぐ。吸収量アップ' },
   },
   labradorite: {
     gem: 'labradorite', name: 'ヒドゥン・ボルト',
+    dmgMul: 1.0, // バランス調整（Lv帯）
     desc: '画面内のランダムな敵へ落雷',
     base: { dmg: 190, cd: 2.2, amount: 2, area: 1 },
     levels: [
@@ -152,10 +156,11 @@ export const WEAPONS = {
       { dmg: 90, cd: -0.2, t: 'ダメージ +90 / クールダウン短縮' },
       { amount: 1, t: '落雷数 +1' },
     ],
-    evo: { with: 'iolite', name: 'ヒドゥン・ストーム', desc: '落雷が次々と敵を連鎖する' },
+    evo: { mul: 1.4, with: 'iolite', name: 'ヒドゥン・ストーム', desc: '落雷が次々と敵を連鎖する' },
   },
   opal: {
     gem: 'opal', name: 'ミラクル・プリズム',
+    dmgMul: 1.5, // バランス調整（Lv帯）
     desc: '回転する虹色の光線。確率で10倍ダメージの「奇跡」',
     base: { dmg: 45, cd: 3.5, amount: 1, area: 1, speed: 1, duration: 2 },
     levels: [
@@ -167,10 +172,11 @@ export const WEAPONS = {
       { duration: 0.5, area: 0.2, t: '照射時間・射程アップ' },
       { dmg: 40, t: 'ダメージ +40' },
     ],
-    evo: { with: 'coral', name: 'ミラクル・スペクトラム', desc: '常時照射。奇跡の発生率が大幅アップ' },
+    evo: { mul: 0.55, with: 'coral', name: 'ミラクル・スペクトラム', desc: '常時照射。奇跡の発生率が大幅アップ' },
   },
   amber: {
     gem: 'amber', name: 'ゴールド・レイン',
+    dmgMul: 0.8, // バランス調整（Lv帯）
     desc: '敵の頭上に金貨を落とす。この武器で倒すとコインをドロップ',
     base: { dmg: 120, cd: 1.7, amount: 2, area: 1 },
     levels: [
@@ -182,10 +188,11 @@ export const WEAPONS = {
       { dmg: 70, t: 'ダメージ +70' },
       { amount: 1, t: '金貨 +1' },
     ],
-    evo: { with: 'titanite', name: 'ゴールデン・ジャックポット', desc: '金貨の豪雨。確率で777ジャックポットが発生' },
+    evo: { mul: 1.6, with: 'titanite', name: 'ゴールデン・ジャックポット', desc: '金貨の豪雨。確率で777ジャックポットが発生' },
   },
   angelite: {
     gem: 'angelite', name: 'セラフ・オーラ',
+    dmgMul: 1.0, // バランス調整（Lv帯）
     desc: '周囲に光のオーラを展開。接近した敵にダメージ、自身はHP回復',
     base: { dmg: 25, cd: 0.5, area: 1, knock: 0.4 },
     levels: [
@@ -197,10 +204,11 @@ export const WEAPONS = {
       { area: 0.15, t: '範囲アップ' },
       { dmg: 15, cd: -0.05, t: 'ダメージ +15 / ヒット間隔短縮' },
     ],
-    evo: { with: 'redberyl', name: 'サンクチュアリ', desc: '聖域化。敵を減速させ、弱った敵を即座に浄化する' },
+    evo: { mul: 1.0, with: 'redberyl', name: 'サンクチュアリ', desc: '聖域化。敵を減速させ、弱った敵を即座に浄化する' },
   },
   diamond: {
     gem: 'diamond', name: 'ブリリアント・カット',
+    dmgMul: 2.6, // バランス調整（Lv帯）
     desc: '金剛石の破片を全方位へ炸裂させる',
     base: { dmg: 90, cd: 1.4, amount: 5, speed: 1, pierce: 1, life: 0.5 },
     levels: [
@@ -212,25 +220,27 @@ export const WEAPONS = {
       { dmg: 45, t: 'ダメージ +45' },
       { amount: 2, t: '破片 +2' },
     ],
-    evo: { with: 'topaz', name: 'スターダスト・カリスマ', desc: '螺旋状に破片を連射。全弾クリティカル' },
+    evo: { mul: 0.2, with: 'topaz', name: 'スターダスト・カリスマ', desc: '螺旋状に破片を連射。全弾クリティカル' },
   },
   emerald: {
     gem: 'emerald', name: 'ハーモニー・フィールド',
+    dmgMul: 0.7, // バランス調整（Lv帯）
     desc: '地面に光のクローバー畑を展開し、上の敵に継続ダメージ',
     base: { dmg: 40, cd: 2.6, amount: 1, area: 1, duration: 2.5 },
     levels: [
-      { dmg: 12, t: 'ダメージ +12' },
+      { dmg: 6, t: 'ダメージ +6' },
       { area: 0.2, t: '範囲アップ' },
       { amount: 1, duration: 0.5, t: 'フィールド +1 / 持続アップ' },
-      { dmg: 15, cd: -0.3, t: 'ダメージ +15 / クールダウン短縮' },
+      { dmg: 8, cd: -0.3, t: 'ダメージ +8 / クールダウン短縮' },
       { area: 0.2, t: '範囲アップ' },
-      { dmg: 20, t: 'ダメージ +20' },
+      { dmg: 8, t: 'ダメージ +8' },
       { amount: 1, t: 'フィールド +1' },
     ],
-    evo: { with: 'granite', name: 'エデン・ガーデン', desc: '範囲拡大＋敵を減速。四つ葉がアイテムを落とす' },
+    evo: { mul: 1.35, with: 'granite', name: 'エデン・ガーデン', desc: '範囲拡大＋敵を減速。四つ葉がアイテムを落とす' },
   },
   rhodochrosite: {
     gem: 'rhodochrosite', name: 'パッション・フレイム',
+    dmgMul: 2.0, // バランス調整（Lv帯）
     desc: '進行方向へ炎を放射する',
     base: { dmg: 22, cd: 2.2, amount: 1, area: 1, duration: 1.2 },
     levels: [
@@ -242,25 +252,27 @@ export const WEAPONS = {
       { duration: 0.4, t: '放射時間アップ' },
       { dmg: 10, area: 0.2, t: 'ダメージ +10 / 射程アップ' },
     ],
-    evo: { with: 'peridot', name: 'パッション・インフェルノ', desc: '四方へ回転する炎の渦。通った跡も燃え続ける' },
+    evo: { mul: 0.65, with: 'peridot', name: 'パッション・インフェルノ', desc: '四方へ回転する炎の渦。通った跡も燃え続ける' },
   },
   kyanite: {
     gem: 'kyanite', name: 'ディサイシブ・ランス',
+    dmgMul: 0.65, // バランス調整（Lv帯）
     desc: '最もHPの高い敵へ槍を投擲。無限貫通',
     base: { dmg: 300, cd: 2.2, amount: 1, speed: 1, area: 1 },
     levels: [
-      { dmg: 100, t: 'ダメージ +100' },
+      { dmg: 60, t: 'ダメージ +60' },
       { cd: -0.2, t: 'クールダウン短縮' },
       { amount: 1, t: '槍 +1' },
-      { dmg: 150, area: 0.2, t: 'ダメージ +150 / サイズアップ' },
+      { dmg: 80, area: 0.2, t: 'ダメージ +80 / サイズアップ' },
       { cd: -0.2, t: 'クールダウン短縮' },
       { amount: 1, t: '槍 +1' },
-      { dmg: 250, t: 'ダメージ +250' },
+      { dmg: 120, t: 'ダメージ +120' },
     ],
-    evo: { with: 'prase', name: 'ディサイシブ・ブレード', desc: '命中時に4本へ分裂する' },
+    evo: { mul: 0.9, with: 'prase', name: 'ディサイシブ・ブレード', desc: '命中時に4本へ分裂する' },
   },
   aquamarine: {
     gem: 'aquamarine', name: 'タイダル・ウェーブ',
+    dmgMul: 1.6, // バランス調整（Lv帯）
     desc: '周囲に波動を放ち、敵を押し返す',
     base: { dmg: 70, cd: 2.4, amount: 1, area: 1, knock: 2 },
     levels: [
@@ -272,7 +284,7 @@ export const WEAPONS = {
       { area: 0.2, t: '範囲アップ' },
       { dmg: 40, cd: -0.3, t: 'ダメージ +40 / クールダウン短縮' },
     ],
-    evo: { with: 'coal', name: 'アビサル・タイド', desc: '深海の圧力。命中した敵を泡で拘束する' },
+    evo: { mul: 0.7, with: 'coal', name: 'アビサル・タイド', desc: '深海の圧力。命中した敵を泡で拘束する' },
   },
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
