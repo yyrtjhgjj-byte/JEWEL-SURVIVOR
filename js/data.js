@@ -68,6 +68,22 @@ export const GEMS = {
     lore: '安らぎの藍玉。静かな波紋が敵を押し返す。',
   },
 
+  alexandrite: {
+    jp: 'アレキサンドライト', en: 'ALEXANDRITE', word: '夢の実現と可能性', kana: 'ゆめ',
+    color: '#1fb58a', light: '#ff9ab8', dark: '#5a1640', cut: 'oval',
+    lore: '光によって色を変える希少石。放たれた光弾は敵を追い続け、翠と紅の二つの顔を持つ。',
+  },
+  tourmaline: {
+    jp: 'トルマリン', en: 'TOURMALINE', word: '絆と冒険', kana: 'きずな',
+    color: '#ff5f9a', light: '#c8ffd8', dark: '#1d7a45', cut: 'long',
+    lore: '桃と翠が同居する電気石。放たれた雷光は敵から敵へ跳ね渡り、冒険を続ける。',
+  },
+  moonstone: {
+    jp: 'ムーンストーン', en: 'MOONSTONE', word: '魅力', kana: 'みりょく',
+    color: '#c9d8ff', light: '#ffffff', dark: '#5b6fb0', cut: 'oval',
+    lore: '青い月光を宿す石。三日月の刃は往復し、触れた敵を魅了して同士討ちさせる。',
+  },
+
   // ---------- チャーム（パッシブ）になるジュエル ----------
   topaz: { jp: 'トパーズ', en: 'TOPAZ', word: '自信', kana: 'じしん', color: '#ffc21a', light: '#fff0a8', dark: '#9a6200', cut: 'oval' },
   jasper: { jp: 'ジャスパー', en: 'JASPER', word: '強い意志', kana: 'つよいいし', color: '#d4552a', light: '#ffb592', dark: '#6e210a', cut: 'round' },
@@ -80,6 +96,7 @@ export const GEMS = {
   coal: { jp: 'コール', en: 'COAL', word: '忍耐', kana: 'にんたい', color: '#4a4a58', light: '#a9a9c2', dark: '#15151c', cut: 'round' },
   titanite: { jp: 'チタナイト', en: 'TITANITE', word: '仕事運とバランス', kana: 'しごとうん', color: '#c9d63a', light: '#f6ffb0', dark: '#5f6a00', cut: 'long' },
   redberyl: { jp: 'レッドベリル', en: 'RED BERYL', word: '心身の浄化', kana: 'じょうか', color: '#e0245e', light: '#ffa3c0', dark: '#6b0626', cut: 'emerald' },
+  turquoise: { jp: 'ターコイズ', en: 'TURQUOISE', word: '勇気', kana: 'ゆうき', color: '#2fc9b8', light: '#b8fff4', dark: '#0f6b66', cut: 'round' },
   peridot: { jp: 'ペリドット', en: 'PERIDOT', word: 'ポジティブ', kana: 'まえむき', color: '#9be22e', light: '#e4ffb2', dark: '#3f6a00', cut: 'oval' },
 
   // 敵ボスのジュエル
@@ -286,6 +303,54 @@ export const WEAPONS = {
     ],
     evo: { mul: 0.7, with: 'coal', name: 'アビサル・タイド', desc: '深海の圧力。命中した敵を泡で拘束する' },
   },
+  alexandrite: {
+    gem: 'alexandrite', name: 'ドリーム・シフト',
+    dmgMul: 3.0, // バランス調整（Lv帯）
+    desc: '敵を追尾する光弾を放つ。翠の弾は貫通、紅の弾は爆発と交互に変化',
+    base: { dmg: 110, cd: 1.5, amount: 2, speed: 1, pierce: 1, area: 1, life: 2.2 },
+    levels: [
+      { dmg: 30, t: 'ダメージ +30' },
+      { amount: 1, t: '光弾 +1' },
+      { area: 0.2, t: '爆発範囲アップ' },
+      { dmg: 40, cd: -0.15, t: 'ダメージ +40 / クールダウン短縮' },
+      { pierce: 1, t: '貫通 +1' },
+      { dmg: 50, t: 'ダメージ +50' },
+      { amount: 1, t: '光弾 +1' },
+    ],
+    evo: { mul: 0.55, with: 'turquoise', name: 'ポッシビリティ', desc: '翠と紅が同時に宿る。全弾が貫通しつつ爆発し、追尾性能も上昇' },
+  },
+  tourmaline: {
+    gem: 'tourmaline', name: 'ボンド・リコシェ',
+    dmgMul: 1.2, // バランス調整（Lv帯）
+    desc: '命中するたびに近くの敵へ跳ね移る雷光を放つ',
+    base: { dmg: 100, cd: 1.3, amount: 1, speed: 1, bounce: 3, area: 1 },
+    levels: [
+      { bounce: 1, t: '跳弾 +1' },
+      { dmg: 30, t: 'ダメージ +30' },
+      { amount: 1, t: '雷光 +1' },
+      { bounce: 2, t: '跳弾 +2' },
+      { dmg: 40, cd: -0.15, t: 'ダメージ +40 / クールダウン短縮' },
+      { bounce: 2, t: '跳弾 +2' },
+      { dmg: 50, amount: 1, t: 'ダメージ +50 / 雷光 +1' },
+    ],
+    evo: { mul: 0.67, with: 'nephrite', name: 'グランド・アドベンチャー', desc: '跳弾が大幅に増え、跳ねるたびに分岐する' },
+  },
+  moonstone: {
+    gem: 'moonstone', name: 'ルナ・ハロ',
+    dmgMul: 0.7, // バランス調整（Lv帯）
+    desc: '往復する三日月の刃。命中した敵を確率で魅了し、他の敵を襲わせる',
+    base: { dmg: 90, cd: 1.8, amount: 1, speed: 1, area: 1, charm: 0.12 },
+    levels: [
+      { dmg: 25, t: 'ダメージ +25' },
+      { area: 0.2, t: 'サイズアップ' },
+      { amount: 1, t: '刃 +1' },
+      { charm: 0.06, t: '魅了率アップ' },
+      { dmg: 35, cd: -0.2, t: 'ダメージ +35 / クールダウン短縮' },
+      { area: 0.2, charm: 0.06, t: 'サイズ・魅了率アップ' },
+      { amount: 1, dmg: 40, t: '刃 +1 / ダメージ +40' },
+    ],
+    evo: { mul: 1.15, with: 'milkyquartz', name: 'フルムーン・グレイス', desc: '満月が周囲を巡り、魅了された敵は解除時に爆ぜる' },
+  },
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
 export const WEAPON_MAX = 8;
@@ -305,13 +370,14 @@ export const PASSIVES = {
   coal: { gem: 'coal', name: 'コール', max: 5, per: { regen: 0.25 }, t: 'HP自然回復 +0.25/秒' },
   titanite: { gem: 'titanite', name: 'チタナイト', max: 5, per: { greed: 0.2 }, t: '獲得コイン +20%' },
   redberyl: { gem: 'redberyl', name: 'レッドベリル', max: 5, per: { magnet: 0.3 }, t: '回収範囲 +30%' },
+  turquoise: { gem: 'turquoise', name: 'ターコイズ', max: 5, per: { guard: 0.06 }, t: '被ダメージ -6%' },
   peridot: { gem: 'peridot', name: 'ペリドット', max: 5, per: { moveSpeed: 0.08, speed: 0.08, duration: 0.08 }, t: '移動速度・弾速・持続 +8%' },
 };
 export const PASSIVE_IDS = Object.keys(PASSIVES);
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
-  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, crit: 0.05, revive: 0, reroll: 2,
+  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, crit: 0.05, revive: 0, reroll: 2, guard: 0,
 };
 
 // ---------------------------------------------------------------------
@@ -330,6 +396,9 @@ export const CHARACTERS = {
   rhodochrosite: { weapon: 'rhodochrosite', perk: '攻撃力 +15% / 最大HP -10', stats: { might: 0.15, maxHp: -10 }, rarity: 'SR', unlock: 'ガチャ' },
   kyanite: { weapon: 'kyanite', perk: '弾速 +20%', stats: { speed: 0.2 }, rarity: 'SR', unlock: 'ガチャ' },
   aquamarine: { weapon: 'aquamarine', perk: '持続 +15% / アーマー +1', stats: { duration: 0.15, armor: 1 }, rarity: 'SR', unlock: 'ガチャ' },
+  tourmaline: { weapon: 'tourmaline', perk: '移動速度 +8% / 幸運 +10%', stats: { moveSpeed: 0.08, luck: 0.1 }, rarity: 'SR', unlock: '水晶洞窟をクリア' },
+  alexandrite: { weapon: 'alexandrite', perk: '経験値 +15%', stats: { growth: 0.15 }, rarity: 'SR', unlock: '灼熱鉱脈をクリア' },
+  moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +10% / 回収範囲 +20%', stats: { area: 0.1, magnet: 0.2 }, rarity: 'UR', unlock: '凍晶氷原をクリア' },
 };
 export const CHAR_IDS = Object.keys(CHARACTERS);
 
@@ -346,6 +415,29 @@ export const ENEMIES = {
   boss1: { name: 'ダスク・キング', hp: 30000, speed: 50, dmg: 20, r: 48, xp: 200, boss: true, color: '#5b3f8a', desc: '粘体の王。3:00に出現。全方位弾と眷属召喚。' },
   boss2: { name: 'ヴォイド・ドラゴン', hp: 90000, speed: 62, dmg: 26, r: 52, xp: 500, boss: true, color: '#2e1f4f', desc: '夜空を塗り潰す竜。6:00に出現。螺旋弾と突進。' },
   boss3: { name: 'オブシディアン・クイーン', hp: 260000, speed: 55, dmg: 32, r: 58, xp: 2000, boss: true, color: '#1a0d2a', desc: 'ダスクの女王。黒曜石の力で世界の輝きを奪う。10:00に出現。' },
+  // ---- 新種
+  spitter: { name: 'クリスタル・スピッター', hp: 160, speed: 42, dmg: 7, r: 14, xp: 2, ai: 'spitter', desc: '距離を取って結晶弾を撃ってくる。近づいて倒せ。' },
+  splitter: { name: 'スプリット・ジェル', hp: 240, speed: 46, dmg: 9, r: 17, xp: 2, ai: 'splitter', desc: '倒すと2体の小さな粘体に分裂する。' },
+  mini: { name: 'ジェル・フラグメント', hp: 70, speed: 72, dmg: 5, r: 10, xp: 1, sprite: 'splitter', desc: 'スプリット・ジェルの破片。すばしこい。' },
+  charger: { name: 'ホーン・ビースト', hp: 420, speed: 50, dmg: 14, r: 18, xp: 4, ai: 'charger', desc: '一瞬溜めてから一直線に突進してくる。赤い線から逃げろ。' },
+  bomber: { name: 'マグマ・ボム', hp: 130, speed: 78, dmg: 6, r: 13, xp: 2, ai: 'bomber', desc: '近づくと点火して爆発する。点火したら即離脱。' },
+  wisp: { name: 'フロスト・ウィスプ', hp: 170, speed: 66, dmg: 6, r: 13, xp: 2, ai: 'wisp', desc: '触れると体が凍えて足が鈍る。' },
+  phantom: { name: 'ヴォイド・ファントム', hp: 280, speed: 52, dmg: 10, r: 15, xp: 3, ai: 'phantom', desc: '闇に溶け、背後へ瞬間移動してくる。' },
+  // ---- ステージ別の中ボス
+  boss1_cavern: { name: 'クリスタル・キング', hp: 36000, speed: 50, dmg: 20, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#2f7fb0', desc: '水晶洞窟の粘体王。3:00に出現。' },
+  boss2_cavern: { name: 'ジェム・ドラゴン', hp: 100000, speed: 62, dmg: 26, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'boss2', tint: '#1f4f8a', desc: '宝石を喰らって育った竜。6:00に出現。' },
+  boss1_magma: { name: 'ブレイズ・キング', hp: 36000, speed: 52, dmg: 22, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#b8401f', desc: '溶岩をまとう粘体王。3:00に出現。' },
+  boss2_magma: { name: 'インフェルノ・ドラゴン', hp: 100000, speed: 64, dmg: 28, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'boss2', tint: '#8a1f1f', desc: '灼熱の吐息を放つ竜。6:00に出現。' },
+  boss1_tundra: { name: 'グレイシャー・キング', hp: 36000, speed: 48, dmg: 22, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#7fa8d0', desc: '氷河を背負う粘体王。3:00に出現。' },
+  boss3_tundra: { name: 'スノウ・クイーン', hp: 120000, speed: 56, dmg: 28, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#3a5a8a', desc: '氷原を統べる女王。6:00に出現。' },
+  boss1_void: { name: 'ヴォイド・キング', hp: 40000, speed: 52, dmg: 24, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#3a1a5a', desc: '虚空の粘体王。3:00に出現。' },
+  boss3_void: { name: 'クイーン・シャドウ', hp: 150000, speed: 58, dmg: 30, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#2a0a3a', desc: '女王の残影。虚空聖堂の9:00に出現。' },
+  // ---- 最終ボス
+  prism: { name: 'プリズム・コロッサス', hp: 260000, speed: 40, dmg: 30, r: 62, xp: 2000, boss: true, ai: 'prism', desc: '水晶洞窟の主。回転するレーザーで空間を切り裂く。10:00に出現。' },
+  worm: { name: 'マグマ・ワーム', hp: 340000, speed: 95, dmg: 30, r: 34, xp: 2000, boss: true, ai: 'worm', desc: '溶岩の中を泳ぐ大蛇。胴体も攻撃が通る。10:00に出現。' },
+  wormseg: { name: 'マグマ・ワーム（胴）', hp: 1, speed: 0, dmg: 22, r: 26, xp: 0, segment: true, sprite: 'wormseg', desc: '' },
+  lich: { name: 'フロスト・リッチ', hp: 260000, speed: 45, dmg: 30, r: 50, xp: 2000, boss: true, ai: 'lich', desc: '氷原に眠っていた魔導士。氷柱と冷気で逃げ場を奪う。10:00に出現。' },
+  emperor: { name: 'ヴォイド・エンペラー', hp: 300000, speed: 50, dmg: 34, r: 66, xp: 4000, boss: true, ai: 'emperor', desc: 'ダスクを生み出した虚空の皇帝。3つの形態を持つ。12:00に出現。' },
   crystal: { name: 'ライトクリスタル', hp: 1, speed: 0, dmg: 0, r: 16, xp: 0, prop: true, color: '#ffffff', desc: '破壊するとアイテムを落とす。' },
 };
 
@@ -389,7 +481,17 @@ export const ACHIEVEMENTS = [
   { id: 'lv50', name: 'Lv.50', t: 'レベル50到達', coins: 600, check: (r) => r.level >= 50 },
   { id: 'time3', name: 'サバイバー I', t: '3分間生存', coins: 80, check: (r) => r.time >= 180 },
   { id: 'time5', name: 'サバイバー II', t: '5分間生存', coins: 200, unlock: 'angelite', check: (r) => r.time >= 300 },
-  { id: 'clear', name: 'ブリリアンス', t: 'オブシディアン・クイーンを倒してクリア', coins: 2000, unlock: 'diamond', check: (r) => r.cleared },
+  { id: 'clear', name: 'ブリリアンス', t: '黒曜の荒野をクリア', coins: 2000, unlock: 'diamond', check: (r) => r.cleared && r.stageId === 'wastes' },
+  { id: 'clear2', name: 'プリズム・ブレイカー', t: '水晶洞窟をクリア', coins: 2500, check: (r) => r.cleared && r.stageId === 'cavern' },
+  { id: 'clear3', name: 'マグマ・ダイバー', t: '灼熱鉱脈をクリア', coins: 3000, check: (r) => r.cleared && r.stageId === 'magma' },
+  { id: 'clear4', name: 'アブソリュート・ゼロ', t: '凍晶氷原をクリア', coins: 3500, check: (r) => r.cleared && r.stageId === 'tundra' },
+  { id: 'clear5', name: 'ヴォイド・ウォーカー', t: '虚空聖堂をクリア', coins: 8000, check: (r) => r.cleared && r.stageId === 'void' },
+  { id: 'heat1', name: 'ヒートアップ', t: 'HEAT 1以上でクリア', coins: 500, check: (r) => r.cleared && r.heat >= 1 },
+  { id: 'heat3', name: 'オーバーヒート', t: 'HEAT 3以上でクリア', coins: 2000, check: (r) => r.cleared && r.heat >= 3 },
+  { id: 'heat5', name: 'メルトダウン', t: 'HEAT 5でクリア', coins: 6000, check: (r) => r.cleared && r.heat >= 5 },
+  { id: 'heat5void', name: '極光', t: '虚空聖堂を HEAT 5 でクリア', coins: 15000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'void' },
+  { id: 'charm100', name: 'チャーマー', t: '1回のプレイで100体を魅了', coins: 400, check: (r) => r.charmed >= 100 },
+  { id: 'endless20', name: 'エンドレス・ナイト', t: 'エンドレスで20分生存', coins: 3000, check: (r) => r.endless && r.time >= 1200 },
   { id: 'evo', name: 'エヴォリューション', t: '武器を進化させる', coins: 200, check: (r) => r.evolved >= 1 },
   { id: 'evo3', name: 'トリプル・エヴォ', t: '1回のプレイで3つ進化', coins: 800, check: (r) => r.evolved >= 3 },
   { id: 'fever', name: 'FEVER', t: 'フィーバーを発動', coins: 50, check: (r) => r.fevers >= 1 },

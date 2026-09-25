@@ -6,6 +6,7 @@ import {
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST,
 } from './data.js';
 import { gemIcon, enemySprite } from './render.js';
+import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave } from './save.js';
@@ -107,7 +108,6 @@ export function showTitle() {
       <div class="logo">
         <div class="main">JEWEL<br>SURVIVOR</div>
         <div class="line"></div>
-        <div class="sub">宝石は、闇の中でこそ輝く</div>
       </div>
       <div class="title-hero">
         <img src="${gemIcon(cid, 160)}" alt="" style="filter:drop-shadow(0 0 24px ${gemColor(cid)})">
@@ -177,8 +177,7 @@ export function showCharSelect() {
       <div class="panel" id="detail"></div>
       <div class="char-grid" id="grid"></div>
       <div class="center-col">
-        <div id="endlessrow" style="width:100%"></div>
-        <button class="btn big primary" id="go" style="width:100%;max-width:360px">DEPLOY</button>
+        <button class="btn big primary" id="go" style="width:100%;max-width:360px">NEXT</button>
       </div>
     </div>`);
   show(node);
@@ -218,18 +217,73 @@ export function showCharSelect() {
     grid.appendChild(cell);
   });
   renderDetail();
-  if (save.stats.clears > 0) {
-    const row = el(`<div class="toggle-row panel"><span>ENDLESS<small>クイーン撃破後も続行（敵が際限なく強化）</small></span><button class="switch ${save.endless ? 'on' : ''}"></button></div>`);
-    $('#endlessrow', node).appendChild(row);
-    const sw = $('.switch', row);
-    sw.onclick = () => { save.endless = !save.endless; sw.classList.toggle('on', save.endless); audio.tap(); persist(); };
-  }
   $('#go', node).onclick = () => {
     if (!save.unlocked[sel]) return;
     audio.select();
     save.selected = sel;
     persist();
-    app.startGame(sel, save.stats.clears > 0 && save.endless);
+    showStageSelect();
+  };
+}
+
+// ================================================================== ステージ選択
+function stageRec(id) { return save.stages[id] || {}; }
+function stageUnlocked(st) {
+  return st.no === 1 || !!stageRec(STAGES[st.no - 2].id).cleared;
+}
+export function showStageSelect() {
+  let sel = STAGE_BY_ID[save.selectedStage] && stageUnlocked(STAGE_BY_ID[save.selectedStage]) ? save.selectedStage : 'wastes';
+  const node = el(`
+    <div class="screen">
+      ${topbar('STAGE', 'ステージ選択')}
+      <div class="stage-list" id="list"></div>
+      <div class="panel" id="opts"></div>
+      <div class="center-col" style="margin-top:12px">
+        <button class="btn big primary" id="go" style="width:100%;max-width:360px">DEPLOY</button>
+      </div>
+    </div>`);
+  show(node);
+  $('#back', node).onclick = () => { audio.tap(); showCharSelect(); };
+  const list = $('#list', node);
+  const renderOpts = () => {
+    const rec = stageRec(sel);
+    const maxHeat = rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0;
+    if ((save.heatSel || 0) > maxHeat) save.heatSel = maxHeat;
+    const h = save.heatSel || 0;
+    const m = heatMods(h);
+    $('#opts', node).innerHTML = `
+      <div class="toggle-row"><span>HEAT<small>${rec.cleared ? `敵HP ×${m.hp.toFixed(2)} ／ 敵攻撃 ×${m.dmg.toFixed(2)} ／ 獲得コイン ×${m.coin.toFixed(1)}` : 'このステージをクリアすると解放'}</small></span>
+        <div class="heat-ctl"><button class="iconbtn" id="hm" ${h <= 0 ? 'disabled' : ''}>−</button><b class="heat-val h${h}">${h}</b><button class="iconbtn" id="hp" ${h >= maxHeat ? 'disabled' : ''}>＋</button></div></div>
+      ${rec.cleared ? `<div class="toggle-row" style="margin-top:10px"><span>ENDLESS<small>最終ボス撃破後も続行（敵が際限なく強化）</small></span><button class="switch ${save.endless ? 'on' : ''}" id="en"></button></div>` : ''}`;
+    const hm = $('#hm', node), hp = $('#hp', node);
+    hm.onclick = () => { save.heatSel = Math.max(0, h - 1); audio.tap(); renderOpts(); };
+    hp.onclick = () => { save.heatSel = Math.min(maxHeat, h + 1); audio.tap(); renderOpts(); };
+    const en = $('#en', node);
+    if (en) en.onclick = () => { save.endless = !save.endless; en.classList.toggle('on', save.endless); audio.tap(); persist(); };
+  };
+  const render = () => {
+    list.innerHTML = '';
+    for (const st of STAGES) {
+      const open = stageUnlocked(st);
+      const rec = stageRec(st.id);
+      const card = el(`<button class="stage-card ${open ? '' : 'locked'} ${st.id === sel ? 'sel' : ''}" style="--sc:${st.pal.accent};--sg:${st.pal.glow}">
+        <div class="st-head"><span class="st-no">STAGE ${st.no}</span>${rec.cleared ? `<span class="st-clear">CLEAR${rec.heat ? ` ・ HEAT ${rec.heat}` : ''}</span>` : ''}</div>
+        <div class="st-name">${open ? st.name : '？？？'}<span class="en">${st.en}</span></div>
+        <div class="st-desc">${open ? st.desc : `🔒 ${STAGES[st.no - 2].name} をクリアで解放`}</div>
+        ${open ? `<div class="st-meta"><span>${st.hazardText}</span><span>${Math.round(st.time / 60)}分</span>${rec.best ? `<span>最長 ${fmtTime(rec.best)}</span>` : ''}</div>` : ''}
+      </button>`);
+      if (open) card.onclick = () => { sel = st.id; audio.cardFlip(st.no); render(); renderOpts(); };
+      list.appendChild(card);
+    }
+  };
+  render();
+  renderOpts();
+  $('#go', node).onclick = () => {
+    audio.select();
+    save.selectedStage = sel;
+    persist();
+    const rec = stageRec(sel);
+    app.startGame(save.selected, { stageId: sel, heat: save.heatSel || 0, endless: !!rec.cleared && save.endless });
   };
 }
 
@@ -398,6 +452,7 @@ export function showZukan(tab = 'gems') {
         <button class="tab ${tab === 'gems' ? 'on' : ''}" data-t="gems">武器</button>
         <button class="tab ${tab === 'charms' ? 'on' : ''}" data-t="charms">チャーム</button>
         <button class="tab ${tab === 'enemies' ? 'on' : ''}" data-t="enemies">敵</button>
+        <button class="tab ${tab === 'stages' ? 'on' : ''}" data-t="stages">ステージ</button>
         <button class="tab ${tab === 'trophy' ? 'on' : ''}" data-t="trophy">実績</button>
       </div>
       <div class="zlist" id="zl"></div>
@@ -436,14 +491,26 @@ export function showZukan(tab = 'gems') {
   } else if (tab === 'enemies') {
     for (const id of Object.keys(ENEMIES)) {
       const e = ENEMIES[id];
-      if (e.prop) continue;
+      if (e.prop || e.segment) continue;
       const seen = save.seen.enemies[id];
-      const spr = enemySprite(id, Math.min(e.r, 40));
+      const spr = enemySprite(e.sprite || id, Math.min(e.r, 40), 0, false, e.tint);
       zl.appendChild(el(`<div class="zitem ${seen ? '' : 'unk'}">
         <img src="${spr.toDataURL()}">
         <div><div class="zname">${seen ? e.name : '???'} ${e.boss ? '<span class="rarbadge r-SSR">BOSS</span>' : ''}</div>
           <div class="ztext">${seen ? e.desc : '未遭遇'}</div>
           <div class="ztext muted">撃破数 <b style="color:#fff">${fmt(save.kills[id] || 0)}</b></div>
+        </div></div>`));
+    }
+  } else if (tab === 'stages') {
+    for (const st of STAGES) {
+      const rec = stageRec(st.id);
+      const open = stageUnlocked(st);
+      const bosses = st.events.filter((e) => e.type === 'boss').map((e) => (save.seen.enemies[e.enemy] ? ENEMIES[e.enemy].name : '???'));
+      zl.appendChild(el(`<div class="zitem ${open ? '' : 'unk'}" style="border-left:3px solid ${st.pal.accent}">
+        <div><div class="zname">STAGE ${st.no}　${open ? st.name : '???'}<span class="en">${st.en}</span></div>
+          <div class="ztext">${open ? st.desc : '未解放'}</div>
+          <div class="ztext muted">ギミック：${open ? st.hazardText : '???'} ／ ボス：${bosses.join(' → ')}</div>
+          <div class="zevo">${rec.cleared ? `クリア済み ・ 最高HEAT ${rec.heat || 0} ・ 最長 ${fmtTime(rec.best || 0)}` : rec.best ? `最長 ${fmtTime(rec.best)}` : '未挑戦'}</div>
         </div></div>`));
     }
   } else {
@@ -820,7 +887,8 @@ export function results(res, cleared, extra) {
       <div class="rays"></div>
       <div class="result-head">
         ${cleared ? '<div class="big-title prism-text">STAGE CLEAR</div>' : '<div class="big-title lose">GAME OVER</div>'}
-        <div class="sub-title" style="margin-top:6px">${cleared ? 'オブシディアン・クイーン撃破 — 世界に輝きが戻った' : '闇に呑まれた'}</div>
+        <div class="sub-title" style="margin-top:6px">STAGE ${STAGE_BY_ID[res.stageId].no}　${STAGE_BY_ID[res.stageId].name}${res.heat ? `　HEAT ${res.heat}` : ''}${res.endless ? '　ENDLESS' : ''}</div>
+        ${extra.firstClear ? `<div class="hint" style="margin-top:6px;color:#ffe39a">初クリア報酬 ${fmt(STAGE_BY_ID[res.stageId].reward)} コイン${extra.unlocked ? ` ／ ${GEMS[extra.unlocked].jp} 解放` : ''}${extra.nextStage ? ` ／ ${extra.nextStage} 解放` : ''}</div>` : ''}
       </div>
       <div class="panel" id="rows"></div>
       <div class="rcoins">${coinIco}<span id="rc">+0</span></div>
@@ -833,7 +901,7 @@ export function results(res, cleared, extra) {
     </div>`);
   show(node);
   guard($('.rbtns', node), 1500);
-  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, res.endless); };
+  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless }); };
   $('#home', node).onclick = () => { audio.tap(); app.toTitle(); };
   const rowsEl = $('#rows', node);
   const rows = [

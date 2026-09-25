@@ -587,6 +587,288 @@ const ENEMY_DRAW = {
     drawGem(ctx, r * 0.2, GEMS.obsidian);
     ctx.restore();
   },
+  spitter(ctx, r, col, f) {
+    // 背中の結晶
+    const cc = { color: '#6fe0ff', light: '#e0fbff', dark: '#1f6f99' };
+    for (const [x, rot, sz] of [[-0.45, -0.5, 0.45], [0, 0, 0.6], [0.45, 0.5, 0.45]]) {
+      ctx.save(); ctx.translate(x * r, -r * 0.55); ctx.rotate(rot); drawGem(ctx, r * sz, cc, 'long'); ctx.restore();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.1, r * 0.95, r * 0.8, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    shine(ctx, r);
+    eyes(ctx, 0, -r * 0.05, r * 0.26, { color: '#5fe0ff' });
+    // 口（溜め中は光る）
+    ctx.fillStyle = f === 1 ? '#bff6ff' : '#0a1420';
+    if (f === 1) { ctx.shadowColor = '#5fe0ff'; ctx.shadowBlur = r * 0.8; }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.42, r * 0.22, r * 0.16, 0, 0, TAU);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  },
+  splitter(ctx, r, col) {
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.05, r * 1.05, r * 0.85, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    // 分裂線
+    ctx.strokeStyle = 'rgba(160,255,200,0.8)';
+    ctx.shadowColor = '#7fffb0';
+    ctx.shadowBlur = r * 0.4;
+    ctx.lineWidth = r * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.8);
+    for (let i = 1; i <= 6; i++) ctx.lineTo((i % 2 ? 1 : -1) * r * 0.1, -r * 0.8 + (i / 6) * r * 1.65);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    shine(ctx, r);
+    eyes(ctx, -r * 0.45, -r * 0.05, r * 0.17, { color: '#7fffb0', gap: 0.8 });
+    eyes(ctx, r * 0.45, -r * 0.05, r * 0.17, { color: '#7fffb0', gap: 0.8 });
+  },
+  charger(ctx, r, col) {
+    // 角
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(sd * r * 0.45, -r * 0.45);
+      ctx.quadraticCurveTo(sd * r * 1.25, -r * 0.8, sd * r * 1.15, -r * 1.35);
+      ctx.quadraticCurveTo(sd * r * 0.95, -r * 0.8, sd * r * 0.2, -r * 0.6);
+      ctx.fillStyle = '#e8dcc8';
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.05;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.05, r * 0.95, r * 0.85, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    // 鼻先
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.45, r * 0.4, r * 0.22, 0, 0, TAU);
+    ctx.fill();
+    shine(ctx, r);
+    eyes(ctx, 0, -r * 0.1, r * 0.24, { color: '#ff3d3d' });
+  },
+  bomber(ctx, r, col, f) {
+    const hot = f === 1;
+    ctx.beginPath();
+    ctx.arc(0, r * 0.1, r * 0.9, 0, TAU);
+    const g = ctx.createRadialGradient(-r * 0.3, -r * 0.2, 1, 0, r * 0.1, r);
+    g.addColorStop(0, hot ? '#ffe0a0' : '#7a3a2a');
+    g.addColorStop(0.6, hot ? '#ff6a1f' : '#3a1510');
+    g.addColorStop(1, '#140505');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,150,80,0.7)';
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    // ひび（溶岩）
+    ctx.strokeStyle = hot ? '#fff3b0' : '#ff7a2a';
+    ctx.shadowColor = '#ff6a1f';
+    ctx.shadowBlur = r * 0.5;
+    ctx.lineWidth = r * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.5, -r * 0.2); ctx.lineTo(-r * 0.15, r * 0.1); ctx.lineTo(-r * 0.3, r * 0.5);
+    ctx.moveTo(r * 0.55, 0); ctx.lineTo(r * 0.2, r * 0.25);
+    ctx.stroke();
+    // 導火線
+    ctx.strokeStyle = '#c9b89a';
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.75);
+    ctx.quadraticCurveTo(r * 0.3, -r * 1.1, r * 0.15, -r * 1.3);
+    ctx.stroke();
+    ctx.fillStyle = hot ? '#ffffff' : '#ffb84a';
+    ctx.shadowColor = '#ffb84a';
+    ctx.shadowBlur = r;
+    ctx.beginPath();
+    ctx.arc(r * 0.15, -r * 1.32, r * (hot ? 0.28 : 0.16), 0, TAU);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    eyes(ctx, 0, r * 0.05, r * 0.22, { color: '#ffd23d' });
+  },
+  wisp(ctx, r, col) {
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.3);
+    ctx.bezierCurveTo(r * 0.5, -r * 0.8, r * 1.0, -r * 0.1, r * 0.8, r * 0.45);
+    ctx.bezierCurveTo(r * 0.55, r * 1.0, -r * 0.55, r * 1.0, -r * 0.8, r * 0.45);
+    ctx.bezierCurveTo(-r * 1.0, -r * 0.1, -r * 0.3, -r * 0.6, 0, -r * 1.3);
+    const g = ctx.createRadialGradient(0, r * 0.3, 1, 0, 0, r * 1.2);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.35, '#bfefff');
+    g.addColorStop(1, 'rgba(90,160,230,0.4)');
+    ctx.fillStyle = g;
+    ctx.shadowColor = '#9fe4ff';
+    ctx.shadowBlur = r * 0.8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#0a1a33';
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(sd * r * 0.3, r * 0.25, r * 0.12, r * 0.2, 0, 0, TAU);
+      ctx.fill();
+    }
+  },
+  phantom(ctx, r, col) {
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.1);
+    ctx.quadraticCurveTo(r * 0.95, -r * 0.9, r * 0.9, r * 0.3);
+    for (let i = 0; i < 5; i++) {
+      const x0 = r * 0.9 - (i * r * 1.8) / 5;
+      ctx.lineTo(x0 - r * 0.18, r * (i % 2 ? 0.8 : 1.1));
+    }
+    ctx.lineTo(-r * 0.9, r * 0.3);
+    ctx.quadraticCurveTo(-r * 0.95, -r * 0.9, 0, -r * 1.1);
+    const g = ctx.createLinearGradient(0, -r, 0, r);
+    g.addColorStop(0, '#3a2060');
+    g.addColorStop(1, 'rgba(20,5,40,0.6)');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(224,92,255,0.7)';
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // フードの中
+    ctx.fillStyle = '#05010a';
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.3, r * 0.5, r * 0.45, 0, 0, TAU);
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.3, r * 0.2, { color: '#e05cff' });
+  },
+  wormseg(ctx, r) {
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.95, 0, TAU);
+    const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, 1, 0, 0, r);
+    g.addColorStop(0, '#6a3a2a');
+    g.addColorStop(0.7, '#3a1a12');
+    g.addColorStop(1, '#140505');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = '#ff7a2a';
+    ctx.shadowColor = '#ff6a1f';
+    ctx.shadowBlur = r * 0.5;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.6, -r * 0.2); ctx.lineTo(-r * 0.1, r * 0.15); ctx.lineTo(r * 0.5, -r * 0.1);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  },
+  worm(ctx, r) {
+    // あご
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(sd * r * 0.5, r * 0.3);
+      ctx.quadraticCurveTo(sd * r * 1.2, r * 0.9, sd * r * 0.4, r * 1.35);
+      ctx.quadraticCurveTo(sd * r * 0.7, r * 0.8, sd * r * 0.15, r * 0.55);
+      ctx.fillStyle = '#e8d0b0';
+      ctx.fill();
+    }
+    ENEMY_DRAW.wormseg(ctx, r);
+    ctx.fillStyle = '#ffb84a';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.45, r * 0.35, r * 0.2, 0, 0, TAU);
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.2, r * 0.26, { color: '#ffd23d' });
+  },
+  prism(ctx, r) {
+    const cc = [
+      { color: '#6fe0ff', light: '#ffffff', dark: '#1f5f99' },
+      { color: '#b88fff', light: '#f4e8ff', dark: '#4a2a99' },
+      { color: '#8fffd8', light: '#ffffff', dark: '#1f8a6a' },
+    ];
+    const parts = [[-0.7, 0.3, -0.5, 0.55, 0], [0.7, 0.3, 0.5, 0.55, 1], [-0.35, -0.35, -0.2, 0.6, 2], [0.35, -0.35, 0.2, 0.6, 0], [0, 0.5, 0, 0.5, 1]];
+    for (const [x, y, rot, sz, ci] of parts) {
+      ctx.save(); ctx.translate(x * r, y * r); ctx.rotate(rot); drawGem(ctx, r * sz, cc[ci], 'long'); ctx.restore();
+    }
+    ctx.save(); ctx.translate(0, -r * 0.05); drawGem(ctx, r * 0.75, cc[0], 'long'); ctx.restore();
+    // 核の目
+    ctx.fillStyle = '#05101a';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.22, r * 0.14, 0, 0, TAU);
+    ctx.fill();
+    eyes(ctx, 0, 0, r * 0.12, { color: '#ff3ddc', angry: false, gap: 0 });
+  },
+  lich(ctx, r) {
+    // ローブ
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.95, r * 1.0);
+    ctx.quadraticCurveTo(-r * 0.6, -r * 0.2, 0, -r * 0.7);
+    ctx.quadraticCurveTo(r * 0.6, -r * 0.2, r * 0.95, r * 1.0);
+    ctx.quadraticCurveTo(0, r * 0.75, -r * 0.95, r * 1.0);
+    const g = ctx.createLinearGradient(0, -r, 0, r);
+    g.addColorStop(0, '#2a4a7a');
+    g.addColorStop(1, '#0a1428');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(190,240,255,0.7)';
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 顔（骸骨）
+    ctx.fillStyle = '#dfe8f0';
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.25, r * 0.3, r * 0.34, 0, 0, TAU);
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.3, r * 0.14, { color: '#5fe0ff', gap: 1.0 });
+    // 氷の冠
+    const ic = { color: '#bfefff', light: '#ffffff', dark: '#4a8ac0' };
+    for (let i = -2; i <= 2; i++) {
+      ctx.save(); ctx.translate(i * r * 0.16, -r * 0.7 - (2 - Math.abs(i)) * r * 0.08); drawGem(ctx, r * (0.2 + (2 - Math.abs(i)) * 0.05), ic, 'long'); ctx.restore();
+    }
+    // 杖の宝珠
+    ctx.save(); ctx.translate(r * 0.85, r * 0.1); drawGem(ctx, r * 0.2, ic, 'round'); ctx.restore();
+  },
+  emperor(ctx, r) {
+    // 周囲の黒曜石片
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU;
+      ctx.save();
+      ctx.translate(Math.cos(a) * r * 1.0, Math.sin(a) * r * 1.0);
+      ctx.rotate(a + Math.PI / 2);
+      drawGem(ctx, r * 0.2, GEMS.obsidian, 'long');
+      ctx.restore();
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.78, 0, TAU);
+    const g = ctx.createRadialGradient(-r * 0.2, -r * 0.3, 1, 0, 0, r * 0.8);
+    g.addColorStop(0, '#5a2a8a');
+    g.addColorStop(0.6, '#1a0a2a');
+    g.addColorStop(1, '#000000');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = '#e05cff';
+    ctx.shadowColor = '#e05cff';
+    ctx.shadowBlur = r * 0.3;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    // 大きな目
+    ctx.fillStyle = '#f4e8ff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.42, r * 0.22, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#ff3ddc';
+    ctx.shadowColor = '#ff3ddc';
+    ctx.shadowBlur = r * 0.3;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.1, r * 0.2, 0, 0, TAU);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // 冠
+    ctx.save(); ctx.translate(0, -r * 0.95); drawGem(ctx, r * 0.22, GEMS.obsidian); ctx.restore();
+  },
   crystal(ctx, r) {
     const cols = [
       { color: '#ffd6f5', light: '#ffffff', dark: '#d07bb8' },
@@ -625,6 +907,7 @@ export function enemySprite(type, r, frame = 0, flash = false, colOverride) {
 const ENEMY_COLORS = {
   slime: '#7a64a8', bat: '#5a4a80', ghost: '#9c90c8', toge: '#6a3a70', golem: '#7a6a60', knight: '#3c3456',
   boss1: '#6a48a0', boss2: '#35235a', boss3: '#1a0d2a',
+  spitter: '#3a5a7a', splitter: '#3a7a5a', charger: '#6a4a3a', phantom: '#2a1a4a',
 };
 
 // ------------------------------------------------------------------ プレイヤー
@@ -814,23 +1097,26 @@ export function itemSprite(kind) {
 }
 
 // ------------------------------------------------------------------ 背景
-let bgTile = null;
-export function backgroundTile() {
-  if (bgTile) return bgTile;
+const bgCache = new Map();
+const DEFAULT_PAL = { bg: '#07070d', grid: '160,140,255', mark: '200,180,255', dust: '210,200,255' };
+export function backgroundTile(pal = DEFAULT_PAL) {
+  const key = pal.bg + pal.grid;
+  let t = bgCache.get(key);
+  if (t) return t;
   const S = 256;
-  bgTile = makeCanvas(S, S);
-  const ctx = bgTile.getContext('2d');
-  ctx.fillStyle = '#07070d';
+  t = makeCanvas(S, S);
+  const ctx = t.getContext('2d');
+  ctx.fillStyle = pal.bg;
   ctx.fillRect(0, 0, S, S);
   // うすい グリッド
-  ctx.strokeStyle = 'rgba(160,140,255,0.06)';
+  ctx.strokeStyle = `rgba(${pal.grid},0.06)`;
   ctx.lineWidth = 1;
   for (let i = 0; i <= S; i += 64) {
     ctx.beginPath(); ctx.moveTo(i + 0.5, 0); ctx.lineTo(i + 0.5, S); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, i + 0.5); ctx.lineTo(S, i + 0.5); ctx.stroke();
   }
   // 交点の しるし
-  ctx.fillStyle = 'rgba(200,180,255,0.16)';
+  ctx.fillStyle = `rgba(${pal.mark},0.16)`;
   for (let x = 0; x < S; x += 64) for (let y = 0; y < S; y += 64) {
     ctx.beginPath();
     ctx.moveTo(x, y - 3); ctx.lineTo(x + 3, y); ctx.lineTo(x, y + 3); ctx.lineTo(x - 3, y);
@@ -842,10 +1128,76 @@ export function backgroundTile() {
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   for (let i = 0; i < 70; i++) {
     const x = rnd() * S, y = rnd() * S, a = 0.05 + rnd() * 0.18;
-    ctx.fillStyle = `rgba(210,200,255,${a})`;
+    ctx.fillStyle = `rgba(${pal.dust},${a})`;
     ctx.fillRect(x, y, 1, 1);
   }
-  return bgTile;
+  bgCache.set(key, t);
+  return t;
+}
+
+// 水晶柱
+const pillarCache = new Map();
+export function pillarSprite(r, v) {
+  const key = r + ':' + v;
+  let c = pillarCache.get(key);
+  if (c) return c;
+  const S = r * 4;
+  c = makeCanvas(S * RES, S * RES);
+  const ctx = c.getContext('2d');
+  ctx.scale(RES, RES);
+  ctx.translate(S / 2, S * 0.62);
+  // 影
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath();
+  ctx.ellipse(0, r * 0.15, r * 1.1, r * 0.45, 0, 0, TAU);
+  ctx.fill();
+  const cols = [
+    { color: '#4fc8ff', light: '#e0fbff', dark: '#0f4a7a' },
+    { color: '#8f7fff', light: '#ece8ff', dark: '#2a1f7a' },
+    { color: '#5fffd0', light: '#e0fff4', dark: '#0f6a5a' },
+    { color: '#9fd8ff', light: '#ffffff', dark: '#2a5a8a' },
+  ];
+  const cc = cols[v % 4];
+  const parts = [[-0.55, -0.35, -0.45, 0.55], [0.55, -0.3, 0.4, 0.5], [0, -0.75, 0, 0.9], [0.25, -0.2, 0.2, 0.4]];
+  for (const [x, y, rot, sz] of parts) {
+    ctx.save(); ctx.translate(x * r, y * r); ctx.rotate(rot); drawGem(ctx, r * sz, cc, 'long'); ctx.restore();
+  }
+  c.logical = S;
+  pillarCache.set(key, c);
+  return c;
+}
+
+// 三日月／満月
+const moonCache = new Map();
+export function moonSprite(size, full) {
+  const key = size + ':' + (full ? 1 : 0);
+  let c = moonCache.get(key);
+  if (c) return c;
+  const S = size * 2.2;
+  c = makeCanvas(S * RES, S * RES);
+  const ctx = c.getContext('2d');
+  ctx.scale(RES, RES);
+  ctx.translate(S / 2, S / 2);
+  const r = size / 2;
+  ctx.shadowColor = '#9fb8ff';
+  ctx.shadowBlur = r * 0.8;
+  const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, 1, 0, 0, r);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.6, '#d8e4ff');
+  g.addColorStop(1, '#7f96d8');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  if (full) ctx.arc(0, 0, r, 0, TAU);
+  else {
+    ctx.arc(0, 0, r, -Math.PI * 0.5, Math.PI * 0.5);
+    ctx.arc(-r * 0.35, 0, r * 0.93, Math.PI * 0.42, -Math.PI * 0.42, true);
+  }
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  c.logical = S;
+  c.base = size;
+  moonCache.set(key, c);
+  return c;
 }
 
 export function hexA(hex, a) { return rgba(hex, a); }

@@ -517,3 +517,29 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
   .logo { margin-top: 56px; }
 }
 .gcard .rarbadge { display: block; width: fit-content; margin: 0 auto 4px; }
+
+/* ------------------------------------------------------------------ ステージ選択 */
+.stage-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px; margin-bottom: 12px; }
+.stage-card {
+  position: relative; text-align: left; border-radius: 14px; padding: 12px 14px; color: var(--text);
+  border: 1px solid var(--line); background: linear-gradient(110deg, var(--sg), rgba(14,13,22,0.92) 55%);
+  box-shadow: inset 3px 0 0 var(--sc); transition: border-color 0.15s, box-shadow 0.15s;
+}
+.stage-card.sel { border-color: var(--sc); box-shadow: inset 3px 0 0 var(--sc), 0 0 22px color-mix(in srgb, var(--sc) 45%, transparent); }
+.stage-card.locked { opacity: 0.45; }
+.st-head { display: flex; justify-content: space-between; align-items: center; }
+.st-no { font-size: 11px; letter-spacing: 0.3em; color: var(--sc); font-weight: 700; }
+.st-clear { font-size: 10px; letter-spacing: 0.15em; font-weight: 700; color: #111; background: var(--gold); border-radius: 4px; padding: 0 6px; }
+.st-name { font-family: var(--font-jp); font-size: 18px; font-weight: 900; margin: 2px 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.st-name .en { font-size: 11px; color: var(--muted); letter-spacing: 0.2em; }
+.st-desc { font-family: var(--font-jp); font-size: 12px; line-height: 1.6; color: #c9c6dc; }
+.st-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; font-family: var(--font-jp); font-size: 11px; color: var(--muted); }
+.st-meta span { border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
+.heat-ctl { display: flex; align-items: center; gap: 10px; }
+.heat-ctl .iconbtn { width: 36px; height: 36px; font-size: 18px; }
+.heat-ctl .iconbtn:disabled { opacity: 0.3; }
+.heat-val { font-size: 26px; min-width: 22px; text-align: center; }
+.heat-val.h1, .heat-val.h2 { color: #ffd23d; }
+.heat-val.h3, .heat-val.h4 { color: #ff8a3d; text-shadow: 0 0 10px #ff6a3d; }
+.heat-val.h5 { color: #ff2d55; text-shadow: 0 0 14px #ff2d55; }
+.tab { padding: 7px 9px; font-size: 12px; }

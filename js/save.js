@@ -17,6 +17,9 @@ function defaults() {
     settings: { bgm: 0.55, sfx: 0.8, haptic: true, dmgNum: true, shake: true },
     endless: false,
     login: { last: '', streak: 0 },
+    stages: {},
+    selectedStage: 'wastes',
+    heatSel: 0,
   };
 }
 

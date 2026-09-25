@@ -5,7 +5,8 @@ import { Game } from './game.js';
 import { Input } from './input.js';
 import { audio } from './audio.js';
 import { save, persist } from './save.js';
-import { ACHIEVEMENTS, GEMS, WEAPON_IDS } from './data.js';
+import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES } from './data.js';
+import { STAGES, STAGE_BY_ID, heatMods } from './stages.js';
 import { gemSprite, starSprite, backgroundTile } from './render.js';
 import { TAU, rand, pick } from './util.js';
 import * as UI from './ui.js';
@@ -21,6 +22,8 @@ const DEBUG = {
   god: params.has('god'),
   autostart: params.get('auto'),
   build: params.get('build'),
+  stage: params.get('stage'),
+  heat: +(params.get('heat') || 0),
   norender: params.has('norender'),
 };
 
@@ -167,7 +170,9 @@ const hooks = {
 
 let achDuringRun = [];
 let moveHint = null;
-function startGame(charId, endless) {
+function startGame(charId, opt = {}) {
+  if (typeof opt === 'boolean') opt = { endless: opt };
+  const stage = STAGE_BY_ID[opt.stageId] || STAGE_BY_ID.wastes;
   UI.clearScreens();
   audio.unlock();
   input.reset();
@@ -187,15 +192,16 @@ function startGame(charId, endless) {
     ...hooks,
     ...botHooks,
     checkAchievements: (r, live) => { achDuringRun.push(...checkAchievements(r, live)); },
-  },{ charId, endless, bot: DEBUG.bot, god: DEBUG.god, startTime: DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
+  },{ charId, endless: !!opt.endless, stageId: stage.id, heat: opt.heat || 0, bot: DEBUG.bot, god: DEBUG.god, startTime: DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
   achDuringRun = [];
   window.__game = game; // デバッグ用
   UI.hudShow(true);
   moveHint = document.getElementById('movehint');
   moveHint.classList.remove('hidden', 'gone');
   audio.tempoMul = 1;
-  audio.playBgm('stage');
-  UI.banner('SURVIVE', 'start', '10:00 — オブシディアン・クイーンを撃破せよ');
+  audio.playBgm(stage.bgm);
+  const m = Math.floor(stage.time / 60);
+  UI.banner(stage.en, 'start', `${m}:00 — ${ENEMIES[stage.finalBoss].name}を撃破せよ`);
   save.stats.runs++;
   persist();
 }
@@ -207,7 +213,21 @@ function finishRun(res, cleared) {
   document.getElementById('movehint').classList.add('hidden');
   audio.tempoMul = 1;
   // セーブ
-  const coinsEarned = Math.round(res.coins + (cleared ? 1000 : 0));
+  const stage = STAGE_BY_ID[res.stageId] || STAGE_BY_ID.wastes;
+  const rec = save.stages[stage.id] || (save.stages[stage.id] = {});
+  const firstClear = cleared && !rec.cleared;
+  let unlocked = null, nextStage = null;
+  if (cleared) {
+    if (!rec.cleared) {
+      rec.cleared = true;
+      if (stage.unlockChar && !save.unlocked[stage.unlockChar]) { save.unlocked[stage.unlockChar] = true; unlocked = stage.unlockChar; }
+      const nx = STAGES[stage.no];
+      if (nx) nextStage = nx.name;
+    }
+    rec.heat = Math.max(rec.heat ?? 0, res.heat || 0);
+  }
+  rec.best = Math.max(rec.best || 0, res.time);
+  const coinsEarned = Math.round(res.coins * heatMods(res.heat || 0).coin + (firstClear ? stage.reward : cleared ? 500 : 0));
   save.coins += coinsEarned;
   save.totalCoins += coinsEarned;
   save.stats.kills += res.kills;
@@ -222,7 +242,7 @@ function finishRun(res, cleared) {
   const newAch = [...achDuringRun, ...checkAchievements(res, false)];
   persist();
   if (DEBUG.bot) window.__lastResult = { ...res, cleared };
-  UI.results(res, cleared, { coinsEarned, newBest, newAch });
+  UI.results(res, cleared, { coinsEarned, newBest, newAch, firstClear, unlocked, nextStage });
 }
 
 function toTitle() {
@@ -258,10 +278,16 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape' || e.code === 'KeyP') document.getElementById('pausebtn').click();
 });
 
+// 旧バージョンのセーブ：ステージ1クリア済みなら引き継ぐ
+if (save.stats.clears > 0 && !(save.stages.wastes && save.stages.wastes.cleared)) {
+  save.stages.wastes = { cleared: true, heat: 0, best: save.best.time || 600 };
+  persist();
+}
+
 UI.initUI({ startGame, toTitle });
 window.__save = save; // デバッグ用
 
-if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', params.has('endless'));
+if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), stageId: DEBUG.stage, heat: DEBUG.heat });
 else UI.showTitle();
 
 // オフライン用 サービスワーカー
