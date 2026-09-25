@@ -85,19 +85,32 @@ export const GEMS = {
   },
 
   // ---------- チャーム（パッシブ）になるジュエル ----------
-  topaz: { jp: 'トパーズ', en: 'TOPAZ', word: '自信', kana: 'じしん', color: '#ffc21a', light: '#fff0a8', dark: '#9a6200', cut: 'oval' },
-  jasper: { jp: 'ジャスパー', en: 'JASPER', word: '強い意志', kana: 'つよいいし', color: '#d4552a', light: '#ffb592', dark: '#6e210a', cut: 'round' },
-  nephrite: { jp: 'ネフライト', en: 'NEPHRITE', word: 'チームワーク', kana: 'チームワーク', color: '#52b35a', light: '#c4f5c0', dark: '#1d5a22', cut: 'drop' },
-  milkyquartz: { jp: 'ミルキークオーツ', en: 'MILKY QUARTZ', word: '思いやり', kana: 'おもいやり', color: '#f4f1ff', light: '#ffffff', dark: '#bdb4dc', cut: 'heart' },
-  coral: { jp: 'サンゴ', en: 'CORAL', word: '守護と幸運', kana: 'まもりとこううん', color: '#ff7a66', light: '#ffd0c7', dark: '#a3301f', cut: 'drop' },
-  iolite: { jp: 'アイオライト', en: 'IOLITE', word: 'リフレッシュ', kana: 'リフレッシュ', color: '#6c5ce7', light: '#cfc8ff', dark: '#2a1f82', cut: 'oval' },
-  prase: { jp: 'プレーズ', en: 'PRASE', word: '勉強', kana: 'べんきょう', color: '#7cb35a', light: '#d6f5bf', dark: '#355a1f', cut: 'emerald' },
-  granite: { jp: 'グラナイト', en: 'GRANITE', word: '安心', kana: 'あんしん', color: '#b7aca3', light: '#f3ede8', dark: '#5c534c', cut: 'emerald' },
-  coal: { jp: 'コール', en: 'COAL', word: '忍耐', kana: 'にんたい', color: '#4a4a58', light: '#a9a9c2', dark: '#15151c', cut: 'round' },
-  titanite: { jp: 'チタナイト', en: 'TITANITE', word: '仕事運とバランス', kana: 'しごとうん', color: '#c9d63a', light: '#f6ffb0', dark: '#5f6a00', cut: 'long' },
-  redberyl: { jp: 'レッドベリル', en: 'RED BERYL', word: '心身の浄化', kana: 'じょうか', color: '#e0245e', light: '#ffa3c0', dark: '#6b0626', cut: 'emerald' },
-  turquoise: { jp: 'ターコイズ', en: 'TURQUOISE', word: '勇気', kana: 'ゆうき', color: '#2fc9b8', light: '#b8fff4', dark: '#0f6b66', cut: 'round' },
-  peridot: { jp: 'ペリドット', en: 'PERIDOT', word: 'ポジティブ', kana: 'まえむき', color: '#9be22e', light: '#e4ffb2', dark: '#3f6a00', cut: 'oval' },
+  topaz: { jp: 'トパーズ', en: 'TOPAZ', word: '自信', kana: 'じしん', color: '#ffc21a', light: '#fff0a8', dark: '#9a6200', cut: 'oval',
+    lore: '自信の黄玉。揺るがぬ確信が、放つ一撃すべてを重くする。' },
+  jasper: { jp: 'ジャスパー', en: 'JASPER', word: '強い意志', kana: 'つよいいし', color: '#d4552a', light: '#ffb592', dark: '#6e210a', cut: 'round',
+    lore: '強い意志の碧玉。折れない心が、身体をも頑丈にする。' },
+  nephrite: { jp: 'ネフライト', en: 'NEPHRITE', word: 'チームワーク', kana: 'チームワーク', color: '#52b35a', light: '#c4f5c0', dark: '#1d5a22', cut: 'drop',
+    lore: 'チームワークの軟玉。仲間の数だけ、放たれる光も増えていく。' },
+  milkyquartz: { jp: 'ミルキークオーツ', en: 'MILKY QUARTZ', word: '思いやり', kana: 'おもいやり', color: '#f4f1ff', light: '#ffffff', dark: '#bdb4dc', cut: 'heart',
+    lore: '思いやりの乳白石。やわらかな光が、手の届く範囲を広げる。' },
+  coral: { jp: 'サンゴ', en: 'CORAL', word: '守護と幸運', kana: 'まもりとこううん', color: '#ff7a66', light: '#ffd0c7', dark: '#a3301f', cut: 'drop',
+    lore: '海が育んだ守護と幸運の石。思わぬ幸運と会心の一撃を呼び込む。' },
+  iolite: { jp: 'アイオライト', en: 'IOLITE', word: 'リフレッシュ', kana: 'リフレッシュ', color: '#6c5ce7', light: '#cfc8ff', dark: '#2a1f82', cut: 'oval',
+    lore: 'リフレッシュの菫青石。澄んだ心が、次の一手を早くする。' },
+  prase: { jp: 'プレーズ', en: 'PRASE', word: '勉強', kana: 'べんきょう', color: '#7cb35a', light: '#d6f5bf', dark: '#355a1f', cut: 'emerald',
+    lore: '学びの石。倒した敵の一体一体から、より多くを学び取る。' },
+  granite: { jp: 'グラナイト', en: 'GRANITE', word: '安心', kana: 'あんしん', color: '#b7aca3', light: '#f3ede8', dark: '#5c534c', cut: 'emerald',
+    lore: '安心の花崗岩。大地のように揺るがず、主を攻撃から守る。' },
+  coal: { jp: 'コール', en: 'COAL', word: '忍耐', kana: 'にんたい', color: '#4a4a58', light: '#a9a9c2', dark: '#15151c', cut: 'round',
+    lore: '忍耐の石炭。燃え尽きることなく、静かに傷を癒し続ける。' },
+  titanite: { jp: 'チタナイト', en: 'TITANITE', word: '仕事運とバランス', kana: 'しごとうん', color: '#c9d63a', light: '#f6ffb0', dark: '#5f6a00', cut: 'long',
+    lore: '仕事運とバランスの榍石。働きに見合った報酬を約束する。' },
+  redberyl: { jp: 'レッドベリル', en: 'RED BERYL', word: '心身の浄化', kana: 'じょうか', color: '#e0245e', light: '#ffa3c0', dark: '#6b0626', cut: 'emerald',
+    lore: '心身を浄化する赤い緑柱石。散らばった輝きを主のもとへ呼び寄せる。' },
+  turquoise: { jp: 'ターコイズ', en: 'TURQUOISE', word: '勇気', kana: 'ゆうき', color: '#2fc9b8', light: '#b8fff4', dark: '#0f6b66', cut: 'round',
+    lore: '旅人を守る勇気のトルコ石。受ける痛みを和らげる。' },
+  peridot: { jp: 'ペリドット', en: 'PERIDOT', word: 'ポジティブ', kana: 'まえむき', color: '#9be22e', light: '#e4ffb2', dark: '#3f6a00', cut: 'oval',
+    lore: '前向きな橄欖石。踏み出す足も、放つ光も軽くする。' },
 
   // 敵ボスのジュエル
   obsidian: { jp: 'オブシディアン', en: 'OBSIDIAN', word: '闇', kana: 'やみ', color: '#3a2350', light: '#9b6fd0', dark: '#0d0414', cut: 'round' },
@@ -130,6 +143,7 @@ export const WEAPONS = {
   sapphire: {
     gem: 'sapphire', name: 'ボンド・オービット',
     dmgMul: 2.8, // バランス調整（Lv帯）
+    lowBoost: 0.7, // 低レベル時の補正（Lv1 で ×1.7、Lv8 で ×1）
     desc: '周囲を旋回する蒼玉。近くの敵へ援護射撃も行う',
     base: { dmg: 85, cd: 1.8, amount: 2, speed: 1, area: 1, duration: 4 },
     levels: [
@@ -258,6 +272,7 @@ export const WEAPONS = {
   rhodochrosite: {
     gem: 'rhodochrosite', name: 'パッション・フレイム',
     dmgMul: 2.0, // バランス調整（Lv帯）
+    lowBoost: 2.5, // 低レベル時の補正（Lv1 で ×3.5、Lv8 で ×1）
     desc: '進行方向へ炎を放射する',
     base: { dmg: 22, cd: 2.2, amount: 1, area: 1, duration: 1.2 },
     levels: [
@@ -364,7 +379,7 @@ export const PASSIVES = {
   nephrite: { gem: 'nephrite', name: 'ネフライト', max: 1, per: { amount: 1 }, t: '弾数 +1' },
   milkyquartz: { gem: 'milkyquartz', name: 'ミルキークオーツ', max: 5, per: { area: 0.1 }, t: '攻撃範囲 +10%' },
   coral: { gem: 'coral', name: 'サンゴ', max: 5, per: { luck: 0.15, crit: 0.01 }, t: '幸運 +15% / クリティカル率 +1%' },
-  iolite: { gem: 'iolite', name: 'アイオライト', max: 5, per: { cooldown: -0.08 }, t: 'クールダウン -8%' },
+  iolite: { gem: 'iolite', name: 'アイオライト', max: 5, per: { cooldown: -0.08 }, t: 'クールダウン短縮 8%' },
   prase: { gem: 'prase', name: 'プレーズ', max: 5, per: { growth: 0.1 }, t: '経験値 +10%' },
   granite: { gem: 'granite', name: 'グラナイト', max: 5, per: { armor: 1 }, t: 'アーマー +1' },
   coal: { gem: 'coal', name: 'コール', max: 5, per: { regen: 0.25 }, t: 'HP自然回復 +0.25/秒' },
@@ -385,7 +400,7 @@ export const BASE_STATS = {
 // ---------------------------------------------------------------------
 export const CHARACTERS = {
   ruby: { weapon: 'ruby', perk: 'HP50%以下で攻撃力 +30%', stats: { might: 0.1 }, rarity: 'R', start: true },
-  sapphire: { weapon: 'sapphire', perk: '回収範囲 +20% / クールダウン -5%', stats: { magnet: 0.2, cooldown: -0.05 }, rarity: 'R', start: true },
+  sapphire: { weapon: 'sapphire', perk: '回収範囲 +20% / クールダウン短縮 5%', stats: { magnet: 0.2, cooldown: -0.05 }, rarity: 'R', start: true },
   garnet: { weapon: 'garnet', perk: '最大HP +20 / 自然回復 +0.2', stats: { maxHp: 20, regen: 0.2 }, rarity: 'R', start: true },
   labradorite: { weapon: 'labradorite', perk: 'クリティカル率 +5%', stats: { crit: 0.05 }, rarity: 'SR', unlock: '1回のプレイで1000体撃破' },
   amber: { weapon: 'amber', perk: 'コイン +30%', stats: { greed: 0.3 }, rarity: 'SR', unlock: '1回のプレイでコイン500枚獲得' },
@@ -449,7 +464,7 @@ export const SHOP = [
   { id: 'maxHp', name: '最大HP', gem: 'jasper', max: 5, base: 100, per: { maxHp: 10 }, t: '最大HP +10' },
   { id: 'armor', name: 'アーマー', gem: 'granite', max: 3, base: 250, per: { armor: 1 }, t: '被ダメージ -1' },
   { id: 'regen', name: '自然回復', gem: 'coal', max: 5, base: 150, per: { regen: 0.1 }, t: 'HP回復 +0.1/秒' },
-  { id: 'cooldown', name: 'クールダウン', gem: 'iolite', max: 3, base: 400, per: { cooldown: -0.03 }, t: 'クールダウン -3%' },
+  { id: 'cooldown', name: 'クールダウン', gem: 'iolite', max: 3, base: 400, per: { cooldown: -0.03 }, t: 'クールダウン短縮 3%' },
   { id: 'area', name: '攻撃範囲', gem: 'milkyquartz', max: 3, base: 300, per: { area: 0.05 }, t: '攻撃範囲 +5%' },
   { id: 'speed', name: '弾速', gem: 'kyanite', max: 3, base: 150, per: { speed: 0.05 }, t: '弾速 +5%' },
   { id: 'duration', name: '持続', gem: 'aquamarine', max: 3, base: 200, per: { duration: 0.07 }, t: '効果時間 +7%' },

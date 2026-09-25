@@ -626,7 +626,33 @@ export class Game {
         audio.whoosh();
       }
     } else e.warpT = 0;
-    if (AI[e.ai]) { AI[e.ai](this, e, dt, dist, mv); return; }
+    if (AI[e.ai]) AI[e.ai](this, e, dt, dist, mv);
+    else this.bossAttack(e, dt, dist, mv);
+    if (e.ai !== 'worm') this.bossMove(e, dt, dist, mv);
+  }
+
+  // ボスは常に追ってこない。一定距離を保って周回し、離れすぎたときだけ急いで寄ってくる
+  bossMove(e, dt, dist, mv) {
+    const k = mv.spd; // AI 側の減速（停止・鈍足）を尊重する
+    if (k <= 0) return;
+    const far = 170 + e.r, near = 60 + e.r, mid = (far + near) / 2;
+    if (dist > far) {
+      e.rushing = true;
+    } else if (dist < mid) e.rushing = false;
+    if (e.rushing) { mv.spd = k * 1.9; return; }
+    if (!e.orbDir) e.orbDir = chance(0.5) ? 1 : -1;
+    e.orbFlipT = (e.orbFlipT || rand(4, 8)) - dt;
+    if (e.orbFlipT <= 0) { e.orbDir *= -1; e.orbFlipT = rand(4, 8); }
+    // 接線方向＋半径方向の補正
+    const rad = Math.max(-1, Math.min(1, (dist - mid) / (far - mid)));
+    const tx = -mv.my * e.orbDir, ty = mv.mx * e.orbDir;
+    mv.mx = tx + mv.mx * rad * 1.2;
+    mv.my = ty + mv.my * rad * 1.2;
+    mv.spd = k * 0.6;
+  }
+
+  bossAttack(e, dt, dist, mv) {
+    const p = this.player;
     const enraged = e.hp < e.maxHp * 0.5;
     e.atkT -= dt * (enraged ? 1.4 : 1);
     e.atk2 -= dt;
@@ -1007,6 +1033,12 @@ export class Game {
     for (let i = 0; i < 25; i++) this.dropPickup('coin', e.x, e.y, randi(3, 8));
     if (this.state !== 'over') audio.playBgm(this.stage.bgm);
     this.lasers.length = 0;
+    // 盤面の敵弾をすべて消す
+    for (let i = 0; i < this.ebullets.length; i++) {
+      const b = this.ebullets[i];
+      if (i < 120) this.fx.burst(b.x, b.y, '#ffd6f5', 3, 90, 0.35, 6);
+    }
+    this.ebullets.length = 0;
     if (e.type === this.stage.finalBoss && !this.endless && !this.cleared) {
       this.cleared = true;
       setTimeout(() => {
@@ -1638,13 +1670,19 @@ export class Game {
         const t = pr.life / pr.max;
         ctx.globalCompositeOperation = 'lighter';
         const spr = softSprite(t > 0.6 ? '#ffb84a' : t > 0.3 ? '#ff6a3d' : '#d62d6a');
-        const s = pr.r * 1.15;
-        ctx.globalAlpha = Math.min(0.72, t * 1.3);
-        ctx.drawImage(spr, pr.x - s, pr.y - s, s * 2, s * 2);
-        if (t > 0.35) {
+        const s = pr.r * 0.9;
+        ctx.globalAlpha = Math.min(1, t * 2.2);
+        // 進行方向に引き伸ばして、玉が途切れず炎の帯に見えるように
+        const L = s + Math.hypot(pr.vx, pr.vy) * 0.09;
+        ctx.save();
+        ctx.translate(pr.x, pr.y);
+        ctx.rotate(Math.atan2(pr.vy, pr.vx));
+        ctx.drawImage(spr, -L, -s, L * 2, s * 2);
+        ctx.restore();
+        if (t > 0.25) {
           // 芯（白飛びしない程度の明るいオレンジ）
           const c = pr.r * 0.5;
-          ctx.globalAlpha = Math.min(0.5, (t - 0.35) * 1.2);
+          ctx.globalAlpha = Math.min(0.85, (t - 0.25) * 2);
           ctx.drawImage(softSprite('#ffcf6a'), pr.x - c, pr.y - c, c * 2, c * 2);
         }
         ctx.globalAlpha = 1;

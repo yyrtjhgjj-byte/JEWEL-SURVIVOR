@@ -15,7 +15,7 @@ export function weaponStats(g, w) {
   }
   const P = g.stats;
   return {
-    dmg: s.dmg * P.might * (def.dmgMul || 1) * (w.evolved ? def.evo.mul || 1 : 1),
+    dmg: s.dmg * P.might * (def.dmgMul || 1) * (w.evolved ? def.evo.mul || 1 : 1 + (def.lowBoost || 0) * Math.max(0, 8 - w.level) / 7),
     cd: Math.max(0.08, s.cd * P.cooldown),
     amount: (s.amount || 0) + P.amount,
     speed: (s.speed || 1) * P.speed,
@@ -522,12 +522,14 @@ export const LOGIC = {
           if (s.amount >= 2) dirs.push(base + Math.PI);
           if (s.amount >= 3) { dirs.push(base + Math.PI / 2); dirs.push(base - Math.PI / 2); }
         }
+        // 低レベル時は射程を補正（Lv1 で +60%、Lv8 で補正なし）
+        const reach = evo ? 1 : 1 + 0.6 * Math.max(0, 8 - w.level) / 7;
         for (const a0 of dirs) {
           const a = a0 + rand(-0.28, 0.28);
           const spd = 270 * s.speed * rand(0.85, 1.15);
           g.addProj({
             x: p.x + Math.cos(a) * 10, y: p.y + Math.sin(a) * 10, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
-            r: 12 * s.area, dmg: s.dmg * 1.6 * (evo ? 1.2 : 1), pierce: 99, life: 0.4 * s.area, wid: 'rhodochrosite', flame: true, knock: 20,
+            r: 12 * s.area, dmg: s.dmg * 1.6 * (evo ? 1.2 : 1), pierce: 99, life: 0.4 * s.area * reach, wid: 'rhodochrosite', flame: true, knock: 20,
             grow: 1.8,
           });
         }
@@ -749,11 +751,6 @@ export const LOGIC = {
         const a = (w.ang || 0) + k * Math.PI;
         const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
         const L = spr.logical * s.area;
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 0.5;
-        ctx.drawImage(starSprite('#9fb8ff'), x - L * 0.8, y - L * 0.8, L * 1.6, L * 1.6);
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = 'source-over';
         ctx.drawImage(spr, x - L / 2, y - L / 2, L, L);
       }
     },
