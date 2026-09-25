@@ -52,7 +52,7 @@ npx http-server -p 8080 .
 | `&norender` | 描画なし（高速シミュレーション） |
 | `&t=300` | 開始時刻（秒） |
 | `&god` | 無敵 |
-| `&build=all:evo` | 武器4種Lv8＋進化済みで開始 |
+| `&build=ruby,amber:evo` | 指定武器をLv8（`all` で装備枠いっぱい）、`:evo` で進化済み |
 | `&stage=cavern` | ステージ指定（wastes / cavern / magma / tundra / void） |
 | `&heat=3` | ヒート指定 |
 
@@ -76,6 +76,8 @@ js/input.js           フローティング仮想スティック
 sw.js                 オフラインキャッシュ
 docs/GEMS.md          ジュエルパワーまとめ
 tools/icon.html       アイコン生成
+tools/test/           Playwright のテスト（ボット・DPS計測・クリア確認）
+CLAUDE.md             開発引き継ぎ資料（AI 向け）
 ```
 
 ---
