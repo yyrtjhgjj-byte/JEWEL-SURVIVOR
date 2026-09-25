@@ -390,8 +390,9 @@ export const PASSIVES = {
 };
 export const PASSIVE_IDS = Object.keys(PASSIVES);
 
-// ゲーム中に装備できる武器・チャームの数（各）
-export const MAX_SLOTS = 4;
+// ゲーム中に装備できる数
+export const MAX_WEAPONS = 4;
+export const MAX_CHARMS = 6;
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
@@ -521,6 +522,13 @@ export const ACHIEVEMENTS = [
   { id: 'full', name: 'フルセット', t: '武器を4種類そろえる', coins: 200, check: (r) => r.weaponCount >= 4 },
   { id: 'dmg1m', name: 'ミリオン', t: '1回のプレイで100万ダメージ', coins: 300, check: (r) => r.damage >= 1e6 },
   { id: 'dmg10m', name: 'テンミリオン', t: '1回のプレイで1000万ダメージ', coins: 1000, check: (r) => r.damage >= 1e7 },
+  // 研磨工房（meta: ラン以外のタイミングでも判定する）
+  { id: 'polish1', meta: true, name: 'ファースト・カット', t: '原石を研磨する', coins: 50, check: (r, s) => s.stats.polished >= 1 },
+  { id: 'polish100', meta: true, name: '研磨職人', t: '原石を100個研磨する', coins: 1000, check: (r, s) => s.stats.polished >= 100 },
+  { id: 'polishSS', meta: true, name: 'パーフェクト・カット', t: 'SS品質の宝石を研磨する', coins: 500, check: (r, s) => s.stats.polishSS >= 1 },
+  { id: 'coll14', meta: true, name: 'コレクター', t: '宝石を14種類コレクションする', coins: 400, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 14 },
+  { id: 'coll28', meta: true, name: 'ジュエル・マスター', t: '宝石を全28種類コレクションする', coins: 3000, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 28 },
+  { id: 'master', meta: true, name: '極めし輝き', t: 'いずれかの宝石の練度を最大にする', coins: 1500, check: (r, s) => Object.values(s.jewels).some((j) => j.best >= 4 && j.n >= 30) },
 ];
 
 // ---------------------------------------------------------------------

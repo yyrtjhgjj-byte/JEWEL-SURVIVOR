@@ -2,14 +2,16 @@
 //  UI：タイトル / レベルアップ / 宝箱 / ガチャ / 図鑑 / リザルト
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_SLOTS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST,
 } from './data.js';
-import { gemIcon, coinIcon, enemySprite } from './render.js';
+import { gemIcon, coinIcon, roughIcon, enemySprite } from './render.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
+import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
+import { showAtelier } from './atelier-ui.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 function el(html) {
@@ -117,11 +119,11 @@ export function showTitle() {
         <button class="btn big primary" id="t-play">START</button>
         <div class="title-row">
           <button class="btn" id="t-shop">WORKSHOP<span class="sub">工房</span></button>
-          <button class="btn" id="t-gacha">SUMMON<span class="sub">ガチャ</span></button>
+          <button class="btn" id="t-atelier">ATELIER<span class="sub">研磨</span>${totalRough() ? `<b class="badge">${totalRough()}</b>` : ''}</button>
         </div>
         <div class="title-row">
-          <button class="btn" id="t-zukan">ARCHIVE<span class="sub">図鑑</span></button>
-          <button class="btn" id="t-trophy">RECORDS<span class="sub">実績</span></button>
+          <button class="btn" id="t-gacha">SUMMON<span class="sub">ガチャ</span></button>
+          <button class="btn" id="t-zukan">ARCHIVE<span class="sub">図鑑・実績</span></button>
         </div>
       </div>
     </div>`);
@@ -131,7 +133,7 @@ export function showTitle() {
   tap('#t-shop', showShop);
   tap('#t-gacha', showGacha);
   tap('#t-zukan', () => showZukan('gems'));
-  tap('#t-trophy', () => showZukan('trophy'));
+  tap('#t-atelier', () => showAtelier());
   tap('#t-set', () => showSettings(showTitle));
   loginBonus();
 }
@@ -683,9 +685,10 @@ export function hud(g) {
   const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '')).join() + '|' + g.passives.map((p) => p.id + p.level).join();
   if (key !== lastSlots) {
     lastSlots = key;
-    const empty = (n) => '<div class="slotico empty"></div>'.repeat(Math.max(0, MAX_SLOTS - n));
-    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('') + empty(g.weapons.length) +
-      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length);
+    const empty = (n, max) => '<div class="slotico empty"></div>'.repeat(Math.max(0, max - n));
+    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
+      '<i style="grid-column:1/-1;height:0"></i>' +
+      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS);
   }
   const f = g.feverT > 0 ? g.feverT / 10 : g.feverGauge / g.feverNeed;
   H.fever.style.transform = `scaleX(${Math.min(1, f)})`;
@@ -986,6 +989,12 @@ export function pauseMenu(g, onResume, onQuit) {
 }
 
 // ================================================================== リザルト
+function roughResultHTML(got) {
+  const items = ROUGH_IDS.filter((t) => got && got[t]);
+  if (!items.length) return '';
+  return `<div class="rrough">${items.map((t) => `<span><img src="${roughIcon(t, ROUGH[t].color, 48)}">${ROUGH[t].short} ×${got[t]}</span>`).join('')}</div>`;
+}
+
 export function results(res, cleared, extra) {
   audio.playBgm('result');
   const node = el(`
@@ -998,6 +1007,7 @@ export function results(res, cleared, extra) {
       </div>
       <div class="panel" id="rows"></div>
       <div class="rcoins">${coinIco}<span id="rc">+0</span></div>
+      ${roughResultHTML(res.roughGot)}
       <div class="rbtns">
         <button class="btn big primary" id="again">RETRY</button>
         <button class="btn" id="home">TITLE</button>
@@ -1049,4 +1059,5 @@ export function results(res, cleared, extra) {
   })();
 }
 
-export { clearScreens, show, el };
+export { clearScreens, show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, wait, countUp };
+export const getApp = () => app;

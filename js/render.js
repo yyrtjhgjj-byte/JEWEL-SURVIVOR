@@ -188,6 +188,100 @@ export function gemSprite(id, size = 32, cutOverride) {
 }
 
 const iconCache = new Map();
+// 原石（岩の塊から結晶がのぞく）
+const ROUGH_LOOK = {
+  shard: { n: 1, size: 0.62, glow: 0 },
+  rough: { n: 2, size: 0.8, glow: 0.2 },
+  large: { n: 3, size: 1, glow: 0.35 },
+  mystic: { n: 4, size: 1, glow: 0.7 },
+};
+function drawRough(ctx, r, tier, color) {
+  const L = ROUGH_LOOK[tier] || ROUGH_LOOK.rough;
+  r *= L.size;
+  // 岩
+  const pts = [];
+  const N = 9;
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * TAU + 0.2;
+    const k = 0.78 + 0.22 * Math.sin(i * 2.7 + r) * Math.cos(i * 1.3);
+    pts.push([Math.cos(a) * r * k, Math.sin(a) * r * k * 0.86 + r * 0.06]);
+  }
+  if (L.glow) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = r * L.glow * 1.4;
+  }
+  const g = ctx.createLinearGradient(-r, -r, r, r);
+  g.addColorStop(0, '#5d5870');
+  g.addColorStop(0.55, '#34303f');
+  g.addColorStop(1, '#1b1922');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = Math.max(1, r * 0.05);
+  ctx.stroke();
+  // 岩肌の筋
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.5, r * 0.1); ctx.lineTo(-r * 0.1, r * 0.35); ctx.lineTo(r * 0.3, r * 0.2);
+  ctx.stroke();
+  // 結晶
+  const spots = [[0.1, -0.25, 0.5, -0.3], [-0.38, -0.05, 0.38, 0.5], [0.42, 0.05, 0.34, 0.9], [-0.05, 0.3, 0.3, 0.2]];
+  for (let i = 0; i < L.n; i++) {
+    const [x, y, s, rot] = spots[i];
+    ctx.save();
+    ctx.translate(x * r, y * r);
+    ctx.rotate(rot);
+    const w = s * r * 0.45, h = s * r;
+    const cg = ctx.createLinearGradient(0, -h, 0, h * 0.4);
+    cg.addColorStop(0, '#ffffff');
+    cg.addColorStop(0.35, color);
+    cg.addColorStop(1, 'rgba(40,30,60,0.9)');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(0, -h); ctx.lineTo(w, -h * 0.35); ctx.lineTo(w * 0.7, h * 0.4); ctx.lineTo(-w * 0.7, h * 0.4); ctx.lineTo(-w, -h * 0.35);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = Math.max(0.8, r * 0.03);
+    ctx.stroke();
+    ctx.restore();
+  }
+  if (L.glow >= 0.35) sparkle(ctx, r * 0.35, -r * 0.45, r * 0.28, '#ffffff');
+}
+const roughCache = new Map();
+export function roughSprite(tier, color, size = 14) {
+  const key = tier + ':' + color + ':' + size;
+  let c = roughCache.get(key);
+  if (c) return c;
+  const S = size * 2.8;
+  c = makeCanvas(S * RES, S * RES);
+  const ctx = c.getContext('2d');
+  ctx.scale(RES, RES);
+  ctx.translate(S / 2, S / 2);
+  drawRough(ctx, size, tier, color);
+  c.logical = S;
+  roughCache.set(key, c);
+  return c;
+}
+export function roughIcon(tier, color, size = 72) {
+  const key = 'rough:' + tier + ':' + color + ':' + size;
+  let u = iconCache.get(key);
+  if (u) return u;
+  const c = makeCanvas(size * 2, size * 2);
+  const ctx = c.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.translate(size / 2, size / 2);
+  drawRough(ctx, size * 0.4, tier, color);
+  u = c.toDataURL();
+  iconCache.set(key, u);
+  return u;
+}
+export { drawRough };
+
 // コイン報酬のアイコン（3枚重ねの金貨）
 export function coinIcon(size = 72) {
   const key = 'coin:' + size;

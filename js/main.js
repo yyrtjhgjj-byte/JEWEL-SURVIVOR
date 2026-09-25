@@ -141,7 +141,8 @@ function checkAchievements(r, live) {
   const got = [];
   for (const a of ACHIEVEMENTS) {
     if (save.achievements[a.id]) continue;
-    if (!a.check(r)) continue;
+    if (!r && !a.meta) continue; // r が無いとき（研磨工房など）は meta の実績だけ判定
+    if (!a.check(r || {}, save)) continue;
     save.achievements[a.id] = true;
     save.coins += a.coins;
     if (a.unlock && !save.unlocked[a.unlock]) {
@@ -234,6 +235,7 @@ function finishRun(res, cleared) {
   save.stats.kills += res.kills;
   if (cleared) save.stats.clears++;
   for (const [k, v] of Object.entries(res.killsByType)) save.kills[k] = (save.kills[k] || 0) + v;
+  for (const [t, n] of Object.entries(res.roughGot || {})) save.rough[t] = (save.rough[t] || 0) + n;
   const newBest = {};
   for (const k of ['time', 'kills', 'level', 'damage']) {
     const v = res[k];
@@ -286,7 +288,7 @@ if (save.stats.clears > 0 && !(save.stages.wastes && save.stages.wastes.cleared)
   persist();
 }
 
-UI.initUI({ startGame, toTitle });
+UI.initUI({ startGame, toTitle, checkMetaAchievements: () => checkAchievements(null, true) });
 window.__save = save; // デバッグ用
 
 if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), stageId: DEBUG.stage, heat: DEBUG.heat });

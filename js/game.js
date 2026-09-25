@@ -2,15 +2,16 @@
 //  ゲーム本体
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_SLOTS, BASE_STATS, CHARACTERS, ENEMIES, SHOP,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods } from './stages.js';
 import { AI, onEnemyKilled } from './enemies.js';
 import { Hazards } from './hazards.js';
+import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
 import { FX } from './fx.js';
 import { LOGIC, weaponStats, drawArea } from './weapons.js';
-import { enemySprite, drawPlayer, xpSprite, itemSprite, backgroundTile, starSprite, dotSprite, softSprite } from './render.js';
+import { enemySprite, drawPlayer, xpSprite, itemSprite, roughSprite, backgroundTile, starSprite, dotSprite, softSprite } from './render.js';
 import { audio } from './audio.js';
 import { save } from './save.js';
 
@@ -95,6 +96,7 @@ export class Game {
     this.time = opts.startTime || 0;
     this.state = 'play';
     this.modalQueue = [];
+    this.roughGot = { shard: 0, rough: 0, large: 0, mystic: 0 }; // 拾った原石
     this.eid = 0;
     this.level = 1;
     this.xp = 0;
@@ -152,6 +154,7 @@ export class Game {
       if (lv) add(it.per, lv);
     }
     s.might += 0.05 * (save.awaken[this.charId] || 0);
+    add(collectionStats()); // 研磨コレクションの練度ボーナス
     for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
     s.cooldown = Math.max(0.35, s.cooldown);
     const oldMax = this.stats ? this.stats.maxHp : s.maxHp;
@@ -170,11 +173,11 @@ export class Game {
     const [list, flag] = spec.split(':');
     const ids = list === 'all' ? WEAPON_IDS.slice(0, 6) : list.split(',').filter((x) => WEAPONS[x]);
     for (const id of ids) {
-      const w = this.getWeapon(id) || (this.weapons.length < MAX_SLOTS ? this.addWeapon(id) : null);
+      const w = this.getWeapon(id) || (this.weapons.length < MAX_WEAPONS ? this.addWeapon(id) : null);
       if (!w) continue;
       w.level = WEAPON_MAX;
       const partner = WEAPONS[id].evo.with;
-      if (!this.getPassive(partner) && this.passives.length < MAX_SLOTS) this.addPassive(partner);
+      if (!this.getPassive(partner) && this.passives.length < MAX_CHARMS) this.addPassive(partner);
       if (flag === 'evo') w.evolved = true;
     }
     this.computeStats();
@@ -971,6 +974,8 @@ export class Game {
     } else {
       this.dropXp(e.x, e.y, e.xp * (e.elite ? 8 : 1));
       if (e.elite) {
+        const t = eliteDrop();
+        if (t) this.dropPickup('rough', e.x, e.y, upgradeTier(t, this.stage.no, this.heat));
         this.dropPickup('chest', e.x, e.y);
         this.fx.confetti(e.x, e.y, 30);
         this.fx.shake(6);
@@ -1028,6 +1033,7 @@ export class Game {
     setTimeout(() => audio.bigWin(), 400);
     this.hooks.banner('BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     this.dropPickup('bigchest', e.x, e.y);
+    this.dropPickup('rough', e.x, e.y, upgradeTier(bossDrop(e.type === this.stage.finalBoss, this.heat), this.stage.no, this.heat));
     // けいけんちの シャワー
     for (let i = 0; i < 30; i++) this.dropXp(e.x + rand(-60, 60), e.y + rand(-60, 60), Math.ceil(e.xp / 30));
     for (let i = 0; i < 25; i++) this.dropPickup('coin', e.x, e.y, randi(3, 8));
@@ -1194,6 +1200,14 @@ export class Game {
         this.hooks.banner('MAGNET', 'item', '全経験値を回収');
         audio.levelUp();
         break;
+      case 'rough': {
+        const R = ROUGH[pk.value];
+        this.roughGot[pk.value]++;
+        audio.chestOpen();
+        this.fx.burst(p.x, p.y, R.color, 14, 160, 0.6, 10);
+        this.fx.text(p.x, p.y - 30, R.name + ' 入手', { size: 15, color: R.color, stroke: 'rgba(0,0,0,0.7)', life: 1.1 });
+        break;
+      }
       case 'bomb':
         this.jewelFlash(false);
         break;
@@ -1259,8 +1273,8 @@ export class Game {
       else if (!w.evolved && w.level < WEAPON_MAX) pool.push({ type: 'wup', id: w.id, weight: 10 });
     }
     for (const p of this.passives) if (p.level < PASSIVES[p.id].max) pool.push({ type: 'pup', id: p.id, weight: 7 });
-    if (this.weapons.length < MAX_SLOTS) for (const id of WEAPON_IDS) if (!this.getWeapon(id)) pool.push({ type: 'wnew', id, weight: 5 });
-    if (this.passives.length < MAX_SLOTS) for (const id of PASSIVE_IDS) if (!this.getPassive(id)) {
+    if (this.weapons.length < MAX_WEAPONS) for (const id of WEAPON_IDS) if (!this.getWeapon(id)) pool.push({ type: 'wnew', id, weight: 5 });
+    if (this.passives.length < MAX_CHARMS) for (const id of PASSIVE_IDS) if (!this.getPassive(id)) {
       // しんかに ひつようなら でやすく
       const need = this.weapons.some((w) => WEAPONS[w.id].evo.with === id && !w.evolved);
       pool.push({ type: 'pnew', id, weight: need ? 9 : 4 });
@@ -1377,6 +1391,9 @@ export class Game {
   finishClear() {
     if (this.state === 'over') return;
     this.pendingClear = false;
+    // 拾い損ねた原石はクリア時に回収する
+    for (const pk of this.pickups) if (pk.kind === 'rough') this.roughGot[pk.value]++;
+    this.pickups = this.pickups.filter((pk) => pk.kind !== 'rough');
     this.state = 'over';
     audio.stopBgm();
     this.hooks.gameOver(this.results(), true);
@@ -1395,7 +1412,7 @@ export class Game {
   results() {
     return {
       time: this.time, kills: this.kills, level: this.level, coins: this.coins, damage: this.totalDmg,
-      maxCombo: this.maxCombo, fevers: this.fevers, evolved: this.evolvedCount, bosses: this.bosses,
+      roughGot: { ...this.roughGot }, maxCombo: this.maxCombo, fevers: this.fevers, evolved: this.evolvedCount, bosses: this.bosses,
       miracles: this.miracles, weaponCount: this.weapons.length, cleared: this.cleared, dmgBy: { ...this.dmgBy },
       weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved })),
       passives: this.passives.map((p) => ({ id: p.id, level: p.level })),
@@ -1546,11 +1563,12 @@ export class Game {
       const bob = Math.sin(this.time * 5 + pk.x * 0.1) * 2;
       let spr;
       if (pk.kind === 'xp') spr = xpSprite(pk.value);
+      else if (pk.kind === 'rough') spr = roughSprite(pk.value, ROUGH[pk.value].color, 13);
       else spr = itemSprite(pk.kind === 'coin' ? 'coin' : pk.kind);
       const L2 = spr.logical;
       if (pk.kind !== 'xp' && pk.kind !== 'coin') {
         ctx.globalCompositeOperation = 'lighter';
-        const st = starSprite(pk.kind === 'heart' ? '#ff7ab8' : '#ffe9a0');
+        const st = starSprite(pk.kind === 'heart' ? '#ff7ab8' : pk.kind === 'rough' ? ROUGH[pk.value].color : '#ffe9a0');
         const s = 26 + Math.sin(this.time * 6) * 4;
         ctx.drawImage(st, pk.x - s, pk.y - s + bob, s * 2, s * 2);
         ctx.globalCompositeOperation = 'source-over';
