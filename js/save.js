@@ -20,6 +20,7 @@ function defaults() {
     stages: {},
     selectedStage: 'wastes',
     heatSel: 0,
+    lastBackup: 0, // 最後にバックアップを書き出した時刻（ms）
   };
 }
 
@@ -54,6 +55,32 @@ export function persist() {
 
 export function resetSave() {
   const d = defaults();
+  for (const k of Object.keys(save)) delete save[k];
+  Object.assign(save, d);
+  persist();
+}
+
+// ---------------------------------------------------------------- バックアップ
+const APP = 'jewel-survivor';
+
+// 書き出し用の文字列
+export function exportSave() {
+  return JSON.stringify({ app: APP, version: 1, exportedAt: new Date().toISOString(), data: save });
+}
+
+// 読み込んだ文字列を解析。正しくなければ例外
+export function parseBackup(text) {
+  const obj = JSON.parse(text);
+  const data = obj && obj.app === APP ? obj.data : obj;
+  if (!data || typeof data !== 'object' || typeof data.coins !== 'number' || !data.unlocked) {
+    throw new Error('JEWEL SURVIVOR のバックアップファイルではありません');
+  }
+  return data;
+}
+
+// 現在のセーブを置き換える
+export function importSave(data) {
+  const d = merge(defaults(), JSON.parse(JSON.stringify(data)));
   for (const k of Object.keys(save)) delete save[k];
   Object.assign(save, d);
   persist();

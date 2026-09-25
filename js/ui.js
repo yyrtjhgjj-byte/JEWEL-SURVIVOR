@@ -9,7 +9,7 @@ import { gemIcon, coinIcon, enemySprite } from './render.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
 import { audio } from './audio.js';
-import { save, persist, resetSave } from './save.js';
+import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 function el(html) {
@@ -536,6 +536,72 @@ export function showZukan(tab = 'gems') {
 }
 
 // ================================================================== 設定
+function lastBackupText() {
+  if (!save.lastBackup) return '最終：なし';
+  const d = Math.floor((Date.now() - save.lastBackup) / 86400000);
+  return '最終：' + (d <= 0 ? '今日' : `${d}日前`);
+}
+
+function setupBackup(node) {
+  const out = $('#bkout', node), inp = $('#bkin', node), file = $('#bkfile', node);
+  const done = () => {
+    save.lastBackup = Date.now();
+    persist();
+    $('#bklast', node).textContent = lastBackupText();
+    audio.coin();
+  };
+  out.onclick = async () => {
+    audio.tap();
+    const prev = save.lastBackup;
+    save.lastBackup = Date.now(); // 書き出すデータにも記録しておく
+    const text = exportSave();
+    save.lastBackup = prev;
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const name = `jewel-survivor-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+    // iPhone：共有メニューから「"ファイル"に保存」
+    for (const type of ['application/json', 'text/plain']) {
+      const f = new File([text], name, { type });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) {
+        try {
+          await navigator.share({ files: [f] });
+          done();
+        } catch (e) { /* キャンセル */ }
+        return;
+      }
+    }
+    // 共有できない環境：ダウンロード
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    done();
+  };
+  inp.onclick = () => { audio.tap(); file.value = ''; file.click(); };
+  file.onchange = async () => {
+    const f = file.files && file.files[0];
+    if (!f) return;
+    let data;
+    try {
+      data = parseBackup(await f.text());
+    } catch (e) {
+      alert('読み込めませんでした。\n' + (e.message.includes('JEWEL') ? e.message : 'ファイルが壊れているか、形式が違います。'));
+      return;
+    }
+    const clears = Object.values(data.stages || {}).filter((x) => x && x.cleared).length;
+    const chars = Object.values(data.unlocked || {}).filter(Boolean).length;
+    const when = data.lastBackup ? new Date(data.lastBackup).toLocaleString('ja-JP') : '不明';
+    const msg = `このバックアップで現在のデータを上書きします。\n\n書き出し日時：${when}\nコイン：${fmt(data.coins)}\nクリア済みステージ：${clears}\n解放ジュエル：${chars}\n\nよろしいですか？`;
+    if (!confirm(msg)) return;
+    importSave(data);
+    audio.applyVolume();
+    audio.levelUp();
+    showTitle();
+    banner('LOADED', 'item', 'バックアップを読み込みました');
+  };
+}
+
 export function showSettings(back, asOverlay) {
   const node = el(`
     <div class="screen ${asOverlay ? 'dim' : ''}">
@@ -548,6 +614,15 @@ export function showSettings(back, asOverlay) {
         <div class="setting"><span>振動（iOS 18以降）</span><button class="switch ${save.settings.haptic ? 'on' : ''}" data-k="haptic"></button></div>
         ${asOverlay ? '' : '<div class="setting"><span>セーブデータ削除</span><button class="btn small" id="reset">RESET</button></div>'}
       </div>
+      ${asOverlay ? '' : `<div class="panel backup">
+        <div class="bk-head"><span>バックアップ</span><small id="bklast">${lastBackupText()}</small></div>
+        <div class="bk-btns">
+          <button class="btn small" id="bkout">書き出す</button>
+          <button class="btn small" id="bkin">読み込む</button>
+          <input type="file" id="bkfile" accept=".json,application/json,text/plain" hidden>
+        </div>
+        <div class="bk-note">書き出したファイルは共有メニューの「"ファイル"に保存」で iCloud Drive に保存できます。</div>
+      </div>`}
       <div class="credit" style="margin-top:14px">Safari の共有メニュー →「ホーム画面に追加」で全画面プレイできます</div>
     </div>`);
   if (asOverlay) screens().appendChild(node); else show(node);
@@ -562,6 +637,7 @@ export function showSettings(back, asOverlay) {
     if (k === 'haptic') haptic();
     persist();
   }));
+  if (!asOverlay) setupBackup(node);
   const reset = $('#reset', node);
   if (reset) {
     let n = 0;

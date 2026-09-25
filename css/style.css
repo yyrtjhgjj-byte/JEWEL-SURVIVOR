@@ -558,3 +558,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .shop-item .sdesc .scur { color: var(--text); font-weight: 700; margin-left: 4px; }
 .shop-item .sdesc .snext { color: var(--muted); font-size: 11px; }
 .slotico.empty { background: rgba(10,10,18,0.3); border: 1px dashed rgba(255,255,255,0.22); }
+.panel.backup { margin-top: 12px; }
+.backup .bk-head { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--font-jp); font-weight: 700; font-size: 14px; padding: 4px 2px 10px; }
+.backup .bk-head small { font-weight: 400; font-size: 12px; color: var(--muted); }
+.backup .bk-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.backup .bk-note { font-family: var(--font-jp); font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 10px; }
