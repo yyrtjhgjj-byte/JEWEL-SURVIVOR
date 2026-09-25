@@ -239,6 +239,24 @@ export function dotSprite(color) {
   return c;
 }
 
+// 中心が白く飛ばない やわらかい光（炎など）
+const softCache = new Map();
+export function softSprite(color) {
+  let c = softCache.get(color);
+  if (c) return c;
+  const S = 32;
+  c = makeCanvas(S, S);
+  const ctx = c.getContext('2d');
+  const rg = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  rg.addColorStop(0, rgba(color, 0.9));
+  rg.addColorStop(0.45, rgba(color, 0.45));
+  rg.addColorStop(1, rgba(color, 0));
+  ctx.fillStyle = rg;
+  ctx.fillRect(0, 0, S, S);
+  softCache.set(color, c);
+  return c;
+}
+
 // ------------------------------------------------------------------ てき
 // 光る目
 function eyes(ctx, x, y, s, { color = '#ff4f9a', gap = 0.9, angry = true } = {}) {
