@@ -390,6 +390,9 @@ export const PASSIVES = {
 };
 export const PASSIVE_IDS = Object.keys(PASSIVES);
 
+// ゲーム中に装備できる武器・チャームの数（各）
+export const MAX_SLOTS = 4;
+
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
   amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, crit: 0.05, revive: 0, reroll: 2, guard: 0,
@@ -515,7 +518,7 @@ export const ACHIEVEMENTS = [
   { id: 'boss2', name: 'ドラゴンスレイヤー', t: 'ヴォイド・ドラゴンを倒す', coins: 400, check: (r) => r.bosses >= 2 },
   { id: 'coin500', name: 'リッチ', t: '1回のプレイでコイン500枚', coins: 100, unlock: 'amber', check: (r) => r.coins >= 500 },
   { id: 'miracle', name: 'ミラクル', t: 'オパールの奇跡を発生させる', coins: 100, check: (r) => r.miracles >= 1 },
-  { id: 'full', name: 'フルセット', t: '武器を6種類そろえる', coins: 200, check: (r) => r.weaponCount >= 6 },
+  { id: 'full', name: 'フルセット', t: '武器を4種類そろえる', coins: 200, check: (r) => r.weaponCount >= 4 },
   { id: 'dmg1m', name: 'ミリオン', t: '1回のプレイで100万ダメージ', coins: 300, check: (r) => r.damage >= 1e6 },
   { id: 'dmg10m', name: 'テンミリオン', t: '1回のプレイで1000万ダメージ', coins: 1000, check: (r) => r.damage >= 1e7 },
 ];

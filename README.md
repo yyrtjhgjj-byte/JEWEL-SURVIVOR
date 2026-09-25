@@ -52,7 +52,7 @@ npx http-server -p 8080 .
 | `&norender` | 描画なし（高速シミュレーション） |
 | `&t=300` | 開始時刻（秒） |
 | `&god` | 無敵 |
-| `&build=all:evo` | 武器6種Lv8＋進化済みで開始 |
+| `&build=all:evo` | 武器4種Lv8＋進化済みで開始 |
 | `&stage=cavern` | ステージ指定（wastes / cavern / magma / tundra / void） |
 | `&heat=3` | ヒート指定 |
 
