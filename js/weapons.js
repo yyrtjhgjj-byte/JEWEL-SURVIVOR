@@ -3,7 +3,7 @@
 // =====================================================================
 import { WEAPONS } from './data.js';
 import { TAU, rand, randi, chance, ease } from './util.js';
-import { gemSprite, starSprite, dotSprite, softSprite, itemSprite, sparkle } from './render.js';
+import { gemSprite, starSprite, softSprite, itemSprite, moonSprite, sparkle } from './render.js';
 import { audio } from './audio.js';
 
 export function weaponStats(g, w) {
@@ -24,6 +24,8 @@ export function weaponStats(g, w) {
     duration: (s.duration || 0) * P.duration,
     life: (s.life || 1) * P.duration,
     knock: s.knock || 1,
+    bounce: s.bounce || 0,
+    charm: s.charm || 0,
   };
 }
 
@@ -621,7 +623,145 @@ export const LOGIC = {
       ctx.globalAlpha = 1;
     },
   },
+
+  // ------------------------------------------------------------- アレキサンドライト
+  alexandrite: {
+    update(g, w, s, dt) {
+      runBurst(w, dt);
+      w.t -= dt;
+      if (w.t > 0) return;
+      w.t = s.cd;
+      const evo = w.evolved;
+      w.red = !w.red;
+      const red = w.red;
+      const p = g.player;
+      const n = s.amount + (evo ? 2 : 0);
+      burst(w, n, 0.08, (i) => {
+        const a = aimAt(g, p.x, p.y, i) + rand(-0.9, 0.9);
+        const spd = 260 * s.speed;
+        const green = evo || !red, boom = evo || red;
+        g.addProj({
+          x: p.x, y: p.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 8 * s.area,
+          dmg: s.dmg, pierce: green ? s.pierce + 1 : 0, life: s.life, wid: 'alexandrite',
+          sprite: gemSprite(evo ? 'alexandrite' : red ? ALEX_RED : ALEX_GREEN, 14), rotToVel: true,
+          trail: red && !evo ? '#ff5f8a' : '#3fe0a0', explode: boom ? 42 * s.area : 0, knock: 60,
+          homing: evo ? 7 : 4.5, spd,
+        });
+        audio.shoot();
+      });
+    },
+  },
+
+  // ------------------------------------------------------------- トルマリン
+  tourmaline: {
+    update(g, w, s, dt) {
+      runBurst(w, dt);
+      w.t -= dt;
+      if (w.t > 0) return;
+      w.t = s.cd;
+      const evo = w.evolved;
+      const p = g.player;
+      burst(w, s.amount, 0.12, (i) => {
+        const a = aimAt(g, p.x, p.y, i);
+        this.bolt(g, s, p.x, p.y, a, s.bounce + (evo ? 8 : 0), evo, s.dmg);
+        audio.shoot();
+      });
+    },
+    bolt(g, s, x, y, a, bounces, evo, dmg) {
+      const spd = 520 * s.speed;
+      g.addProj({
+        x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 7 * s.area, dmg, pierce: 999, life: 1.2,
+        wid: 'tourmaline', sprite: gemSprite('tourmaline', 13, 'long'), rotToVel: true, trail: chance(0.5) ? '#ff5f9a' : '#5fffa0',
+        knock: 40, bounces,
+        onHit: (g2, pr, e) => {
+          if (pr.bounces <= 0) { pr.life = 0; return; }
+          const nx = g2.nearestEnemies(e.x, e.y, 1, 230, pr.hit)[0];
+          if (!nx) { pr.life = 0; return; }
+          pr.bounces--;
+          g2.fx.bolt(e.x, e.y, nx.x, nx.y, pr.bounces % 2 ? '#ff8fbf' : '#8fffc0', 0.18, 2.5);
+          const d = Math.hypot(nx.x - e.x, nx.y - e.y) || 1;
+          pr.x = e.x; pr.y = e.y;
+          pr.vx = ((nx.x - e.x) / d) * spd;
+          pr.vy = ((nx.y - e.y) / d) * spd;
+          pr.life = Math.max(pr.life, 0.6);
+          if (evo && pr.bounces > 2 && chance(0.3)) {
+            const a2 = Math.atan2(pr.vy, pr.vx) + rand(-1.2, 1.2);
+            this.bolt(g2, s, e.x, e.y, a2, pr.bounces - 3, false, pr.dmg * 0.8);
+          }
+        },
+      });
+    },
+  },
+
+  // ------------------------------------------------------------- ムーンストーン
+  moonstone: {
+    update(g, w, s, dt) {
+      runBurst(w, dt);
+      const p = g.player;
+      const evo = w.evolved;
+      if (evo) {
+        // 周回する満月
+        w.ang = (w.ang || 0) + dt * 2.2;
+        const R = 105 * s.area;
+        const Q2 = this._q || (this._q = []);
+        for (let k = 0; k < 2; k++) {
+          const a = w.ang + k * Math.PI;
+          const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
+          g.grid.query(x, y, 50, Q2);
+          for (const e of Q2) {
+            if (!e.alive || (e.x - x) ** 2 + (e.y - y) ** 2 > (22 * s.area + e.r) ** 2) continue;
+            if ((e.hitT.moon || 0) > g.time) continue;
+            e.hitT.moon = g.time + 0.4;
+            g.damage(e, s.dmg * 0.5, { wid: 'moonstone', kb: 60 });
+            if (e.alive && !e.boss && !e.charmT && chance(s.charm * 1.2)) this.charm(g, e, 4, true);
+          }
+        }
+      }
+      w.t -= dt;
+      if (w.t > 0) return;
+      w.t = s.cd;
+      burst(w, s.amount, 0.15, (i) => {
+        const a = aimAt(g, p.x, p.y, i) + (i ? rand(-0.5, 0.5) : 0);
+        g.addProj({
+          x: p.x, y: p.y, vx: Math.cos(a) * 360 * s.speed, vy: Math.sin(a) * 360 * s.speed, r: 14 * s.area, dmg: s.dmg,
+          pierce: 999, life: 3, wid: 'moonstone', sprite: moonSprite(26, false), size: 26 * s.area, spin: 12,
+          boomerang: { out: true, range: 210 * s.area, dist: 0 }, knock: 70,
+          onHit: (g2, pr, e) => {
+            if (e.alive && !e.boss && !e.charmT && chance(s.charm * (evo ? 1.3 : 1))) this.charm(g2, e, evo ? 4 : 3, evo);
+          },
+        });
+        audio.whoosh();
+      });
+    },
+    charm(g, e, T, boom) {
+      e.charmT = T;
+      e.charmBoom = boom;
+      g.charmed = (g.charmed || 0) + 1;
+      g.fx.text(e.x, e.y - e.r - 8, 'CHARM', { size: 12, color: '#ffb3e6', life: 0.6 });
+      g.fx.burst(e.x, e.y, '#ffb3e6', 6, 100, 0.4, 9);
+    },
+    draw(g, w, s, ctx) {
+      if (!w.evolved) return;
+      const p = g.player;
+      const R = 105 * s.area;
+      const spr = moonSprite(34, true);
+      for (let k = 0; k < 2; k++) {
+        const a = (w.ang || 0) + k * Math.PI;
+        const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
+        const L = spr.logical * s.area;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.5;
+        ctx.drawImage(starSprite('#9fb8ff'), x - L * 0.8, y - L * 0.8, L * 1.6, L * 1.6);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(spr, x - L / 2, y - L / 2, L, L);
+      }
+    },
+  },
 };
+
+const ALEX_GREEN = { color: '#1fb58a', light: '#b8ffe0', dark: '#0a5a3a', cut: 'oval' };
+const ALEX_RED = { color: '#e0306a', light: '#ffb3c8', dark: '#5a1030', cut: 'oval' };
 
 // 地面エリア（エメラルド・ほのおの あと）の え
 export function drawArea(ctx, a, time) {

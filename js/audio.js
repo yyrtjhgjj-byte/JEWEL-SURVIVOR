@@ -321,6 +321,8 @@ class AudioEngine {
 
 // コード（ルートは C4 あたり）
 const C = [60, 64, 67], G = [55, 59, 62], Am = [57, 60, 64], F = [53, 57, 60], E = [52, 56, 59];
+const Em = [52, 55, 59], D = [50, 54, 57], Dm = [50, 53, 57], Bb = [46, 50, 53], A = [45, 49, 52];
+const Cm = [48, 51, 55], Ab = [44, 48, 51], Eb = [51, 55, 58];
 
 const TRACKS = {
   title: {
@@ -365,6 +367,71 @@ const TRACKS = {
       [80, null, 83, 80, 76, null, 71, 68],
     ],
     drums: true, kick: [0, 3, 6, 8, 11, 14], snare: [4, 12], hat: [2, 6, 10, 14],
+  },
+  cavern: {
+    bpm: 120,
+    chords: [Em, C, G, D],
+    bass: [0, null, null, 12, null, null, 0, null, 0, null, null, 12, null, 7, null, null],
+    arp: 1,
+    melody: [
+      [83, null, 79, null, 76, null, 79, 83],
+      [84, null, 79, null, 76, null, 72, null],
+      [79, null, 83, 86, 83, null, 79, null],
+      [78, null, 74, null, 78, 81, 78, null],
+    ],
+    drums: true, kick: [0, 6, 8], snare: [4, 12], hat: [2, 6, 10, 14],
+  },
+  magma: {
+    bpm: 146,
+    chords: [Dm, Bb, C, A],
+    bass: [0, 0, 12, 0, 0, 12, 0, 0, 0, 0, 12, 0, 0, 12, 0, 12],
+    arp: 2,
+    melody: [
+      [74, 74, 77, 74, 81, null, 79, 77],
+      [74, null, 70, 74, 77, null, 74, 70],
+      [72, 76, 79, 76, 84, null, 79, 76],
+      [73, null, 76, 81, 79, null, 76, 73],
+    ],
+    drums: true, kick: [0, 4, 8, 10, 12], snare: [4, 12], hat: [2, 6, 10, 14],
+  },
+  tundra: {
+    bpm: 100,
+    chords: [Am, F, C, Em],
+    bass: [0, null, null, null, null, null, 12, null, 0, null, null, null, 7, null, null, null],
+    arp: 1,
+    melody: [
+      [88, null, null, 84, null, null, 81, null],
+      [84, null, null, 81, null, null, 77, null],
+      [79, null, 84, null, 88, null, 86, null],
+      [83, null, null, 79, null, null, 76, null],
+    ],
+    drums: true, kick: [0, 8], snare: [12], hat: [4, 12],
+  },
+  void: {
+    bpm: 138,
+    chords: [Cm, Ab, Eb, G],
+    bass: [0, null, 12, 0, null, 12, 0, null, 0, null, 12, 0, null, 12, 7, null],
+    arp: 1,
+    melody: [
+      [72, 75, 79, 75, 84, null, 82, 79],
+      [80, null, 79, 75, 72, null, 75, 79],
+      [82, null, 79, 75, 87, null, 86, 82],
+      [83, null, 79, 74, 71, null, 74, 79],
+    ],
+    drums: true, kick: [0, 4, 8, 12, 14], snare: [4, 12], hat: [2, 6, 10, 14],
+  },
+  final: {
+    bpm: 164,
+    chords: [Am, F, Dm, E],
+    bass: [0, 0, 12, 0, 12, 0, 12, 0, 0, 0, 12, 0, 12, 0, 12, 12],
+    arp: 1,
+    melody: [
+      [81, 84, 88, 84, 93, null, 91, 88],
+      [89, null, 88, 84, 81, null, 84, 88],
+      [86, 89, 93, 89, 98, null, 96, 93],
+      [92, null, 95, 92, 88, null, 83, 80],
+    ],
+    drums: true, kick: [0, 3, 6, 8, 11, 14], snare: [4, 12], hat: [1, 3, 5, 7, 9, 11, 13, 15],
   },
   result: {
     bpm: 120,
