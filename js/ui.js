@@ -123,7 +123,6 @@ export function showTitle() {
           <button class="btn" id="t-zukan">ARCHIVE<span class="sub">図鑑</span></button>
           <button class="btn" id="t-trophy">RECORDS<span class="sub">実績</span></button>
         </div>
-        <div class="credit">宝石言葉は サンリオ×セガトイズ『ジュエルペット』のジュエルパワーを参考にした非公式ファンメイド作品です</div>
       </div>
     </div>`);
   show(node);
@@ -689,7 +688,7 @@ function choiceInfo(g, c) {
   if (c.type === 'pnew' || c.type === 'pup') {
     const P = PASSIVES[c.id];
     const gem = GEMS[P.gem];
-    const word = `宝石言葉「${gem.word}」`;
+    const word = `ジュエルパワー「${gem.word}」`;
     if (c.type === 'pnew') {
       const evoTags = evoTagsForCharm(g, c.id, false);
       return { icon: gemIcon(P.gem, 96), name: P.name, lv: 'NEW', desc: P.t, word, rar: evoTags ? 'SR' : 'R', tags: (save.seen.passives[c.id] ? '' : T_NEW) + evoTags };
