@@ -28,6 +28,7 @@ const DEBUG = {
 };
 
 let game = null;
+let reloadPending = false; // 新しい版の反映待ち
 
 // iOS: ダブルタップ ズーム / ピンチ ぼうし
 document.addEventListener('gesturestart', (e) => e.preventDefault());
@@ -246,6 +247,7 @@ function finishRun(res, cleared) {
 }
 
 function toTitle() {
+  if (reloadPending) { location.reload(); return; }
   game = null;
   window.__game = null;
   input.enabled = false;
@@ -291,6 +293,16 @@ if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby
 else UI.showTitle();
 
 // オフライン用 サービスワーカー
+// 新しい版が入ったら自動で再読み込み（プレイ中・リザルト中ならタイトルに戻ったときに）
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+    // アプリに戻ってきたときにも更新を確認する（iOS のホーム画面アプリは再読み込みされないため）
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return; // 初回インストール時は不要
+    if (game) reloadPending = true;
+    else location.reload();
+  });
 }
