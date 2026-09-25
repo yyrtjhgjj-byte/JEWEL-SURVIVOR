@@ -3,7 +3,7 @@
 // =====================================================================
 import { WEAPONS } from './data.js';
 import { TAU, rand, randi, chance, ease } from './util.js';
-import { gemSprite, starSprite, dotSprite, itemSprite, sparkle } from './render.js';
+import { gemSprite, starSprite, dotSprite, softSprite, itemSprite, sparkle } from './render.js';
 import { audio } from './audio.js';
 
 export function weaponStats(g, w) {
@@ -69,8 +69,8 @@ export const LOGIC = {
       w.t -= dt;
       if (w.t > 0) return;
       const evo = w.evolved;
-      w.t = evo ? Math.max(0.12, s.cd * 0.4) : s.cd;
-      const n = s.amount + (evo ? 2 : 0);
+      w.t = evo ? Math.max(0.2, s.cd * 0.55) : s.cd;
+      const n = s.amount + (evo ? 1 : 0);
       const p = g.player;
       burst(w, n, evo ? 0.03 : 0.07, (i) => {
         let a = aimAt(g, p.x, p.y, i);
@@ -111,8 +111,8 @@ export const LOGIC = {
       // ともだちも たまを うって てつだう
       w.st = (w.st || 0) - dt;
       if (w.on && w.st <= 0) {
-        w.st = 1.1 * g.stats.cooldown;
-        for (let k = 0; k < Math.min(orbs.length, 6); k++) {
+        w.st = 1.6 * g.stats.cooldown;
+        for (let k = 0; k < Math.min(orbs.length, 3); k++) {
           const o = orbs[k];
           const e = g.nearestEnemies(o.x, o.y, 1, 320)[0];
           if (!e) break;
@@ -194,14 +194,14 @@ export const LOGIC = {
       if (w.evolved) {
         w.t -= dt;
         while (w.t <= 0) {
-          w.t += Math.max(0.05, 0.2 / (1 + s.amount * 0.35)) * g.stats.cooldown;
+          w.t += Math.max(0.12, 0.42 / (1 + s.amount * 0.25)) * g.stats.cooldown;
           const a = rand(TAU), d = rand(30, 250);
           const tx = p.x + Math.cos(a) * d, ty = p.y + Math.sin(a) * d;
           g.addProj({
             x: tx, y: ty - 340, tx, ty, fall: 0.38, ft: 0, r: 0, dmg: 0, life: 1, wid: 'garnet',
             sprite: gemSprite('garnet', 24), spin: 4,
             land: (g2, pr) => {
-              g2.aoe(pr.tx, pr.ty, 52 * s.area, s.dmg * 1.3, 'garnet', { heal: 0.35, kb: 80 });
+              g2.aoe(pr.tx, pr.ty, 56 * s.area, s.dmg * 1.9, 'garnet', { heal: 0.5, kb: 80 });
               g2.fx.burst(pr.tx, pr.ty, '#ff6fa8', 6, 140, 0.4, 10);
               g2.fx.ring(pr.tx, pr.ty, 8, 52 * s.area, 0.3, '#ff9cc6', 4);
             },
@@ -232,8 +232,8 @@ export const LOGIC = {
       if (w.t > 0) return;
       w.t = s.cd;
       const evo = w.evolved;
-      const n = s.amount + (evo ? 2 : 0);
-      burst(w, n, 0.08, () => {
+      const n = s.amount + (evo ? 1 : 0);
+      burst(w, n, 0.1, () => {
         const e = g.randomEnemyInView();
         if (!e) return;
         this.strike(g, s, e, evo);
@@ -318,19 +318,25 @@ export const LOGIC = {
         const bx = p.x + Math.cos(a) * L, by = p.y + Math.sin(a) * L;
         const grd = ctx.createLinearGradient(p.x, p.y, bx, by);
         const h = (g.time * 300 + k * 60) % 360;
-        for (let i = 0; i <= 6; i++) grd.addColorStop(i / 6, `hsla(${(h + i * 55) % 360},95%,62%,${0.8 - i * 0.07})`);
+        for (let i = 0; i <= 6; i++) grd.addColorStop(i / 6, `hsla(${(h + i * 55) % 360},95%,62%,${0.32 - i * 0.03})`);
+        // うすい グロー
         ctx.strokeStyle = grd;
-        ctx.lineWidth = W * 2;
+        ctx.lineWidth = W * 1.1;
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);
         ctx.lineTo(bx, by);
         ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-        ctx.lineWidth = W * 0.5;
+        // 細い芯
+        const core = ctx.createLinearGradient(p.x, p.y, bx, by);
+        for (let i = 0; i <= 4; i++) core.addColorStop(i / 4, `hsla(${(h + i * 80) % 360},100%,75%,${0.75 - i * 0.1})`);
+        ctx.strokeStyle = core;
+        ctx.lineWidth = 2.2;
         ctx.stroke();
         const st = starSprite('#ffffff');
-        ctx.drawImage(st, bx - 18, by - 18, 36, 36);
-        if (Math.random() < 0.4) g.fx.add(bx, by, rand(-40, 40), rand(-40, 40), 0.4, 8, 'rainbow', 'star');
+        ctx.globalAlpha = 0.7;
+        ctx.drawImage(st, bx - 11, by - 11, 22, 22);
+        ctx.globalAlpha = 1;
+        if (Math.random() < 0.15) g.fx.add(bx, by, rand(-40, 40), rand(-40, 40), 0.35, 6, 'rainbow', 'star');
       }
       ctx.globalCompositeOperation = 'source-over';
     },
@@ -343,8 +349,8 @@ export const LOGIC = {
       w.t -= dt;
       if (w.t > 0) return;
       const evo = w.evolved;
-      w.t = evo ? s.cd * 0.6 : s.cd;
-      const n = s.amount + (evo ? 4 : 0);
+      w.t = evo ? s.cd * 0.75 : s.cd;
+      const n = s.amount + (evo ? 2 : 0);
       const p = g.player;
       burst(w, n, 0.06, () => {
         const e = g.randomEnemyNear(p.x, p.y, 380);
@@ -432,8 +438,8 @@ export const LOGIC = {
         w.t -= dt;
         w.ang = (w.ang || 0) + dt * 5;
         while (w.t <= 0) {
-          w.t += 0.07 * g.stats.cooldown;
-          const arms = 2 + Math.floor(s.amount / 6);
+          w.t += 0.13 * g.stats.cooldown;
+          const arms = 2;
           for (let k = 0; k < arms; k++) this.shard(g, s, p, w.ang + (k / arms) * TAU, true);
           audio.shoot();
         }
@@ -442,7 +448,7 @@ export const LOGIC = {
       w.t -= dt;
       if (w.t > 0) return;
       w.t = s.cd;
-      const n = s.amount + g.stats.amount; // チャームで もっと ふえる
+      const n = s.amount;
       const off = rand(TAU);
       for (let k = 0; k < n; k++) this.shard(g, s, p, off + (k / n) * TAU, false);
       g.fx.ring(p.x, p.y, 5, 40, 0.25, '#e6fbff', 3);
@@ -451,7 +457,7 @@ export const LOGIC = {
     shard(g, s, p, a, evo) {
       const spd = 420 * s.speed;
       g.addProj({
-        x: p.x, y: p.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 7 * s.area, dmg: s.dmg * (evo ? 1.2 : 1),
+        x: p.x, y: p.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 7 * s.area, dmg: s.dmg * (evo ? 1.7 : 1),
         pierce: s.pierce + (evo ? 1 : 0), life: s.life * (evo ? 1.4 : 1), wid: 'diamond', sprite: gemSprite('diamond', 12),
         rotToVel: true, trail: '#dff8ff', forceCrit: evo, knock: 50,
       });
@@ -505,9 +511,9 @@ export const LOGIC = {
         }
       }
       while (w.ft <= 0) {
-        w.ft += 0.05;
+        w.ft += 0.085;
         const dirs = [];
-        if (evo) for (let k = 0; k < 4; k++) dirs.push(w.ang + (k / 4) * TAU);
+        if (evo) for (let k = 0; k < 3; k++) dirs.push(w.ang + (k / 3) * TAU);
         else {
           const base = Math.atan2(p.dirY, p.dirX);
           dirs.push(base);
@@ -519,7 +525,7 @@ export const LOGIC = {
           const spd = 270 * s.speed * rand(0.85, 1.15);
           g.addProj({
             x: p.x + Math.cos(a) * 10, y: p.y + Math.sin(a) * 10, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
-            r: 10 * s.area, dmg: s.dmg * (evo ? 1.2 : 1), pierce: 99, life: 0.4 * s.area, wid: 'rhodochrosite', flame: true, knock: 20,
+            r: 12 * s.area, dmg: s.dmg * 1.6 * (evo ? 1.2 : 1), pierce: 99, life: 0.4 * s.area, wid: 'rhodochrosite', flame: true, knock: 20,
             grow: 1.8,
           });
         }
@@ -554,7 +560,7 @@ export const LOGIC = {
         onHit: split ? (g2, pr, e) => {
           if (pr.split) return;
           pr.split = true;
-          for (let k = 0; k < 6; k++) this.lance(g2, s, e.x, e.y, a + (k / 6) * TAU + 0.3, 0.6, false);
+          for (let k = 0; k < 4; k++) this.lance(g2, s, e.x, e.y, a + (k / 4) * TAU + 0.4, 0.75, false);
           g2.fx.ring(e.x, e.y, 5, 60, 0.3, '#9fb8ff', 5);
         } : null,
       });
@@ -641,10 +647,10 @@ export function drawArea(ctx, a, time) {
       drawClover(ctx, x, y, 5 + (i % 3), a.clover && i % 4 === 0, time + i);
     }
   } else if (a.kind === 'fire') {
-    ctx.globalAlpha = alpha * 0.8;
+    ctx.globalAlpha = alpha * 0.28;
     ctx.globalCompositeOperation = 'lighter';
-    const spr = dotSprite('#ff5f8a');
-    const s = a.r * (1.2 + Math.sin(time * 20 + a.x) * 0.1);
+    const spr = softSprite('#ff5a3d');
+    const s = a.r * (1.0 + Math.sin(time * 20 + a.x) * 0.08);
     ctx.drawImage(spr, a.x - s, a.y - s, s * 2, s * 2);
     ctx.globalCompositeOperation = 'source-over';
   }

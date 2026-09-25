@@ -7,7 +7,7 @@ import {
 import { TAU, rand, randi, pick, chance, weightedPick } from './util.js';
 import { FX } from './fx.js';
 import { LOGIC, weaponStats, drawArea } from './weapons.js';
-import { enemySprite, drawPlayer, xpSprite, itemSprite, backgroundTile, starSprite, dotSprite } from './render.js';
+import { enemySprite, drawPlayer, xpSprite, itemSprite, backgroundTile, starSprite, dotSprite, softSprite } from './render.js';
 import { audio } from './audio.js';
 import { save } from './save.js';
 
@@ -334,7 +334,7 @@ export class Game {
       this.tlT = (this.tlT || 0) - dt;
       if (this.tlT <= 0) {
         this.tlT = 30;
-        (this.timeline = this.timeline || []).push(`${Math.round(this.time)}s:Lv${this.level}/k${this.kills}/hp${Math.round(this.player.hp)}/e${this.enemies.length}`);
+        (this.timeline = this.timeline || []).push(`${Math.round(this.time)}s:Lv${this.level}/k${this.kills}/hp${Math.round(this.player.hp)}/e${this.enemies.length}/pr${this.projs.length}/pt${this.fx.parts.length}/tx${this.fx.texts.length}`);
       }
     }
 
@@ -357,7 +357,7 @@ export class Game {
   }
   hpScale() {
     const m = this.time / 60;
-    let s = 1 + 0.3 * m + 0.05 * m * m;
+    let s = 1 + 0.35 * m + 0.085 * m * m;
     if (m > 10) s *= 1 + (m - 10) * 0.25; // エンドレス
     return s;
   }
@@ -471,7 +471,7 @@ export class Game {
   spawnEnemy(type, x, y, o = {}) {
     const d = ENEMIES[type];
     const elite = !!o.elite;
-    const mul = d.boss ? (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1);
+    const mul = d.boss ? (o.mul || 1) * 1.15 * (1 + Math.max(0, this.level - 20) * 0.01) : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1);
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
       speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1), dmg: d.dmg * (1 + this.time / 600), xp: d.xp,
@@ -693,7 +693,7 @@ export class Game {
       pr.x += pr.vx * dt;
       pr.y += pr.vy * dt;
       if (pr.spin) pr.rot += pr.spin * dt;
-      if (pr.trail && Math.random() < 0.35) this.fx.add(pr.x, pr.y, rand(-15, 15), rand(-15, 15), 0.3, 6, pr.trail, 'star');
+      if (pr.trail && Math.random() < 0.14) this.fx.add(pr.x, pr.y, rand(-15, 15), rand(-15, 15), 0.3, 6, pr.trail, 'star');
       if (pr.grow) pr.r += pr.grow * dt * 10;
       this.grid.query(pr.x, pr.y, pr.r + 40, Q);
       for (const e of Q) {
@@ -798,7 +798,13 @@ export class Game {
         this.fx.text(e.x, e.y - e.r, dmg, { size: 22, color: '#ffd23d', stroke: 'rgba(70,20,0,0.85)', life: 0.7, crit: true });
         audio.crit();
       } else {
-        this.fx.text(e.x, e.y - e.r, dmg, { size: 15, color: '#ece8ff', life: 0.55 });
+        // 通常ヒットは敵ごとにまとめて表示（数字の洪水を防ぐ）
+        e.dmgAcc = (e.dmgAcc || 0) + dmg;
+        if (this.time - (e.dmgShowT || -1) > 0.3 || e.hp <= 0) {
+          this.fx.text(e.x, e.y - e.r, e.dmgAcc, { size: 15, color: '#ece8ff', life: 0.55 });
+          e.dmgAcc = 0;
+          e.dmgShowT = this.time;
+        }
       }
       audio.hit();
     }
@@ -1447,9 +1453,9 @@ export class Game {
       if (pr.flame) {
         const t = pr.life / pr.max;
         ctx.globalCompositeOperation = 'lighter';
-        const spr = dotSprite(t > 0.6 ? '#ffd24a' : t > 0.3 ? '#ff7a3d' : '#ff3d7a');
-        const s = pr.r * 1.4;
-        ctx.globalAlpha = Math.min(1, t * 2);
+        const spr = softSprite(t > 0.6 ? '#ffb84a' : t > 0.3 ? '#ff6a3d' : '#d62d6a');
+        const s = pr.r * 0.9;
+        ctx.globalAlpha = Math.min(0.4, t * 0.8);
         ctx.drawImage(spr, pr.x - s, pr.y - s, s * 2, s * 2);
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';

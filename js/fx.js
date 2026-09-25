@@ -5,8 +5,8 @@ import { TAU, rand, pick, RAINBOW, fmtShort } from './util.js';
 import { starSprite, dotSprite } from './render.js';
 import { save } from './save.js';
 
-const MAX_PARTS = 900;
-const MAX_TEXTS = 70;
+const MAX_PARTS = 500;
+const MAX_TEXTS = 40;
 
 export class FX {
   constructor() {
@@ -50,7 +50,7 @@ export class FX {
 
   // くすみが キラキラに かわる（じょうか）演出
   purify(x, y, color, big = false) {
-    const n = big ? 26 : 7;
+    const n = big ? 22 : 4;
     for (let i = 0; i < n; i++) {
       const a = rand(TAU), s = rand(40, big ? 320 : 150);
       this.add(x, y, Math.cos(a) * s, Math.sin(a) * s - 30, rand(0.35, 0.7), rand(6, big ? 18 : 11), i % 3 === 0 ? '#ffffff' : color, 'star');
