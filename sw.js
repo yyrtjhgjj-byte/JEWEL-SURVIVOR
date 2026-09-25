@@ -1,5 +1,5 @@
 // オフラインでも あそべるように キャッシュする
-const CACHE = 'jewel-survivor-v11';
+const CACHE = 'jewel-survivor-v12';
 const ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/game.js', './js/weapons.js', './js/data.js', './js/render.js', './js/fx.js',
@@ -9,7 +9,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'no-cache' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -21,8 +21,14 @@ self.addEventListener('activate', (e) => {
 // ネットワーク優先（更新がすぐ反映される）→ だめなら キャッシュ
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // 同じサイトのファイルはブラウザの HTTP キャッシュを通さず、必ずサーバーに更新を確認する
+  // （GitHub Pages は 10 分キャッシュされるため、これがないと更新直後に古い版が出る）
+  const sameOrigin = new URL(e.request.url).origin === location.origin;
+  const req = sameOrigin
+    ? fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin', redirect: e.request.mode === 'navigate' ? 'manual' : 'follow' })
+    : fetch(e.request);
   e.respondWith(
-    fetch(e.request)
+    req
       .then((res) => {
         const host = new URL(e.request.url).host;
         const cacheable = new URL(e.request.url).origin === location.origin || host === 'fonts.googleapis.com' || host === 'fonts.gstatic.com';
