@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html><body style="margin:0;background:#000">
+<canvas id="c" width="512" height="512"></canvas>
+<script type="module">
+// アイコンを つくる（tools/make-icons.js から つかう）
+import { drawGem, drawPlayer, sparkle } from '../js/render.js';
+import { GEMS } from '../js/data.js';
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+const S = 512;
+const g = ctx.createLinearGradient(0, 0, 0, S);
+g.addColorStop(0, '#ffc2e6');
+g.addColorStop(0.55, '#e3ccff');
+g.addColorStop(1, '#b8e2ff');
+ctx.fillStyle = g;
+ctx.fillRect(0, 0, S, S);
+// ひかりの すじ
+ctx.save();
+ctx.translate(S / 2, S / 2);
+for (let i = 0; i < 16; i++) {
+  ctx.rotate(Math.PI / 8);
+  ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)';
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(-60, -400); ctx.lineTo(60, -400);
+  ctx.fill();
+}
+ctx.restore();
+// まわりの ジュエル
+const ring = ['ruby', 'sapphire', 'garnet', 'emerald', 'amber', 'opal'];
+ring.forEach((id, i) => {
+  const a = -Math.PI / 2 + (i / ring.length) * Math.PI * 2 + 0.5;
+  ctx.save();
+  ctx.translate(S / 2 + Math.cos(a) * 185, S / 2 + Math.sin(a) * 185);
+  drawGem(ctx, 44, GEMS[id]);
+  ctx.restore();
+});
+// まんなか：マスコット
+ctx.save();
+ctx.translate(S / 2, S / 2 + 20);
+ctx.scale(7, 7);
+drawPlayer(ctx, { x: 0, y: 0, face: 1, moving: false, hurtT: 0 }, 0.3, 'ruby');
+ctx.restore();
+sparkle(ctx, 110, 120, 30, '#fff');
+sparkle(ctx, 400, 400, 22, '#fff');
+window.done = true;
+</script>
+</body></html>

@@ -1,0 +1,1570 @@
+// =====================================================================
+//  ゲーム本体
+// =====================================================================
+import {
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, STAGE_TIME,
+} from './data.js';
+import { TAU, rand, randi, pick, chance, weightedPick } from './util.js';
+import { FX } from './fx.js';
+import { LOGIC, weaponStats, drawArea } from './weapons.js';
+import { enemySprite, drawPlayer, xpSprite, itemSprite, backgroundTile, starSprite, dotSprite } from './render.js';
+import { audio } from './audio.js';
+import { save } from './save.js';
+
+// ------------------------------------------------------------------ 空間グリッド
+class Grid {
+  constructor(cell = 64) {
+    this.cell = cell;
+    this.map = new Map();
+    this.used = [];
+  }
+  clear() {
+    for (const a of this.used) a.length = 0;
+    this.used.length = 0;
+  }
+  key(cx, cy) { return (cx + 32768) * 65536 + (cy + 32768); }
+  insert(e) {
+    const k = this.key(Math.floor(e.x / this.cell), Math.floor(e.y / this.cell));
+    let a = this.map.get(k);
+    if (!a) { a = []; this.map.set(k, a); }
+    if (a.length === 0) this.used.push(a);
+    a.push(e);
+  }
+  query(x, y, r, out) {
+    out.length = 0;
+    const c = this.cell;
+    const x0 = Math.floor((x - r) / c), x1 = Math.floor((x + r) / c);
+    const y0 = Math.floor((y - r) / c), y1 = Math.floor((y + r) / c);
+    for (let cx = x0; cx <= x1; cx++) {
+      for (let cy = y0; cy <= y1; cy++) {
+        const a = this.map.get(this.key(cx, cy));
+        if (a) for (let i = 0; i < a.length; i++) out.push(a[i]);
+      }
+    }
+    return out;
+  }
+}
+
+// ------------------------------------------------------------------ ウェーブ
+//  [じかん, でてくる てき, さいだい数, 1びょうあたりの しゅつげん]
+const WAVES = [
+  [0, ['slime'], 35, 3],
+  [30, ['slime', 'bat'], 50, 4],
+  [60, ['slime', 'bat', 'bat'], 65, 5],
+  [90, ['slime', 'bat', 'ghost'], 80, 5.5],
+  [120, ['bat', 'ghost', 'ghost', 'slime'], 95, 6.5],
+  [150, ['ghost', 'toge', 'bat'], 110, 7],
+  [180, ['slime', 'ghost'], 70, 4],
+  [210, ['toge', 'ghost', 'bat'], 130, 8],
+  [240, ['toge', 'golem', 'ghost'], 145, 8.5],
+  [300, ['golem', 'toge', 'bat', 'ghost'], 170, 10],
+  [360, ['bat', 'ghost'], 100, 5],
+  [390, ['knight', 'toge', 'golem', 'bat'], 190, 11],
+  [450, ['knight', 'golem', 'ghost', 'toge'], 210, 12],
+  [510, ['knight', 'knight', 'golem', 'bat', 'toge'], 240, 14],
+  [570, ['knight', 'golem', 'ghost', 'toge', 'bat'], 260, 15],
+  [600, ['bat', 'ghost', 'knight'], 130, 6],
+];
+const EVENTS = [
+  { t: 40, type: 'elite', enemy: 'slime' },
+  { t: 75, type: 'swarm', enemy: 'bat', n: 24 },
+  { t: 100, type: 'elite', enemy: 'ghost' },
+  { t: 140, type: 'ring', enemy: 'slime', n: 36 },
+  { t: 172, type: 'warning' },
+  { t: 180, type: 'boss', enemy: 'boss1' },
+  { t: 230, type: 'swarm', enemy: 'bat', n: 40 },
+  { t: 260, type: 'elite', enemy: 'toge' },
+  { t: 290, type: 'ring', enemy: 'ghost', n: 44 },
+  { t: 320, type: 'elite', enemy: 'golem' },
+  { t: 352, type: 'warning' },
+  { t: 360, type: 'boss', enemy: 'boss2' },
+  { t: 420, type: 'swarm', enemy: 'bat', n: 60 },
+  { t: 440, type: 'elite', enemy: 'knight' },
+  { t: 480, type: 'ring', enemy: 'toge', n: 50 },
+  { t: 500, type: 'elite', enemy: 'golem' },
+  { t: 540, type: 'swarm', enemy: 'bat', n: 70 },
+  { t: 560, type: 'elite', enemy: 'knight' },
+  { t: 575, type: 'ring', enemy: 'ghost', n: 60 },
+  { t: 592, type: 'warning' },
+  { t: 600, type: 'boss', enemy: 'boss3' },
+];
+
+const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000];
+
+// さいしょは すぐ レベルアップ → だんだん ゆっくり
+const xpFor = (l) => 3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10;
+
+export class Game {
+  constructor(canvas, hooks, opts = {}) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.hooks = hooks;
+    this.charId = opts.charId || 'ruby';
+    this.endless = !!opts.endless;
+    this.bot = !!opts.bot;
+    this.god = !!opts.god;
+    this.noRender = !!opts.noRender;
+    this.fx = new FX();
+    this.grid = new Grid(64);
+    this.enemies = [];
+    this.projs = [];
+    this.areas = [];
+    this.pickups = [];
+    this.ebullets = [];
+    this.weapons = [];
+    this.passives = [];
+    this.input = { x: 0, y: 0 };
+    this.time = opts.startTime || 0;
+    this.state = 'play';
+    this.modalQueue = [];
+    this.eid = 0;
+    this.level = 1;
+    this.xp = 0;
+    this.xpNext = xpFor(1);
+    this.pendingLevels = 0;
+    this.kills = 0;
+    this.coins = 0;
+    this.totalDmg = 0;
+    this.dmgBy = {};
+    this.combo = 0;
+    this.comboT = 0;
+    this.maxCombo = 0;
+    this.feverGauge = 0;
+    this.feverNeed = 120;
+    this.feverT = 0;
+    this.fevers = 0;
+    this.evolvedCount = 0;
+    this.bosses = 0;
+    this.miracles = 0;
+    this.killsByType = {};
+    this.timeScale = 1;
+    this.slowT = 0;
+    this.timeStopT = 0;
+    this.spawnAcc = 0;
+    this.eventIdx = 0;
+    while (this.eventIdx < EVENTS.length && EVENTS[this.eventIdx].t < this.time) this.eventIdx++;
+    this.propT = 5;
+    this.boss = null;
+    this.milestoneIdx = 0;
+    this.healCap = 0;
+    this.acc = 0;
+    this.hudT = 0;
+    this.achT = 0;
+    this.cleared = false;
+    this.nextEndlessBoss = STAGE_TIME + 180;
+    this.nextEndlessEvent = STAGE_TIME + 45;
+    this.rerolls = 0;
+    this.player = { x: 0, y: 0, r: 12, hp: 100, maxHp: 100, face: 1, dirX: 1, dirY: 0, moving: false, hurtT: 0, iT: 0 };
+    this.computeStats();
+    this.player.hp = this.stats.maxHp;
+    this.rerolls = this.stats.reroll;
+    this.revives = this.stats.revive;
+    this.addWeapon(CHARACTERS[this.charId].weapon);
+    if (opts.build) this.debugBuild(opts.build);
+    this.resize();
+  }
+
+  // ---------------------------------------------------------------- ステータス
+  computeStats() {
+    const s = { ...BASE_STATS };
+    const add = (per, lv = 1) => { for (const k in per) s[k] = (s[k] || 0) + per[k] * lv; };
+    add(CHARACTERS[this.charId].stats);
+    for (const it of SHOP) {
+      const lv = save.upgrades[it.id] || 0;
+      if (lv) add(it.per, lv);
+    }
+    s.might += 0.05 * (save.awaken[this.charId] || 0);
+    for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
+    s.cooldown = Math.max(0.35, s.cooldown);
+    const oldMax = this.stats ? this.stats.maxHp : s.maxHp;
+    this.stats = s;
+    const p = this.player;
+    if (p) {
+      p.maxHp = s.maxHp;
+      if (s.maxHp > oldMax) p.hp += s.maxHp - oldMax;
+      p.hp = Math.min(p.hp, p.maxHp);
+    }
+    for (const w of this.weapons) w.s = weaponStats(this, w);
+  }
+
+  // テスト用：ぶきを いっぱい もたせる  build = "ruby,sapphire,...:evo"
+  debugBuild(spec) {
+    const [list, flag] = spec.split(':');
+    const ids = list === 'all' ? WEAPON_IDS.slice(0, 6) : list.split(',').filter((x) => WEAPONS[x]);
+    for (const id of ids) {
+      const w = this.getWeapon(id) || (this.weapons.length < 6 ? this.addWeapon(id) : null);
+      if (!w) continue;
+      w.level = WEAPON_MAX;
+      const partner = WEAPONS[id].evo.with;
+      if (!this.getPassive(partner) && this.passives.length < 6) this.addPassive(partner);
+      if (flag === 'evo') w.evolved = true;
+    }
+    this.computeStats();
+  }
+
+  addWeapon(id) {
+    const w = { id, level: 1, t: 0, evolved: false };
+    this.weapons.push(w);
+    w.s = weaponStats(this, w);
+    if (!this.dmgBy[id]) this.dmgBy[id] = 0;
+    save.seen.weapons[id] = true;
+    return w;
+  }
+  addPassive(id) {
+    const p = { id, level: 1 };
+    this.passives.push(p);
+    save.seen.passives[id] = true;
+    this.computeStats();
+    return p;
+  }
+  hasPassive(id) { return this.passives.some((p) => p.id === id); }
+  getWeapon(id) { return this.weapons.find((w) => w.id === id); }
+  getPassive(id) { return this.passives.find((p) => p.id === id); }
+
+  resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = window.innerWidth, H = window.innerHeight;
+    this.dpr = dpr;
+    this.W = W;
+    this.H = H;
+    this.canvas.width = Math.round(W * dpr);
+    this.canvas.height = Math.round(H * dpr);
+    // みじかい辺に 440 ぐらい 見えるように
+    this.zoom = Math.min(W, H) / 370;
+    if (Math.max(W, H) / this.zoom > 1100) this.zoom = Math.max(W, H) / 1100;
+    this.viewW = W / this.zoom;
+    this.viewH = H / this.zoom;
+    this.viewR = Math.hypot(this.viewW, this.viewH) / 2;
+  }
+
+  // ---------------------------------------------------------------- メインループ
+  frame(realDt) {
+    const t0 = performance.now();
+    if (this.state === 'play' || this.state === 'dying') {
+      this.acc += Math.min(realDt, 0.1);
+      const step = 1 / 60;
+      let n = 0;
+      while (this.acc >= step && n < 5) {
+        this.update(step * this.timeScale);
+        this.acc -= step;
+        n++;
+      }
+      if (n === 5) this.acc = 0;
+    } else {
+      this.acc = 0;
+      this.fx.update(realDt * 0.3); // モーダル中も すこし キラキラ
+    }
+    const t1 = performance.now();
+    if (!this.noRender) this.render();
+    const t2 = performance.now();
+    this.perfU = (this.perfU || 0) * 0.95 + (t1 - t0) * 0.05;
+    this.perfR = (this.perfR || 0) * 0.95 + (t2 - t1) * 0.05;
+    this.hudT -= realDt;
+    if (this.hudT <= 0) {
+      this.hudT = 0.05;
+      this.hooks.hud(this);
+    }
+  }
+
+  update(dt) {
+    this.time += dt;
+    const p = this.player;
+    // スローモーション
+    if (this.slowT > 0) {
+      this.slowT -= dt / Math.max(0.05, this.timeScale);
+      if (this.slowT <= 0) this.timeScale = 1;
+    }
+    if (this.state === 'dying') {
+      this.fx.update(dt);
+      return;
+    }
+    this.healCap = Math.max(0, this.healCap - dt * 6);
+
+    // ---- 入力
+    if (this.bot) this.botInput();
+    let ix = this.input.x, iy = this.input.y;
+    const il = Math.hypot(ix, iy);
+    if (il > 1) { ix /= il; iy /= il; }
+    p.moving = il > 0.08;
+    if (p.moving) {
+      const spd = 150 * this.stats.moveSpeed;
+      p.x += ix * spd * dt;
+      p.y += iy * spd * dt;
+      const n = Math.hypot(ix, iy) || 1;
+      p.dirX = ix / n;
+      p.dirY = iy / n;
+      if (Math.abs(ix) > 0.1) p.face = ix > 0 ? 1 : -1;
+    }
+    p.iT = Math.max(0, p.iT - dt);
+    p.hurtT = Math.max(0, p.hurtT - dt);
+    if (this.stats.regen > 0) this.heal(this.stats.regen * dt, true);
+
+    // ---- グリッド
+    this.grid.clear();
+    for (const e of this.enemies) if (e.alive) this.grid.insert(e);
+
+    this.director(dt);
+
+    // ---- ぶき
+    for (const w of this.weapons) LOGIC[w.id].update(this, w, w.s, dt);
+
+    this.updateProjs(dt);
+    this.updateAreas(dt);
+    this.updateEnemies(dt);
+    this.updateBullets(dt);
+    this.updatePickups(dt);
+    this.fx.update(dt);
+
+    // ---- コンボ / フィーバー
+    if (this.comboT > 0) {
+      this.comboT -= dt;
+      if (this.comboT <= 0) this.combo = 0;
+    }
+    if (this.feverT > 0) {
+      this.feverT -= dt;
+      if (this.feverT <= 0) {
+        audio.tempoMul = 1;
+        this.hooks.fever(false);
+      }
+    }
+    this.timeStopT = Math.max(0, this.timeStopT - dt);
+
+    // ---- きろく（テスト用）
+    if (this.bot) {
+      this.tlT = (this.tlT || 0) - dt;
+      if (this.tlT <= 0) {
+        this.tlT = 30;
+        (this.timeline = this.timeline || []).push(`${Math.round(this.time)}s:Lv${this.level}/k${this.kills}/hp${Math.round(this.player.hp)}/e${this.enemies.length}`);
+      }
+    }
+
+    // ---- トロフィー チェック
+    this.achT -= dt;
+    if (this.achT <= 0) {
+      this.achT = 1;
+      this.hooks.checkAchievements(this.results(), true);
+    }
+
+    if (this.modalQueue.length && this.state === 'play') this.openModal();
+    else if (this.pendingClear && this.state === 'play') this.finishClear();
+  }
+
+  // ---------------------------------------------------------------- しゅつげん
+  wave() {
+    let w = WAVES[0];
+    for (const x of WAVES) if (this.time >= x[0]) w = x;
+    return w;
+  }
+  hpScale() {
+    const m = this.time / 60;
+    let s = 1 + 0.3 * m + 0.05 * m * m;
+    if (m > 10) s *= 1 + (m - 10) * 0.25; // エンドレス
+    return s;
+  }
+
+  director(dt) {
+    const t = this.time;
+    // イベント
+    while (this.eventIdx < EVENTS.length && EVENTS[this.eventIdx].t <= t) {
+      this.runEvent(EVENTS[this.eventIdx]);
+      this.eventIdx++;
+    }
+    // エンドレス
+    if (this.endless && t > STAGE_TIME + 5) {
+      if (t >= this.nextEndlessEvent) {
+        this.nextEndlessEvent += 40;
+        this.runEvent(pick([
+          { type: 'swarm', enemy: 'bat', n: 80 }, { type: 'ring', enemy: 'knight', n: 50 },
+          { type: 'elite', enemy: 'golem' }, { type: 'elite', enemy: 'knight' }, { type: 'ring', enemy: 'toge', n: 60 },
+        ]));
+      }
+      if (t >= this.nextEndlessBoss) {
+        this.nextEndlessBoss += 180;
+        this.runEvent({ type: 'warning' });
+        this.endlessBoss = { at: t + 8, enemy: pick(['boss1', 'boss2', 'boss3']), mul: 1 + (t - STAGE_TIME) / 120 };
+      }
+      if (this.endlessBoss && t >= this.endlessBoss.at) {
+        const b = this.endlessBoss;
+        this.endlessBoss = null;
+        this.runEvent({ type: 'boss', enemy: b.enemy, mul: b.mul });
+      }
+    }
+    // ふつうの しゅつげん
+    const [, types, max0, rate0] = this.wave();
+    let max = max0, rate = rate0;
+    if (this.endless && t > STAGE_TIME) {
+      const k = 1 + (t - STAGE_TIME) / 300;
+      max = Math.min(300, 220 * k);
+      rate = 12 * k;
+    }
+    let alive = 0;
+    for (const e of this.enemies) if (e.alive && !e.prop) alive++;
+    this.spawnAcc += rate * dt;
+    while (this.spawnAcc >= 1) {
+      this.spawnAcc -= 1;
+      if (alive >= max) { this.spawnAcc = 0; break; }
+      const [x, y] = this.ringPos();
+      this.spawnEnemy(pick(types), x, y);
+      alive++;
+    }
+    // クリスタル
+    this.propT -= dt;
+    if (this.propT <= 0) {
+      this.propT = 14;
+      const props = this.enemies.filter((e) => e.alive && e.prop).length;
+      if (props < 3) {
+        const a = rand(TAU), d = rand(this.viewR * 0.5, this.viewR * 0.95);
+        this.spawnEnemy('crystal', this.player.x + Math.cos(a) * d, this.player.y + Math.sin(a) * d);
+      }
+    }
+  }
+
+  ringPos(extra = 40) {
+    const p = this.player;
+    // うごいている ほうこうに すこし よせる
+    let a = rand(TAU);
+    if (p.moving && chance(0.4)) a = Math.atan2(p.dirY, p.dirX) + rand(-0.9, 0.9);
+    const d = this.viewR + extra + rand(0, 40);
+    return [p.x + Math.cos(a) * d, p.y + Math.sin(a) * d];
+  }
+
+  runEvent(ev) {
+    const p = this.player;
+    if (ev.type === 'elite') {
+      const [x, y] = this.ringPos();
+      this.spawnEnemy(ev.enemy, x, y, { elite: true });
+      this.hooks.banner('つよい てきが きた！', 'elite');
+    } else if (ev.type === 'swarm') {
+      const a = rand(TAU);
+      const cx = p.x + Math.cos(a) * (this.viewR + 60), cy = p.y + Math.sin(a) * (this.viewR + 60);
+      for (let i = 0; i < ev.n; i++) {
+        const e = this.spawnEnemy(ev.enemy, cx + rand(-80, 80), cy + rand(-80, 80));
+        e.swarm = { vx: -Math.cos(a), vy: -Math.sin(a), t: 7 };
+      }
+      this.hooks.banner('たいぐんが くる！！', 'swarm');
+      audio.whoosh();
+    } else if (ev.type === 'ring') {
+      const R = this.viewR * 0.95;
+      for (let i = 0; i < ev.n; i++) {
+        const a = (i / ev.n) * TAU;
+        this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * R, p.y + Math.sin(a) * R);
+      }
+      this.hooks.banner('かこまれた！！', 'swarm');
+    } else if (ev.type === 'warning') {
+      this.hooks.banner('WARNING!! ボスが くる！', 'warning');
+      audio.warning();
+      this.fx.shake(6);
+    } else if (ev.type === 'boss') {
+      const a = -Math.PI / 2 + rand(-0.5, 0.5);
+      const e = this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * (this.viewR * 0.8), p.y + Math.sin(a) * (this.viewR * 0.8), { mul: ev.mul || 1 });
+      this.boss = e;
+      e.atkT = 2;
+      e.atk2 = 5;
+      this.hooks.bossBar(e);
+      this.hooks.banner(ENEMIES[ev.enemy].name + ' あらわる！！', 'boss');
+      audio.playBgm('boss');
+      this.fx.shake(12);
+      save.seen.enemies[ev.enemy] = true;
+    }
+  }
+
+  spawnEnemy(type, x, y, o = {}) {
+    const d = ENEMIES[type];
+    const elite = !!o.elite;
+    const mul = d.boss ? (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1);
+    const e = {
+      id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
+      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1), dmg: d.dmg * (1 + this.time / 600), xp: d.xp,
+      vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop,
+      frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
+    };
+    this.enemies.push(e);
+    if (!d.prop) save.seen.enemies[type] = true;
+    return e;
+  }
+
+  // ---------------------------------------------------------------- てき
+  updateEnemies(dt) {
+    const p = this.player;
+    const stop = this.timeStopT > 0;
+    const Q = this._q || (this._q = []);
+    const farR = this.viewR + 220;
+    let removed = 0;
+    for (const e of this.enemies) {
+      if (!e.alive) { removed++; continue; }
+      e.flash -= dt;
+      if (e.prop) {
+        if (Math.hypot(e.x - p.x, e.y - p.y) > this.viewR * 2.5) { e.alive = false; }
+        continue;
+      }
+      // ノックバック
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+      const damp = Math.pow(0.82, dt * 60);
+      e.vx *= damp;
+      e.vy *= damp;
+      if (e.frozenT > 0) e.frozenT -= dt;
+      if (e.slowT > 0) e.slowT -= dt;
+      const dx = p.x - e.x, dy = p.y - e.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      if (!stop && e.frozenT <= 0) {
+        let spd = e.speed * (e.slowT > 0 ? e.slowMul : 1);
+        let mx = dx / dist, my = dy / dist;
+        if (e.swarm && e.swarm.t > 0) {
+          e.swarm.t -= dt;
+          mx = e.swarm.vx; my = e.swarm.vy;
+          spd *= 1.6;
+        } else if (e.type === 'bat') {
+          const w = Math.sin(this.time * 5 + e.phase) * 0.6;
+          mx += -my * w; my += mx * w;
+        } else if (e.type === 'ghost') {
+          const w = Math.sin(this.time * 2.5 + e.phase) * 0.9;
+          mx += -my * w; my += mx * w;
+        }
+        if (e.boss) this.bossAI(e, dt, dist);
+        if (e.dash > 0) { spd *= 4.5; mx = e.dvx; my = e.dvy; e.dash -= dt; }
+        if (e.windup > 0) { spd = 0; e.windup -= dt; if (e.windup <= 0) { e.dash = 0.55; } }
+        const ml = Math.hypot(mx, my) || 1;
+        e.x += (mx / ml) * spd * dt;
+        e.y += (my / ml) * spd * dt;
+      }
+      // おしあい（かるく）
+      if ((e.id + this.eid) % 2 === 0 || e.boss) {
+        this.grid.query(e.x, e.y, e.r * 2, Q);
+        for (const o of Q) {
+          if (o === e || !o.alive || o.prop) continue;
+          const ox = e.x - o.x, oy = e.y - o.y;
+          const rr = (e.r + o.r) * 0.85;
+          const d2 = ox * ox + oy * oy;
+          if (d2 < rr * rr && d2 > 0.01) {
+            const d = Math.sqrt(d2);
+            const push = ((rr - d) / d) * (e.boss ? 0.05 : 0.35);
+            e.x += ox * push;
+            e.y += oy * push;
+          }
+        }
+      }
+      // プレイヤーに あたる
+      if (dist < e.r + p.r - 2) this.hurtPlayer(e.dmg);
+      // とおすぎたら まえに もってくる
+      if (dist > farR && !e.boss) {
+        const a = p.moving ? Math.atan2(p.dirY, p.dirX) + rand(-1, 1) : rand(TAU);
+        const d = this.viewR + 30;
+        e.x = p.x + Math.cos(a) * d;
+        e.y = p.y + Math.sin(a) * d;
+        e.swarm = null;
+      }
+    }
+    if (removed > 60) this.enemies = this.enemies.filter((e) => e.alive);
+  }
+
+  bossAI(e, dt, dist) {
+    const p = this.player;
+    // にげても ワープで おいかけてくる
+    if (dist > this.viewR * 0.95 && !(e.dash > 0)) {
+      e.warpT = (e.warpT || 0) + dt;
+      if (e.warpT > 1.5) {
+        e.warpT = 0;
+        this.fx.burst(e.x, e.y, '#c43dff', 20, 200, 0.6, 14);
+        const a = rand(TAU);
+        e.x = p.x + Math.cos(a) * this.viewR * 0.55;
+        e.y = p.y + Math.sin(a) * this.viewR * 0.55;
+        this.fx.ring(e.x, e.y, 10, e.r * 2.5, 0.5, '#ff3ddc', 8);
+        this.fx.text(e.x, e.y - e.r - 10, 'ワープ！', { size: 18, color: '#ffb3f0', stroke: '#6a0a4a', life: 0.8 });
+        audio.whoosh();
+      }
+    } else e.warpT = 0;
+    const enraged = e.hp < e.maxHp * 0.5;
+    e.atkT -= dt * (enraged ? 1.4 : 1);
+    e.atk2 -= dt;
+    const shoot = (a, spd = 150, r = 8) => this.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r, dmg: e.dmg * 0.7, life: 6 });
+    if (e.type === 'boss1') {
+      if (e.atkT <= 0) {
+        e.atkT = 2.8;
+        const n = 14, off = rand(TAU);
+        for (let i = 0; i < n; i++) shoot(off + (i / n) * TAU, 140);
+        this.fx.ring(e.x, e.y, e.r, e.r * 2, 0.3, '#b48cff', 5);
+      }
+      if (e.atk2 <= 0) {
+        e.atk2 = 7;
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * TAU;
+          this.spawnEnemy('slime', e.x + Math.cos(a) * 70, e.y + Math.sin(a) * 70);
+        }
+      }
+    } else if (e.type === 'boss2') {
+      if (e.atkT <= 0) {
+        e.atkT = 2.2;
+        e.spiral = (e.spiral || 0) + 0.4;
+        for (let w = 0; w < 3; w++) {
+          for (let i = 0; i < 8; i++) {
+            const a = e.spiral + (i / 8) * TAU + w * 0.2;
+            this.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * (120 + w * 30), vy: Math.sin(a) * (120 + w * 30), r: 8, dmg: e.dmg * 0.6, life: 6 });
+          }
+        }
+      }
+      if (e.atk2 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+        e.atk2 = 5;
+        e.windup = 0.7;
+        const d = Math.hypot(p.x - e.x, p.y - e.y) || 1;
+        e.dvx = (p.x - e.x) / d;
+        e.dvy = (p.y - e.y) / d;
+      }
+    } else if (e.type === 'boss3') {
+      if (e.atkT <= 0) {
+        e.atkT = 1.9;
+        const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+        const n = enraged ? 7 : 5;
+        for (let i = 0; i < n; i++) shoot(a0 + (i - (n - 1) / 2) * 0.22, 190, 9);
+      }
+      if (e.atk2 <= 0) {
+        e.atk2 = enraged ? 4 : 5.5;
+        e.pat = ((e.pat || 0) + 1) % 3;
+        if (e.pat === 0) {
+          const n = 28, off = rand(TAU);
+          for (let i = 0; i < n; i++) shoot(off + (i / n) * TAU, 120, 9);
+        } else if (e.pat === 1) {
+          const R = this.viewR * 0.9;
+          for (let i = 0; i < 20; i++) {
+            const a = (i / 20) * TAU;
+            this.spawnEnemy('bat', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R);
+          }
+        } else {
+          e.windup = 0.8;
+          const d = Math.hypot(p.x - e.x, p.y - e.y) || 1;
+          e.dvx = (p.x - e.x) / d;
+          e.dvy = (p.y - e.y) / d;
+        }
+        this.fx.ring(e.x, e.y, e.r, e.r * 2.5, 0.4, '#ff3ddc', 6);
+      }
+    }
+  }
+
+  updateBullets(dt) {
+    const p = this.player;
+    for (const b of this.ebullets) {
+      if (this.timeStopT > 0) continue;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      const rr = b.r + p.r - 3;
+      if ((b.x - p.x) ** 2 + (b.y - p.y) ** 2 < rr * rr) {
+        this.hurtPlayer(b.dmg);
+        b.life = 0;
+      }
+    }
+    this.ebullets = this.ebullets.filter((b) => b.life > 0);
+  }
+
+  // ---------------------------------------------------------------- たま
+  addProj(pr) {
+    pr.hit = pr.hit || new Set();
+    pr.max = pr.life;
+    pr.rot = pr.rot || 0;
+    pr.age = 0;
+    this.projs.push(pr);
+    return pr;
+  }
+  addArea(a) {
+    a.max = a.life;
+    a.tt = 0;
+    this.areas.push(a);
+    return a;
+  }
+
+  updateProjs(dt) {
+    const Q = this._pq || (this._pq = []);
+    for (const pr of this.projs) {
+      pr.life -= dt;
+      pr.age += dt;
+      if (pr.fall) {
+        pr.ft += dt;
+        const t = Math.min(1, pr.ft / pr.fall);
+        pr.x = pr.tx;
+        pr.y = pr.ty - 360 * (1 - t * t);
+        if (pr.spin) pr.rot += pr.spin * dt;
+        if (t >= 1) {
+          pr.land(this, pr);
+          pr.life = 0;
+        }
+        continue;
+      }
+      if (pr.gravity) pr.vy += pr.gravity * dt;
+      pr.x += pr.vx * dt;
+      pr.y += pr.vy * dt;
+      if (pr.spin) pr.rot += pr.spin * dt;
+      if (pr.trail && Math.random() < 0.35) this.fx.add(pr.x, pr.y, rand(-15, 15), rand(-15, 15), 0.3, 6, pr.trail, 'star');
+      if (pr.grow) pr.r += pr.grow * dt * 10;
+      this.grid.query(pr.x, pr.y, pr.r + 40, Q);
+      for (const e of Q) {
+        if (!e.alive || pr.hit.has(e)) continue;
+        const rr = pr.r + e.r;
+        const dx = e.x - pr.x, dy = e.y - pr.y;
+        if (dx * dx + dy * dy > rr * rr) continue;
+        pr.hit.add(e);
+        const sp = Math.hypot(pr.vx, pr.vy) || 1;
+        this.damage(e, pr.dmg, { wid: pr.wid, kx: pr.vx / sp, ky: pr.vy / sp, kb: pr.knock || 40, heal: pr.heal, forceCrit: pr.forceCrit });
+        if (pr.explode) {
+          this.aoe(pr.x, pr.y, pr.explode, pr.dmg * 0.6, pr.wid, { kb: 60, exclude: e });
+          this.fx.ring(pr.x, pr.y, 5, pr.explode, 0.25, '#ff7a95', 5);
+          this.fx.burst(pr.x, pr.y, '#ff5f7a', 6, 160, 0.35, 10);
+        }
+        if (pr.onHit) pr.onHit(this, pr, e);
+        pr.pierce--;
+        if (pr.pierce < 0) { pr.life = 0; break; }
+      }
+    }
+    this.projs = this.projs.filter((pr) => pr.life > 0);
+  }
+
+  updateAreas(dt) {
+    const Q = this._aq || (this._aq = []);
+    for (const a of this.areas) {
+      a.life -= dt;
+      a.tt -= dt;
+      if (a.slow) {
+        this.grid.query(a.x, a.y, a.r + 30, Q);
+        for (const e of Q) if (e.alive && !e.boss && (e.x - a.x) ** 2 + (e.y - a.y) ** 2 < (a.r + e.r) ** 2) { e.slowT = 0.2; e.slowMul = a.slow; }
+      }
+      if (a.tt <= 0) {
+        a.tt += a.tick;
+        this.grid.query(a.x, a.y, a.r + 30, Q);
+        for (const e of Q) {
+          if (!e.alive) continue;
+          if ((e.x - a.x) ** 2 + (e.y - a.y) ** 2 > (a.r + e.r) ** 2) continue;
+          const wasAlive = e.alive;
+          this.damage(e, a.dmg, { wid: a.wid, kb: 0 });
+          if (a.clover && wasAlive && !e.alive && chance(0.04 * this.stats.luck)) {
+            this.dropPickup(chance(0.5) ? 'heart' : 'coin', e.x, e.y, 5);
+          }
+        }
+      }
+    }
+    this.areas = this.areas.filter((a) => a.life > 0);
+  }
+
+  aoe(x, y, R, dmg, wid, o = {}) {
+    const Q = this._oq || (this._oq = []);
+    this.grid.query(x, y, R + 40, Q);
+    for (const e of Q) {
+      if (!e.alive || e === o.exclude) continue;
+      const dx = e.x - x, dy = e.y - y;
+      if (dx * dx + dy * dy > (R + e.r) ** 2) continue;
+      const d = Math.hypot(dx, dy) || 1;
+      this.damage(e, dmg, { wid, kx: dx / d, ky: dy / d, kb: o.kb || 0, heal: o.heal });
+    }
+  }
+
+  // ---------------------------------------------------------------- ダメージ
+  damage(e, amount, o = {}) {
+    if (!e.alive) return 0;
+    const p = this.player;
+    if (e.prop) {
+      e.hp = 0;
+      this.killProp(e);
+      return 0;
+    }
+    let dmg = amount;
+    if (this.feverT > 0) dmg *= 1.5;
+    if (this.charId === 'ruby' && p.hp < p.maxHp * 0.5) dmg *= 1.3;
+    const crit = o.forceCrit || chance(this.stats.crit);
+    if (crit) dmg *= 2.5;
+    dmg *= rand(0.92, 1.08);
+    dmg = Math.max(1, Math.round(dmg));
+    const dealt = Math.min(dmg, e.hp);
+    e.hp -= dmg;
+    e.flash = 0.08;
+    if (o.kb) {
+      let kx = o.kx, ky = o.ky;
+      if (kx === undefined) {
+        const d = Math.hypot(e.x - p.x, e.y - p.y) || 1;
+        kx = (e.x - p.x) / d; ky = (e.y - p.y) / d;
+      }
+      const k = e.boss ? 0.05 : e.elite ? 0.3 : 1;
+      e.vx += kx * o.kb * k;
+      e.vy += ky * o.kb * k;
+    }
+    if (o.wid) this.dmgBy[o.wid] = (this.dmgBy[o.wid] || 0) + dealt;
+    this.totalDmg += dealt;
+    if (!o.silent) {
+      if (o.miracle) {
+        this.miracles++;
+        this.fx.text(e.x, e.y - e.r - 18, 'MIRACLE!!', { size: 18, rainbow: true, life: 0.9, vy: -80, stroke: '#ffffff' });
+        this.fx.text(e.x, e.y - e.r, dmg, { size: 30, rainbow: true, life: 0.9, crit: true });
+        this.fx.burst(e.x, e.y, 'rainbow', 14, 260, 0.6, 14);
+        audio.miracle();
+        this.fx.shake(3);
+      } else if (crit) {
+        this.fx.text(e.x, e.y - e.r, dmg + '!', { size: 22, color: '#ffe14d', stroke: '#b3001e', life: 0.7, crit: true });
+        audio.crit();
+      } else {
+        this.fx.text(e.x, e.y - e.r, dmg, { size: 14, color: '#ffffff', stroke: '#5a2a7a', life: 0.55 });
+      }
+      audio.hit();
+    }
+    if (o.heal) this.heal(o.heal);
+    if (e.hp <= 0) this.kill(e, o.wid);
+    return dealt;
+  }
+
+  kill(e, wid) {
+    e.alive = false;
+    this.kills++;
+    this.killsByType[e.type] = (this.killsByType[e.type] || 0) + 1;
+    const col = pick(['#ffffff', '#ffd6f5', '#d6f0ff', '#fff3b0', GEMS[this.charId].color]);
+    this.fx.purify(e.x, e.y, col, e.elite || e.boss);
+    audio.kill();
+    // けいけんち
+    if (e.boss) {
+      this.bossDefeated(e);
+    } else {
+      this.dropXp(e.x, e.y, e.xp * (e.elite ? 8 : 1));
+      if (e.elite) {
+        this.dropPickup('chest', e.x, e.y);
+        this.fx.confetti(e.x, e.y, 30);
+        this.fx.shake(6);
+      }
+    }
+    // コイン
+    const coinP = (0.05 + (wid === 'amber' ? 0.25 : 0) + (wid === 'amber' && this.getWeapon('amber')?.evolved ? 0.75 : 0)) * this.stats.luck;
+    if (chance(coinP)) this.dropPickup('coin', e.x, e.y, randi(1, 3));
+    if (chance(0.003 * this.stats.luck)) this.dropPickup('heart', e.x, e.y);
+    // コンボ / フィーバー
+    this.combo++;
+    this.comboT = 1.5;
+    if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+    if (this.combo === 50 || this.combo === 100 || this.combo === 200 || this.combo % 500 === 0) {
+      this.hooks.combo(this.combo);
+    }
+    if (this.feverT <= 0) {
+      this.feverGauge += e.boss ? 60 : e.elite ? 15 : 1;
+      if (this.feverGauge >= this.feverNeed) this.startFever();
+    }
+    if (this.milestoneIdx < KILL_MILESTONES.length && this.kills >= KILL_MILESTONES[this.milestoneIdx]) {
+      const m = KILL_MILESTONES[this.milestoneIdx++];
+      const bonus = Math.round(m / 10 * this.stats.greed);
+      this.coins += bonus;
+      this.hooks.banner(`${m}たい げきは！！ +${bonus}コイン`, 'milestone');
+      audio.milestone();
+    }
+  }
+
+  killProp(e) {
+    e.alive = false;
+    this.fx.burst(e.x, e.y, 'rainbow', 16, 220, 0.6, 12);
+    this.fx.ring(e.x, e.y, 5, 40, 0.3, '#ffffff', 4);
+    audio.crit();
+    const r = weightedPick([
+      ['heart', 30], ['coinbag', 25], ['magnet', 16], ['bomb', 10], ['clock', 9], ['bigxp', 10],
+    ], (x) => x[1])[0];
+    if (r === 'coinbag') for (let i = 0; i < 6; i++) this.dropPickup('coin', e.x, e.y, randi(2, 5));
+    else if (r === 'bigxp') this.dropXp(e.x, e.y, 25 + Math.floor(this.time / 20));
+    else this.dropPickup(r, e.x, e.y);
+  }
+
+  bossDefeated(e) {
+    this.bosses++;
+    (this.bossLog = this.bossLog || []).push(e.type + '@' + Math.round(this.time));
+    this.boss = null;
+    this.hooks.bossBar(null);
+    this.fx.shake(20);
+    this.fx.screenFlash(0.9);
+    this.fx.confetti(e.x, e.y, 80, 500);
+    this.fx.burst(e.x, e.y, 'rainbow', 60, 500, 1.2, 20);
+    this.timeScale = 0.25;
+    this.slowT = 1.2;
+    audio.bossDie();
+    setTimeout(() => audio.bigWin(), 400);
+    this.hooks.banner(ENEMIES[e.type].name + ' を たおした！！', 'victory');
+    this.dropPickup('bigchest', e.x, e.y);
+    // けいけんちの シャワー
+    for (let i = 0; i < 30; i++) this.dropXp(e.x + rand(-60, 60), e.y + rand(-60, 60), Math.ceil(e.xp / 30));
+    for (let i = 0; i < 25; i++) this.dropPickup('coin', e.x, e.y, randi(3, 8));
+    if (this.state !== 'over') audio.playBgm('stage');
+    if (e.type === 'boss3' && !this.endless && !this.cleared) {
+      this.cleared = true;
+      setTimeout(() => {
+        if (this.state === 'over') return;
+        this.pendingClear = true;
+      }, 2800);
+    }
+  }
+
+  startFever() {
+    this.feverT = 10;
+    this.fevers++;
+    this.feverGauge = 0;
+    this.feverNeed = Math.round(this.feverNeed * 1.35);
+    audio.fever();
+    audio.tempoMul = 1.18;
+    this.hooks.fever(true);
+    this.fx.screenFlash(0.5, '#ffe6ff');
+    this.fx.confetti(this.player.x, this.player.y, 50, 420);
+    for (const pk of this.pickups) if (pk.kind === 'xp') pk.vac = true;
+  }
+
+  // ---------------------------------------------------------------- プレイヤー
+  heal(v, silent) {
+    const p = this.player;
+    if (p.hp >= p.maxHp) return;
+    if (!silent) {
+      // ハートかいふくは 1びょうに ちょっとまで
+      if (this.healCap > 6) return;
+      this.healCap += v;
+    }
+    p.hp = Math.min(p.maxHp, p.hp + v);
+  }
+
+  hurtPlayer(dmg) {
+    const p = this.player;
+    if (p.iT > 0 || this.god || this.state !== 'play') return;
+    dmg = Math.max(1, Math.round(dmg - this.stats.armor));
+    p.hp -= dmg;
+    p.iT = 0.45;
+    p.hurtT = 0.3;
+    this.fx.shake(5);
+    this.fx.text(p.x, p.y - 22, '-' + dmg, { size: 16, color: '#ff4d6d', stroke: '#ffffff', life: 0.6 });
+    audio.hurt();
+    this.hooks.haptic();
+    if (p.hp <= 0) this.die();
+  }
+
+  die() {
+    const p = this.player;
+    if (this.revives > 0) {
+      this.revives--;
+      p.hp = p.maxHp;
+      p.iT = 2.5;
+      this.jewelFlash(true);
+      this.hooks.banner('ふっかつ！！ ゆうきは まけない！', 'victory');
+      audio.heal();
+      return;
+    }
+    p.hp = 0;
+    this.state = 'dying';
+    this.timeScale = 0.3;
+    this.fx.burst(p.x, p.y, '#ffffff', 40, 300, 1, 14);
+    audio.gameOver();
+    audio.stopBgm();
+    setTimeout(() => {
+      this.state = 'over';
+      this.hooks.gameOver(this.results(), false);
+    }, 1600);
+  }
+
+  // ---------------------------------------------------------------- アイテム
+  dropXp(x, y, v) {
+    // おおすぎたら まとめる
+    if (this.pickups.length > 380) {
+      let best = null, bd = Infinity;
+      for (const pk of this.pickups) {
+        if (pk.kind !== 'xp' || pk.vac) continue;
+        const d = (pk.x - x) ** 2 + (pk.y - y) ** 2;
+        if (d < bd) { bd = d; best = pk; }
+      }
+      if (best) { best.value += v; return; }
+    }
+    this.pickups.push({ kind: 'xp', x: x + rand(-4, 4), y: y + rand(-4, 4), value: v, vx: 0, vy: 0, vac: false, t: 0 });
+  }
+
+  dropPickup(kind, x, y, value = 1) {
+    const a = rand(TAU), s = rand(40, 140);
+    this.pickups.push({ kind, x, y, value, vx: Math.cos(a) * s, vy: Math.sin(a) * s, vac: false, t: 0 });
+  }
+
+  updatePickups(dt) {
+    const p = this.player;
+    const mR = 62 * this.stats.magnet;
+    const mR2 = mR * mR;
+    let keep = 0;
+    const list = this.pickups;
+    for (let i = 0; i < list.length; i++) {
+      const pk = list[i];
+      pk.t += dt;
+      pk.x += pk.vx * dt;
+      pk.y += pk.vy * dt;
+      pk.vx *= Math.pow(0.88, dt * 60);
+      pk.vy *= Math.pow(0.88, dt * 60);
+      const dx = p.x - pk.x, dy = p.y - pk.y;
+      const d2 = dx * dx + dy * dy;
+      const isChest = pk.kind === 'chest' || pk.kind === 'bigchest';
+      if (!isChest && pk.t > 0.25 && (d2 < mR2 || pk.vac)) {
+        pk.vac = true;
+        const d = Math.sqrt(d2) || 1;
+        pk.sp = (pk.sp || 120) + 900 * dt;
+        pk.x += (dx / d) * pk.sp * dt;
+        pk.y += (dy / d) * pk.sp * dt;
+      }
+      if (d2 < (p.r + (isChest ? 16 : 10)) ** 2) {
+        this.collect(pk);
+        continue;
+      }
+      list[keep++] = pk;
+    }
+    list.length = keep;
+  }
+
+  collect(pk) {
+    const p = this.player;
+    switch (pk.kind) {
+      case 'xp': {
+        const v = pk.value * this.stats.growth * (this.feverT > 0 ? 2 : 1);
+        this.gainXp(v);
+        audio.pickup();
+        if (pk.value >= 20) this.fx.burst(p.x, p.y, '#ff9ec7', 6, 120, 0.4, 8);
+        break;
+      }
+      case 'coin': {
+        const v = Math.max(1, Math.round(pk.value * this.stats.greed));
+        this.coins += v;
+        audio.coin();
+        this.fx.text(p.x + rand(-10, 10), p.y - 26, '+' + v, { size: 13, color: '#ffe14d', stroke: '#8a5200', life: 0.5, vy: -80 });
+        this.hooks.coinPop();
+        break;
+      }
+      case 'heart':
+        this.player.hp = Math.min(p.maxHp, p.hp + 30);
+        audio.heal();
+        this.fx.text(p.x, p.y - 26, '+30 HP', { size: 16, color: '#ff7ab8', stroke: '#fff', life: 0.8 });
+        this.fx.burst(p.x, p.y, '#ff7ab8', 12, 150, 0.6, 12);
+        break;
+      case 'magnet':
+        for (const q of this.pickups) if (q.kind === 'xp' || q.kind === 'coin') q.vac = true;
+        this.hooks.banner('ジュエル マグネット！', 'item');
+        audio.levelUp();
+        break;
+      case 'bomb':
+        this.jewelFlash(false);
+        break;
+      case 'clock':
+        this.timeStopT = 6;
+        this.hooks.banner('タイムストップ！', 'item');
+        audio.miracle();
+        break;
+      case 'chest':
+      case 'bigchest':
+        this.modalQueue.push({ type: 'chest', big: pk.kind === 'bigchest' });
+        audio.chestOpen();
+        break;
+    }
+  }
+
+  gainXp(v) {
+    this.xp += v;
+    while (this.xp >= this.xpNext) {
+      this.xp -= this.xpNext;
+      this.level++;
+      this.xpNext = xpFor(this.level);
+      this.pendingLevels++;
+      this.modalQueue.push({ type: 'level' });
+    }
+  }
+
+  // がめんの てきを いっそう！
+  jewelFlash(fromRevive) {
+    const p = this.player;
+    this.fx.screenFlash(1);
+    this.fx.shake(16);
+    this.fx.ring(p.x, p.y, 10, this.viewR, 0.6, 'rainbow', 16);
+    this.fx.confetti(p.x, p.y, 60, 500);
+    audio.bomb();
+    if (!fromRevive) this.hooks.banner('ジュエル フラッシュ！！', 'item');
+    for (const e of this.enemies) {
+      if (!e.alive || e.prop) continue;
+      if (Math.abs(e.x - p.x) > this.viewW / 2 + 40 || Math.abs(e.y - p.y) > this.viewH / 2 + 40) continue;
+      if (e.boss) this.damage(e, e.maxHp * 0.05, { wid: null });
+      else this.damage(e, e.hp + 1, { wid: null, silent: true });
+    }
+    this.ebullets.length = 0;
+  }
+
+  jackpot(x, y) {
+    this.fx.text(x, y - 30, 'JACKPOT!! 777', { size: 24, rainbow: true, life: 1.2, stroke: '#8a5200', crit: true });
+    this.fx.confetti(x, y, 30, 300);
+    for (let i = 0; i < 7; i++) this.dropPickup('coin', x, y, 7);
+    audio.jackpot();
+    this.fx.shake(5);
+  }
+
+  // ---------------------------------------------------------------- えらぶ
+  rollChoices() {
+    const n = this.stats.luck >= 1.3 ? 4 : 3;
+    const pool = [];
+    const evos = [];
+    for (const w of this.weapons) {
+      const def = WEAPONS[w.id];
+      if (!w.evolved && w.level >= WEAPON_MAX && this.hasPassive(def.evo.with)) evos.push({ type: 'evo', id: w.id });
+      else if (!w.evolved && w.level < WEAPON_MAX) pool.push({ type: 'wup', id: w.id, weight: 10 });
+    }
+    for (const p of this.passives) if (p.level < PASSIVES[p.id].max) pool.push({ type: 'pup', id: p.id, weight: 7 });
+    if (this.weapons.length < 6) for (const id of WEAPON_IDS) if (!this.getWeapon(id)) pool.push({ type: 'wnew', id, weight: 5 });
+    if (this.passives.length < 6) for (const id of PASSIVE_IDS) if (!this.getPassive(id)) {
+      // しんかに ひつようなら でやすく
+      const need = this.weapons.some((w) => WEAPONS[w.id].evo.with === id && !w.evolved);
+      pool.push({ type: 'pnew', id, weight: need ? 9 : 4 });
+    }
+    const out = evos.slice(0, n);
+    const avail = pool.slice();
+    while (out.length < n && avail.length) {
+      const c = weightedPick(avail, (x) => x.weight);
+      avail.splice(avail.indexOf(c), 1);
+      out.push(c);
+    }
+    // ラッキー ×2
+    for (const c of out) {
+      if (c.type === 'wup') {
+        const w = this.getWeapon(c.id);
+        if (w.level + 2 <= WEAPON_MAX && chance(0.12 * this.stats.luck)) c.double = true;
+      } else if (c.type === 'pup') {
+        const p = this.getPassive(c.id);
+        if (p.level + 2 <= PASSIVES[c.id].max && chance(0.12 * this.stats.luck)) c.double = true;
+      }
+    }
+    if (!out.length) {
+      out.push({ type: 'coins', value: 50 }, { type: 'heal' });
+    }
+    return out;
+  }
+
+  applyChoice(c) {
+    let evolved = null;
+    if (c.type === 'wnew') this.addWeapon(c.id);
+    else if (c.type === 'wup') {
+      const w = this.getWeapon(c.id);
+      w.level = Math.min(WEAPON_MAX, w.level + (c.double ? 2 : 1));
+    } else if (c.type === 'pnew') this.addPassive(c.id);
+    else if (c.type === 'pup') {
+      const p = this.getPassive(c.id);
+      p.level = Math.min(PASSIVES[c.id].max, p.level + (c.double ? 2 : 1));
+    } else if (c.type === 'evo') {
+      const w = this.getWeapon(c.id);
+      w.evolved = true;
+      w.t = 0;
+      this.evolvedCount++;
+      save.seen.evos[c.id] = true;
+      evolved = w;
+    } else if (c.type === 'coins') {
+      this.coins += Math.round(c.value * this.stats.greed);
+    } else if (c.type === 'heal') {
+      this.player.hp = this.player.maxHp;
+    }
+    this.computeStats();
+    return evolved;
+  }
+
+  // たからばこの なかみ
+  rollChest(big) {
+    const r = Math.random() / this.stats.luck;
+    let n = big ? (r < 0.3 ? 5 : 3) : r < 0.05 ? 5 : r < 0.3 ? 3 : 1;
+    const items = [];
+    for (let i = 0; i < n; i++) {
+      // しんか ゆうせん
+      const evo = this.weapons.find((w) => !w.evolved && w.level >= WEAPON_MAX && this.hasPassive(WEAPONS[w.id].evo.with));
+      let c;
+      if (evo) c = { type: 'evo', id: evo.id };
+      else {
+        const pool = [];
+        for (const w of this.weapons) if (!w.evolved && w.level < WEAPON_MAX) pool.push({ type: 'wup', id: w.id });
+        for (const p of this.passives) if (p.level < PASSIVES[p.id].max) pool.push({ type: 'pup', id: p.id });
+        c = pool.length ? pick(pool) : { type: 'coins', value: 100 };
+      }
+      items.push(c);
+      this.applyChoice(c);
+    }
+    const coins = Math.round((big ? rand(150, 400) : rand(30, 120)) * n * this.stats.greed);
+    this.coins += coins;
+    return { items, coins, n };
+  }
+
+  // ---------------------------------------------------------------- モーダル
+  openModal() {
+    const m = this.modalQueue.shift();
+    if (!m) return;
+    this.state = 'modal';
+    this.input.x = this.input.y = 0;
+    const done = () => {
+      if (this.state === 'over') return;
+      this.state = 'play';
+      this.player.iT = Math.max(this.player.iT, 0.6);
+      if (this.pendingClear) this.finishClear();
+    };
+    if (m.type === 'level') {
+      this.pendingLevels = Math.max(0, this.pendingLevels - 1);
+      const p = this.player;
+      // もう えらぶものが ないときは じゃましない
+      const cs = this.rollChoices();
+      if (cs.every((c) => c.type === 'coins' || c.type === 'heal')) {
+        const v = Math.round(30 * this.stats.greed);
+        this.coins += v;
+        this.heal(20, true);
+        this.fx.ring(p.x, p.y, 10, 90, 0.4, 'rainbow', 6);
+        this.fx.text(p.x, p.y - 34, `LEVEL UP! +${v}🪙`, { size: 16, rainbow: true, stroke: '#fff', life: 0.9 });
+        audio.coin();
+        this.state = 'play';
+        return;
+      }
+      this.fx.ring(p.x, p.y, 10, 120, 0.5, 'rainbow', 8);
+      this.fx.confetti(p.x, p.y, 20, 250);
+      audio.levelUp();
+      this.hooks.levelUp(this, done);
+    } else if (m.type === 'chest') {
+      this.hooks.chest(this, m.big, done);
+    }
+  }
+
+  finishClear() {
+    if (this.state === 'over') return;
+    this.pendingClear = false;
+    this.state = 'over';
+    audio.stopBgm();
+    this.hooks.gameOver(this.results(), true);
+  }
+
+  pause() {
+    if (this.state !== 'play') return false;
+    this.state = 'paused';
+    this.input.x = this.input.y = 0;
+    return true;
+  }
+  resume() {
+    if (this.state === 'paused') this.state = 'play';
+  }
+
+  results() {
+    return {
+      time: this.time, kills: this.kills, level: this.level, coins: this.coins, damage: this.totalDmg,
+      maxCombo: this.maxCombo, fevers: this.fevers, evolved: this.evolvedCount, bosses: this.bosses,
+      miracles: this.miracles, weaponCount: this.weapons.length, cleared: this.cleared, dmgBy: { ...this.dmgBy },
+      weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved })),
+      passives: this.passives.map((p) => ({ id: p.id, level: p.level })),
+      timeline: this.timeline, bossLog: this.bossLog,
+      charId: this.charId, killsByType: { ...this.killsByType }, endless: this.endless,
+    };
+  }
+
+  // ---------------------------------------------------------------- てきさがし
+  nearestEnemies(x, y, n, maxD, exclude) {
+    const out = [];
+    const ds = [];
+    const m2 = maxD * maxD;
+    for (const e of this.enemies) {
+      if (!e.alive || e.prop || (exclude && exclude.has(e))) continue;
+      const d = (e.x - x) ** 2 + (e.y - y) ** 2;
+      if (d > m2) continue;
+      if (out.length < n) {
+        out.push(e); ds.push(d);
+      } else {
+        let wi = 0;
+        for (let i = 1; i < ds.length; i++) if (ds[i] > ds[wi]) wi = i;
+        if (d < ds[wi]) { out[wi] = e; ds[wi] = d; }
+      }
+    }
+    // ちかい じゅん
+    const idx = out.map((_, i) => i).sort((a, b) => ds[a] - ds[b]);
+    return idx.map((i) => out[i]);
+  }
+  strongestEnemies(x, y, n, maxD) {
+    const m2 = maxD * maxD;
+    const c = this.enemies.filter((e) => e.alive && !e.prop && (e.x - x) ** 2 + (e.y - y) ** 2 < m2);
+    c.sort((a, b) => b.hp - a.hp);
+    return c.slice(0, n);
+  }
+  inView(e, pad = 0) {
+    const p = this.player;
+    return Math.abs(e.x - p.x) < this.viewW / 2 + pad && Math.abs(e.y - p.y) < this.viewH / 2 + pad;
+  }
+  randomEnemyInView() {
+    const es = this.enemies;
+    if (!es.length) return null;
+    for (let k = 0; k < 16; k++) {
+      const e = es[Math.floor(Math.random() * es.length)];
+      if (e.alive && !e.prop && this.inView(e, -10)) return e;
+    }
+    return this.nearestEnemies(this.player.x, this.player.y, 1, this.viewR)[0] || null;
+  }
+  randomEnemyNear(x, y, R) {
+    const es = this.enemies;
+    if (!es.length) return null;
+    const R2 = R * R;
+    for (let k = 0; k < 16; k++) {
+      const e = es[Math.floor(Math.random() * es.length)];
+      if (e.alive && !e.prop && (e.x - x) ** 2 + (e.y - y) ** 2 < R2) return e;
+    }
+    return this.nearestEnemies(x, y, 1, R)[0] || null;
+  }
+
+  // ---------------------------------------------------------------- テスト用 ボット
+  botInput() {
+    const p = this.player;
+    let fx = 0, fy = 0;
+    for (const e of this.enemies) {
+      if (!e.alive || e.prop) continue;
+      const dx = p.x - e.x, dy = p.y - e.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 > 200 * 200) continue;
+      const w = (e.boss ? 2 : 1) / (d2 + 50);
+      fx += dx * w; fy += dy * w;
+    }
+    for (const b of this.ebullets) {
+      const dx = p.x - b.x, dy = p.y - b.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 > 120 * 120) continue;
+      fx += dx * 3 / (d2 + 30); fy += dy * 3 / (d2 + 30);
+    }
+    // アイテムに ちかづく
+    let best = null, bd = 250 * 250;
+    for (const pk of this.pickups) {
+      const d = (pk.x - p.x) ** 2 + (pk.y - p.y) ** 2;
+      if (d < bd) { bd = d; best = pk; }
+    }
+    const danger = Math.hypot(fx, fy);
+    if (best) {
+      const d = Math.sqrt(bd) || 1;
+      const k = danger < 0.01 ? 1 : danger < 0.03 ? 0.4 : 0.1;
+      const dn = danger || 1;
+      fx = (fx / dn) * (1 - k) + ((best.x - p.x) / d) * k;
+      fy = (fy / dn) * (1 - k) + ((best.y - p.y) / d) * k;
+    }
+    // ぐるぐる まわる
+    this.botAng = (this.botAng || 0) + 0.01;
+    fx += Math.cos(this.botAng) * 0.004;
+    fy += Math.sin(this.botAng) * 0.004;
+    const l = Math.hypot(fx, fy) || 1;
+    this.input.x = fx / l;
+    this.input.y = fy / l;
+  }
+
+  // ---------------------------------------------------------------- えがく
+  render() {
+    const ctx = this.ctx;
+    const p = this.player;
+    const z = this.zoom * this.dpr;
+    const camX = p.x + this.fx.shakeX, camY = p.y + this.fx.shakeY;
+    ctx.setTransform(z, 0, 0, z, this.canvas.width / 2 - camX * z, this.canvas.height / 2 - camY * z);
+    const L = camX - this.viewW / 2, T = camY - this.viewH / 2;
+
+    // はいけい
+    if (!this.bgPattern) this.bgPattern = ctx.createPattern(backgroundTile(), 'repeat');
+    ctx.fillStyle = this.bgPattern;
+    ctx.fillRect(L - 2, T - 2, this.viewW + 4, this.viewH + 4);
+    if (this.feverT > 0) {
+      ctx.fillStyle = `hsla(${(this.time * 120) % 360},100%,70%,0.16)`;
+      ctx.fillRect(L - 2, T - 2, this.viewW + 4, this.viewH + 4);
+    }
+
+    // じめん
+    for (const a of this.areas) if (this.inView(a, a.r)) drawArea(ctx, a, this.time);
+    for (const w of this.weapons) if (w.id === 'angelite') LOGIC.angelite.draw(this, w, w.s, ctx);
+
+    // アイテム
+    for (const pk of this.pickups) {
+      if (!this.inView(pk, 30)) continue;
+      const bob = Math.sin(this.time * 5 + pk.x * 0.1) * 2;
+      let spr;
+      if (pk.kind === 'xp') spr = xpSprite(pk.value);
+      else spr = itemSprite(pk.kind === 'coin' ? 'coin' : pk.kind);
+      const L2 = spr.logical;
+      if (pk.kind !== 'xp' && pk.kind !== 'coin') {
+        ctx.globalCompositeOperation = 'lighter';
+        const st = starSprite(pk.kind === 'heart' ? '#ff7ab8' : '#ffe9a0');
+        const s = 26 + Math.sin(this.time * 6) * 4;
+        ctx.drawImage(st, pk.x - s, pk.y - s + bob, s * 2, s * 2);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      ctx.drawImage(spr, pk.x - L2 / 2, pk.y - L2 / 2 + bob, L2, L2);
+    }
+
+    this.fx.drawBelow(ctx);
+
+    // てき
+    for (const e of this.enemies) {
+      if (!e.alive || !this.inView(e, e.r * 2)) continue;
+      const fr = e.type === 'bat' ? Math.floor(this.time * 9 + e.anim) % 2 : 0;
+      const spr = enemySprite(e.type, Math.round(e.r), fr, e.flash > 0);
+      const sq = Math.sin(this.time * 9 + e.anim) * 0.06;
+      const Ls = spr.logical;
+      if (e.elite || e.boss) {
+        ctx.globalCompositeOperation = 'lighter';
+        const g = starSprite(e.boss ? '#ff3ddc' : '#ffd24a');
+        const s = e.r * 2.4;
+        ctx.drawImage(g, e.x - s, e.y - s, s * 2, s * 2);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      if (e.windup > 0) {
+        ctx.strokeStyle = 'rgba(255,40,90,0.5)';
+        ctx.lineWidth = e.r;
+        ctx.beginPath();
+        ctx.moveTo(e.x, e.y);
+        ctx.lineTo(e.x + e.dvx * 400, e.y + e.dvy * 400);
+        ctx.stroke();
+      }
+      ctx.drawImage(spr, e.x - (Ls * (1 + sq)) / 2, e.y - (Ls * (1 - sq)) / 2, Ls * (1 + sq), Ls * (1 - sq));
+      if (e.frozenT > 0 || this.timeStopT > 0) {
+        ctx.fillStyle = 'rgba(150,230,255,0.35)';
+        ctx.strokeStyle = 'rgba(220,250,255,0.9)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r * 1.15, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+      }
+      if (e.elite && !e.boss) {
+        // HPバー
+        const w = e.r * 2;
+        ctx.fillStyle = 'rgba(40,10,60,0.6)';
+        ctx.fillRect(e.x - w / 2, e.y - e.r - 12, w, 4);
+        ctx.fillStyle = '#ffd24a';
+        ctx.fillRect(e.x - w / 2, e.y - e.r - 12, w * Math.max(0, e.hp / e.maxHp), 4);
+      }
+    }
+
+    // ぶき（うしろ）
+    for (const w of this.weapons) if (w.id === 'aquamarine') LOGIC.aquamarine.draw(this, w, w.s, ctx);
+
+    for (const w of this.weapons) {
+      if (w.id === 'sapphire') LOGIC.sapphire.draw(this, w, w.s, ctx);
+      else if (w.id === 'opal') LOGIC.opal.draw(this, w, w.s, ctx);
+    }
+
+    // プレイヤー（いちばん うえ）
+    if (this.state !== 'dying' && this.state !== 'over') {
+      if (p.iT > 0 && Math.floor(this.time * 20) % 2 === 0) ctx.globalAlpha = 0.5;
+      drawPlayer(ctx, p, this.time, this.charId);
+      ctx.globalAlpha = 1;
+    }
+
+    // たま
+    for (const pr of this.projs) {
+      if (!this.inView(pr, 60)) continue;
+      if (pr.fall) {
+        // かげ
+        const t = Math.min(1, pr.ft / pr.fall);
+        ctx.fillStyle = `rgba(80,30,90,${0.15 + t * 0.2})`;
+        ctx.beginPath();
+        ctx.ellipse(pr.tx, pr.ty, 8 + t * 10, 4 + t * 4, 0, 0, TAU);
+        ctx.fill();
+      }
+      if (pr.flame) {
+        const t = pr.life / pr.max;
+        ctx.globalCompositeOperation = 'lighter';
+        const spr = dotSprite(t > 0.6 ? '#ffd24a' : t > 0.3 ? '#ff7a3d' : '#ff3d7a');
+        const s = pr.r * 1.4;
+        ctx.globalAlpha = Math.min(1, t * 2);
+        ctx.drawImage(spr, pr.x - s, pr.y - s, s * 2, s * 2);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        continue;
+      }
+      if (!pr.sprite) continue;
+      const spr = pr.sprite;
+      const Ls = pr.size ? spr.logical * (pr.size / (spr.base || spr.logical)) : spr.logical;
+      ctx.save();
+      ctx.translate(pr.x, pr.y);
+      let rot = pr.rot;
+      if (pr.rotToVel) rot = Math.atan2(pr.vy, pr.vx) + (pr.rotOff || Math.PI / 2);
+      if (pr.coinFlip) ctx.scale(Math.abs(Math.cos(this.time * 12 + pr.tx)) * 0.8 + 0.2, 1);
+      ctx.rotate(rot);
+      ctx.drawImage(spr, -Ls / 2, -Ls / 2, Ls, Ls);
+      ctx.restore();
+    }
+
+    // てきの たま
+    ctx.globalCompositeOperation = 'lighter';
+    for (const b of this.ebullets) {
+      if (!this.inView(b, 20)) continue;
+      const s = b.r * 2.2;
+      ctx.drawImage(dotSprite('#ff3ddc'), b.x - s, b.y - s, s * 2, s * 2);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#ffffff';
+    for (const b of this.ebullets) {
+      if (!this.inView(b, 20)) continue;
+      ctx.fillStyle = '#3a0a4a';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r * 0.75, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    this.fx.draw(ctx, this.time);
+    this.fx.drawTexts(ctx, this.time);
+
+    // HP バー
+    if (this.state !== 'dying') {
+      const w = 34;
+      ctx.fillStyle = 'rgba(60,20,80,0.55)';
+      ctx.fillRect(p.x - w / 2 - 1, p.y + 21, w + 2, 6);
+      const r = Math.max(0, p.hp / p.maxHp);
+      ctx.fillStyle = r > 0.5 ? '#4ade80' : r > 0.25 ? '#ffc21a' : '#ff3d6e';
+      ctx.fillRect(p.x - w / 2, p.y + 22, w * r, 4);
+    }
+
+    // がめんの はしの やじるし（ボス / たからばこ）
+    this.drawIndicators(ctx, camX, camY);
+
+    // スクリーン エフェクト
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const CW = this.canvas.width, CH = this.canvas.height;
+    if (this.fx.flash > 0) {
+      ctx.globalAlpha = Math.min(1, this.fx.flash);
+      ctx.fillStyle = this.fx.flashColor;
+      ctx.fillRect(0, 0, CW, CH);
+      ctx.globalAlpha = 1;
+    }
+    if (this.timeStopT > 0) {
+      ctx.fillStyle = 'rgba(120,200,255,0.12)';
+      ctx.fillRect(0, 0, CW, CH);
+    }
+    const hpR = p.hp / p.maxHp;
+    if (hpR < 0.3 && this.state === 'play') {
+      const a = (0.3 - hpR) * 1.6 * (0.7 + Math.sin(this.time * 8) * 0.3);
+      const g = ctx.createRadialGradient(CW / 2, CH / 2, Math.min(CW, CH) * 0.3, CW / 2, CH / 2, Math.max(CW, CH) * 0.7);
+      g.addColorStop(0, 'rgba(255,0,60,0)');
+      g.addColorStop(1, `rgba(255,0,60,${a})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, CW, CH);
+    }
+    if (this.feverT > 0) {
+      const bw = 10 * this.dpr;
+      ctx.lineWidth = bw;
+      ctx.strokeStyle = `hsl(${(this.time * 360) % 360},100%,65%)`;
+      ctx.strokeRect(bw / 2, bw / 2, CW - bw, CH - bw);
+    }
+  }
+
+  drawIndicators(ctx, camX, camY) {
+    const items = [];
+    if (this.boss && this.boss.alive) items.push({ x: this.boss.x, y: this.boss.y, color: '#ff3ddc', label: 'BOSS' });
+    for (const pk of this.pickups) if (pk.kind === 'chest' || pk.kind === 'bigchest') items.push({ x: pk.x, y: pk.y, color: '#ffc21a', label: '🎁' });
+    const hw = this.viewW / 2 - 18, hh = this.viewH / 2 - 60;
+    for (const it of items) {
+      const dx = it.x - camX, dy = it.y - camY;
+      if (Math.abs(dx) < hw + 10 && Math.abs(dy) < hh + 50) continue;
+      const s = Math.min(hw / Math.abs(dx || 1e-3), hh / Math.abs(dy || 1e-3));
+      const x = camX + dx * s, y = camY + dy * s;
+      const a = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(a);
+      ctx.fillStyle = it.color;
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(12, 0); ctx.lineTo(-6, -9); ctx.lineTo(-6, 9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+      ctx.font = '900 11px "M PLUS Rounded 1c", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#fff';
+      ctx.strokeText(it.label, x - Math.cos(a) * 18, y - Math.sin(a) * 18);
+      ctx.fillStyle = it.color;
+      ctx.fillText(it.label, x - Math.cos(a) * 18, y - Math.sin(a) * 18);
+    }
+  }
+}
+
+export { xpFor };
