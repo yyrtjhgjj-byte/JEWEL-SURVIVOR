@@ -164,8 +164,11 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 /* ------------------------------------------------------------------ キャラ選択 */
 .char-detail { display: flex; gap: 14px; align-items: center; }
 .char-detail img { width: 88px; height: 88px; flex: none; animation: floaty 3s ease-in-out infinite; }
-.char-detail .name { font-family: var(--font-jp); font-size: 22px; font-weight: 900; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.char-detail .name .en { font-size: 12px; color: var(--muted); letter-spacing: 0.2em; }
+.char-detail > div { min-width: 0; }
+.char-detail .name { font-family: var(--font-jp); font-size: 21px; font-weight: 900; white-space: nowrap; line-height: 1.25; }
+.char-detail .sub { display: flex; align-items: center; gap: 8px; margin: 3px 0 4px; white-space: nowrap; }
+.char-detail .sub .en { font-size: 11px; color: var(--muted); letter-spacing: 0.16em; }
+.char-detail .sub .rarbadge, .char-detail .sub > * { margin: 0; }
 .word-tag { display: inline-block; font-family: var(--font-jp); font-weight: 700; font-size: 12px; padding: 1px 10px; border-radius: 6px; border: 1px solid; margin: 4px 0 6px; letter-spacing: 0.1em; }
 .char-detail .row { font-family: var(--font-jp); font-size: 12.5px; color: var(--muted); line-height: 1.6; }
 .char-detail .row b { color: var(--text); font-weight: 700; }
@@ -173,13 +176,13 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .char-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 520px; margin: 12px 0; }
 .char-cell {
   position: relative; aspect-ratio: 1; border-radius: 12px; border: 1px solid var(--line);
-  background: rgba(255,255,255,0.03); display: grid; place-items: center; padding: 0;
+  background: var(--panel); display: grid; place-items: center; padding: 0;
   transition: border-color 0.15s, background 0.15s;
 }
 .char-cell img { width: 72%; height: 72%; }
 .char-cell.locked img { filter: grayscale(1) brightness(0.3); }
 .char-cell.locked::after { content: 'LOCKED'; position: absolute; bottom: 4px; font-size: 9px; letter-spacing: 0.2em; color: var(--muted); }
-.char-cell.sel { border-color: var(--c, #fff); background: rgba(255,255,255,0.07); box-shadow: 0 0 18px var(--c, #fff), inset 0 0 14px rgba(255,255,255,0.08); }
+.char-cell.sel { border-color: var(--c, #fff); background: rgba(34,31,50,0.92); box-shadow: 0 0 18px var(--c, #fff), inset 0 0 14px rgba(255,255,255,0.08); }
 .char-cell .rar { position: absolute; top: 4px; left: 5px; font-size: 9px; }
 .char-cell .aw { position: absolute; bottom: 3px; right: 5px; font-size: 10px; font-weight: 700; color: var(--gold); }
 .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 700; letter-spacing: 0.1em; }
@@ -330,7 +333,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 #pausebtn:active { transform: scale(0.92); }
 #slots {
   position: absolute; top: calc(var(--safe-t) + 74px); left: calc(var(--safe-l) + 10px);
-  display: grid; grid-template-columns: repeat(6, 26px); gap: 3px;
+  display: grid; grid-template-columns: repeat(4, 26px); gap: 3px;
 }
 .slotico { position: relative; width: 26px; height: 26px; border-radius: 6px; background: rgba(10,10,18,0.55); border: 1px solid var(--line); }
 .slotico img { width: 100%; height: 100%; }
@@ -551,3 +554,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .ctag2.t-evo { color: #1a1206; background: linear-gradient(90deg, #ffe39a, #ffc53d); box-shadow: 0 0 10px rgba(255,197,61,0.55); }
 .ctag2.t-pair { color: #ffe39a; border: 1px solid rgba(255,197,61,0.55); }
 .ctag2.t-plain { color: var(--muted); border: 1px solid var(--line2); }
+
+.shop-item .sdesc .scur { color: var(--text); font-weight: 700; margin-left: 4px; }
+.shop-item .sdesc .snext { color: var(--muted); font-size: 11px; }
+.slotico.empty { background: rgba(10,10,18,0.3); border: 1px dashed rgba(255,255,255,0.22); }

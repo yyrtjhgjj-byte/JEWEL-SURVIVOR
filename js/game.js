@@ -2,7 +2,7 @@
 //  ゲーム本体
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, BASE_STATS, CHARACTERS, ENEMIES, SHOP,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_SLOTS, BASE_STATS, CHARACTERS, ENEMIES, SHOP,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods } from './stages.js';
@@ -61,8 +61,8 @@ function TINT(type, tint) {
 const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000];
 
 // さいしょは すぐ レベルアップ → だんだん ゆっくり
-// 必要経験値（旧カーブの 1.75 倍）
-const xpFor = (l) => Math.round(1.75 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
+// 必要経験値（初期カーブの 1.75 × 1.8 倍）
+const xpFor = (l) => Math.round(1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
 
 export class Game {
   constructor(canvas, hooks, opts = {}) {
@@ -170,11 +170,11 @@ export class Game {
     const [list, flag] = spec.split(':');
     const ids = list === 'all' ? WEAPON_IDS.slice(0, 6) : list.split(',').filter((x) => WEAPONS[x]);
     for (const id of ids) {
-      const w = this.getWeapon(id) || (this.weapons.length < 6 ? this.addWeapon(id) : null);
+      const w = this.getWeapon(id) || (this.weapons.length < MAX_SLOTS ? this.addWeapon(id) : null);
       if (!w) continue;
       w.level = WEAPON_MAX;
       const partner = WEAPONS[id].evo.with;
-      if (!this.getPassive(partner) && this.passives.length < 6) this.addPassive(partner);
+      if (!this.getPassive(partner) && this.passives.length < MAX_SLOTS) this.addPassive(partner);
       if (flag === 'evo') w.evolved = true;
     }
     this.computeStats();
@@ -1259,8 +1259,8 @@ export class Game {
       else if (!w.evolved && w.level < WEAPON_MAX) pool.push({ type: 'wup', id: w.id, weight: 10 });
     }
     for (const p of this.passives) if (p.level < PASSIVES[p.id].max) pool.push({ type: 'pup', id: p.id, weight: 7 });
-    if (this.weapons.length < 6) for (const id of WEAPON_IDS) if (!this.getWeapon(id)) pool.push({ type: 'wnew', id, weight: 5 });
-    if (this.passives.length < 6) for (const id of PASSIVE_IDS) if (!this.getPassive(id)) {
+    if (this.weapons.length < MAX_SLOTS) for (const id of WEAPON_IDS) if (!this.getWeapon(id)) pool.push({ type: 'wnew', id, weight: 5 });
+    if (this.passives.length < MAX_SLOTS) for (const id of PASSIVE_IDS) if (!this.getPassive(id)) {
       // しんかに ひつようなら でやすく
       const need = this.weapons.some((w) => WEAPONS[w.id].evo.with === id && !w.evolved);
       pool.push({ type: 'pnew', id, weight: need ? 9 : 4 });

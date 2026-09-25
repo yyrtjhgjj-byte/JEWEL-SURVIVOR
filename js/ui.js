@@ -2,7 +2,7 @@
 //  UI：タイトル / レベルアップ / 宝箱 / ガチャ / 図鑑 / リザルト
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_SLOTS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST,
 } from './data.js';
 import { gemIcon, enemySprite } from './render.js';
@@ -192,8 +192,8 @@ export function showCharSelect() {
       <div class="char-detail">
         <img src="${gemIcon(sel, 160)}" style="${unlocked ? `filter:drop-shadow(0 0 18px ${gemColor(sel)})` : 'filter:grayscale(1) brightness(.3)'}">
         <div>
-          <div class="name">${unlocked ? g.jp : '???'} <span class="en">${g.en}</span> <span class="rarbadge r-${c.rarity}">${c.rarity}</span></div>
-          ${wordTag(sel)}
+          <div class="name">${unlocked ? g.jp : '???'}</div>
+          <div class="sub"><span class="en">${g.en}</span><span class="rarbadge r-${c.rarity}">${c.rarity}</span>${wordTag(sel)}</div>
           <div class="row">武器 <b>${w.name}</b></div>
           <div class="row">特性 <b>${c.perk}</b>${aw ? ` ／ 覚醒+${aw}（攻撃力+${aw * 5}%）` : ''}</div>
         </div>
@@ -287,6 +287,15 @@ export function showStageSelect() {
 }
 
 // ================================================================== 工房
+// 工房：現在の効果量と次のレベルの効果量
+function shopEffect(it, lv, max) {
+  const m = it.t.match(/^(.*?)([+-]?)(\d+(?:\.\d+)?)(.*)$/);
+  if (!m) return it.t;
+  const [, label, sign, num, suf] = m;
+  const v = (n) => (n ? sign : '') + +(parseFloat(num) * n).toFixed(2) + suf;
+  return `${label}<b class="scur">${v(lv)}</b>${max ? '' : `<span class="snext"> → ${v(lv + 1)}</span>`}`;
+}
+
 export function showShop() {
   const node = el(`
     <div class="screen">
@@ -305,7 +314,7 @@ export function showShop() {
       const row = el(`<div class="shop-item">
         <img src="${gemIcon(it.gem, 72)}">
         <div class="sbody"><div class="sname">${it.name}<small>LV ${lv}/${it.max}</small></div>
-          <div class="sdesc">${it.t}</div>
+          <div class="sdesc">${shopEffect(it, lv, max)}</div>
           <div class="pips">${Array.from({ length: it.max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>
         <button class="btn small ${max ? '' : 'gold'}" ${max || save.coins < cost ? 'disabled' : ''}>${max ? 'MAX' : coinIco + fmt(cost)}</button>
       </div>`);
@@ -598,9 +607,9 @@ export function hud(g) {
   const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '')).join() + '|' + g.passives.map((p) => p.id + p.level).join();
   if (key !== lastSlots) {
     lastSlots = key;
-    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('') +
-      '<i style="grid-column:1/-1;height:0"></i>' +
-      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('');
+    const empty = (n) => '<div class="slotico empty"></div>'.repeat(Math.max(0, MAX_SLOTS - n));
+    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('') + empty(g.weapons.length) +
+      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length);
   }
   const f = g.feverT > 0 ? g.feverT / 10 : g.feverGauge / g.feverNeed;
   H.fever.style.transform = `scaleX(${Math.min(1, f)})`;
