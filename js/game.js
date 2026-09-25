@@ -433,7 +433,7 @@ export class Game {
     if (ev.type === 'elite') {
       const [x, y] = this.ringPos();
       this.spawnEnemy(ev.enemy, x, y, { elite: true });
-      this.hooks.banner('つよい てきが きた！', 'elite');
+      this.hooks.banner('ELITE', 'elite', '強敵出現 — 撃破で宝箱');
     } else if (ev.type === 'swarm') {
       const a = rand(TAU);
       const cx = p.x + Math.cos(a) * (this.viewR + 60), cy = p.y + Math.sin(a) * (this.viewR + 60);
@@ -441,7 +441,7 @@ export class Game {
         const e = this.spawnEnemy(ev.enemy, cx + rand(-80, 80), cy + rand(-80, 80));
         e.swarm = { vx: -Math.cos(a), vy: -Math.sin(a), t: 7 };
       }
-      this.hooks.banner('たいぐんが くる！！', 'swarm');
+      this.hooks.banner('SWARM', 'swarm', '大群接近');
       audio.whoosh();
     } else if (ev.type === 'ring') {
       const R = this.viewR * 0.95;
@@ -449,9 +449,9 @@ export class Game {
         const a = (i / ev.n) * TAU;
         this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * R, p.y + Math.sin(a) * R);
       }
-      this.hooks.banner('かこまれた！！', 'swarm');
+      this.hooks.banner('SURROUNDED', 'swarm', '包囲された');
     } else if (ev.type === 'warning') {
-      this.hooks.banner('WARNING!! ボスが くる！', 'warning');
+      this.hooks.banner('WARNING', 'warning', '強大な反応が接近中');
       audio.warning();
       this.fx.shake(6);
     } else if (ev.type === 'boss') {
@@ -461,7 +461,7 @@ export class Game {
       e.atkT = 2;
       e.atk2 = 5;
       this.hooks.bossBar(e);
-      this.hooks.banner(ENEMIES[ev.enemy].name + ' あらわる！！', 'boss');
+      this.hooks.banner(ENEMIES[ev.enemy].name, 'boss', 'BOSS');
       audio.playBgm('boss');
       this.fx.shake(12);
       save.seen.enemies[ev.enemy] = true;
@@ -570,7 +570,7 @@ export class Game {
         e.x = p.x + Math.cos(a) * this.viewR * 0.55;
         e.y = p.y + Math.sin(a) * this.viewR * 0.55;
         this.fx.ring(e.x, e.y, 10, e.r * 2.5, 0.5, '#ff3ddc', 8);
-        this.fx.text(e.x, e.y - e.r - 10, 'ワープ！', { size: 18, color: '#ffb3f0', stroke: '#6a0a4a', life: 0.8 });
+        this.fx.text(e.x, e.y - e.r - 10, 'WARP', { size: 16, color: '#ffb3f0', stroke: 'rgba(40,0,40,0.8)', life: 0.8 });
         audio.whoosh();
       }
     } else e.warpT = 0;
@@ -789,16 +789,16 @@ export class Game {
     if (!o.silent) {
       if (o.miracle) {
         this.miracles++;
-        this.fx.text(e.x, e.y - e.r - 18, 'MIRACLE!!', { size: 18, rainbow: true, life: 0.9, vy: -80, stroke: '#ffffff' });
+        this.fx.text(e.x, e.y - e.r - 18, 'MIRACLE', { size: 18, rainbow: true, life: 0.9, vy: -80 });
         this.fx.text(e.x, e.y - e.r, dmg, { size: 30, rainbow: true, life: 0.9, crit: true });
         this.fx.burst(e.x, e.y, 'rainbow', 14, 260, 0.6, 14);
         audio.miracle();
         this.fx.shake(3);
       } else if (crit) {
-        this.fx.text(e.x, e.y - e.r, dmg + '!', { size: 22, color: '#ffe14d', stroke: '#b3001e', life: 0.7, crit: true });
+        this.fx.text(e.x, e.y - e.r, dmg, { size: 22, color: '#ffd23d', stroke: 'rgba(70,20,0,0.85)', life: 0.7, crit: true });
         audio.crit();
       } else {
-        this.fx.text(e.x, e.y - e.r, dmg, { size: 14, color: '#ffffff', stroke: '#5a2a7a', life: 0.55 });
+        this.fx.text(e.x, e.y - e.r, dmg, { size: 15, color: '#ece8ff', life: 0.55 });
       }
       audio.hit();
     }
@@ -844,7 +844,7 @@ export class Game {
       const m = KILL_MILESTONES[this.milestoneIdx++];
       const bonus = Math.round(m / 10 * this.stats.greed);
       this.coins += bonus;
-      this.hooks.banner(`${m}たい げきは！！ +${bonus}コイン`, 'milestone');
+      this.hooks.banner(`${m} KILLS`, 'milestone', `ボーナス +${bonus} コイン`);
       audio.milestone();
     }
   }
@@ -875,7 +875,7 @@ export class Game {
     this.slowT = 1.2;
     audio.bossDie();
     setTimeout(() => audio.bigWin(), 400);
-    this.hooks.banner(ENEMIES[e.type].name + ' を たおした！！', 'victory');
+    this.hooks.banner('BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     this.dropPickup('bigchest', e.x, e.y);
     // けいけんちの シャワー
     for (let i = 0; i < 30; i++) this.dropXp(e.x + rand(-60, 60), e.y + rand(-60, 60), Math.ceil(e.xp / 30));
@@ -923,7 +923,7 @@ export class Game {
     p.iT = 0.45;
     p.hurtT = 0.3;
     this.fx.shake(5);
-    this.fx.text(p.x, p.y - 22, '-' + dmg, { size: 16, color: '#ff4d6d', stroke: '#ffffff', life: 0.6 });
+    this.fx.text(p.x, p.y - 22, '-' + dmg, { size: 17, color: '#ff4d6d', life: 0.6 });
     audio.hurt();
     this.hooks.haptic();
     if (p.hp <= 0) this.die();
@@ -936,7 +936,7 @@ export class Game {
       p.hp = p.maxHp;
       p.iT = 2.5;
       this.jewelFlash(true);
-      this.hooks.banner('ふっかつ！！ ゆうきは まけない！', 'victory');
+      this.hooks.banner('REVIVE', 'victory', '光は再び灯る');
       audio.heal();
       return;
     }
@@ -1018,19 +1018,19 @@ export class Game {
         const v = Math.max(1, Math.round(pk.value * this.stats.greed));
         this.coins += v;
         audio.coin();
-        this.fx.text(p.x + rand(-10, 10), p.y - 26, '+' + v, { size: 13, color: '#ffe14d', stroke: '#8a5200', life: 0.5, vy: -80 });
+        this.fx.text(p.x + rand(-10, 10), p.y - 26, '+' + v, { size: 14, color: '#ffd23d', life: 0.5, vy: -80 });
         this.hooks.coinPop();
         break;
       }
       case 'heart':
         this.player.hp = Math.min(p.maxHp, p.hp + 30);
         audio.heal();
-        this.fx.text(p.x, p.y - 26, '+30 HP', { size: 16, color: '#ff7ab8', stroke: '#fff', life: 0.8 });
+        this.fx.text(p.x, p.y - 26, '+30 HP', { size: 17, color: '#ff7ab8', life: 0.8 });
         this.fx.burst(p.x, p.y, '#ff7ab8', 12, 150, 0.6, 12);
         break;
       case 'magnet':
         for (const q of this.pickups) if (q.kind === 'xp' || q.kind === 'coin') q.vac = true;
-        this.hooks.banner('ジュエル マグネット！', 'item');
+        this.hooks.banner('MAGNET', 'item', '全経験値を回収');
         audio.levelUp();
         break;
       case 'bomb':
@@ -1038,7 +1038,7 @@ export class Game {
         break;
       case 'clock':
         this.timeStopT = 6;
-        this.hooks.banner('タイムストップ！', 'item');
+        this.hooks.banner('TIME STOP', 'item', '6秒間 敵が停止');
         audio.miracle();
         break;
       case 'chest':
@@ -1068,7 +1068,7 @@ export class Game {
     this.fx.ring(p.x, p.y, 10, this.viewR, 0.6, 'rainbow', 16);
     this.fx.confetti(p.x, p.y, 60, 500);
     audio.bomb();
-    if (!fromRevive) this.hooks.banner('ジュエル フラッシュ！！', 'item');
+    if (!fromRevive) this.hooks.banner('JEWEL FLASH', 'item', '画面内の敵を一掃');
     for (const e of this.enemies) {
       if (!e.alive || e.prop) continue;
       if (Math.abs(e.x - p.x) > this.viewW / 2 + 40 || Math.abs(e.y - p.y) > this.viewH / 2 + 40) continue;
@@ -1079,7 +1079,7 @@ export class Game {
   }
 
   jackpot(x, y) {
-    this.fx.text(x, y - 30, 'JACKPOT!! 777', { size: 24, rainbow: true, life: 1.2, stroke: '#8a5200', crit: true });
+    this.fx.text(x, y - 30, 'JACKPOT 777', { size: 26, rainbow: true, life: 1.2, crit: true });
     this.fx.confetti(x, y, 30, 300);
     for (let i = 0; i < 7; i++) this.dropPickup('coin', x, y, 7);
     audio.jackpot();
@@ -1198,7 +1198,7 @@ export class Game {
         this.coins += v;
         this.heal(20, true);
         this.fx.ring(p.x, p.y, 10, 90, 0.4, 'rainbow', 6);
-        this.fx.text(p.x, p.y - 34, `LEVEL UP! +${v}🪙`, { size: 16, rainbow: true, stroke: '#fff', life: 0.9 });
+        this.fx.text(p.x, p.y - 34, `LEVEL UP +${v} COIN`, { size: 15, rainbow: true, stroke: 'rgba(0,0,0,0.7)', life: 0.9 });
         audio.coin();
         this.state = 'play';
         return;
@@ -1348,7 +1348,7 @@ export class Game {
     ctx.fillStyle = this.bgPattern;
     ctx.fillRect(L - 2, T - 2, this.viewW + 4, this.viewH + 4);
     if (this.feverT > 0) {
-      ctx.fillStyle = `hsla(${(this.time * 120) % 360},100%,70%,0.16)`;
+      ctx.fillStyle = `hsla(${(this.time * 120) % 360},100%,60%,0.06)`;
       ctx.fillRect(L - 2, T - 2, this.viewW + 4, this.viewH + 4);
     }
 
@@ -1411,7 +1411,7 @@ export class Game {
       if (e.elite && !e.boss) {
         // HPバー
         const w = e.r * 2;
-        ctx.fillStyle = 'rgba(40,10,60,0.6)';
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
         ctx.fillRect(e.x - w / 2, e.y - e.r - 12, w, 4);
         ctx.fillStyle = '#ffd24a';
         ctx.fillRect(e.x - w / 2, e.y - e.r - 12, w * Math.max(0, e.hp / e.maxHp), 4);
@@ -1480,11 +1480,10 @@ export class Game {
     ctx.strokeStyle = '#ffffff';
     for (const b of this.ebullets) {
       if (!this.inView(b, 20)) continue;
-      ctx.fillStyle = '#3a0a4a';
+      ctx.fillStyle = '#ffe6ff';
       ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r * 0.75, 0, TAU);
+      ctx.arc(b.x, b.y, b.r * 0.55, 0, TAU);
       ctx.fill();
-      ctx.stroke();
     }
 
     this.fx.draw(ctx, this.time);
@@ -1493,7 +1492,7 @@ export class Game {
     // HP バー
     if (this.state !== 'dying') {
       const w = 34;
-      ctx.fillStyle = 'rgba(60,20,80,0.55)';
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
       ctx.fillRect(p.x - w / 2 - 1, p.y + 21, w + 2, 6);
       const r = Math.max(0, p.hp / p.maxHp);
       ctx.fillStyle = r > 0.5 ? '#4ade80' : r > 0.25 ? '#ffc21a' : '#ff3d6e';
@@ -1536,7 +1535,7 @@ export class Game {
   drawIndicators(ctx, camX, camY) {
     const items = [];
     if (this.boss && this.boss.alive) items.push({ x: this.boss.x, y: this.boss.y, color: '#ff3ddc', label: 'BOSS' });
-    for (const pk of this.pickups) if (pk.kind === 'chest' || pk.kind === 'bigchest') items.push({ x: pk.x, y: pk.y, color: '#ffc21a', label: '🎁' });
+    for (const pk of this.pickups) if (pk.kind === 'chest' || pk.kind === 'bigchest') items.push({ x: pk.x, y: pk.y, color: '#ffc21a', label: 'CHEST' });
     const hw = this.viewW / 2 - 18, hh = this.viewH / 2 - 60;
     for (const it of items) {
       const dx = it.x - camX, dy = it.y - camY;
@@ -1548,18 +1547,18 @@ export class Game {
       ctx.translate(x, y);
       ctx.rotate(a);
       ctx.fillStyle = it.color;
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(12, 0); ctx.lineTo(-6, -9); ctx.lineTo(-6, 9);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
       ctx.restore();
-      ctx.font = '900 11px "M PLUS Rounded 1c", sans-serif';
+      ctx.font = '700 11px "Rajdhani", sans-serif';
       ctx.textAlign = 'center';
       ctx.lineWidth = 3;
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = 'rgba(0,0,0,0.8)';
       ctx.strokeText(it.label, x - Math.cos(a) * 18, y - Math.sin(a) * 18);
       ctx.fillStyle = it.color;
       ctx.fillText(it.label, x - Math.cos(a) * 18, y - Math.sin(a) * 18);

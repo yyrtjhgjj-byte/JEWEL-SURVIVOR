@@ -59,7 +59,7 @@ export class FX {
   }
 
   // ----- テキスト
-  text(x, y, str, { color = '#fff', size = 16, stroke = '#3a1450', life = 0.7, vy = -60, crit = false, rainbow = false, pop = 1 } = {}) {
+  text(x, y, str, { color = '#fff', size = 16, stroke = 'rgba(0,0,0,0.75)', life = 0.7, vy = -60, crit = false, rainbow = false, pop = 1 } = {}) {
     if (!save.settings.dmgNum && !crit && !rainbow && typeof str === 'number') return;
     if (this.texts.length >= MAX_TEXTS) {
       // クリティカルじゃない ふるい すうじを すてる
@@ -208,7 +208,8 @@ export class FX {
       }
     }
     ctx.globalCompositeOperation = 'source-over';
-    // かみふぶき
+    // 光の破片
+    ctx.globalCompositeOperation = 'lighter';
     for (const p of this.parts) {
       if (p.kind !== 'conf') continue;
       const t = p.life / p.max;
@@ -217,9 +218,10 @@ export class FX {
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
       ctx.fillStyle = p.color;
-      ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2 * Math.abs(Math.cos(p.rot * 2)) + 1);
+      ctx.fillRect(-p.size / 2, -0.8, p.size, 1.6 + Math.abs(Math.cos(p.rot * 2)));
       ctx.restore();
     }
+    ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
   }
 
@@ -235,8 +237,8 @@ export class FX {
       ctx.globalAlpha = alpha;
       const size = Math.round(t.size * sc);
       if (size < 2) continue;
-      ctx.font = `900 ${size}px "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Arial Rounded MT Bold", sans-serif`;
-      ctx.lineWidth = Math.max(2, size * 0.22);
+      ctx.font = `${t.crit || t.rainbow ? 'italic ' : ''}700 ${size}px "Rajdhani", "Zen Kaku Gothic New", sans-serif`;
+      ctx.lineWidth = Math.max(2, size * 0.18);
       ctx.strokeStyle = t.stroke;
       ctx.strokeText(t.str, t.x, t.y);
       if (t.rainbow) {

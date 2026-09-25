@@ -306,7 +306,7 @@ class AudioEngine {
       const mel = tr.melody[bar];
       const n = mel && mel[s16 / 2];
       if (n) {
-        this.tone(mtof(n), 0.2, { type: 'square', vol: 0.06, when, bus: b, detune: 4 });
+        this.tone(mtof(n), 0.22, { type: 'sawtooth', vol: 0.035, when, bus: b, detune: 6 });
         this.tone(mtof(n), 0.24, { type: 'sine', vol: 0.06, when, bus: b });
       }
     }
@@ -320,40 +320,36 @@ class AudioEngine {
 }
 
 // コード（ルートは C4 あたり）
-const C = [60, 64, 67], G = [55, 59, 62], Am = [57, 60, 64], F = [53, 57, 60], Em = [52, 55, 59], E = [52, 56, 59];
+const C = [60, 64, 67], G = [55, 59, 62], Am = [57, 60, 64], F = [53, 57, 60], E = [52, 56, 59];
 
 const TRACKS = {
   title: {
-    bpm: 108,
-    chords: [F, G, Em, Am, F, G, C, C],
-    bass: [0, null, null, null, 12, null, null, null, 0, null, null, null, 12, null, 7, null],
+    bpm: 92,
+    chords: [Am, F, C, G],
+    bass: [0, null, null, null, null, null, null, null, 12, null, null, null, null, null, 7, null],
     arp: 2,
     melody: [
-      [77, null, 81, null, 84, null, 81, null],
-      [79, null, 74, null, 79, null, 83, null],
-      [79, null, 76, null, 71, null, 76, null],
-      [76, null, 72, null, 69, null, null, null],
-      [77, null, 81, null, 84, null, 88, null],
-      [86, null, 83, null, 79, null, 83, null],
-      [84, null, null, null, 79, null, 76, null],
-      [72, null, null, null, null, null, null, null],
+      [76, null, null, null, 72, null, null, null],
+      [77, null, null, null, 81, null, null, null],
+      [79, null, null, null, 76, null, null, null],
+      [74, null, null, null, 71, null, 74, null],
     ],
     drums: true, kick: [0, 8], snare: [], hat: [4, 12],
   },
   stage: {
-    bpm: 134,
-    chords: [C, G, Am, F, F, G, Em, Am],
+    bpm: 128,
+    chords: [Am, F, C, G, Am, F, G, E],
     bass: [0, null, 12, null, 0, null, 12, null, 0, null, 12, null, 0, null, 12, 7],
     arp: 1,
     melody: [
-      [76, 79, 84, 79, 76, null, 74, 76],
-      [74, null, 71, 74, 79, null, 77, 76],
-      [72, 76, 81, 76, 84, null, 83, 81],
-      [81, null, 79, 77, 76, null, 74, 72],
-      [77, 81, 84, 81, 77, null, 79, 81],
-      [83, null, 81, 79, 86, null, 83, 79],
-      [79, null, 76, 79, 83, null, 81, 79],
-      [81, null, null, 76, 81, 83, 84, null],
+      [76, null, 72, 76, 81, null, 79, 76],
+      [77, null, 76, 72, 69, null, 72, 74],
+      [76, null, 79, 76, 84, null, 83, 79],
+      [74, null, 79, 74, 71, null, 74, 79],
+      [81, null, 76, 81, 84, null, 83, 81],
+      [84, null, 81, 77, 72, null, 77, 81],
+      [83, null, 79, 74, 79, null, 83, 86],
+      [83, null, 80, 76, 71, null, 68, null],
     ],
     drums: true, kick: [0, 4, 8, 12], snare: [4, 12], hat: [2, 6, 10, 14],
   },

@@ -6,17 +6,17 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ジュエサバ">
-  <meta name="theme-color" content="#ff7ac3">
+  <meta name="apple-mobile-web-app-title" content="JEWEL SURVIVOR">
+  <meta name="theme-color" content="#06060b">
   <meta name="format-detection" content="telephone=no">
-  <meta name="description" content="ジュエルの ちからで くすみ団を ぶっとばせ！ キラキラ ドパドパ ヴァンサバライク。">
-  <title>ジュエル・サバイバー</title>
+  <meta name="description" content="宝石の力で闇を殲滅する、光とパーティクル全開のヴァンサバライク。">
+  <title>JEWEL SURVIVOR</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -24,11 +24,12 @@
     <canvas id="game"></canvas>
 
     <div id="hud" class="hidden">
-      <div id="xpbar"><div id="xpfill"></div><span id="lvtext">Lv 1</span></div>
+      <div id="xpbar"><div id="xpfill"></div></div>
       <div id="hudtop">
         <div id="hudleft">
-          <div class="stat"><span class="ico">💎</span><b id="kills">0</b></div>
-          <div class="stat" id="coinstat"><span class="ico">🪙</span><b id="coins">0</b></div>
+          <div id="lvtext">LV 1</div>
+          <div class="stat"><span class="k">KILL</span><b id="kills">0</b></div>
+          <div class="stat" id="coinstat"><span class="k">COIN</span><b id="coins">0</b></div>
         </div>
         <div id="timer">00:00</div>
         <button id="pausebtn" aria-label="ポーズ"><span></span><span></span></button>
@@ -39,7 +40,7 @@
       <div id="feverwrap"><div id="fever"><div id="feverfill"></div></div><span id="fevertext">FEVER</span></div>
     </div>
 
-    <div id="movehint" class="hidden">👆 がめんを なぞって うごこう！</div>
+    <div id="movehint" class="hidden">画面をドラッグして移動</div>
     <div id="joy"><div id="joybase"><div id="joyknob"></div></div></div>
     <div id="banners"></div>
     <div id="screens"></div>

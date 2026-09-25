@@ -1,5 +1,5 @@
 // オフラインでも あそべるように キャッシュする
-const CACHE = 'jewel-survivor-v1';
+const CACHE = 'jewel-survivor-v2';
 const ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/game.js', './js/weapons.js', './js/data.js', './js/render.js', './js/fx.js',
@@ -23,7 +23,9 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        if (res.ok && new URL(e.request.url).origin === location.origin) {
+        const host = new URL(e.request.url).host;
+        const cacheable = new URL(e.request.url).origin === location.origin || host === 'fonts.googleapis.com' || host === 'fonts.gstatic.com';
+        if ((res.ok || res.type === 'opaque') && cacheable) {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(e.request, copy));
         }

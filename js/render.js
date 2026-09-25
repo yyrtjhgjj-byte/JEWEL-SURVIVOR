@@ -240,31 +240,30 @@ export function dotSprite(color) {
 }
 
 // ------------------------------------------------------------------ てき
-function eyes(ctx, x, y, s, { angry = true, color = '#fff', pupil = '#241733', gap = 0.9 } = {}) {
+// 光る目
+function eyes(ctx, x, y, s, { color = '#ff4f9a', gap = 0.9, angry = true } = {}) {
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = s * 1.4;
   for (const side of [-1, 1]) {
+    ctx.save();
+    ctx.translate(x + side * s * gap, y);
+    ctx.rotate(angry ? side * 0.38 : 0);
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.ellipse(x + side * s * gap, y, s * 0.55, s * 0.7, 0, 0, TAU);
+    ctx.ellipse(0, 0, s * 0.58, s * 0.27, 0, 0, TAU);
     ctx.fill();
-    ctx.fillStyle = pupil;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
     ctx.beginPath();
-    ctx.ellipse(x + side * s * gap + side * s * 0.05, y + s * 0.12, s * 0.3, s * 0.42, 0, 0, TAU);
+    ctx.ellipse(0, 0, s * 0.28, s * 0.1, 0, 0, TAU);
     ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(x + side * s * gap - s * 0.08, y - s * 0.05, s * 0.12, 0, TAU);
-    ctx.fill();
-    if (angry) {
-      ctx.strokeStyle = '#1a1024';
-      ctx.lineWidth = s * 0.22;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(x + side * s * (gap + 0.5), y - s * 0.95);
-      ctx.lineTo(x + side * s * (gap - 0.35), y - s * 0.6);
-      ctx.stroke();
-    }
+    ctx.restore();
   }
+  ctx.restore();
 }
+
+const RIM = 'rgba(205,180,255,0.6)';
 
 function bodyGrad(ctx, r, base) {
   const g = ctx.createRadialGradient(-r * 0.35, -r * 0.45, r * 0.1, 0, 0, r * 1.2);
@@ -292,7 +291,7 @@ const ENEMY_DRAW = {
     ctx.quadraticCurveTo(-r * 0.6, r * 0.8, -r, r * 0.55);
     ctx.fillStyle = bodyGrad(ctx, r, col);
     ctx.fill();
-    ctx.strokeStyle = '#1a1024';
+    ctx.strokeStyle = RIM;
     ctx.lineWidth = r * 0.1;
     ctx.stroke();
     shine(ctx, r);
@@ -311,7 +310,7 @@ const ENEMY_DRAW = {
       ctx.closePath();
       ctx.fillStyle = mix(col, '#000', 0.25);
       ctx.fill();
-      ctx.strokeStyle = '#1a1024';
+      ctx.strokeStyle = RIM;
       ctx.lineWidth = r * 0.1;
       ctx.stroke();
     }
@@ -328,10 +327,10 @@ const ENEMY_DRAW = {
     ctx.arc(0, 0, r * 0.62, 0, TAU);
     ctx.fillStyle = bodyGrad(ctx, r * 0.7, col);
     ctx.fill();
-    ctx.strokeStyle = '#1a1024';
+    ctx.strokeStyle = RIM;
     ctx.lineWidth = r * 0.1;
     ctx.stroke();
-    eyes(ctx, 0, -r * 0.05, r * 0.22, { color: '#ffe14d', pupil: '#3a0a0a' });
+    eyes(ctx, 0, -r * 0.05, r * 0.24, { color: '#ffd23d' });
   },
   ghost(ctx, r, col) {
     ctx.globalAlpha = 0.92;
@@ -347,27 +346,12 @@ const ENEMY_DRAW = {
     ctx.closePath();
     ctx.fillStyle = bodyGrad(ctx, r, col);
     ctx.fill();
-    ctx.strokeStyle = '#2a1f40';
+    ctx.strokeStyle = RIM;
     ctx.lineWidth = r * 0.09;
     ctx.stroke();
     ctx.globalAlpha = 1;
     shine(ctx, r);
-    ctx.fillStyle = '#1a1024';
-    for (const s of [-1, 1]) {
-      ctx.beginPath();
-      ctx.ellipse(s * r * 0.35, -r * 0.1, r * 0.16, r * 0.26, 0, 0, TAU);
-      ctx.fill();
-    }
-    ctx.fillStyle = 'rgba(255,120,170,0.5)';
-    for (const s of [-1, 1]) {
-      ctx.beginPath();
-      ctx.ellipse(s * r * 0.62, r * 0.2, r * 0.16, r * 0.09, 0, 0, TAU);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#1a1024';
-    ctx.beginPath();
-    ctx.ellipse(0, r * 0.28, r * 0.14, r * 0.18, 0, 0, TAU);
-    ctx.fill();
+    eyes(ctx, 0, -r * 0.08, r * 0.34, { color: '#5ff0ff', angry: false, gap: 1.0 });
   },
   toge(ctx, r, col) {
     const n = 12;
@@ -380,7 +364,7 @@ const ENEMY_DRAW = {
     ctx.closePath();
     ctx.fillStyle = mix(col, '#ff2d6a', 0.25);
     ctx.fill();
-    ctx.strokeStyle = '#1a1024';
+    ctx.strokeStyle = RIM;
     ctx.lineWidth = r * 0.08;
     ctx.stroke();
     ctx.beginPath();
@@ -388,7 +372,7 @@ const ENEMY_DRAW = {
     ctx.fillStyle = bodyGrad(ctx, r * 0.8, col);
     ctx.fill();
     shine(ctx, r * 0.8);
-    eyes(ctx, 0, 0, r * 0.26, { color: '#fff', pupil: '#c0103a' });
+    eyes(ctx, 0, 0, r * 0.28, { color: '#ff2d55' });
   },
   golem(ctx, r, col) {
     const pts = [[-0.9, -0.3], [-0.6, -0.85], [0.1, -1.0], [0.75, -0.7], [1.0, 0.0], [0.8, 0.7], [0.1, 0.95], [-0.7, 0.75], [-1.0, 0.2]];
@@ -397,7 +381,7 @@ const ENEMY_DRAW = {
     ctx.closePath();
     ctx.fillStyle = bodyGrad(ctx, r, col);
     ctx.fill();
-    ctx.strokeStyle = '#1a1024';
+    ctx.strokeStyle = RIM;
     ctx.lineWidth = r * 0.08;
     ctx.stroke();
     ctx.strokeStyle = 'rgba(20,10,30,0.5)';
@@ -428,7 +412,7 @@ const ENEMY_DRAW = {
     ctx.closePath();
     ctx.fillStyle = '#6a1f4a';
     ctx.fill();
-    ctx.strokeStyle = '#1a1024';
+    ctx.strokeStyle = RIM;
     ctx.lineWidth = r * 0.08;
     ctx.stroke();
     // かぶと
@@ -499,7 +483,7 @@ const ENEMY_DRAW = {
       ctx.closePath();
       ctx.fillStyle = '#4a2d7a';
       ctx.fill();
-      ctx.strokeStyle = '#10061c';
+      ctx.strokeStyle = RIM;
       ctx.lineWidth = r * 0.06;
       ctx.stroke();
     }
@@ -516,7 +500,7 @@ const ENEMY_DRAW = {
     ctx.ellipse(0, 0, r * 0.8, r * 0.85, 0, 0, TAU);
     ctx.fillStyle = bodyGrad(ctx, r, col);
     ctx.fill();
-    ctx.strokeStyle = '#10061c';
+    ctx.strokeStyle = RIM;
     ctx.lineWidth = r * 0.07;
     ctx.stroke();
     // おなか
@@ -525,7 +509,7 @@ const ENEMY_DRAW = {
     ctx.fillStyle = '#7d63b0';
     ctx.fill();
     shine(ctx, r * 0.8);
-    eyes(ctx, 0, -r * 0.2, r * 0.22, { color: '#ffe14d', pupil: '#5a0000' });
+    eyes(ctx, 0, -r * 0.2, r * 0.24, { color: '#ffd23d' });
   },
   boss3(ctx, r, col) {
     // ドレス
@@ -626,102 +610,82 @@ const ENEMY_COLORS = {
 };
 
 // ------------------------------------------------------------------ プレイヤー
+// 輪郭（体＋耳）を 1本のパスで
+function silhouette(ctx, r) {
+  const D = Math.PI / 180;
+  const at = (deg) => [Math.cos(deg * D) * r, Math.sin(deg * D) * r];
+  const lo = at(-148), li = at(-112), ro = at(-32);
+  ctx.beginPath();
+  ctx.moveTo(lo[0], lo[1]);
+  ctx.quadraticCurveTo(-r * 1.0, -r * 1.25, -r * 0.74, -r * 1.55);
+  ctx.quadraticCurveTo(-r * 0.46, -r * 1.25, li[0], li[1]);
+  ctx.arc(0, 0, r, -112 * D, -68 * D);
+  ctx.quadraticCurveTo(r * 0.46, -r * 1.25, r * 0.74, -r * 1.55);
+  ctx.quadraticCurveTo(r * 1.0, -r * 1.25, ro[0], ro[1]);
+  ctx.arc(0, 0, r, -32 * D, 212 * D);
+  ctx.closePath();
+}
+
 export function drawPlayer(ctx, p, time, gemId) {
   const g = GEMS[gemId] || GEMS.ruby;
+  const glow = g.rainbow ? '#d9c4ff' : g.color;
   const r = 15;
-  const bob = Math.sin(time * 8) * (p.moving ? 2.2 : 1.2);
+  const bob = Math.sin(time * 6) * (p.moving ? 2 : 1.2);
+  const hurt = p.hurtT > 0 && Math.floor(time * 30) % 2 === 0;
   ctx.save();
   ctx.translate(p.x, p.y);
-  // かげ
-  ctx.fillStyle = 'rgba(60,20,80,0.18)';
+  // 足元の光
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.4;
+  const halo = dotSprite(glow);
+  ctx.drawImage(halo, -r * 2.4, -r * 2.4 + bob, r * 4.8, r * 4.8);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = rgba(glow, 0.35);
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.ellipse(0, r + 3, r * 0.9, r * 0.3, 0, 0, TAU);
-  ctx.fill();
+  ctx.ellipse(0, r + 5, r * 0.9, r * 0.28, 0, 0, TAU);
+  ctx.stroke();
+
   ctx.translate(0, bob - 2);
   ctx.scale(p.face, 1);
-  const hurt = p.hurtT > 0 && Math.floor(time * 30) % 2 === 0;
-  // はね
-  const flap = Math.sin(time * 18) * 0.35;
-  for (const s of [-1, 1]) {
-    ctx.save();
-    ctx.translate(s * r * 0.55, -r * 0.2);
-    ctx.rotate(s * (0.5 + flap));
-    ctx.fillStyle = 'rgba(200,235,255,0.75)';
-    ctx.strokeStyle = 'rgba(120,170,255,0.9)';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.ellipse(s * r * 0.55, -r * 0.2, r * 0.6, r * 0.35, s * -0.4, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-  }
-  // みみ
-  for (const s of [-1, 1]) {
-    ctx.beginPath();
-    ctx.moveTo(s * r * 0.25, -r * 0.75);
-    ctx.quadraticCurveTo(s * r * 0.65, -r * 1.55, s * r * 0.85, -r * 0.55);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-    ctx.strokeStyle = '#e892bd';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(s * r * 0.4, -r * 0.8);
-    ctx.quadraticCurveTo(s * r * 0.62, -r * 1.25, s * r * 0.72, -r * 0.7);
-    ctx.fillStyle = '#ffc2dc';
-    ctx.fill();
-  }
-  // からだ
-  const bg = ctx.createRadialGradient(-r * 0.3, -r * 0.4, 1, 0, 0, r * 1.1);
-  bg.addColorStop(0, '#ffffff');
-  bg.addColorStop(0.7, '#fff2f8');
-  bg.addColorStop(1, '#ffd3e8');
-  ctx.beginPath();
-  ctx.ellipse(0, 0, r, r * 0.92, 0, 0, TAU);
-  ctx.fillStyle = hurt ? '#ff8aa8' : bg;
+  // からだ（暗いガラス）
+  silhouette(ctx, r);
+  const bg = ctx.createRadialGradient(-r * 0.35, -r * 0.45, 1, 0, 0, r * 1.3);
+  bg.addColorStop(0, hurt ? 'rgba(255,80,110,0.6)' : 'rgba(255,255,255,0.22)');
+  bg.addColorStop(0.55, rgba(glow, 0.14));
+  bg.addColorStop(1, 'rgba(8,8,16,0.88)');
+  ctx.fillStyle = bg;
   ctx.fill();
-  ctx.strokeStyle = '#e892bd';
+  // 輪郭
+  ctx.shadowColor = hurt ? '#ff2d55' : glow;
+  ctx.shadowBlur = 10;
+  ctx.strokeStyle = hurt ? '#ff8aa0' : '#ffffff';
   ctx.lineWidth = 1.8;
+  ctx.lineJoin = 'round';
   ctx.stroke();
-  // ジュエルの ひとみ
+  ctx.shadowBlur = 0;
+  // 瞳（ジュエル）
   for (const s of [-1, 1]) {
     const ex = s * r * 0.36 + r * 0.08, ey = -r * 0.02;
+    ctx.save();
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 8;
     const eg = ctx.createLinearGradient(ex, ey - r * 0.35, ex, ey + r * 0.35);
-    eg.addColorStop(0, g.dark);
-    eg.addColorStop(0.5, g.rainbow ? '#c9a4ff' : g.color);
-    eg.addColorStop(1, g.rainbow ? '#8ff0ff' : g.light);
+    eg.addColorStop(0, g.rainbow ? '#8a6fc4' : g.dark);
+    eg.addColorStop(0.5, g.rainbow ? '#e0c9ff' : g.color);
+    eg.addColorStop(1, g.rainbow ? '#9ff6ff' : g.light);
     ctx.beginPath();
-    ctx.ellipse(ex, ey, r * 0.2, r * 0.3, 0, 0, TAU);
+    ctx.ellipse(ex, ey, r * 0.19, r * 0.3, 0, 0, TAU);
     ctx.fillStyle = eg;
     ctx.fill();
-    ctx.strokeStyle = '#3a1a3a';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
+    ctx.restore();
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(ex - r * 0.06, ey - r * 0.12, r * 0.08, 0, TAU);
+    ctx.arc(ex - r * 0.06, ey - r * 0.12, r * 0.075, 0, TAU);
     ctx.fill();
-    sparkle(ctx, ex + r * 0.06, ey + r * 0.1, r * 0.07, '#fff');
+    sparkle(ctx, ex + r * 0.06, ey + r * 0.11, r * 0.07, '#fff');
   }
-  // ほっぺ
-  ctx.fillStyle = 'rgba(255,120,170,0.45)';
-  for (const s of [-1, 1]) {
-    ctx.beginPath();
-    ctx.ellipse(s * r * 0.62 + r * 0.08, r * 0.32, r * 0.16, r * 0.09, 0, 0, TAU);
-    ctx.fill();
-  }
-  // くち
-  ctx.strokeStyle = '#8a3a5a';
-  ctx.lineWidth = 1.3;
-  ctx.beginPath();
-  ctx.arc(r * 0.08, r * 0.3, r * 0.1, 0.2, Math.PI - 0.2);
-  ctx.stroke();
-  ctx.restore();
-  // おでこの ジュエル
-  ctx.save();
-  ctx.translate(p.x + p.face * 1.2, p.y + bob - 2 - r * 0.62);
-  const spr = gemSprite(gemId, 11);
-  ctx.drawImage(spr, -spr.logical / 2, -spr.logical / 2, spr.logical, spr.logical);
   ctx.restore();
 }
 
@@ -803,23 +767,23 @@ export function itemSprite(kind) {
   } else if (kind === 'chest' || kind === 'bigchest') {
     const s = kind === 'bigchest' ? 1.25 : 1;
     ctx.scale(s, s);
-    ctx.fillStyle = '#ff7ab8';
-    ctx.strokeStyle = '#7a1f4a';
-    ctx.lineWidth = 1.5;
+    ctx.fillStyle = '#1b1828';
+    ctx.strokeStyle = '#e0b85a';
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.roundRect ? ctx.roundRect(-12, -3, 24, 14, 3) : ctx.rect(-12, -3, 24, 14);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = '#ff9fcd';
+    ctx.fillStyle = '#26223a';
     ctx.beginPath();
     ctx.moveTo(-12, -3);
     ctx.quadraticCurveTo(0, -16, 12, -3);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = '#ffd24a';
-    ctx.fillRect(-12, -4, 24, 3);
-    ctx.fillRect(-2, -10, 4, 20);
+    ctx.fillStyle = '#e0b85a';
+    ctx.fillRect(-12, -4, 24, 2);
+    ctx.fillRect(-1.5, -10, 3, 20);
     ctx.save();
     ctx.translate(0, 2);
     drawGem(ctx, 4, GEMS.ruby);
@@ -838,26 +802,30 @@ export function backgroundTile() {
   const S = 256;
   bgTile = makeCanvas(S, S);
   const ctx = bgTile.getContext('2d');
-  ctx.fillStyle = '#fbe9ff';
+  ctx.fillStyle = '#07070d';
   ctx.fillRect(0, 0, S, S);
-  // チェック
-  ctx.fillStyle = '#f6ddff';
-  ctx.fillRect(0, 0, S / 2, S / 2);
-  ctx.fillRect(S / 2, S / 2, S / 2, S / 2);
-  // ちいさな ダイヤもよう
-  const cols = ['#ffd1ec', '#d9e8ff', '#fff0c2', '#d8ffe9'];
-  for (let i = 0; i < 4; i++) {
-    const x = (i % 2) * S / 2 + S / 4, y = Math.floor(i / 2) * S / 2 + S / 4;
-    ctx.fillStyle = cols[i];
+  // うすい グリッド
+  ctx.strokeStyle = 'rgba(160,140,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= S; i += 64) {
+    ctx.beginPath(); ctx.moveTo(i + 0.5, 0); ctx.lineTo(i + 0.5, S); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i + 0.5); ctx.lineTo(S, i + 0.5); ctx.stroke();
+  }
+  // 交点の しるし
+  ctx.fillStyle = 'rgba(200,180,255,0.16)';
+  for (let x = 0; x < S; x += 64) for (let y = 0; y < S; y += 64) {
     ctx.beginPath();
-    ctx.moveTo(x, y - 12); ctx.lineTo(x + 9, y); ctx.lineTo(x, y + 12); ctx.lineTo(x - 9, y);
+    ctx.moveTo(x, y - 3); ctx.lineTo(x + 3, y); ctx.lineTo(x, y + 3); ctx.lineTo(x - 3, y);
     ctx.closePath();
     ctx.fill();
   }
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  for (let i = 0; i < 14; i++) {
-    const x = (i * 97) % S, y = (i * 53 + 17) % S;
-    sparkle(ctx, x, y, 2 + (i % 3), 'rgba(255,255,255,0.8)');
+  // ちり
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 70; i++) {
+    const x = rnd() * S, y = rnd() * S, a = 0.05 + rnd() * 0.18;
+    ctx.fillStyle = `rgba(210,200,255,${a})`;
+    ctx.fillRect(x, y, 1, 1);
   }
   return bgTile;
 }

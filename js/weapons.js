@@ -311,6 +311,7 @@ export const LOGIC = {
       const L = 175 * s.area * w.scale;
       const W = 12 * s.area * (0.85 + 0.15 * Math.sin(g.time * 30));
       const n = s.amount + (w.evolved ? 1 : 0);
+      ctx.globalCompositeOperation = 'lighter';
       ctx.lineCap = 'round';
       for (let k = 0; k < n; k++) {
         const a = w.ang + (k / n) * TAU;
@@ -327,10 +328,8 @@ export const LOGIC = {
         ctx.strokeStyle = 'rgba(255,255,255,0.8)';
         ctx.lineWidth = W * 0.5;
         ctx.stroke();
-        ctx.globalCompositeOperation = 'lighter';
         const st = starSprite('#ffffff');
         ctx.drawImage(st, bx - 18, by - 18, 36, 36);
-        ctx.globalCompositeOperation = 'source-over';
         if (Math.random() < 0.4) g.fx.add(bx, by, rand(-40, 40), rand(-40, 40), 0.4, 8, 'rainbow', 'star');
       }
       ctx.globalCompositeOperation = 'source-over';
@@ -392,7 +391,7 @@ export const LOGIC = {
         const d = Math.hypot(e.x - p.x, e.y - p.y);
         if (d > R + e.r) continue;
         if (evo && !e.boss && !e.prop && e.hp < e.maxHp * 0.18) {
-          g.fx.text(e.x, e.y - 14, 'じょうか!', { color: '#bff0ff', size: 13, stroke: '#2a5a8a', life: 0.6 });
+          g.fx.text(e.x, e.y - 14, 'PURIFY', { color: '#fff6c9', size: 12, stroke: 'rgba(0,0,0,0.7)', life: 0.6 });
           g.damage(e, e.hp + 1, { wid: 'angelite', silent: true });
           continue;
         }
