@@ -15,7 +15,7 @@ export function weaponStats(g, w) {
   }
   const P = g.stats;
   return {
-    dmg: s.dmg * P.might,
+    dmg: s.dmg * P.might * (def.dmgMul || 1) * (w.evolved ? def.evo.mul || 1 : 1),
     cd: Math.max(0.08, s.cd * P.cooldown),
     amount: (s.amount || 0) + P.amount,
     speed: (s.speed || 1) * P.speed,

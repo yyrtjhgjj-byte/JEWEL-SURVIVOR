@@ -593,8 +593,10 @@ function choiceInfo(g, c) {
     if (c.type === 'evo') return { icon: gemIcon(def.gem, 96), name: def.evo.name, lv: 'EVOLUTION', desc: def.evo.desc, word: `${def.name} ＋ ${GEMS[def.evo.with].jp}`, rar: 'UR' };
     const w = g.getWeapon(c.id);
     const next = Math.min(WEAPON_MAX, w.level + (c.double ? 2 : 1));
-    let desc = def.levels[w.level - 1].t;
-    if (c.double && def.levels[w.level]) desc += ' ／ ' + def.levels[w.level].t;
+    // 表示するダメージ値はバランス倍率込みの実数に
+    const real = (t) => t.replace(/ダメージ \+(\d+)/g, (_, n) => `ダメージ +${Math.round(n * (def.dmgMul || 1))}`);
+    let desc = real(def.levels[w.level - 1].t);
+    if (c.double && def.levels[w.level]) desc += ' ／ ' + real(def.levels[w.level].t);
     if (next >= WEAPON_MAX) desc += `<br>進化条件：${GEMS[def.evo.with].jp} を所持`;
     return { icon: gemIcon(def.gem, 96), name: def.name, lv: `LV ${w.level} → ${next}${next >= WEAPON_MAX ? ' MAX' : ''}`, desc, word, rar: c.double ? 'SSR' : next >= WEAPON_MAX ? 'SR' : 'N' };
   }
