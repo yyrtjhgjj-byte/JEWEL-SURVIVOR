@@ -1746,10 +1746,12 @@ export class Game {
       ctx.fillRect(0, 0, CW, CH);
     }
     if (this.feverT > 0) {
-      const bw = 10 * this.dpr;
+      const bw = 3 * this.dpr;
       ctx.lineWidth = bw;
+      ctx.globalAlpha = 0.85;
       ctx.strokeStyle = `hsl(${(this.time * 360) % 360},100%,65%)`;
       ctx.strokeRect(bw / 2, bw / 2, CW - bw, CH - bw);
+      ctx.globalAlpha = 1;
     }
   }
 

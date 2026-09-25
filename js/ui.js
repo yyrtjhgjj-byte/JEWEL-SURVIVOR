@@ -651,32 +651,52 @@ export function toast(title, sub) {
 }
 
 // ================================================================== レベルアップ
+// カードの目印：図鑑未登録 / 進化との関係
+const T_NEW = '<span class="ctag2 t-new">図鑑未登録</span>';
+function evoTagsForCharm(g, id, owned) {
+  const ws = g.weapons.filter((w) => !w.evolved && WEAPONS[w.id].evo.with === id).map((w) => WEAPONS[w.id].name);
+  if (!ws.length) return '';
+  return ws.map((n) => `<span class="ctag2 ${owned ? 't-pair' : 't-evo'}">${owned ? '所持済・' : ''}進化素材：${n}</span>`).join('');
+}
+function evoTagForWeapon(g, def) {
+  const has = g.hasPassive(def.evo.with);
+  const cj = GEMS[def.evo.with].jp;
+  return has
+    ? `<span class="ctag2 t-evo">進化チャーム所持：${cj}</span>`
+    : `<span class="ctag2 t-plain">進化：Lv${WEAPON_MAX} ＋ ${cj}</span>`;
+}
+
 function choiceInfo(g, c) {
   if (c.type === 'wnew' || c.type === 'wup' || c.type === 'evo') {
     const def = WEAPONS[c.id];
     const gem = GEMS[def.gem];
     const word = `${gem.jp}「${gem.word}」`;
-    if (c.type === 'wnew') return { icon: gemIcon(def.gem, 96), name: def.name, lv: 'NEW', desc: def.desc, word, rar: 'R' };
-    if (c.type === 'evo') return { icon: gemIcon(def.gem, 96), name: def.evo.name, lv: 'EVOLUTION', desc: def.evo.desc, word: `${def.name} ＋ ${GEMS[def.evo.with].jp}`, rar: 'UR' };
+    if (c.type === 'wnew') {
+      const tags = (save.seen.weapons[c.id] ? '' : T_NEW) + evoTagForWeapon(g, def);
+      return { icon: gemIcon(def.gem, 96), name: def.name, lv: 'NEW', desc: def.desc, word, rar: g.hasPassive(def.evo.with) ? 'SR' : 'R', tags };
+    }
+    if (c.type === 'evo') {
+      return { icon: gemIcon(def.gem, 96), name: def.evo.name, lv: 'EVOLUTION', desc: def.evo.desc, word: `${def.name} ＋ ${GEMS[def.evo.with].jp}`, rar: 'UR', tags: save.seen.evos[c.id] ? '' : T_NEW };
+    }
     const w = g.getWeapon(c.id);
     const next = Math.min(WEAPON_MAX, w.level + (c.double ? 2 : 1));
     // 表示するダメージ値はバランス倍率込みの実数に
     const real = (t) => t.replace(/ダメージ \+(\d+)/g, (_, n) => `ダメージ +${Math.round(n * (def.dmgMul || 1))}`);
     let desc = real(def.levels[w.level - 1].t);
     if (c.double && def.levels[w.level]) desc += ' ／ ' + real(def.levels[w.level].t);
-    if (next >= WEAPON_MAX) desc += `<br>進化条件：${GEMS[def.evo.with].jp} を所持`;
-    return { icon: gemIcon(def.gem, 96), name: def.name, lv: `LV ${w.level} → ${next}${next >= WEAPON_MAX ? ' MAX' : ''}`, desc, word, rar: c.double ? 'SSR' : next >= WEAPON_MAX ? 'SR' : 'N' };
+    return { icon: gemIcon(def.gem, 96), name: def.name, lv: `LV ${w.level} → ${next}${next >= WEAPON_MAX ? ' MAX' : ''}`, desc, word, rar: c.double ? 'SSR' : next >= WEAPON_MAX ? 'SR' : 'N', tags: evoTagForWeapon(g, def) };
   }
   if (c.type === 'pnew' || c.type === 'pup') {
     const P = PASSIVES[c.id];
     const gem = GEMS[P.gem];
     const word = `宝石言葉「${gem.word}」`;
-    const evoFor = g.weapons.filter((w) => !w.evolved && WEAPONS[w.id].evo.with === c.id).map((w) => WEAPONS[w.id].name);
-    const evoText = evoFor.length ? `<br>${evoFor.join('・')} の進化素材` : '';
-    if (c.type === 'pnew') return { icon: gemIcon(P.gem, 96), name: P.name, lv: 'NEW', desc: P.t + evoText, word, rar: evoFor.length ? 'SR' : 'R' };
+    if (c.type === 'pnew') {
+      const evoTags = evoTagsForCharm(g, c.id, false);
+      return { icon: gemIcon(P.gem, 96), name: P.name, lv: 'NEW', desc: P.t, word, rar: evoTags ? 'SR' : 'R', tags: (save.seen.passives[c.id] ? '' : T_NEW) + evoTags };
+    }
     const p = g.getPassive(c.id);
     const next = Math.min(P.max, p.level + (c.double ? 2 : 1));
-    return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LV ${p.level} → ${next}`, desc: P.t + (c.double ? ' ×2' : ''), word, rar: c.double ? 'SSR' : 'N' };
+    return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LV ${p.level} → ${next}`, desc: P.t + (c.double ? ' ×2' : ''), word, rar: c.double ? 'SSR' : 'N', tags: evoTagsForCharm(g, c.id, true) };
   }
   if (c.type === 'coins') return { icon: gemIcon('amber', 96), name: 'コイン', lv: '', desc: `${c.value} コイン獲得`, word: '', rar: 'N' };
   return { icon: gemIcon('garnet', 96), name: '全回復', lv: '', desc: 'HPを全回復', word: '', rar: 'N' };
@@ -703,6 +723,7 @@ export function levelUp(g, done) {
       const card = el(`<button class="card r-${info.rar}">
         <img src="${info.icon}">
         <div class="cbody"><div class="clv">${info.lv}</div><div class="cname">${info.name}</div>
+          ${info.tags ? `<div class="ctags">${info.tags}</div>` : ''}
           <div class="cdesc">${info.desc}</div><div class="cword">${info.word}</div></div>
         <span class="ctag rarbadge r-${info.rar}">${info.rar}</span>
         ${c.double ? '<span class="cdouble">LUCKY ×2</span>' : ''}

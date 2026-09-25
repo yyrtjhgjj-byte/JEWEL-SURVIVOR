@@ -543,3 +543,11 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .heat-val.h3, .heat-val.h4 { color: #ff8a3d; text-shadow: 0 0 10px #ff6a3d; }
 .heat-val.h5 { color: #ff2d55; text-shadow: 0 0 14px #ff2d55; }
 .tab { padding: 7px 9px; font-size: 12px; }
+
+/* レベルアップカードの目印 */
+.card .ctags { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 2px; }
+.ctag2 { font-family: var(--font-jp); font-size: 10.5px; font-weight: 700; line-height: 1; padding: 3px 6px; border-radius: 4px; letter-spacing: 0.02em; white-space: nowrap; }
+.ctag2.t-new { color: #5fe0ff; border: 1px solid rgba(95,224,255,0.7); background: rgba(95,224,255,0.1); }
+.ctag2.t-evo { color: #1a1206; background: linear-gradient(90deg, #ffe39a, #ffc53d); box-shadow: 0 0 10px rgba(255,197,61,0.55); }
+.ctag2.t-pair { color: #ffe39a; border: 1px solid rgba(255,197,61,0.55); }
+.ctag2.t-plain { color: var(--muted); border: 1px solid var(--line2); }
