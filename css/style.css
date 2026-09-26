@@ -821,3 +821,27 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .auc-bids { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: min(360px, 92vw); }
 .auc-bids .btn { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; font-size: 16px; }
 .auc-bids .btn .sub { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+
+/* 宝石の所持数・宝石の百獣 */
+.coll-cell .chave { position: absolute; top: 5px; left: 6px; font-family: var(--font); font-size: 10.5px; font-weight: 700; color: var(--muted); line-height: 1; }
+.tabs.sub { width: fit-content; margin: 0 auto 10px; }
+.tabs.sub .tab { padding: 6px 14px; font-size: 12.5px; }
+.beast-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 24px; }
+.beast-cell { position: relative; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); background: var(--panel); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; }
+.beast-cell > img { width: 88%; }
+.beast-cell.none { border-color: var(--line); }
+.beast-cell.none > img { filter: grayscale(1) brightness(0.3); }
+.beast-cell.ready { box-shadow: 0 0 12px color-mix(in srgb, var(--c) 55%, transparent); }
+.beast-cell .bn { font-family: var(--font-jp); font-size: 11.5px; font-weight: 700; word-break: keep-all; text-wrap: balance; text-align: center; }
+.beast-cell .bl { font-family: var(--font); font-size: 11px; font-weight: 700; color: var(--gold); }
+.beast-cell.none .bl { font-family: var(--font-jp); color: var(--muted); font-weight: 500; }
+.beast-cell .bh { display: flex; align-items: center; gap: 2px; font-family: var(--font); font-size: 11px; color: var(--muted); }
+.beast-cell .bh img { width: 16px; height: 16px; }
+.beast-detail { align-items: stretch; }
+.beast-detail .gd-name { text-align: center; margin-bottom: 4px; }
+.bd-art { align-self: center; width: 180px; height: 180px; }
+.bd-art img { width: 100%; height: 100%; }
+.bd-art.none img { filter: grayscale(1) brightness(0.3); }
+.bd-art.pop { animation: beastPop 0.7s ease-out; }
+@keyframes beastPop { 0% { transform: scale(0.6); filter: brightness(3); } 60% { transform: scale(1.08); } 100% { transform: scale(1); filter: none; } }
+.beast-detail .btn.big { margin-top: 8px; }

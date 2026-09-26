@@ -34,6 +34,7 @@ export function awardLot(lot) {
   const rec = save.jewels[lot.gem] || (save.jewels[lot.gem] = { n: 0, best: -1, ct: 0 });
   const before = { best: rec.best, ct: rec.ct, n: rec.n };
   rec.n++;
+  rec.have = (rec.have || 0) + 1;
   if (lot.grade > rec.best) rec.best = lot.grade;
   if (lot.ct > rec.ct) rec.ct = lot.ct;
   return { isNew: before.n === 0, bestUp: lot.grade > before.best && before.n > 0, ctUp: lot.ct > before.ct && before.n > 0 };

@@ -14,6 +14,7 @@ import {
 } from './atelier.js';
 import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, showTitle, getApp } from './ui.js';
 import { currentLot, awardLot, RIVALS } from './auction.js';
+import { BEASTS, BEAST_IDS, BEAST_COST, jewelStock, beastLevel, beastValue, beastStats, raiseBeast, beastIcon } from './beasts.js';
 
 const TAU = Math.PI * 2;
 
@@ -33,7 +34,7 @@ export function showAtelier(tab = 'polish') {
       ${topbar('ATELIER', '研磨工房')}
       <div class="tabs">
         <button class="tab ${tab === 'polish' ? 'on' : ''}" data-t="polish">研磨</button>
-        <button class="tab ${tab === 'collection' ? 'on' : ''}" data-t="collection">コレクション</button>
+        <button class="tab ${tab === 'collection' || tab === 'beasts' ? 'on' : ''}" data-t="collection">コレクション</button>
         <button class="tab ${tab === 'auction' ? 'on' : ''}" data-t="auction">オークション</button>
       </div>
       <div id="at"></div>
@@ -44,6 +45,7 @@ export function showAtelier(tab = 'polish') {
   const box = $('#at', node);
   if (tab === 'polish') renderPolish(box);
   else if (tab === 'auction') renderAuction(box);
+  else if (tab === 'beasts') renderBeasts(box);
   else renderCollection(box);
 }
 
@@ -333,8 +335,18 @@ function reveal(res, score) {
 }
 
 // ---------------------------------------------------------------- コレクションタブ
+function subTabs(box, cur) {
+  const t = el(`<div class="tabs sub">
+    <button class="tab ${cur === 'collection' ? 'on' : ''}" data-t="collection">宝石</button>
+    <button class="tab ${cur === 'beasts' ? 'on' : ''}" data-t="beasts">宝石の百獣</button>
+  </div>`);
+  t.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showAtelier(b.dataset.t); }));
+  box.appendChild(t);
+}
+
 function renderCollection(box) {
   box.innerHTML = '';
+  subTabs(box, 'collection');
   const bonus = collectionStats();
   const bonusText = Object.entries(bonus).map(([k, v]) => statText(k, v)).join(' ／ ');
   box.appendChild(el(`<div class="panel coll-sum">
@@ -350,6 +362,7 @@ function renderCollection(box) {
     const cell = el(`<button class="coll-cell ${has ? '' : 'none'}" style="--c:${gemColor(id)}">
       <img src="${gemIcon(id, 80)}">
       ${has ? `<span class="cq">${gradeBadge(rec.best)}<span class="cmv">${m}</span></span>` : ''}
+      ${rec && rec.have ? `<span class="chave">×${rec.have}</span>` : ''}
       <span class="cm ${name.length >= 9 ? 'xlong' : name.length >= 7 ? 'long' : ''}">${name}</span>
     </button>`);
     cell.onclick = () => { audio.tap(); gemDetail(id); };
@@ -400,6 +413,7 @@ function gemDetail(id) {
       </div>
       <div class="rrow2"><span>最高品質</span><b>${has ? gradeBadge(rec.best) : '—'}</b></div>
       <div class="rrow2"><span>最大カラット</span><b>${has ? rec.ct.toFixed(2) + ' ct' : '—'}</b></div>
+      <div class="rrow2"><span>所持数</span><b>${jewelStock(id)}</b></div>
       <div class="rrow2"><span>研磨数</span><b>${has ? rec.n : 0}</b></div>
       <div class="rrow2"><span>練度</span><b>${m} / ${MASTERY_MAX} ${pips(m)}</b></div>
       <div class="rrow2"><span>ボーナス</span><b>${m ? gemBonusText(id, m) : '—'}</b></div>
@@ -413,6 +427,60 @@ function gemDetail(id) {
   ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
 }
 
+
+// ---------------------------------------------------------------- 宝石の百獣
+function renderBeasts(box) {
+  box.innerHTML = '';
+  subTabs(box, 'beasts');
+  const bonusText = Object.entries(beastStats()).map(([k, v]) => statText(k, v)).join(' ／ ');
+  box.appendChild(el(`<div class="panel coll-sum"><div class="coll-bonus">${bonusText || 'ボーナスなし'}</div></div>`));
+  const grid = el('<div class="beast-grid"></div>');
+  for (const id of BEAST_IDS) {
+    const lv = beastLevel(id);
+    const n = jewelStock(id);
+    const cell = el(`<button class="beast-cell ${lv ? '' : 'none'} ${n >= BEAST_COST ? 'ready' : ''}" style="--c:${gemColor(id)}">
+      <img src="${beastIcon(id, 96)}">
+      <span class="bn">${BEASTS[id].name}</span>
+      <span class="bl">${lv ? `Lv ${lv}` : '未召喚'}</span>
+      <span class="bh"><img src="${gemIcon(id, 32)}">${n}</span>
+    </button>`);
+    cell.onclick = () => { audio.tap(); beastDetail(id); };
+    grid.appendChild(cell);
+  }
+  box.appendChild(grid);
+}
+
+function beastDetail(id) {
+  const B = BEASTS[id], g = GEMS[id];
+  const lv = beastLevel(id), n = jewelStock(id);
+  const now = lv ? statText(B.stat, beastValue(id)) : '—';
+  const next = statText(B.stat, beastValue(id, lv + 1));
+  const ov = el(`<div class="screen dim at-over">
+    <div class="panel gem-detail beast-detail" style="--c:${gemColor(id)}">
+      <div class="bd-art ${lv ? '' : 'none'}"><img src="${beastIcon(id, 200)}"></div>
+      <div class="gd-name">${B.name}</div>
+      <div class="rrow2"><span>レベル</span><b>${lv ? `Lv ${lv}` : '未召喚'}</b></div>
+      <div class="rrow2"><span>効果</span><b>${now}</b></div>
+      <div class="rrow2"><span>${lv ? '強化後' : '召喚後'}</span><b>${next}</b></div>
+      <div class="rrow2"><span>${g.jp}の所持数</span><b>${n}</b></div>
+      <button class="btn big primary" id="bup" ${n >= BEAST_COST ? '' : 'disabled'}>${lv ? '強化' : '召喚'}<span class="sub">${g.jp} ×${BEAST_COST}</span></button>
+      <button class="btn" id="ok">閉じる</button>
+    </div></div>`);
+  $('#screens').appendChild(ov);
+  const close = () => { ov.remove(); showAtelier('beasts'); };
+  $('#ok', ov).onclick = () => { audio.tap(); close(); };
+  ov.onclick = (e) => { if (e.target === ov) close(); };
+  $('#bup', ov).onclick = () => {
+    if (!raiseBeast(id)) return;
+    persist();
+    haptic();
+    lv ? audio.levelUp() : audio.bigWin();
+    ov.remove();
+    beastDetail(id);
+    const art = $('.bd-art', $('#screens').lastElementChild);
+    if (art) art.classList.add('pop');
+  };
+}
 
 // ---------------------------------------------------------------- オークション
 const r100 = (v) => Math.round(v / 100) * 100;

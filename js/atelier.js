@@ -124,6 +124,7 @@ export function applyPolish(tier, gemId, grade, ct) {
   const rec = save.jewels[gemId] || (save.jewels[gemId] = { n: 0, best: -1, ct: 0 });
   const before = { m: mastery(rec), best: rec.best, ct: rec.ct, n: rec.n };
   rec.n++;
+  rec.have = (rec.have || 0) + 1;
   if (grade > rec.best) rec.best = grade;
   if (ct > rec.ct) rec.ct = ct;
   save.stats.polished = (save.stats.polished || 0) + 1;
