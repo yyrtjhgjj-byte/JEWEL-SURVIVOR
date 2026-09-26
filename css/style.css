@@ -348,6 +348,11 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 #bossbar .bname { font-family: var(--font-jp); font-weight: 700; font-size: 12px; letter-spacing: 0.25em; color: #ffb3f0; margin-bottom: 4px; text-shadow: 0 0 10px rgba(255,61,220,0.8); }
 #bossbar .btrack { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); overflow: hidden; }
 #bossbar .bfill { height: 100%; background: linear-gradient(90deg, #c43dff, #ff2d55); transform-origin: 0 50%; }
+/* ブレイクゲージ（HP バーの下の細い線）。近くで戦っているときは明るく、ブレイク中は点滅 */
+#bossbar .bbreak { height: 3px; margin-top: 3px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden; }
+#bossbar .bbfill { height: 100%; background: #b89a4a; transform-origin: 0 50%; transform: scaleX(0); }
+#bossbar.near .bbfill { background: #ffe39a; box-shadow: 0 0 6px rgba(255,227,154,0.9); }
+#bossbar.broken .bbfill { background: #fff3c4; animation: blink 0.3s steps(2) infinite; }
 #combo { position: absolute; right: calc(var(--safe-r) + 12px); top: calc(var(--safe-t) + 66px); text-align: right; line-height: 1; }
 #combo b { display: block; font-size: 36px; font-weight: 700; font-style: italic; color: #fff; text-shadow: 0 0 16px rgba(255,120,200,0.8); }
 #combo span { font-size: 11px; font-weight: 700; letter-spacing: 0.35em; color: var(--muted); }

@@ -211,6 +211,21 @@ export class Game {
       p.hp = Math.min(p.hp, p.maxHp);
     }
     for (const w of this.weapons) w.s = weaponStats(this, w);
+    // 雑魚の硬さを自機の強さに少しだけ連動させる（強さの平方根。完全には連動させず、育てた実感は残す）
+    this.trashMul = Math.min(10, Math.max(1, Math.sqrt(this.estPower() / 3500)));
+  }
+
+  // 自機の火力の目安（武器 1 つの DPS を bench.js の実測から：Lv1 約 300、Lv4 約 700、Lv8 約 6500、進化後 約 20000）
+  estPower() {
+    const EST = [300, 420, 560, 700, 1100, 1800, 3200, 6500];
+    let sum = 0;
+    for (const w of this.weapons) {
+      const lb = w.lb || {};
+      const base = w.evolved ? 20000 : EST[Math.min(8, w.level) - 1];
+      sum += base * (1 + (lb.dmg || 0)) / (1 - (lb.cd || 0)) * (1 + (lb.amount || 0) * 0.25);
+    }
+    const st = this.stats;
+    return sum * st.might / Math.max(0.35, st.cooldown) * (1 + (st.amount || 0) * 0.25);
   }
 
   // テスト用：ぶきを いっぱい もたせる  build = "ruby,sapphire,...:evo"
@@ -499,7 +514,7 @@ export class Game {
       const a = rand(TAU);
       const cx = p.x + Math.cos(a) * (this.viewR + 60), cy = p.y + Math.sin(a) * (this.viewR + 60);
       for (let i = 0; i < ev.n; i++) {
-        const e = this.spawnEnemy(ev.enemy, cx + rand(-80, 80), cy + rand(-80, 80));
+        const e = this.spawnEnemy(ev.enemy, cx + rand(-80, 80), cy + rand(-80, 80), { soft: true });
         e.swarm = { vx: -Math.cos(a), vy: -Math.sin(a), t: 7 };
       }
       this.hooks.banner('SWARM', 'swarm', '大群接近');
@@ -518,7 +533,7 @@ export class Game {
       const len = this.viewR * 2.2;
       for (let i = 0; i < ev.n; i++) {
         const k = (i / (ev.n - 1) - 0.5) * len;
-        const e = this.spawnEnemy(ev.enemy, cx - uy * k + rand(-6, 6), cy + ux * k + rand(-6, 6));
+        const e = this.spawnEnemy(ev.enemy, cx - uy * k + rand(-6, 6), cy + ux * k + rand(-6, 6), { soft: true });
         e.swarm = { vx: ux, vy: uy, t: 9 };
       }
       this.hooks.banner('WALL', 'swarm', '大群の壁が迫る');
@@ -529,7 +544,7 @@ export class Game {
       for (let i = 0; i < ev.n; i++) {
         const a = (i / ev.n) * TAU * 2; // 2 周ぶん
         const r = R + (i / ev.n) * 80;
-        const e = this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * r, p.y + Math.sin(a) * r);
+        const e = this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, { soft: true });
         e.vortex = { cx: p.x, cy: p.y, a, r, t: 11 };
       }
       this.hooks.banner('VORTEX', 'swarm', '渦を巻く大群');
@@ -563,7 +578,8 @@ export class Game {
   spawnEnemy(type, x, y, o = {}) {
     const d = ENEMIES[type];
     const elite = !!o.elite;
-    const mul = d.boss ? (o.mul || 1) * 1.15 * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1);
+    const mul = d.boss ? (o.mul || 1) * 1.15 * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp
+      : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1) * (o.soft || d.ai === 'thief' ? 1 : this.trashMul || 1); // 大群イベントとシーフは柔らかいまま
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
       speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.time, 900) / 600) * this.stageDmg, xp: d.xp,
@@ -672,7 +688,8 @@ export class Game {
           const w = Math.sin(this.time * 2.5 + e.phase) * 0.9;
           const mx = mv.mx; mv.mx += -mv.my * w; mv.my += mx * w;
         }
-        if (e.boss) this.bossAI(e, dt, dist, mv);
+        if (e.boss && e.breakT > 0) { e.breakT -= dt; mv.spd = 0; } // ブレイク中は動かず攻撃もしない
+        else if (e.boss) this.bossAI(e, dt, dist, mv);
         else if (AI[e.ai]) AI[e.ai](this, e, dt, dist, mv);
         if (!e.alive) continue;
         if (e.dash > 0) { mv.spd = e.speed * 4.5; mv.mx = e.dvx; mv.my = e.dvy; e.dash -= dt; }
@@ -704,7 +721,7 @@ export class Game {
         }
       }
       // プレイヤーに あたる
-      if (dist < e.r + p.r - 2 && !(e.fade > 0) && e.dmg > 0) {
+      if (dist < e.r + p.r - 2 && !(e.fade > 0) && e.dmg > 0 && !(e.breakT > 0)) {
         this.hurtPlayer(e.dmg, { src: 'touch:' + e.type });
         if (e.ai === 'wisp') { p.slowT = 1.6; p.slowMul = 0.6; }
       }
@@ -1029,6 +1046,7 @@ export class Game {
     }
     let dmg = amount;
     if (this.feverT > 0) dmg *= 1.5;
+    if (e.breakT > 0) dmg *= 2; // ブレイク中のボスは被ダメージ 2 倍
     if (this.charId === 'ruby' && p.hp < p.maxHp * 0.5) dmg *= 1.3;
     const crit = o.forceCrit || chance(this.stats.crit);
     if (crit) dmg *= 2.5;
@@ -1053,6 +1071,7 @@ export class Game {
       e.vx += kx * o.kb * k;
       e.vy += ky * o.kb * k;
     }
+    if (e.boss && !(e.breakT > 0) && e.hp > 0) this.addBreak(e, dealt);
     if (o.wid) this.dmgBy[o.wid] = (this.dmgBy[o.wid] || 0) + dealt;
     this.totalDmg += dealt;
     if (!o.silent) {
@@ -1080,6 +1099,33 @@ export class Game {
     if (o.heal) this.heal(o.heal);
     if (e.hp <= 0) this.kill(e, o.wid);
     return dealt;
+  }
+
+  // ブレイクゲージ：ボスに与えたダメージでたまる。近くで戦うほど早くたまる
+  // （ボスの体の縁からの距離が 70 以内で 2 倍、320 以上で 0.4 倍）。満タンで 4 秒ダウンし、被ダメージ 2 倍
+  addBreak(e, dealt) {
+    const p = this.player;
+    const d = Math.max(0, Math.hypot(e.x - p.x, e.y - p.y) - e.r);
+    const f = d <= 70 ? 2 : d >= 320 ? 0.4 : 2 - ((d - 70) / 250) * 1.6;
+    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * 0.24 * (e.breakNeed || 1))) * f;
+    e.breakNear = f;
+    if (e.breakG >= 1) this.bossBreak(e);
+  }
+  bossBreak(e) {
+    e.breakG = 0;
+    e.breakNeed = (e.breakNeed || 1) * 1.3; // 次のブレイクは少し遠くなる
+    e.breakT = 4;
+    e.dash = 0;
+    e.windup = 0;
+    e.charging = false;
+    this.lasers = this.lasers.filter((L) => L.owner !== e);
+    this.warns = this.warns.filter((w) => w.owner !== e);
+    this.fx.ring(e.x, e.y, e.r, e.r * 3, 0.5, '#ffe39a', 10);
+    this.fx.burst(e.x, e.y, '#ffe39a', 30, 320, 0.7, 14);
+    this.fx.shake(10);
+    this.hooks.banner('BREAK', 'victory', '4秒間 被ダメージ×2');
+    audio.crit();
+    audio.bigWin();
   }
 
   kill(e, wid) {
@@ -1933,6 +1979,16 @@ export class Game {
       if (e.segment) ctx.drawImage(spr, e.x - Ls / 2, e.y - Ls / 2, Ls, Ls);
       else ctx.drawImage(spr, e.x - (Ls * (1 + sq)) / 2, e.y - (Ls * (1 - sq)) / 2, Ls * (1 + sq), Ls * (1 - sq));
       ctx.globalAlpha = 1;
+      if (e.breakT > 0) {
+        // ブレイク中：頭の上を星が回る
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 3; i++) {
+          const a = this.time * 4 + (i / 3) * TAU;
+          const sx = e.x + Math.cos(a) * e.r * 0.7, sy = e.y - e.r * 1.05 + Math.sin(a) * e.r * 0.22;
+          ctx.drawImage(starSprite('#ffe39a'), sx - 12, sy - 12, 24, 24);
+        }
+        ctx.globalCompositeOperation = 'source-over';
+      }
       if (e.charmT > 0) {
         ctx.strokeStyle = 'rgba(255,150,220,0.9)';
         ctx.lineWidth = 2;
