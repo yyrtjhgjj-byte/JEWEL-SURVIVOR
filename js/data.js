@@ -413,21 +413,21 @@ export const BASE_STATS = {
 //  キャラ（初期ジュエル）
 // ---------------------------------------------------------------------
 export const CHARACTERS = {
-  ruby: { weapon: 'ruby', perk: 'HP50%以下で攻撃力 +30%', stats: { might: 0.1 }, rarity: 'R', start: true },
-  sapphire: { weapon: 'sapphire', perk: '回収範囲 +20% / クールダウン短縮 5%', stats: { magnet: 0.2, cooldown: -0.05 }, rarity: 'R', start: true },
-  garnet: { weapon: 'garnet', perk: '最大HP +20 / 自然回復 +0.2', stats: { maxHp: 20, regen: 0.2 }, rarity: 'R', start: true },
-  labradorite: { weapon: 'labradorite', perk: 'クリティカル率 +5%', stats: { crit: 0.05 }, rarity: 'SR', unlock: '1回のプレイで1000体撃破' },
-  amber: { weapon: 'amber', perk: 'コイン +30%', stats: { greed: 0.3 }, rarity: 'SR', unlock: '1回のプレイでコイン500枚獲得' },
-  angelite: { weapon: 'angelite', perk: 'HP自然回復 +0.4', stats: { regen: 0.4 }, rarity: 'SR', unlock: '5分間生存' },
-  diamond: { weapon: 'diamond', perk: '攻撃範囲 +10% / クリティカル率 +3%', stats: { area: 0.1, crit: 0.03 }, rarity: 'UR', unlock: 'ステージクリア' },
-  opal: { weapon: 'opal', perk: '幸運 +25%', stats: { luck: 0.25 }, rarity: 'UR', unlock: '宝石を14種類コレクション（研磨工房）' },
-  emerald: { weapon: 'emerald', perk: '経験値 +10% / 幸運 +10%', stats: { growth: 0.1, luck: 0.1 }, rarity: 'SR', unlock: 'レベル30到達' },
-  rhodochrosite: { weapon: 'rhodochrosite', perk: '攻撃力 +15% / 最大HP -10', stats: { might: 0.15, maxHp: -10 }, rarity: 'SR', unlock: '1回のプレイで5回フィーバー' },
-  kyanite: { weapon: 'kyanite', perk: '弾速 +20%', stats: { speed: 0.2 }, rarity: 'SR', unlock: '1回のプレイでボスを2体撃破' },
-  aquamarine: { weapon: 'aquamarine', perk: '持続 +15% / アーマー +1', stats: { duration: 0.15, armor: 1 }, rarity: 'SR', unlock: 'HEAT 1以上でクリア' },
-  tourmaline: { weapon: 'tourmaline', perk: '移動速度 +8% / 幸運 +10%', stats: { moveSpeed: 0.08, luck: 0.1 }, rarity: 'SR', unlock: '水晶洞窟をクリア' },
-  alexandrite: { weapon: 'alexandrite', perk: '経験値 +15%', stats: { growth: 0.15 }, rarity: 'SR', unlock: '灼熱鉱脈をクリア' },
-  moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +10% / 回収範囲 +20%', stats: { area: 0.1, magnet: 0.2 }, rarity: 'UR', unlock: '凍晶氷原をクリア' },
+  ruby: { weapon: 'ruby', perk: 'HP50%以下で攻撃力 +30%', stats: { might: 0.1 }, start: true },
+  sapphire: { weapon: 'sapphire', perk: '回収範囲 +20% / クールダウン短縮 5%', stats: { magnet: 0.2, cooldown: -0.05 }, start: true },
+  garnet: { weapon: 'garnet', perk: '最大HP +20 / 自然回復 +0.2', stats: { maxHp: 20, regen: 0.2 }, start: true },
+  labradorite: { weapon: 'labradorite', perk: 'クリティカル率 +5%', stats: { crit: 0.05 }, unlock: '1回のプレイで1000体撃破' },
+  amber: { weapon: 'amber', perk: 'コイン +30%', stats: { greed: 0.3 }, unlock: '1回のプレイでコイン500枚獲得' },
+  angelite: { weapon: 'angelite', perk: 'HP自然回復 +0.4', stats: { regen: 0.4 }, unlock: '5分間生存' },
+  diamond: { weapon: 'diamond', perk: '攻撃範囲 +10% / クリティカル率 +3%', stats: { area: 0.1, crit: 0.03 }, unlock: 'ステージクリア' },
+  opal: { weapon: 'opal', perk: '幸運 +25%', stats: { luck: 0.25 }, unlock: '宝石を14種類コレクション（研磨工房）' },
+  emerald: { weapon: 'emerald', perk: '経験値 +10% / 幸運 +10%', stats: { growth: 0.1, luck: 0.1 }, unlock: 'レベル30到達' },
+  rhodochrosite: { weapon: 'rhodochrosite', perk: '攻撃力 +15% / 最大HP -10', stats: { might: 0.15, maxHp: -10 }, unlock: '1回のプレイで5回フィーバー' },
+  kyanite: { weapon: 'kyanite', perk: '弾速 +20%', stats: { speed: 0.2 }, unlock: '1回のプレイでボスを2体撃破' },
+  aquamarine: { weapon: 'aquamarine', perk: '持続 +15% / アーマー +1', stats: { duration: 0.15, armor: 1 }, unlock: 'HEAT 1以上でクリア' },
+  tourmaline: { weapon: 'tourmaline', perk: '移動速度 +8% / 幸運 +10%', stats: { moveSpeed: 0.08, luck: 0.1 }, unlock: '水晶洞窟をクリア' },
+  alexandrite: { weapon: 'alexandrite', perk: '経験値 +15%', stats: { growth: 0.15 }, unlock: '灼熱鉱脈をクリア' },
+  moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +10% / 回収範囲 +20%', stats: { area: 0.1, magnet: 0.2 }, unlock: '凍晶氷原をクリア' },
 };
 export const CHAR_IDS = Object.keys(CHARACTERS);
 

@@ -484,7 +484,7 @@ export function showGacha() {
     altar.classList.remove('hidden', 'burst');
     const best = results.reduce((a, b) => (rankNum(b.rank) > rankNum(a.rank) ? b : a));
     // 溜め → 最高レアの色へ変化 → 炸裂
-    altar.style.setProperty('--cc', '#b45cff');
+    altar.style.setProperty('--cc', '#ffffff');
     altar.classList.add('charge');
     audio.drumroll(1.2);
     await wait(700);
