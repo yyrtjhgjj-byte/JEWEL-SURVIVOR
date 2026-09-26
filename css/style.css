@@ -675,7 +675,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .lvl-screen.banishing #banish { border-color: #ff4d6d; color: #ff8aa0; }
 
 /* 工房：返金・無効化 */
-.refund-row { display: flex; align-items: center; gap: 10px; margin: 12px 2px 24px; font-family: var(--font-jp); font-size: 11px; color: var(--muted); }
-.refund-row .btn { white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.refund-row { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin: 12px 2px 24px; font-family: var(--font-jp); font-size: 11px; color: var(--muted); text-align: center; }
+.refund-row .btn { white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
 .shop-item.off { opacity: 0.45; }
 .shop-item .btn.maxsw { min-width: 72px; }
