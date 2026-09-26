@@ -271,11 +271,11 @@ export class Hazards {
   drawOverlay(ctx) {
     const g = this.g, p = g.player;
     if (this.kind === 'darkness') {
-      const R = g.feverT > 0 ? 205 : 175;
-      const grd = ctx.createRadialGradient(p.x, p.y, R * 0.35, p.x, p.y, R);
+      const R = g.feverT > 0 ? 260 : 225;
+      const grd = ctx.createRadialGradient(p.x, p.y, R * 0.45, p.x, p.y, R);
       grd.addColorStop(0, 'rgba(2,1,6,0)');
-      grd.addColorStop(0.7, 'rgba(2,1,6,0.75)');
-      grd.addColorStop(1, 'rgba(2,1,6,0.96)');
+      grd.addColorStop(0.7, 'rgba(2,1,6,0.5)');
+      grd.addColorStop(1, 'rgba(2,1,6,0.82)');
       ctx.fillStyle = grd;
       const L = p.x - g.viewW, T = p.y - g.viewH;
       ctx.fillRect(L, T, g.viewW * 2, g.viewH * 2);

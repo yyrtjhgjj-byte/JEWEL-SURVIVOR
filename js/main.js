@@ -11,7 +11,7 @@ import { STAGES, STAGE_BY_ID } from './stages.js';
 import { gemSprite, starSprite, backgroundTile } from './render.js';
 import { TAU, rand, pick } from './util.js';
 import * as UI from './ui.js';
-import { addRankExp, runExp } from './rank.js';
+import { addRankExp, runExp, settleRank } from './rank.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -335,6 +335,7 @@ if ('heatSel' in save) {
   delete save.heatSel;
   persist();
 }
+if (settleRank()) persist(); // ランクの必要経験値を下げた分を反映
 // 解放条件を実績に移したキャラ：すでにその実績を持っていれば解放しておく
 for (const a of ACHIEVEMENTS) {
   if (a.unlock && save.achievements[a.id] && !save.unlocked[a.unlock]) {
