@@ -75,7 +75,7 @@ const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500
 
 // さいしょは すぐ レベルアップ → だんだん ゆっくり
 // 必要経験値（初期カーブの 1.75 × 1.8 倍）
-const xpFor = (l) => Math.round(TIME_SCALE * 1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
+const xpFor = (l) => Math.round(1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
 
 export class Game {
   constructor(canvas, hooks, opts = {}) {
