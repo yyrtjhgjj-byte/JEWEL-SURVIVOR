@@ -194,10 +194,11 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .toggle-row small { display: block; font-family: var(--font-jp); color: var(--muted); font-weight: 500; letter-spacing: 0; }
 
 /* ------------------------------------------------------------------ レア度 */
-.r-N { --rc: #8f8ca6; }
-.r-R { --rc: #4da3ff; }
-.r-SR { --rc: #ffc53d; }
-.r-SSR { --rc: #ff4fd8; }
+/* レア度の色は研磨の品質とそろえる（UR 虹 ／ SSR 金 ／ SR 紫 ／ R 青 ／ N 緑） */
+.r-N { --rc: #7dffb0; }
+.r-R { --rc: #7fd0ff; }
+.r-SR { --rc: #c78bff; }
+.r-SSR { --rc: #ffd24a; }
 .r-UR { --rc: #ffffff; }
 .rarbadge { font-family: var(--font); font-weight: 700; font-size: 11px; letter-spacing: 0.12em; padding: 0 6px; border-radius: 4px; color: var(--rc); border: 1px solid var(--rc); line-height: 16px; display: inline-block; }
 .rarbadge.r-UR { color: #fff; border-color: transparent; background: var(--prism); background-size: 200% 100%; animation: prismMove 1.5s linear infinite; }
