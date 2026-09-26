@@ -9,6 +9,7 @@ import { STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
 import { AI, onEnemyKilled, thiefTick } from './enemies.js';
 import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
+import { beastStats } from './beasts.js';
 import { ARTIFACT_BY_ID, ARTIFACT_MAX, unlockedArtifacts } from './artifacts.js';
 import { FX } from './fx.js';
 import { rankCoinMul } from './rank.js';
@@ -199,6 +200,7 @@ export class Game {
     }
     s.might += 0.05 * (save.awaken[this.charId] || 0);
     add(collectionStats()); // 研磨コレクションの練度ボーナス
+    add(beastStats()); // 宝石の百獣
     // チャームは秘宝の倍率（ペンダントの最大HP・プリズムの範囲）より先に足す（チャームの分にも倍率が掛かるように）
     for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
     // 秘宝

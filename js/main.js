@@ -352,6 +352,11 @@ if ('heatSel' in save) {
   persist();
 }
 if (settleRank()) persist(); // ランクの必要経験値を下げた分を反映
+// 宝石の所持数を数える前のセーブは、研磨数をそのまま所持数にする
+if (Object.values(save.jewels).some((r) => r.have === undefined)) {
+  for (const r of Object.values(save.jewels)) if (r.have === undefined) r.have = r.n || 0;
+  persist();
+}
 // 工房の返金額：払ったコインを記録する前のセーブは、当時の値段（表の工房は今の半分、裏工房は今と同じ）で数えて引き継ぐ
 if (!save.shopPaid) {
   const sum = (up, cost) => SHOP.reduce((a, it) => { for (let i = 0; i < ((up || {})[it.id] || 0); i++) a += cost(it, i); return a; }, 0);
