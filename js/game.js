@@ -2,7 +2,7 @@
 //  ゲーム本体
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, LIMIT_BREAK, backShopRate,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, BACK_SHOP, LIMIT_BREAK,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
@@ -174,6 +174,12 @@ export class Game {
     this.lodestoneNext = (Math.floor(this.time / 120) + 1) * 120;
     this.hopeNext = this.time + 60;
     if (opts.artifact && ARTIFACT_BY_ID[opts.artifact]) this.addArtifact(opts.artifact, true);
+    // 裏工房「秘宝の持ち込み」：2 つ目の秘宝と、1 ランで持てる数 +1
+    this.artMax = ARTIFACT_MAX + (this.stats.art2 ? 1 : 0);
+    if (this.stats.art2 && opts.artifact2 && ARTIFACT_BY_ID[opts.artifact2]) this.addArtifact(opts.artifact2, true);
+    // 裏工房「初期強化」：開始時のレベルアップ
+    for (let i = 0; i < this.stats.startLv; i++) { this.level++; this.modalQueue.push({ type: 'level' }); }
+    this.xpNext = xpFor(this.level);
     if (opts.build) this.debugBuild(opts.build);
     this.resize();
   }
@@ -186,8 +192,10 @@ export class Game {
     for (const it of SHOP) {
       const lv = save.upgrades[it.id] || 0;
       if (lv && !save.upgradesOff[it.id]) add(it.per, lv); // 工房で無効にした強化は入れない
-      const lv2 = (save.upgrades2 || {})[it.id] || 0; // 裏工房
-      if (lv2 && !(save.upgrades2Off || {})[it.id]) add(it.per, lv2 * backShopRate(it).eff);
+    }
+    for (const it of BACK_SHOP) { // 裏工房
+      const lv2 = (save.upgrades2 || {})[it.id] || 0;
+      if (lv2 && !(save.upgrades2Off || {})[it.id]) add(it.per, lv2);
     }
     s.might += 0.05 * (save.awaken[this.charId] || 0);
     add(collectionStats()); // 研磨コレクションの練度ボーナス
@@ -211,7 +219,7 @@ export class Game {
     if (this.artSet && this.artSet.has('prism')) s.area *= 1.75 + 1.25 * Math.sin((this.time / 10) * TAU);
     s.greed *= rankCoinMul(); // ユーザーレベルによる獲得コインの倍率
     // ヒート・HYPER のコインの倍率もラン中に掛ける（HUD のコインとリザルトの獲得コインが一致するように）
-    s.greed *= this.heatM.coin * (this.hyper ? 1.5 : 1);
+    s.greed *= (1 + (0.3 + s.heatCoin) * this.heat) * (this.hyper ? 1.5 : 1); // ヒート 1 段階ごとに +30%（裏工房のヒートの報酬で上乗せ）
     recalcElements(this);
     s.cooldown = Math.max(0.35, s.cooldown);
     // 攻撃範囲は 3 倍まで（分光プリズムなどで範囲が極端に大きくなると、描画が重くなって古い iPhone で落ちる）
@@ -1169,7 +1177,7 @@ export class Game {
     const p = this.player;
     const d = Math.max(0, Math.hypot(e.x - p.x, e.y - p.y) - e.r);
     const f = d <= 70 ? 2 : d >= 320 ? 0.4 : 2 - ((d - 70) / 250) * 1.6;
-    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * 0.34 * (e.breakNeed || 1))) * f * earthBreak(this);
+    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * 0.34 * (e.breakNeed || 1))) * f * earthBreak(this) * (1 + this.stats.breakUp);
     e.breakNear = f;
     if (e.breakG >= 1) this.bossBreak(e);
   }
@@ -1207,7 +1215,7 @@ export class Game {
       this.dropXp(e.x, e.y, e.xp * (e.elite ? 8 : 1) * xpMul);
       if (e.ai === 'thief') {
         // ジュエルシーフ：原石（原石以上）とコインと宝箱
-        this.dropPickup('rough', e.x, e.y, upgradeTier(chance(0.3) ? 'large' : 'rough', this.stage.no, this.heat));
+        this.dropPickup('rough', e.x, e.y, upgradeTier(chance(0.3) ? 'large' : 'rough', this.stage.no, this.heat, this.stats.roughUp));
         for (let i = 0; i < 12; i++) this.dropPickup('coin', e.x, e.y, randi(3, 7));
         this.dropPickup('chest', e.x, e.y);
         this.fx.confetti(e.x, e.y, 40);
@@ -1215,8 +1223,8 @@ export class Game {
         this.hooks.banner('THIEF DEFEATED', 'item', '');
       }
       if (e.elite) {
-        const t = eliteDrop();
-        if (t) this.dropPickup('rough', e.x, e.y, upgradeTier(t, this.stage.no, this.heat));
+        const t = eliteDrop(this.stats.roughUp);
+        if (t) this.dropPickup('rough', e.x, e.y, upgradeTier(t, this.stage.no, this.heat, this.stats.roughUp));
         this.dropPickup('chest', e.x, e.y);
         this.fx.confetti(e.x, e.y, 30);
         this.fx.shake(6);
@@ -1280,8 +1288,8 @@ export class Game {
     setTimeout(() => audio.bigWin(), 400);
     this.hooks.banner('BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     this.dropPickup('bigchest', e.x, e.y);
-    if (e.artChest && this.arts.length < ARTIFACT_MAX && this.artifactChoices().length) this.modalQueue.push({ type: 'artifact' });
-    this.dropPickup('rough', e.x, e.y, upgradeTier(bossDrop(e.type === this.stage.finalBoss, this.heat), this.stage.no, this.heat));
+    if (e.artChest && this.arts.length < this.artMax && this.artifactChoices().length) this.modalQueue.push({ type: 'artifact' });
+    this.dropPickup('rough', e.x, e.y, upgradeTier(bossDrop(e.type === this.stage.finalBoss, this.heat), this.stage.no, this.heat, this.stats.roughUp));
     // けいけんちの シャワー
     for (let i = 0; i < 30; i++) this.dropXp(e.x + rand(-60, 60), e.y + rand(-60, 60), Math.ceil(e.xp / 30));
     for (let i = 0; i < 25; i++) this.dropPickup('coin', e.x, e.y, randi(3, 8));
@@ -1375,13 +1383,14 @@ export class Game {
   }
 
   startFever() {
-    this.feverT = 10;
+    this.feverDur = 10 + this.stats.feverUp; // 裏工房「フィーバー延長」
+    this.feverT = this.feverDur;
     this.fevers++;
     this.feverGauge = 0;
     this.feverNeed = Math.round(this.feverNeed * 1.35);
     audio.fever();
     audio.tempoMul = 1.18;
-    this.hooks.fever(true);
+    this.hooks.fever(true, this.feverDur);
     this.fx.screenFlash(0.5, '#ffe6ff');
     this.fx.confetti(this.player.x, this.player.y, 50, 420);
   }
@@ -1468,7 +1477,7 @@ export class Game {
   updatePickups(dt) {
     const p = this.player;
     // フィーバー中は回収範囲が 10 秒かけて外側へ広がる（近い石から順に少しずつ集まる）
-    const mR = 62 * this.stats.magnet * (this.feverT > 0 ? 2 : 1) + (this.feverT > 0 ? (1 - this.feverT / 10) * 1500 : 0);
+    const mR = 62 * this.stats.magnet * (this.feverT > 0 ? 2 : 1) + (this.feverT > 0 ? (1 - this.feverT / (this.feverDur || 10)) * 1500 : 0);
     const mR2 = mR * mR;
     const farItem2 = (this.viewR * 3) ** 2;
     let keep = 0;
@@ -1597,7 +1606,7 @@ export class Game {
 
   // ---------------------------------------------------------------- えらぶ
   rollChoices() {
-    const n = this.stats.luck >= 1.3 ? 4 : 3;
+    const n = (this.stats.luck >= 1.3 ? 4 : 3) + this.stats.choice;
     const pool = [];
     const evos = [];
     for (const w of this.weapons) {
@@ -1680,7 +1689,7 @@ export class Game {
       const w = this.getWeapon(c.id);
       const o = LIMIT_BREAK[c.stat];
       w.lb = w.lb || {};
-      w.lb[o.k] = (w.lb[o.k] || 0) + o.v;
+      w.lb[o.k] = (w.lb[o.k] || 0) + (o.k === 'amount' ? o.v : o.v * (1 + this.stats.lbUp)); // 裏工房「リミットブレイク強化」（弾数は整数のまま）
       w.lbN = (w.lbN || 0) + 1;
     } else if (c.type === 'coins') {
       this.coins += Math.round(c.value * this.stats.greed);
@@ -1696,7 +1705,8 @@ export class Game {
   // たからばこの なかみ
   rollChest(big) {
     const r = Math.random() / this.stats.luck;
-    let n = big ? (r < 0.3 ? 5 : 3) : r < 0.05 ? 5 : r < 0.3 ? 3 : 1;
+    let n = big ? (r < 0.3 || this.stats.bossChest ? 5 : 3) : r < 0.05 ? 5 : r < 0.3 ? 3 : 1;
+    n += this.stats.chestPlus; // 裏工房「宝箱の中身」
     const items = [];
     for (let i = 0; i < n; i++) {
       // しんか ゆうせん
@@ -1820,6 +1830,7 @@ export class Game {
       this.hooks.bossBar(this.boss);
       audio.playBgm(this.boss.type === this.stage.finalBoss ? 'final' : 'boss');
     }
+    this.modalQueue = []; // 開始時の初期強化の分は、保存したモーダルに含まれている
     for (const m of s.modals || []) this.modalQueue.push(m);
   }
 

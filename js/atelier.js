@@ -146,15 +146,16 @@ export function autoGrade() {
 
 // ---------------------------------------------------------------- ラン中のドロップ
 // 基本の等級を、ステージとヒートに応じて確率で 1 段階上げる
-export function upgradeTier(tier, stageNo, heat) {
+// bonus：裏工房「原石の目利き」（+0.2/Lv）。上位の等級になる確率 +0.1 × bonus
+export function upgradeTier(tier, stageNo, heat, bonus = 0) {
   const i = ROUGH_IDS.indexOf(tier);
   if (i >= ROUGH_IDS.length - 1) return tier;
-  const p = (stageNo - 1) * 0.06 + heat * 0.05;
+  const p = (stageNo - 1) * 0.06 + heat * 0.05 + bonus * 0.1;
   return chance(p) ? ROUGH_IDS[i + 1] : tier;
 }
-export function eliteDrop() {
-  if (chance(0.05)) return 'rough';
-  if (chance(0.2)) return 'shard';
+export function eliteDrop(bonus = 0) {
+  if (chance(0.05 * (1 + bonus))) return 'rough';
+  if (chance(0.2 * (1 + bonus))) return 'shard';
   return null;
 }
 export function bossDrop(isFinal, heat) {

@@ -2,7 +2,7 @@
 //  UI：タイトル / レベルアップ / 宝箱 / ガチャ / 図鑑 / リザルト
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost, backShopRate,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, BACK_SHOP, shopCost,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK,
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite, shopIcon, pickaxeIcon } from './render.js';
@@ -325,6 +325,9 @@ export function showCharSelect() {
   };
 }
 
+// 裏工房の強化のレベル（無効にしているものは 0）
+const backLv = (id) => ((save.upgrades2Off || {})[id] ? 0 : (save.upgrades2 || {})[id] || 0);
+
 // ================================================================== ステージ選択
 function stageRec(id) { return save.stages[id] || {}; }
 function stageUnlocked(st) {
@@ -356,10 +359,17 @@ export function showStageSelect() {
     const arts = unlockedArtifacts();
     if (save.artSel && !arts.includes(save.artSel)) save.artSel = null;
     const artA = save.artSel ? ARTIFACT_BY_ID[save.artSel] : null;
+    // 裏工房「秘宝の持ち込み」：2 つ目の秘宝
+    const two = backLv('art2') > 0;
+    if (save.artSel2 && (!arts.includes(save.artSel2) || save.artSel2 === save.artSel)) save.artSel2 = null;
+    const artB = two && save.artSel2 ? ARTIFACT_BY_ID[save.artSel2] : null;
+    const coinMul = 1 + (0.3 + 0.06 * backLv('heatCoin')) * h;
     $('#opts', node).innerHTML = `
       <div class="toggle-row art-row" style="margin-bottom:10px"><span>ARTIFACT<small>${arts.length ? (artA ? `${artA.no}　${artA.name}` : '持ち込まない') : '実績を達成すると解放'}</small></span>
         <button class="btn small" id="artsel" ${arts.length ? '' : 'disabled'}>${artA ? '変更' : '選ぶ'}</button></div>
-      <div class="toggle-row"><span>HEAT<small>${rec.cleared ? `敵HP ×${m.hp.toFixed(2)} ／ 敵攻撃 ×${m.dmg.toFixed(2)} ／ 獲得コイン ×${m.coin.toFixed(1)}` : 'このステージをクリアすると解放'}</small></span>
+      ${two ? `<div class="toggle-row art-row" style="margin-bottom:10px"><span>ARTIFACT 2<small>${artB ? `${artB.no}　${artB.name}` : '持ち込まない'}</small></span>
+        <button class="btn small" id="artsel2" ${arts.length > 1 ? '' : 'disabled'}>${artB ? '変更' : '選ぶ'}</button></div>` : ''}
+      <div class="toggle-row"><span>HEAT<small>${rec.cleared ? `敵HP ×${m.hp.toFixed(2)} ／ 敵攻撃 ×${m.dmg.toFixed(2)} ／ 獲得コイン ×${coinMul.toFixed(1)}` : 'このステージをクリアすると解放'}</small></span>
         <div class="heat-ctl"><button class="iconbtn" id="hm" ${h <= 0 ? 'disabled' : ''}>−</button><b class="heat-val h${h}">${h}</b><button class="iconbtn" id="hp" ${h >= maxHeat ? 'disabled' : ''}>＋</button></div></div>
       ${rec.cleared ? `<div class="toggle-row" style="margin-top:10px"><span>ENDLESS<small>最終ボス撃破後も続行（敵が際限なく強化）</small></span><button class="switch ${save.endless ? 'on' : ''}" id="en"></button></div>
       <div class="toggle-row" style="margin-top:10px"><span>HYPER<small>自機・敵の移動速度 ×1.65、敵弾 ×1.2、獲得コイン ×1.5</small></span><button class="switch ${save.hyper ? 'on' : ''}" id="hy"></button></div>
@@ -367,7 +377,9 @@ export function showStageSelect() {
     const hm = $('#hm', node), hp = $('#hp', node);
     hm.onclick = () => { hs[sel] = Math.max(0, h - 1); audio.tap(); persist(); renderOpts(); };
     hp.onclick = () => { hs[sel] = Math.min(maxHeat, h + 1); audio.tap(); persist(); renderOpts(); };
-    $('#artsel', node).onclick = () => { audio.tap(); pickArtifact(arts, (id) => { save.artSel = id; persist(); renderOpts(); }, true); };
+    $('#artsel', node).onclick = () => { audio.tap(); pickArtifact(arts.filter((x) => x !== save.artSel2), (id) => { save.artSel = id; persist(); renderOpts(); }, true); };
+    const a2 = $('#artsel2', node);
+    if (a2) a2.onclick = () => { audio.tap(); pickArtifact(arts.filter((x) => x !== save.artSel), (id) => { save.artSel2 = id; persist(); renderOpts(); }, true); };
     const en = $('#en', node);
     if (en) en.onclick = () => { save.endless = !save.endless; en.classList.toggle('on', save.endless); audio.tap(); persist(); };
     for (const [id, k] of [['#hy', 'hyper'], ['#hu', 'hurry']]) {
@@ -399,7 +411,7 @@ export function showStageSelect() {
     save.selectedStage = sel;
     persist();
     const rec = stageRec(sel);
-    app.startGame(save.selected, { stageId: sel, heat: Math.min((save.heatSels || {})[sel] ?? 0, rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0), endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry, artifact: save.artSel || null });
+    app.startGame(save.selected, { stageId: sel, heat: Math.min((save.heatSels || {})[sel] ?? 0, rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0), endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry, artifact: save.artSel || null, artifact2: backLv('art2') ? save.artSel2 : null });
   };
 }
 
@@ -419,8 +431,8 @@ function shopEffect(it, lv, max, eff = 1) {
 export function showShop(back = false) {
   const up = back ? save.upgrades2 : save.upgrades;
   const upOff = back ? save.upgrades2Off : save.upgradesOff;
-  const rate = (it) => (back ? backShopRate(it) : { eff: 1, cost: 1 });
-  const costOf = (it, lv) => shopCost(it, lv) * rate(it).cost;
+  const ITEMS = back ? BACK_SHOP : SHOP; // 裏工房は専用の強化（data.js の BACK_SHOP）
+  const costOf = (it, lv) => (back ? it.cost[lv] : shopCost(it, lv));
   if (!back && !save.backShop && SHOP.every((it) => (save.upgrades[it.id] || 0) >= it.max)) {
     save.backShop = true;
     persist();
@@ -460,7 +472,7 @@ export function showShop(back = false) {
     const v = spent();
     $('#refund', node).innerHTML = `全額返金 ${coinIco}${fmt(v)}`;
     $('#refund', node).disabled = !v;
-    for (const it of SHOP) {
+    for (const it of ITEMS) {
       const lv = up[it.id] || 0;
       const max = lv >= it.max;
       const cost = max ? 0 : costOf(it, lv);
@@ -468,7 +480,7 @@ export function showShop(back = false) {
       const row = el(`<div class="shop-item ${off ? 'off' : ''}">
         <img src="${shopIcon(it.id, 72)}">
         <div class="sbody"><div class="sname">${it.name}<small>LV ${lv}/${it.max}</small></div>
-          <div class="sdesc">${shopEffect(it, lv, max, rate(it).eff)}</div>
+          <div class="sdesc">${shopEffect(it, lv, max)}</div>
           <div class="pips">${Array.from({ length: it.max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>
         <button class="btn small ${max ? 'maxsw' : 'gold'}" ${!max && save.coins < cost ? 'disabled' : ''}>${max ? (off ? 'OFF' : 'MAX ON') : coinIco + fmt(cost)}</button>
       </div>`);
@@ -491,7 +503,7 @@ export function showShop(back = false) {
         haptic();
         render();
         refreshCoinPill();
-        const nr = list.children[SHOP.indexOf(it)];
+        const nr = list.children[ITEMS.indexOf(it)];
         if (nr) nr.classList.add('bought');
       };
       list.appendChild(row);
@@ -905,7 +917,7 @@ export function hud(g) {
       g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
       (g.arts.length ? '<i style="grid-column:1/-1;height:0"></i>' + g.arts.map((id) => `<div class="slotico art"><img src="${artifactIcon(id, 48)}"></div>`).join('') : '');
   }
-  const f = g.feverT > 0 ? g.feverT / 10 : g.feverGauge / g.feverNeed;
+  const f = g.feverT > 0 ? g.feverT / (g.feverDur || 10) : g.feverGauge / g.feverNeed;
   H.fever.style.transform = `scaleX(${Math.min(1, f)})`;
   if (g.combo >= 5) {
     H.combo.classList.remove('hidden');
@@ -930,9 +942,9 @@ export function bossBar(e) {
   H.boss.classList.remove('hidden');
   H.bossName.textContent = ENEMIES[e.type].name;
 }
-export function feverUI(on) {
+export function feverUI(on, sec = 10) {
   H.hud.classList.toggle('fever', on);
-  if (on) banner('FEVER', 'fever', '10秒間 与ダメージ×1.5 ／ 経験値×2');
+  if (on) banner('FEVER', 'fever', `${sec}秒間 与ダメージ×1.5 ／ 経験値×2`);
 }
 export function comboBanner(n) {
   banner(`${n} COMBO`, 'combo');
@@ -1399,7 +1411,7 @@ export function results(res, cleared, extra) {
     </div>`);
   show(node);
   guard($('.rbtns', node), 1500);
-  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, artifact: save.artSel || null }); };
+  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, artifact: save.artSel || null, artifact2: backLv('art2') ? save.artSel2 : null }); };
   $('#home', node).onclick = () => { audio.tap(); app.toTitle(); };
   const rowsEl = $('#rows', node);
   const rows = [

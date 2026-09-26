@@ -5,7 +5,7 @@ import { Game } from './game.js';
 import { Input } from './input.js';
 import { audio } from './audio.js';
 import { save, persist } from './save.js';
-import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, shopCost, backShopRate } from './data.js';
+import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, BACK_SHOP, shopCost } from './data.js';
 import { ARTIFACTS } from './artifacts.js';
 import { STAGES, STAGE_BY_ID } from './stages.js';
 import { gemSprite, starSprite, backgroundTile } from './render.js';
@@ -171,7 +171,7 @@ const hooks = {
   hud: (g) => UI.hud(g),
   banner: (t, k, s) => UI.banner(t, k, s),
   bossBar: (e) => UI.bossBar(e),
-  fever: (on) => UI.feverUI(on),
+  fever: (on, sec) => UI.feverUI(on, sec),
   combo: (n) => UI.comboBanner(n),
   coinPop: () => UI.coinPop(),
   haptic: () => UI.haptic(),
@@ -207,7 +207,7 @@ function startGame(charId, opt = {}) {
     ...hooks,
     ...botHooks,
     checkAchievements: (r, live) => { achDuringRun.push(...checkAchievements(r, live)); },
-  },{ charId, artifact: opt.artifact || null, endless: !!opt.endless, hyper: !!opt.hyper, hurry: !!opt.hurry, stageId: stage.id, heat: opt.heat || 0, bot: DEBUG.bot, god: DEBUG.god, startTime: opt.resume ? opt.resume.time : DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
+  },{ charId, artifact: opt.artifact || null, artifact2: opt.artifact2 || null, endless: !!opt.endless, hyper: !!opt.hyper, hurry: !!opt.hurry, stageId: stage.id, heat: opt.heat || 0, bot: DEBUG.bot, god: DEBUG.god, startTime: opt.resume ? opt.resume.time : DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
   achDuringRun = [];
   window.__game = game; // デバッグ用
   UI.hudShow(true);
@@ -353,7 +353,18 @@ if (settleRank()) persist(); // ランクの必要経験値を下げた分を反
 // 工房の返金額：払ったコインを記録する前のセーブは、当時の値段（表の工房は今の半分、裏工房は今と同じ）で数えて引き継ぐ
 if (!save.shopPaid) {
   const sum = (up, cost) => SHOP.reduce((a, it) => { for (let i = 0; i < ((up || {})[it.id] || 0); i++) a += cost(it, i); return a; }, 0);
-  save.shopPaid = { front: sum(save.upgrades, (it, i) => shopCost(it, i) / 2), back: sum(save.upgrades2, (it, i) => shopCost(it, i) * backShopRate(it).cost) };
+  const oldBack = (it) => (['reroll', 'skip', 'banish', 'revive', 'amount'].includes(it.id) ? 12 : 6); // 旧裏工房の値段（工房の 6 倍、回数系などは 12 倍）
+  save.shopPaid = { front: sum(save.upgrades, (it, i) => shopCost(it, i) / 2), back: sum(save.upgrades2, (it, i) => shopCost(it, i) * oldBack(it)) };
+  persist();
+}
+// 裏工房の中身を専用の強化に入れ替えた：旧裏工房（工房の半分の効果）で強化していた分は、払ったコインを全額返す
+let backRefund = 0;
+if (Object.keys(save.upgrades2 || {}).some((k) => !BACK_SHOP.some((it) => it.id === k))) {
+  backRefund = save.shopPaid.back || 0;
+  save.coins += backRefund;
+  save.upgrades2 = {};
+  save.upgrades2Off = {};
+  save.shopPaid.back = 0;
   persist();
 }
 // 解放条件を実績に移したキャラ：すでにその実績を持っていれば解放しておく
@@ -373,6 +384,7 @@ if (DEBUG.autostart) {
 } else {
   UI.showTitle();
   recoverPendingRun(); // 再開の確認はタイトル（ログインボーナス）の上に出す
+  if (backRefund) setTimeout(() => UI.toast('裏工房の入れ替えに伴い返金', `+${backRefund.toLocaleString()} コイン`, 'BACKROOM'), 900);
 }
 
 // オフライン用 サービスワーカー

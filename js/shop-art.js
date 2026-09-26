@@ -573,6 +573,194 @@ const ICON = {
   },
 };
 
+// ------------------------------------------------------------------ 裏工房の強化
+function coinAt(ctx, x, y, r) {
+  ctx.fillStyle = GOLD(ctx, x - r, x + r);
+  glow(ctx, '#ffd23d', 6);
+  ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.9, 0, 0, TAU); ctx.fill();
+  noGlow(ctx);
+  ctx.strokeStyle = 'rgba(120,80,10,0.8)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(x, y, r * 0.65, r * 0.58, 0, 0, TAU); ctx.stroke();
+}
+// 宝箱（中心 x, y、幅 w）
+function chestAt(ctx, x, y, w, open) {
+  const h = w * 0.62;
+  ctx.save(); ctx.translate(x, y);
+  glow(ctx, 'rgba(255,200,90,0.6)', 10);
+  ctx.fillStyle = lin(ctx, 0, -h / 2, 0, h / 2, [[0, '#8a4a22'], [1, '#4a2410']]);
+  ctx.fillRect(-w / 2, -h * 0.1, w, h * 0.6);
+  noGlow(ctx);
+  // ふた
+  ctx.save();
+  if (open) { ctx.translate(0, -h * 0.1); ctx.rotate(-0.5); ctx.translate(0, h * 0.1); }
+  ctx.fillStyle = lin(ctx, 0, -h / 2, 0, 0, [[0, '#a8622e'], [1, '#6a3414']]);
+  ctx.beginPath(); ctx.moveTo(-w / 2, -h * 0.1); ctx.quadraticCurveTo(0, -h * 0.7, w / 2, -h * 0.1); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = GOLD(ctx, -w / 2, w / 2); ctx.fillRect(-w * 0.07, -h * 0.5, w * 0.14, h * 0.4);
+  ctx.restore();
+  // 金具
+  ctx.fillStyle = GOLD(ctx, -w / 2, w / 2);
+  ctx.fillRect(-w / 2, -h * 0.12, w, h * 0.08);
+  ctx.fillRect(-w * 0.07, -h * 0.1, w * 0.14, h * 0.6);
+  gemlet(ctx, 0, h * 0.1, w * 0.08, '#ff2d55', '#ffd0da', '#8c0022', 6);
+  ctx.restore();
+}
+function plus(ctx, x, y, s, color = '#ffffff') {
+  ctx.fillStyle = color; glow(ctx, color, 6);
+  ctx.fillRect(x - s * 0.18, y - s / 2, s * 0.36, s);
+  ctx.fillRect(x - s / 2, y - s * 0.18, s, s * 0.36);
+  noGlow(ctx);
+}
+Object.assign(ICON, {
+  // 初期強化：上向きの光の矢印と、最初から輝く宝石
+  startLv(ctx) {
+    halo(ctx, 0, 0, 44, 'rgba(120,200,255,0.3)');
+    for (let i = 0; i < 3; i++) {
+      const y = 22 - i * 20;
+      ctx.strokeStyle = `rgba(160,220,255,${0.4 + i * 0.25})`; ctx.lineWidth = 5;
+      glow(ctx, '#8fd0ff', 8);
+      ctx.beginPath(); ctx.moveTo(-20, y + 10); ctx.lineTo(0, y - 6); ctx.lineTo(20, y + 10); ctx.stroke();
+    }
+    noGlow(ctx);
+    gemlet(ctx, 0, -32, 8, '#6fd0ff', '#eafaff', '#1a5a8c', 6);
+    star(ctx, -28, -24, 3); star(ctx, 30, 6, 2.4, '#cdefff');
+  },
+  // 選択肢：扇に広げた 4 枚のカード（1 枚だけ光る）
+  choice(ctx) {
+    halo(ctx, 0, 6, 44, 'rgba(200,140,255,0.28)');
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.translate(0, 34); ctx.rotate(-0.55 + i * 0.37); ctx.translate(0, -34);
+      const last = i === 3;
+      glow(ctx, last ? '#ffd24a' : 'rgba(180,150,255,0.6)', last ? 12 : 4);
+      ctx.fillStyle = last ? lin(ctx, 0, -30, 0, 10, [[0, '#fff4c4'], [1, '#c79a2a']]) : lin(ctx, 0, -30, 0, 10, [[0, '#3a3058'], [1, '#1c1630']]);
+      ctx.strokeStyle = last ? '#ffe39a' : 'rgba(200,180,255,0.7)'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.roundRect(-11, -30, 22, 34, 4); ctx.fill(); ctx.stroke();
+      noGlow(ctx);
+      gemlet(ctx, 0, -13, 5, last ? '#ffffff' : '#b99cff', '#ffffff', last ? '#c79a2a' : '#5a3f9c', 4);
+      ctx.restore();
+    }
+    plus(ctx, 30, -30, 12, '#ffe39a');
+  },
+  // 秘宝の持ち込み：並んだ 2 つのペンダント
+  art2(ctx) {
+    halo(ctx, 0, 0, 44, 'rgba(255,190,120,0.28)');
+    const pend = (x, c, light, dark) => {
+      ctx.strokeStyle = GOLD(ctx, x - 12, x + 12); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x - 12, -34); ctx.quadraticCurveTo(x, -18, x + 12, -34); ctx.stroke();
+      ctx.fillStyle = GOLD(ctx, x - 12, x + 12);
+      glow(ctx, '#ffd24a', 6);
+      ctx.beginPath(); ctx.arc(x, 2, 15, 0, TAU); ctx.fill();
+      noGlow(ctx);
+      ctx.fillStyle = '#1a1226'; ctx.beginPath(); ctx.arc(x, 2, 11.5, 0, TAU); ctx.fill();
+      gemlet(ctx, x, 2, 9, c, light, dark, 8);
+      ctx.fillStyle = GOLD(ctx, x - 4, x + 4); ctx.fillRect(x - 3, -20, 6, 8);
+    };
+    pend(-17, '#3fd0c0', '#e0fffb', '#0f6f76');
+    pend(17, '#ff5f9a', '#ffd6e6', '#8c1f45');
+    star(ctx, 0, 30, 3.2); star(ctx, -34, 24, 2.2, '#ffe39a');
+  },
+  // 宝箱の中身：あふれる宝箱とプラス
+  chestPlus(ctx) {
+    halo(ctx, 0, 6, 44, 'rgba(255,200,90,0.3)');
+    chestAt(ctx, -2, 12, 56, true);
+    gemlet(ctx, -10, -8, 6, '#5ab4ff', '#e0f2ff', '#1a4a8c', 6);
+    gemlet(ctx, 6, -14, 7, '#4ecb8a', '#e0ffec', '#1a6a40', 6);
+    gemlet(ctx, 18, -4, 5, '#ff5f9a', '#ffd6e6', '#8c1f45', 6);
+    plus(ctx, 30, -30, 14, '#ffe39a');
+  },
+  // ボスの宝箱：王冠を載せた大きな宝箱と 5 つの光
+  bossChest(ctx) {
+    halo(ctx, 0, 4, 46, 'rgba(255,120,200,0.3)');
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + (i - 2) * 0.42;
+      ctx.strokeStyle = 'rgba(255,230,150,0.55)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a) * 16, 4 + Math.sin(a) * 16); ctx.lineTo(Math.cos(a) * 42, 4 + Math.sin(a) * 42); ctx.stroke();
+    }
+    chestAt(ctx, 0, 16, 60, false);
+    // 王冠
+    ctx.fillStyle = GOLD(ctx, -14, 14);
+    glow(ctx, '#ffd24a', 8);
+    ctx.beginPath(); ctx.moveTo(-14, -6); ctx.lineTo(-14, -18); ctx.lineTo(-7, -11); ctx.lineTo(0, -22); ctx.lineTo(7, -11); ctx.lineTo(14, -18); ctx.lineTo(14, -6); ctx.closePath(); ctx.fill();
+    noGlow(ctx);
+    gemlet(ctx, 0, -12, 3.2, '#ff2d55', '#ffd0da', '#8c0022', 4);
+  },
+  // ヒートの報酬：炎に包まれた金貨
+  heatCoin(ctx) {
+    halo(ctx, 0, 4, 44, 'rgba(255,110,60,0.35)');
+    glow(ctx, '#ff6a3d', 14);
+    ctx.fillStyle = lin(ctx, 0, -40, 0, 30, [[0, '#ffe39a'], [0.45, '#ff8a3d'], [1, '#c4221a']]);
+    ctx.beginPath();
+    ctx.moveTo(0, -40); ctx.bezierCurveTo(12, -22, 30, -14, 26, 10); ctx.bezierCurveTo(22, 30, -22, 30, -26, 10);
+    ctx.bezierCurveTo(-30, -8, -12, -14, -8, -28); ctx.bezierCurveTo(-2, -20, 2, -30, 0, -40); ctx.closePath(); ctx.fill();
+    noGlow(ctx);
+    coinAt(ctx, 0, 10, 14);
+    coinAt(ctx, -20, 22, 8); coinAt(ctx, 20, 24, 7);
+    star(ctx, 26, -26, 3, '#ffe39a');
+  },
+  // 原石の目利き：ルーペ越しに光る原石
+  roughUp(ctx) {
+    halo(ctx, -4, 6, 42, 'rgba(210,180,255,0.3)');
+    // 原石
+    ctx.fillStyle = lin(ctx, -20, -6, 16, 30, [[0, '#e8d8ff'], [0.5, '#9c7ad8'], [1, '#3a2a60']]);
+    glow(ctx, '#c9a4ff', 8);
+    ctx.beginPath(); ctx.moveTo(-26, 24); ctx.lineTo(-20, 2); ctx.lineTo(-6, -8); ctx.lineTo(12, -2); ctx.lineTo(18, 20); ctx.lineTo(4, 30); ctx.closePath(); ctx.fill();
+    noGlow(ctx);
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(-20, 2); ctx.lineTo(-4, 12); ctx.lineTo(12, -2); ctx.moveTo(-4, 12); ctx.lineTo(4, 30); ctx.stroke();
+    // ルーペ
+    ctx.strokeStyle = STEEL(ctx, 4, 40); ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(14, -14, 16, 0, TAU); ctx.stroke();
+    ctx.fillStyle = 'rgba(200,240,255,0.18)'; ctx.beginPath(); ctx.arc(14, -14, 14, 0, TAU); ctx.fill();
+    ctx.lineWidth = 7; ctx.strokeStyle = '#6a4a2a';
+    ctx.beginPath(); ctx.moveTo(26, -2); ctx.lineTo(38, 12); ctx.stroke();
+    star(ctx, 14, -14, 5); star(ctx, -30, -20, 2.6, '#e8d8ff');
+  },
+  // フィーバー延長：虹色の砂時計
+  feverUp(ctx) {
+    halo(ctx, 0, 0, 44, 'rgba(255,120,220,0.28)');
+    ctx.strokeStyle = GOLD(ctx, -22, 22); ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(-22, -34); ctx.lineTo(22, -34); ctx.moveTo(-22, 34); ctx.lineTo(22, 34); ctx.stroke();
+    const rb = lin(ctx, 0, -30, 0, 30, [[0, '#ff4d6d'], [0.25, '#ffb13d'], [0.5, '#ffe14d'], [0.75, '#4ade80'], [1, '#818cf8']]);
+    glow(ctx, '#ff9ae6', 10);
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.moveTo(-18, -30); ctx.lineTo(18, -30); ctx.lineTo(3, -2); ctx.lineTo(18, 30); ctx.lineTo(-18, 30); ctx.lineTo(-3, -2); ctx.closePath(); ctx.stroke();
+    noGlow(ctx);
+    ctx.fillStyle = rb;
+    ctx.beginPath(); ctx.moveTo(-10, -16); ctx.lineTo(10, -16); ctx.lineTo(2, -3); ctx.lineTo(-2, -3); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-15, 28); ctx.lineTo(15, 28); ctx.lineTo(4, 10); ctx.lineTo(-4, 10); ctx.closePath(); ctx.fill();
+    ctx.fillRect(-1, -3, 2, 14);
+    plus(ctx, 32, -24, 12, '#ffe39a');
+  },
+  // ブレイク強化：ひびの入ったボスの角と星
+  breakUp(ctx) {
+    halo(ctx, 0, 0, 44, 'rgba(255,220,120,0.3)');
+    ctx.fillStyle = lin(ctx, -26, -26, 26, 26, [[0, '#5a3a8c'], [1, '#1a0d2a']]);
+    glow(ctx, '#c45cff', 8);
+    ctx.beginPath(); ctx.arc(0, 8, 24, 0, TAU); ctx.fill();
+    noGlow(ctx);
+    ctx.strokeStyle = '#ffe39a'; ctx.lineWidth = 2.6; glow(ctx, '#ffe39a', 8);
+    ctx.beginPath(); ctx.moveTo(-6, -16); ctx.lineTo(2, -2); ctx.lineTo(-6, 8); ctx.lineTo(4, 18); ctx.lineTo(0, 32); ctx.moveTo(2, -2); ctx.lineTo(16, 2); ctx.stroke();
+    noGlow(ctx);
+    for (let i = 0; i < 3; i++) { const a = -Math.PI / 2 + (i - 1) * 0.9; star(ctx, Math.cos(a) * 34, -18 + Math.sin(a) * 12, 4.2, '#ffe39a'); }
+  },
+  // リミットブレイク強化：★と上向きの光
+  lbUp(ctx) {
+    halo(ctx, 0, 0, 44, 'rgba(255,230,150,0.32)');
+    glow(ctx, '#ffe39a', 14);
+    ctx.fillStyle = lin(ctx, 0, -30, 0, 30, [[0, '#fff6cf'], [1, '#e0a020']]);
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i / 10) * TAU, r = i % 2 ? 12 : 28;
+      ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r - 4, Math.sin(a) * r + 4);
+    }
+    ctx.closePath(); ctx.fill();
+    noGlow(ctx);
+    gemlet(ctx, -4, 4, 6, '#ffffff', '#ffffff', '#c79a2a', 6);
+    plus(ctx, 28, -26, 13, '#ffffff');
+    plus(ctx, 34, 4, 8, '#ffe39a');
+  },
+});
+
 export const SHOP_ICON_IDS = Object.keys(ICON);
 
 export function drawShopIcon(ctx, id, size) {
