@@ -1,5 +1,5 @@
 // オフラインでも あそべるように キャッシュする
-const CACHE = 'jewel-survivor-v63';
+const CACHE = 'jewel-survivor-v64';
 const ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/game.js', './js/weapons.js', './js/data.js', './js/render.js', './js/fx.js',

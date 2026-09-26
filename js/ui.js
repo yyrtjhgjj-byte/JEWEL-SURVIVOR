@@ -229,6 +229,11 @@ export function showTitle() {
 function todayStr(d = new Date()) {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
+// ログインボーナス（7 日周期）：研磨の原石
+const LOGIN_REWARDS = [
+  { tier: 'shard', n: 2 }, { tier: 'rough', n: 1 }, { tier: 'shard', n: 3 }, { tier: 'rough', n: 2 },
+  { tier: 'large', n: 1 }, { tier: 'rough', n: 3 }, { tier: 'mystic', n: 1 },
+];
 function loginBonus() {
   const today = todayStr();
   const L = save.login;
@@ -238,22 +243,28 @@ function loginBonus() {
   L.streak = L.last === todayStr(y) ? L.streak + 1 : 1;
   L.last = today;
   const day = ((L.streak - 1) % 7) + 1;
-  const reward = day === 7 ? 1000 : 100 + day * 50;
-  save.coins += reward;
+  const reward = LOGIN_REWARDS[day - 1];
+  save.rough[reward.tier] = (save.rough[reward.tier] || 0) + reward.n;
   persist();
+  const R = ROUGH[reward.tier];
   const node = el(`
     <div class="screen dim" style="justify-content:center;gap:14px;text-align:center">
       <div class="rays"></div>
       <div class="big-title prism-text">DAILY BONUS</div>
       <div class="sub-title">連続ログイン <b>${L.streak}</b> 日目</div>
-      <div class="login-days">${Array.from({ length: 7 }, (_, i) => `<div class="lday ${i + 1 < day ? 'got' : ''} ${i + 1 === day ? 'today' : ''}"><span>DAY</span><b>${i + 1}</b><span>${i === 6 ? 1000 : 100 + (i + 1) * 50}</span></div>`).join('')}</div>
-      <div class="chest-coins">${coinIco}+${fmt(reward)}</div>
+      <div class="login-days">${LOGIN_REWARDS.map((r, i) => `<div class="lday ${i + 1 < day ? 'got' : ''} ${i + 1 === day ? 'today' : ''}"><span>DAY</span><b>${i + 1}</b><img src="${roughIcon(r.tier, ROUGH[r.tier].color, 48)}" alt=""><span>×${r.n}</span></div>`).join('')}</div>
+      <div class="login-reward"><img src="${roughIcon(reward.tier, R.color, 96)}" alt=""><span>${R.name} ×${reward.n}</span></div>
       <button class="btn big primary" id="lok">CLAIM</button>
     </div>`);
   screens().appendChild(node);
   guard(node, 700);
   setTimeout(() => audio.bigWin(), 300);
-  $('#lok', node).onclick = () => { audio.unlock(); audio.coin(); haptic(); node.remove(); refreshCoinPill(); };
+  $('#lok', node).onclick = () => {
+    audio.unlock(); audio.chestOpen(); haptic(); node.remove();
+    // タイトルの研磨のバッジ（未研磨の原石数）を更新
+    const at = $('#t-atelier');
+    if (at) { let bd = $('.badge', at); if (!bd) { bd = el('<b class="badge"></b>'); at.appendChild(bd); } bd.textContent = totalRough(); }
+  };
 }
 
 // ================================================================== キャラ選択
@@ -548,7 +559,11 @@ export function showGacha() {
     audio.drumroll(1.2);
     await wait(700);
     altar.style.setProperty('--cc', RANK_COLOR[best.rank]);
+    // UR は虹色に変わり続ける
+    let hue = 0;
+    const rainbow = best.rank === 'UR' ? setInterval(() => altar.style.setProperty('--cc', `hsl(${(hue += 24) % 360},100%,65%)`), 40) : 0;
     await wait(rankNum(best.rank) >= 3 ? 900 : 500);
+    clearInterval(rainbow);
     altar.classList.remove('charge');
     altar.classList.add('burst');
     const fl = el('<div class="flash"></div>');
