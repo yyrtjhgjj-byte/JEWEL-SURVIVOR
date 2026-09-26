@@ -784,7 +784,7 @@ export function hudShow(on) {
     Object.assign(H, {
       xp: $('#xpfill'), lv: $('#lvtext'), timer: $('#timer'), kills: $('#kills'), coins: $('#coins'),
       coinstat: $('#coinstat'), slots: $('#slots'), fever: $('#feverfill'), combo: $('#combo'), comboB: $('#combo b'),
-      boss: $('#bossbar'), bossFill: $('#bossbar .bfill'), bossName: $('#bossbar .bname'), hud: $('#hud'),
+      boss: $('#bossbar'), bossFill: $('#bossbar .bfill'), bossBreak: $('#bossbar .bbfill'), bossName: $('#bossbar .bname'), hud: $('#hud'),
     });
     lastSlots = ''; lastCoins = -1; lastKills = -1; lastCombo = 0; lastLv = -1;
     H.boss.classList.add('hidden');
@@ -823,7 +823,14 @@ export function hud(g) {
     }
   } else H.combo.classList.add('hidden');
   lastCombo = g.combo;
-  if (g.boss && g.boss.alive) H.bossFill.style.transform = `scaleX(${Math.max(0, g.boss.hp / g.boss.maxHp)})`;
+  if (g.boss && g.boss.alive) {
+    H.bossFill.style.transform = `scaleX(${Math.max(0, g.boss.hp / g.boss.maxHp)})`;
+    // ブレイクゲージ：ブレイク中は残り時間、それ以外はたまり具合。近くで戦っていると明るくなる
+    const b = g.boss;
+    H.bossBreak.style.transform = `scaleX(${b.breakT > 0 ? b.breakT / 4 : Math.min(1, b.breakG || 0)})`;
+    H.boss.classList.toggle('broken', b.breakT > 0);
+    H.boss.classList.toggle('near', !(b.breakT > 0) && (b.breakNear || 0) >= 1.5);
+  }
 }
 export function bossBar(e) {
   if (!e) { H.boss.classList.add('hidden'); return; }
