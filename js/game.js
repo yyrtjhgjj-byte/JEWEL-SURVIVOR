@@ -595,9 +595,10 @@ export class Game {
     const elite = !!o.elite;
     const mul = d.boss ? (o.mul || 1) * 1.15 * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp
       : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1); // 大群イベント・エリート・シーフは連動させない
+    // 敵の攻撃力（dmg）：雑魚・エリート 2 倍、ボス 1.5 倍（弾・レーザーもこれをもとにする）
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
-      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * this.stageDmg * (d.boss ? 1.5 : 2), // 敵の攻撃力：雑魚・エリート 2 倍、ボス 1.5 倍（弾・レーザーもこれをもとにする） xp: d.xp,
+      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * this.stageDmg * (d.boss ? 1.5 : 2), xp: d.xp,
       vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop, segment: !!d.segment,
       frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
       ai: d.ai || type, spr: d.sprite || type,
