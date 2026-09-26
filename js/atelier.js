@@ -46,7 +46,7 @@ export const MASTERY_BONUS = {
   peridot: { moveSpeed: 0.005 },
 };
 const STAT_LABEL = {
-  might: ['攻撃力', '%'], magnet: ['回収範囲', '%'], regen: ['HP自然回復', '/秒'], crit: ['クリティカル率', '%'],
+  might: ['攻撃力', '%'], magnet: ['回収範囲', '%'], regen: ['HP自然回復', '/秒'], crit: ['クリティカル率', '%'], critDmg: ['クリティカル威力', '%'],
   luck: ['幸運', '%'], greed: ['獲得コイン', '%'], maxHp: ['最大HP', ''], area: ['攻撃範囲', '%'],
   growth: ['経験値', '%'], speed: ['弾速', '%'], duration: ['持続', '%'], moveSpeed: ['移動速度', '%'],
   cooldown: ['クールダウン短縮', '%'], guard: ['被ダメージ軽減', '%'], coinDrop: ['コインのドロップ率', '%'],

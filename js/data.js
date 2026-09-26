@@ -422,7 +422,7 @@ export const MAX_CHARMS = 6;
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
-  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, revive: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
+  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
 };
 
 // ---------------------------------------------------------------------
@@ -456,10 +456,10 @@ export const ENEMIES = {
   ghost: { name: 'レイス', hp: 140, speed: 60, dmg: 8, r: 15, xp: 2, color: '#8a7fb0', desc: '揺らめきながら接近する亡霊。' },
   toge: { name: 'ソーンコア', hp: 300, speed: 62, dmg: 10, r: 16, xp: 3, color: '#5a3a5e', desc: '棘に覆われた核。硬く、接触ダメージが高い。' },
   golem: { name: 'ロックゴーレム', hp: 800, speed: 36, dmg: 14, r: 24, xp: 6, color: '#6e5f58', desc: '鈍重だが非常にタフな岩塊。' },
-  knight: { name: 'オブシディアンナイト', hp: 1200, speed: 55, dmg: 16, r: 20, xp: 8, color: '#3c3456', desc: '黒曜の鎧を纏うダスクの精鋭。' },
+  knight: { name: 'ダスクナイト', hp: 1200, speed: 55, dmg: 16, r: 20, xp: 8, color: '#3c3456', desc: '闇の鎧を纏うダスクの精鋭。' },
   boss1: { name: 'ダスク・キング', hp: 18000, speed: 50, dmg: 20, r: 48, xp: 200, boss: true, color: '#5b3f8a', desc: '粘体の王。2:00に出現。全方位弾と眷属召喚。' },
   boss2: { name: 'ヴォイド・ドラゴン', hp: 37000, speed: 62, dmg: 26, r: 52, xp: 500, boss: true, color: '#2e1f4f', desc: '夜空を塗り潰す竜。4:00に出現。螺旋弾と突進。' },
-  boss3: { name: 'オブシディアン・クイーン', hp: 245000, speed: 55, dmg: 32, r: 58, xp: 2000, boss: true, color: '#1a0d2a', desc: 'ダスクの女王。黒曜石の力で世界の輝きを奪う。7:00に出現。' },
+  boss3: { name: 'エクリプス・クイーン', hp: 245000, speed: 55, dmg: 32, r: 58, xp: 2000, boss: true, color: '#1a0d2a', desc: 'ダスクの女王。日を喰らう闇で世界の輝きを奪う。7:00に出現。' },
   // ---- 新種
   spitter: { name: 'クリスタル・スピッター', hp: 160, speed: 42, dmg: 7, r: 14, xp: 2, ai: 'spitter', desc: '距離を取って結晶弾を撃ってくる。近づいて倒せ。' },
   splitter: { name: 'スプリット・ジェル', hp: 240, speed: 46, dmg: 9, r: 17, xp: 2, ai: 'splitter', desc: '倒すと2体の小さな粘体に分裂する。' },
@@ -505,6 +505,7 @@ export const SHOP = [
   { id: 'growth', name: '成長', gem: 'prase', max: 5, base: 250, per: { growth: 0.04 }, t: '経験値 +4%' },
   { id: 'greed', name: '強欲', gem: 'titanite', max: 5, base: 150, per: { greed: 0.1 }, t: '獲得コイン +10%' },
   { id: 'crit', name: 'クリティカル', gem: 'diamond', max: 5, base: 250, per: { crit: 0.02 }, t: 'クリティカル率 +2%' },
+  { id: 'critDmg', name: 'クリティカル威力', gem: 'ruby', max: 5, base: 250, per: { critDmg: 0.1 }, t: 'クリティカル威力 +10%' },
   { id: 'reroll', name: 'リロール', gem: 'labradorite', max: 5, base: 200, per: { reroll: 1 }, t: 'リロール回数 +1' },
   { id: 'skip', name: 'スキップ', gem: 'peridot', max: 3, base: 150, per: { skip: 1 }, t: 'スキップ回数 +1' },
   { id: 'banish', name: 'バニッシュ', gem: 'obsidian', max: 3, base: 250, per: { banish: 1 }, t: 'バニッシュ回数 +1' },

@@ -16,7 +16,7 @@ for (const a of process.argv.slice(4)) {
 }
 
 // 工房の強化（none：なし、half：各強化の半分、max：すべて最大）。研磨・覚醒・ランクは含めない
-const SHOP_MAX = { might: 5, maxHp: 5, armor: 3, regen: 5, cooldown: 3, area: 3, speed: 3, duration: 3, moveSpeed: 3, magnet: 3, luck: 3, growth: 5, greed: 5, crit: 5, reroll: 5, skip: 3, banish: 3, revive: 1, amount: 1 };
+const SHOP_MAX = { might: 5, maxHp: 5, armor: 3, regen: 5, cooldown: 3, area: 3, speed: 3, duration: 3, moveSpeed: 3, magnet: 3, luck: 3, growth: 5, greed: 5, crit: 5, critDmg: 5, reroll: 5, skip: 3, banish: 3, revive: 1, amount: 1 };
 function shop(meta) {
   if (meta === 'none') return {};
   const o = {};

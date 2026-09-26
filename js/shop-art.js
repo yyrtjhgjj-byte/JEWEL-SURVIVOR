@@ -429,6 +429,42 @@ const ICON = {
     gemlet(ctx, 0, 0, 9, '#e6f4ff', '#ffffff', '#8aa6c8', 8);
   },
 
+  // ---------------------------------------------------------- クリティカルダメージ：衝撃の閃光で砕けるルビー
+  critDmg(ctx) {
+    halo(ctx, 0, 0, 44, 'rgba(255,60,90,0.32)');
+    // 衝撃の閃光（ぎざぎざの放射）
+    ctx.save();
+    glow(ctx, '#ff3d5e', 14);
+    ctx.fillStyle = lin(ctx, 0, -40, 0, 40, [[0, '#ffb3c0'], [0.5, '#ff3d5e'], [1, '#8c0022']]);
+    ctx.beginPath();
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * TAU - Math.PI / 2, r = i % 2 ? 16 : [40, 30, 36, 26, 38][(i / 2) % 5];
+      ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.globalAlpha = 0.85; ctx.fill();
+    ctx.restore();
+    // 左右に割れたルビー
+    const half = (dx, dy, rot, side) => {
+      ctx.save();
+      ctx.translate(dx, dy); ctx.rotate(rot);
+      glow(ctx, '#ff2d55', 8);
+      ctx.fillStyle = lin(ctx, -14, -14, 14, 14, [[0, '#ffb3c4'], [0.5, '#ff2d55'], [1, '#8c0022']]);
+      ctx.beginPath();
+      if (side < 0) { ctx.moveTo(0, -16); ctx.lineTo(-14, -6); ctx.lineTo(-10, 12); ctx.lineTo(0, 16); ctx.lineTo(3, 4); ctx.lineTo(-2, -4); }
+      else { ctx.moveTo(0, -16); ctx.lineTo(14, -6); ctx.lineTo(10, 12); ctx.lineTo(0, 16); ctx.lineTo(3, 4); ctx.lineTo(-2, -4); }
+      ctx.closePath(); ctx.fill();
+      noGlow(ctx);
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.beginPath(); ctx.moveTo(side * 3, -12); ctx.lineTo(side * 9, -6); ctx.lineTo(side * 4, -4); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    };
+    half(-5, 1, -0.18, -1);
+    half(5, -1, 0.18, 1);
+    // 飛び散る破片
+    for (const [x, y, r] of [[-28, -18, 3.2], [26, -22, 2.6], [-24, 22, 2.4], [30, 16, 3], [4, -32, 2.2]]) gemlet(ctx, x, y, r, '#ff2d55', '#ffd0da', '#8c0022', 4);
+    star(ctx, -16, -30, 3); star(ctx, 20, 30, 2.4, '#ffd0da');
+  },
+
   // ---------------------------------------------------------- リロール：回る二本の矢印とラブラドライト
   reroll(ctx) {
     halo(ctx, 0, 0, 40, 'rgba(90,150,255,0.28)');

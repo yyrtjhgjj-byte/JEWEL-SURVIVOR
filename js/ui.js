@@ -7,7 +7,7 @@ import {
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite, shopIcon, pickaxeIcon } from './render.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
-import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
+import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState } from './rank.js';
@@ -324,6 +324,7 @@ export function showStageSelect() {
   const node = el(`
     <div class="screen">
       ${topbar('STAGE', 'ステージ選択')}
+      <div class="tabs" id="chtabs" style="align-self:stretch"></div>
       <div class="stage-list" id="list"></div>
       <div class="panel" id="opts"></div>
       <div class="center-col" style="margin-top:12px">
@@ -333,6 +334,7 @@ export function showStageSelect() {
   show(node);
   $('#back', node).onclick = () => { audio.tap(); showCharSelect(); };
   const list = $('#list', node);
+  let ch = STAGE_BY_ID[sel].chapter; // 表示している章
   const renderOpts = () => {
     const rec = stageRec(sel);
     const maxHeat = rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0;
@@ -363,8 +365,10 @@ export function showStageSelect() {
     }
   };
   const render = () => {
+    $('#chtabs', node).innerHTML = CHAPTERS.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${c.name}</button>`).join('');
+    $('#chtabs', node).querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); ch = +b.dataset.c; render(); }));
     list.innerHTML = '';
-    for (const st of STAGES) {
+    for (const st of STAGES.filter((x) => x.chapter === ch)) {
       const open = stageUnlocked(st);
       const rec = stageRec(st.id);
       const card = el(`<button class="stage-card ${open ? '' : 'locked'} ${st.id === sel ? 'sel' : ''}" style="--sc:${st.pal.accent};--sg:${st.pal.glow}">
@@ -625,7 +629,7 @@ function showExchange(onClose) {
 }
 
 // ================================================================== 図鑑
-export function showZukan(tab = 'gems') {
+export function showZukan(tab = 'gems', ch = 1) {
   const node = el(`
     <div class="screen">
       ${topbar(tab === 'trophy' ? 'RECORDS' : 'ARCHIVE', tab === 'trophy' ? '実績' : '図鑑', '<div style="width:44px"></div>')}
@@ -672,9 +676,13 @@ export function showZukan(tab = 'gems') {
         </div></div>`));
     }
   } else if (tab === 'enemies') {
+    // 章ごとのタブ
+    const sub = el(`<div class="tabs">${CHAPTERS.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${c.name}</button>`).join('')}</div>`);
+    sub.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showZukan('enemies', +b.dataset.c); }));
+    zl.appendChild(sub);
     for (const id of Object.keys(ENEMIES)) {
       const e = ENEMIES[id];
-      if (e.prop || e.segment) continue;
+      if (e.prop || e.segment || enemyChapter(id) !== ch) continue;
       const seen = save.seen.enemies[id];
       const spr = enemySprite(e.sprite || id, Math.min(e.r, 40), 0, false, e.tint);
       zl.appendChild(el(`<div class="zitem ${seen ? '' : 'unk'}">
