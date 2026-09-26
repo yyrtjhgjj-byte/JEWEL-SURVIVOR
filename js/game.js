@@ -1354,9 +1354,8 @@ export class Game {
         break;
       }
       case 'heart':
-        this.player.hp = Math.min(p.maxHp, p.hp + 30);
+        this.heal(30, true); // 回復量は heal() が緑の数字で表示する（聖杯の 2 倍も効く）
         audio.heal();
-        this.fx.text(p.x, p.y - 26, '+30 HP', { size: 17, color: '#ff7ab8', life: 0.8 });
         this.fx.burst(p.x, p.y, '#ff7ab8', 12, 150, 0.6, 12);
         break;
       case 'magnet':

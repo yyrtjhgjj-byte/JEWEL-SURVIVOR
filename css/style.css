@@ -35,7 +35,10 @@ html, body {
 button { font-family: inherit; cursor: pointer; color: inherit; }
 .hidden { display: none !important; }
 
-#app { position: fixed; inset: 0; overflow: hidden; }
+#app { position: fixed; inset: 0; overflow: hidden; text-wrap: pretty; line-break: strict; }
+/* 折り返し：最後の行に 1〜2 文字だけ残らないようにする。名前は「・」の位置で分ける（ui.js の addWbr） */
+.evo-name, .card .cname, .zitem .zname, .sub-title, .banner, .toast .tt { text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; }
+.card .cdesc, .zitem .ztext, .zitem .zevo, #screens small { text-wrap: balance; }
 #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* ------------------------------------------------------------------ 文字 */
@@ -60,14 +63,14 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text);
-  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)), var(--panel);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   transition: transform 0.08s, background 0.15s, box-shadow 0.15s;
   overflow: hidden;
 }
 .btn .sub { display: block; font-family: var(--font-jp); font-size: 11px; font-weight: 500; letter-spacing: 0.1em; color: var(--muted); margin-top: 2px; }
-.btn:active { transform: scale(0.97); background: rgba(255,255,255,0.12); }
-.btn:disabled { opacity: 0.35; }
+.btn:active { transform: scale(0.97); background: linear-gradient(rgba(255,255,255,0.12), rgba(255,255,255,0.12)), var(--panel); }
+.btn:disabled { filter: brightness(0.45) saturate(0.4); } /* opacity だと背景まで透けるので明るさで暗くする */
 .btn.primary {
   border: 1px solid transparent;
   background: linear-gradient(180deg, #15131f, #0c0b14) padding-box, var(--prism-soft) border-box;
@@ -396,15 +399,15 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .banner.elite, .banner.swarm { color: #ffd98a; text-shadow: 0 0 18px rgba(255,150,40,0.9); font-size: min(6vw, 24px); }
 
 /* ------------------------------------------------------------------ トースト */
-#toasts { position: absolute; top: calc(var(--safe-t) + 120px); left: 0; right: 0; z-index: 40; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#toasts { position: absolute; top: calc(var(--safe-t) + 138px); left: 0; right: 0; z-index: 40; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .toast {
   background: rgba(14,13,22,0.92); border: 1px solid rgba(255,197,61,0.45); border-radius: 10px;
-  padding: 8px 14px; font-family: var(--font-jp); font-weight: 700; font-size: 13px; color: #ffe39a;
-  box-shadow: 0 0 20px rgba(255,197,61,0.25);
-  animation: toastIn 3.2s cubic-bezier(.2,1.2,.4,1) forwards; max-width: 90%;
+  padding: 3px 10px; font-family: var(--font-jp); font-weight: 700; font-size: 11px; line-height: 1.3; color: #ffe39a;
+  box-shadow: 0 0 12px rgba(255,197,61,0.2);
+  animation: toastIn 3.2s cubic-bezier(.2,1.2,.4,1) forwards; max-width: 72%; text-align: center;
 }
-.toast .label { color: var(--gold); display: block; font-size: 9px; font-family: var(--font); }
-.toast small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+.toast .label { color: var(--gold); font-size: 8px; letter-spacing: 0.1em; font-family: var(--font); margin-right: 6px; }
+.toast small { display: block; font-size: 9.5px; font-weight: 500; color: var(--muted); }
 @keyframes toastIn { 0% { transform: translateY(-60px); opacity: 0; } 10% { transform: none; opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
 
 /* ------------------------------------------------------------------ リザルト */
@@ -474,7 +477,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .odds { font-family: var(--font-jp); font-size: 11px; color: var(--muted); text-align: center; line-height: 1.7; }
 
 /* ------------------------------------------------------------------ 図鑑 */
-.tabs { display: flex; gap: 4px; margin-bottom: 12px; background: rgba(255,255,255,0.04); padding: 4px; border-radius: 10px; border: 1px solid var(--line); }
+.tabs { display: flex; gap: 4px; margin-bottom: 12px; background: linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), var(--panel); padding: 4px; border-radius: 10px; border: 1px solid var(--line); }
 .tab { border: none; border-radius: 7px; padding: 7px 12px; font-family: var(--font-jp); font-weight: 700; font-size: 13px; background: transparent; color: var(--muted); white-space: nowrap; }
 .tab.on { background: rgba(255,255,255,0.1); color: #fff; }
 .zlist { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px; }
@@ -525,11 +528,11 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .stage-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px; margin-bottom: 12px; }
 .stage-card {
   position: relative; text-align: left; border-radius: 14px; padding: 12px 14px; color: var(--text);
-  border: 1px solid var(--line); background: linear-gradient(110deg, var(--sg), rgba(14,13,22,0.92) 55%);
+  border: 1px solid var(--line); background: linear-gradient(110deg, var(--sg), rgba(14,13,22,0.92) 55%), var(--panel);
   box-shadow: inset 3px 0 0 var(--sc); transition: border-color 0.15s, box-shadow 0.15s;
 }
 .stage-card.sel { border-color: var(--sc); box-shadow: inset 3px 0 0 var(--sc), 0 0 22px color-mix(in srgb, var(--sc) 45%, transparent); }
-.stage-card.locked { opacity: 0.45; }
+.stage-card.locked { filter: brightness(0.5) saturate(0.5); }
 .st-head { display: flex; justify-content: space-between; align-items: center; }
 .st-no { font-size: 11px; letter-spacing: 0.3em; color: var(--sc); font-weight: 700; }
 .st-clear { font-size: 10px; letter-spacing: 0.15em; font-weight: 700; color: #111; background: var(--gold); border-radius: 4px; padding: 0 6px; }
@@ -569,12 +572,12 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .btn .badge { position: absolute; top: 6px; right: 8px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--gold); color: #111; font-size: 12px; font-weight: 700; line-height: 20px; box-shadow: 0 0 10px rgba(255,200,60,0.6); }
 .rough-list { display: flex; flex-direction: column; gap: 8px; }
 .rough-item { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; }
-.rough-item.none { opacity: 0.55; }
+.rough-item.none { filter: brightness(0.6) saturate(0.5); }
 .rough-item img { width: 46px; height: 46px; flex: none; }
 .rough-item .rbody { flex: 1; min-width: 0; }
 .rough-item .rname { font-family: var(--font-jp); font-weight: 700; font-size: 15px; }
 .rough-item .rname small { font-family: var(--font); color: var(--gold); margin-left: 8px; font-size: 14px; }
-.rough-item .rdesc { font-family: var(--font-jp); font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.rough-item .rdesc { font-family: var(--font-jp); font-size: min(11px, 2.8vw); color: var(--muted); display: flex; align-items: center; gap: 3px; white-space: nowrap; }
 .rough-item .rbtns2 { display: flex; flex-direction: column; gap: 5px; }
 .rough-item .rbtns2 .btn { width: 92px; white-space: nowrap; padding-left: 0; padding-right: 0; }
 .at-note { font-family: var(--font-jp); font-size: 11.5px; color: var(--muted); line-height: 1.7; margin: 14px 4px 24px; }
