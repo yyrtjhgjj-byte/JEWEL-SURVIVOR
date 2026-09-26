@@ -382,7 +382,8 @@ export const LOGIC = {
       const p = g.player;
       const R = 62 * s.area * (evo ? 1.5 : 1);
       w.R = R;
-      g.heal((evo ? 1.0 : 0.15 + w.level * 0.02) * dt, true);
+      // 毎秒の回復量：Lv1 0.75 〜 Lv8 1.8、進化後 3.0
+      g.heal((evo ? 3.0 : 0.6 + w.level * 0.15) * dt, true);
       w.t -= dt;
       if (w.t > 0) {
         if (evo) {

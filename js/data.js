@@ -224,7 +224,7 @@ export const WEAPONS = {
   angelite: {
     gem: 'angelite', name: 'セラフ・オーラ',
     dmgMul: 1.0, // バランス調整（Lv帯）
-    desc: '周囲に光のオーラを展開。接近した敵にダメージ、自身はHP回復',
+    desc: '周囲に光のオーラを展開。接近した敵にダメージ、自身はHPを回復し続ける',
     base: { dmg: 25, cd: 0.5, area: 1, knock: 0.4 },
     levels: [
       { area: 0.15, t: '範囲アップ' },
@@ -235,7 +235,7 @@ export const WEAPONS = {
       { area: 0.15, t: '範囲アップ' },
       { dmg: 15, cd: -0.05, t: 'ダメージ +15 / ヒット間隔短縮' },
     ],
-    evo: { mul: 1.0, with: 'redberyl', name: 'サンクチュアリ', desc: '聖域化。敵を減速させ、弱った敵を即座に浄化する' },
+    evo: { mul: 1.0, with: 'redberyl', name: 'サンクチュアリ', desc: '聖域化。敵を減速させ、弱った敵を即座に浄化する。回復量アップ' },
   },
   diamond: {
     gem: 'diamond', name: 'ブリリアント・カット',
