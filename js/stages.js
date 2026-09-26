@@ -132,7 +132,7 @@ export const STAGES = [
   },
   {
     id: 'void', no: 5, name: '虚空聖堂', en: 'VOID SANCTUM', time: 720,
-    desc: 'ダスクの本拠地。光は届かず、見えるのは自分の周囲だけ。歴代の強敵が待ち受ける12分間。',
+    desc: 'ダスクの本拠地。光は届かず、見えるのは自分の周囲だけ。歴代の強敵が待ち受ける。',
     hazard: 'darkness', hazardText: '暗闇（視界縮小）・虚空の裂け目',
     hp: 1.9, dmg: 1.35, reward: 5000, bgm: 'void',
     pal: { bg: '#040308', grid: '200,90,255', mark: '230,140,255', dust: '220,170,255', glow: 'rgba(150,40,220,0.3)', accent: '#e05cff' },
@@ -145,12 +145,28 @@ export const STAGES = [
     finalBoss: 'emperor',
   },
 ];
+
 // 12分ステージの 540秒前後はボス戦なので軽めに
 {
   const v = STAGES[4].waves;
   const i = v.findIndex((w) => w[0] === 510);
   v.splice(i + 1, 0, [540, ['phantom', 'bat'], 120, 5], [555, v[i][1], 250, 14]);
   v.sort((a, b) => a[0] - b[0]);
+}
+
+// 1 戦の長さの調整：もとは 10 分（虚空聖堂は 12 分）で作った予定表を、まとめて 0.7 倍に縮める（10 分 → 7 分、12 分 → 8 分 24 秒）。
+// 敵の硬さなどの曲線も game.js で同じ倍率で縮める（progress）。ボスの前の予告（warning）は、ボスの 8 秒前のまま
+export const TIME_SCALE = 0.7;
+for (const st of STAGES) {
+  st.time = Math.round(st.time * TIME_SCALE);
+  st.waves = st.waves.map(([t, ...rest]) => [Math.round(t * TIME_SCALE), ...rest]);
+  st.events = st.events.map((e) => ({ ...e, t: Math.round(e.t * TIME_SCALE) }));
+  for (const e of st.events) {
+    if (e.type !== 'warning') continue;
+    const boss = st.events.find((b) => b.type === 'boss' && b.t >= e.t);
+    if (boss) e.t = boss.t - 8;
+  }
+  st.events.sort((a, b) => a.t - b.t);
 }
 
 export const STAGE_BY_ID = Object.fromEntries(STAGES.map((s) => [s.id, s]));

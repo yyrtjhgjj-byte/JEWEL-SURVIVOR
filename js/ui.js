@@ -370,7 +370,7 @@ export function showStageSelect() {
         <div class="st-head"><span class="st-no">STAGE ${st.no}</span>${rec.cleared ? `<span class="st-clear">CLEAR${rec.heat ? ` ・ HEAT ${rec.heat}` : ''}</span>` : ''}</div>
         <div class="st-name">${open ? st.name : '？？？'}<span class="en">${st.en}</span></div>
         <div class="st-desc">${open ? st.desc : `🔒 ${STAGES[st.no - 2].name} をクリアで解放`}</div>
-        ${open ? `<div class="st-meta"><span>${st.hazardText}</span><span>${Math.round(st.time / 60)}分</span>${rec.best ? `<span>最長 ${fmtTime(rec.best)}</span>` : ''}</div>` : ''}
+        ${open ? `<div class="st-meta"><span>${st.hazardText}</span><span>${fmtTime(st.time)}</span>${rec.best ? `<span>最長 ${fmtTime(rec.best)}</span>` : ''}</div>` : ''}
       </button>`);
       if (open) card.onclick = () => { sel = st.id; audio.cardFlip(st.no); render(); renderOpts(); };
       list.appendChild(card);
