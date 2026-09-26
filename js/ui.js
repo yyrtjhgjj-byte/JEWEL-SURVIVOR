@@ -604,7 +604,7 @@ export function showZukan(tab = 'gems') {
         <div><div class="zname">${g.jp}<span class="en">${g.en}</span></div>${wordTag(w.gem)}
           <div class="ztext"><b>${seen ? w.name : '???'}</b> — ${seen ? w.desc : '未発見'}</div>
           <div class="ztext">${seen ? g.lore : ''}</div>
-          <div class="zevo">EVOLUTION：${evoSeen ? w.evo.name : '???'}（Lv${WEAPON_MAX} ＋ ${GEMS[w.evo.with].jp}）</div>
+          <div class="zevo">EVOLUTION：${evoSeen ? w.evo.name : '???'}<span class="nw">（Lv${WEAPON_MAX} ＋ ${GEMS[w.evo.with].jp}）</span></div>
         </div></div>`));
     }
   } else if (tab === 'charms') {

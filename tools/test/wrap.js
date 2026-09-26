@@ -24,6 +24,7 @@ function findOrphans(label) {
     if (!n.data.trim()) continue;
     const b = blockOf(n);
     if (!b || !b.offsetParent || b.closest('#hud')) continue;
+    if (b.closest('.ztext, .zevo, .lore')) continue; // 図鑑・ジュエル選択の長い説明文は、ふつうの折り返しでよい（ユーザーの判断）
     if (!groups.has(b)) groups.set(b, []);
     groups.get(b).push(n);
   }
