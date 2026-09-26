@@ -1107,7 +1107,7 @@ export class Game {
     const ev = elementVs(this, e);
     dmg *= ev.mul;
     const crit = o.forceCrit || (!o.dot && chance(this.stats.crit + ev.crit));
-    if (crit) dmg *= 2.5;
+    if (crit) dmg *= 2.5 * (1 + (this.stats.critDmg || 0)); // クリティカルは 2.5 倍（critDmg で上乗せ）
     dmg *= rand(0.92, 1.08);
     dmg = Math.max(1, Math.round(dmg));
     const dealt = Math.min(dmg, e.hp);

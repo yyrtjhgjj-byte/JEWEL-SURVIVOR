@@ -78,7 +78,7 @@ function makeEvents(o) {
 
 export const STAGES = [
   {
-    id: 'wastes', no: 1, name: '黒曜の荒野', en: 'OBSIDIAN WASTES', time: 600,
+    id: 'wastes', no: 1, chapter: 1, name: '黒曜の荒野', en: 'OBSIDIAN WASTES', time: 600,
     desc: 'ダスクの侵攻が始まった最前線。すべてはここから。',
     hazard: null, hazardText: 'ギミックなし',
     hp: 1.0, dmg: 1.0, reward: 1000, bgm: 'stage',
@@ -89,7 +89,7 @@ export const STAGES = [
     finalBoss: 'boss3',
   },
   {
-    id: 'cavern', no: 2, name: '水晶洞窟', en: 'CRYSTAL CAVERN', time: 600,
+    id: 'cavern', no: 2, chapter: 1, name: '水晶洞窟', en: 'CRYSTAL CAVERN', time: 600,
     desc: '巨大な水晶柱が乱立する地下洞窟。柱は通り抜けられない。狙撃してくる敵に注意。',
     hazard: 'pillars', hazardText: '水晶柱（通行不可）',
     hp: 1.0, dmg: 1.1, reward: 1500, bgm: 'cavern', unlockChar: 'tourmaline',
@@ -103,7 +103,7 @@ export const STAGES = [
     finalBoss: 'prism',
   },
   {
-    id: 'magma', no: 3, name: '灼熱鉱脈', en: 'MAGMA VEIN', time: 600,
+    id: 'magma', no: 3, chapter: 1, name: '灼熱鉱脈', en: 'MAGMA VEIN', time: 600,
     desc: '溶岩が噴き出す鉱脈の底。溶岩だまりは踏むとダメージ、足元が光ったら噴火の合図。',
     hazard: 'lava', hazardText: '溶岩だまり・噴火',
     hp: 1.2, dmg: 1.2, reward: 2000, bgm: 'magma', unlockChar: 'alexandrite',
@@ -117,7 +117,7 @@ export const STAGES = [
     finalBoss: 'worm',
   },
   {
-    id: 'tundra', no: 4, name: '凍晶氷原', en: 'FROST EXPANSE', time: 600,
+    id: 'tundra', no: 4, chapter: 1, name: '凍晶氷原', en: 'FROST EXPANSE', time: 600,
     desc: '凍てついた白銀の平原。定期的に吹雪が吹き荒れ、視界と足が奪われる。',
     hazard: 'blizzard', hazardText: '吹雪（減速・視界不良）',
     hp: 1.0, dmg: 1.3, reward: 2500, bgm: 'tundra', unlockChar: 'moonstone',
@@ -131,7 +131,7 @@ export const STAGES = [
     finalBoss: 'lich',
   },
   {
-    id: 'void', no: 5, name: '虚空聖堂', en: 'VOID SANCTUM', time: 720,
+    id: 'void', no: 5, chapter: 1, name: '虚空聖堂', en: 'VOID SANCTUM', time: 720,
     desc: 'ダスクの本拠地。光は届かず、見えるのは自分の周囲だけ。歴代の強敵が待ち受ける。',
     hazard: 'darkness', hazardText: '暗闇（視界縮小）・虚空の裂け目',
     hp: 1.0, dmg: 1.35, reward: 5000, bgm: 'void',
@@ -171,6 +171,16 @@ for (const st of STAGES) {
 }
 
 export const STAGE_BY_ID = Object.fromEntries(STAGES.map((s) => [s.id, s]));
+
+// 章（ステージ選択と敵図鑑のタブ）。ステージの chapter で分ける
+export const CHAPTERS = [...new Set(STAGES.map((s) => s.chapter))].map((no) => ({ no, name: `第${no}章`, en: `CHAPTER ${no}` }));
+// 敵が最初に登場する章（ステージの出現表・イベントから。ボスの眷属など、どこにも書いていない敵は第1章）
+export function enemyChapter(id) {
+  for (const st of STAGES) {
+    if (st.waves.some((w) => w[1].includes(id)) || st.events.some((e) => e.enemy === id) || st.finalBoss === id) return st.chapter;
+  }
+  return 1;
+}
 
 // ヒート（難易度上昇）。レベルごとの補正
 export const HEAT_MAX = 5;
