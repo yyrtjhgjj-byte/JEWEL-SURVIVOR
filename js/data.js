@@ -422,7 +422,7 @@ export const MAX_CHARMS = 6;
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
-  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
+  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, startLv: 0, choice: 0, art2: 0, chestPlus: 0, bossChest: 0, heatCoin: 0, roughUp: 0, feverUp: 0, breakUp: 0, lbUp: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
 };
 
 // ---------------------------------------------------------------------
@@ -515,12 +515,20 @@ export const SHOP = [
 export function shopCost(item, lv) {
   return Math.round(item.base * [1, 2.2, 3.8, 6, 9, 13][lv] / 10) * 20;
 }
-// 裏工房：工房をすべて最大にすると解放されるやり込み用の強化。内容と回数は工房と同じで、効果は半分・費用は工房の 6 倍。
-// 回数を増やす強化（リロールなど）や、リバイブ・弾数のように半分にできないものは、効果はそのままで費用 12 倍
-const BACK_FULL = ['reroll', 'skip', 'banish', 'revive', 'amount'];
-export function backShopRate(item) {
-  return BACK_FULL.includes(item.id) ? { eff: 1, cost: 12 } : { eff: 0.5, cost: 6 };
-}
+// 裏工房：工房をすべて最大にすると解放されるやり込み用の強化。工房にはない、ランの遊び方を変える強化だけを置く。
+// cost はレベルごとの値段（Lv0→1, 1→2, …）。効果は per の値 × レベル（BASE_STATS に初期値 0）
+export const BACK_SHOP = [
+  { id: 'startLv', name: '初期強化', max: 3, cost: [40000, 80000, 120000], per: { startLv: 1 }, t: '開始時のレベルアップ +1' },
+  { id: 'choice', name: '選択肢', max: 1, cost: [150000], per: { choice: 1 }, t: 'レベルアップの選択肢が 1 つ増える' },
+  { id: 'art2', name: '秘宝の持ち込み', max: 1, cost: [120000], per: { art2: 1 }, t: '秘宝を 2 つ持ち込める（1 ランで持てる数も +1）' },
+  { id: 'chestPlus', name: '宝箱の中身', max: 2, cost: [30000, 60000], per: { chestPlus: 1 }, t: '宝箱から出る強化 +1' },
+  { id: 'bossChest', name: 'ボスの宝箱', max: 1, cost: [50000], per: { bossChest: 1 }, t: 'ボスの宝箱から必ず 5 つ出る' },
+  { id: 'heatCoin', name: 'ヒートの報酬', max: 5, cost: [8000, 12000, 16000, 20000, 24000], per: { heatCoin: 0.06 }, t: 'ヒートごとの獲得コイン +6%' },
+  { id: 'roughUp', name: '原石の目利き', max: 5, cost: [6000, 9000, 12000, 15000, 18000], per: { roughUp: 0.2 }, t: '原石の出やすさ +20%' },
+  { id: 'feverUp', name: 'フィーバー延長', max: 5, cost: [5000, 8000, 11000, 14000, 17000], per: { feverUp: 1 }, t: 'フィーバーの時間 +1秒' },
+  { id: 'breakUp', name: 'ブレイク強化', max: 5, cost: [5000, 8000, 11000, 14000, 17000], per: { breakUp: 0.1 }, t: 'ブレイクゲージのたまりやすさ +10%' },
+  { id: 'lbUp', name: 'リミットブレイク強化', max: 2, cost: [25000, 50000], per: { lbUp: 0.5 }, t: 'リミットブレイクの強化量 +50%' },
+];
 
 // ---------------------------------------------------------------------
 //  実績

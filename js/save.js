@@ -19,6 +19,7 @@ function defaults() {
     hyper: false, // ハイパーモード（ステージ選択の切り替え）
     hurry: false, // ハリーモード
     artSel: null, // 持ち込む秘宝
+    artSel2: null, // 2 つ目の持ち込む秘宝（裏工房「秘宝の持ち込み」）
     upgradesOff: {}, // 工房：最大まで上げた強化のうち、無効にしているもの
     upgrades2: {}, // 裏工房の強化レベル
     upgrades2Off: {}, // 裏工房：最大まで上げた強化のうち、無効にしているもの

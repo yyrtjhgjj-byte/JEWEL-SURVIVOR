@@ -87,7 +87,7 @@ async function runOne(browser, spec) {
       return { t: g.time, state: g.state, cleared: g.cleared, done: g.state === 'dying' || g.state === 'over' || g.cleared || g.time > end + 60 };
     });
     if (st.done) {
-      res = await page.evaluate(() => { const g = window.__game, S = window.__sim; return { time: Math.round(g.time), cleared: g.cleared, dead: S.dead, level: g.level, kills: g.kills, tl: S.tl, bk: S.kills, trash: S.trash, weapons: g.weapons.map((w) => w.id + (w.evolved ? 'E' : w.level)).join(','), passives: g.passives.map((p) => p.id + p.level).join(',') }; });
+      res = await page.evaluate(() => { const g = window.__game, S = window.__sim; return { time: Math.round(g.time), coins: Math.round(g.coins), rough: { ...g.roughGot }, cleared: g.cleared, dead: S.dead, level: g.level, kills: g.kills, tl: S.tl, bk: S.kills, trash: S.trash, weapons: g.weapons.map((w) => w.id + (w.evolved ? 'E' : w.level)).join(','), passives: g.passives.map((p) => p.id + p.level).join(',') }; });
       break;
     }
     if (Date.now() - t0 > 900000) { res = { timeout: true, t: st.t }; break; }
