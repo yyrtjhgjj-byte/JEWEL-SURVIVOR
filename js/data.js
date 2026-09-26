@@ -111,6 +111,8 @@ export const GEMS = {
     lore: '旅人を守る勇気のトルコ石。受ける痛みを和らげる。' },
   peridot: { jp: 'ペリドット', en: 'PERIDOT', word: 'ポジティブ', kana: 'まえむき', color: '#9be22e', light: '#e4ffb2', dark: '#3f6a00', cut: 'oval',
     lore: '前向きな橄欖石。踏み出す足も、放つ光も軽くする。' },
+  citrine: { jp: 'シトリン', en: 'CITRINE', word: '商売繁盛', kana: 'しょうばいはんじょう', color: '#f2a41e', light: '#ffe6a0', dark: '#8a4a00', cut: 'emerald',
+    lore: '商売繁盛の黄水晶。倒した敵から、次々と富がこぼれ落ちる。' },
 
   // 敵ボスのジュエル
   obsidian: { jp: 'オブシディアン', en: 'OBSIDIAN', word: '闇', kana: 'やみ', color: '#3a2350', light: '#9b6fd0', dark: '#0d0414', cut: 'round' },
@@ -348,7 +350,7 @@ export const WEAPONS = {
       { bounce: 2, t: '跳弾 +2' },
       { dmg: 50, amount: 1, t: 'ダメージ +50 / 雷光 +1' },
     ],
-    evo: { mul: 0.67, with: 'nephrite', name: 'グランド・アドベンチャー', desc: '跳弾が大幅に増え、跳ねるたびに分岐する' },
+    evo: { mul: 0.67, with: 'citrine', name: 'グランド・アドベンチャー', desc: '跳弾が大幅に増え、跳ねるたびに分岐する' },
   },
   moonstone: {
     gem: 'moonstone', name: 'ルナ・ハロ',
@@ -396,6 +398,7 @@ export const PASSIVES = {
   titanite: { gem: 'titanite', name: 'チタナイト', max: 5, per: { greed: 0.2 }, t: '獲得コイン +20%' },
   redberyl: { gem: 'redberyl', name: 'レッドベリル', max: 5, per: { magnet: 0.3 }, t: '回収範囲 +30%' },
   turquoise: { gem: 'turquoise', name: 'ターコイズ', max: 5, per: { guard: 0.06 }, t: '被ダメージ -6%' },
+  citrine: { gem: 'citrine', name: 'シトリン', max: 5, per: { coinDrop: 0.02 }, t: 'コインのドロップ率 +2%' },
   peridot: { gem: 'peridot', name: 'ペリドット', max: 5, per: { moveSpeed: 0.08, speed: 0.08, duration: 0.08 }, t: '移動速度・弾速・持続 +8%' },
 };
 export const PASSIVE_IDS = Object.keys(PASSIVES);
@@ -406,7 +409,7 @@ export const MAX_CHARMS = 6;
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
-  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, crit: 0.05, revive: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
+  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, revive: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
 };
 
 // ---------------------------------------------------------------------
@@ -546,7 +549,7 @@ export const ACHIEVEMENTS = [
   { id: 'polish100', meta: true, name: '研磨職人', t: '原石を100個研磨する', coins: 1000, check: (r, s) => s.stats.polished >= 100 },
   { id: 'polishSS', meta: true, name: 'パーフェクト・カット', t: 'SS品質の宝石を研磨する', coins: 500, check: (r, s) => s.stats.polishSS >= 1 },
   { id: 'coll14', meta: true, name: 'コレクター', t: '宝石を14種類コレクションする', coins: 400, unlock: 'opal', check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 14 },
-  { id: 'coll28', meta: true, name: 'ジュエル・マスター', t: '宝石を全28種類コレクションする', coins: 3000, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 28 },
+  { id: 'coll28', meta: true, name: 'ジュエル・マスター', t: '宝石を全種類コレクションする', coins: 3000, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= Object.keys(GEMS).length - 1 }, // obsidian（敵）を除く全種
   { id: 'coll5', meta: true, name: 'ジュエル・ビギナー', t: '宝石を5種類コレクションする', coins: 150, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 5 },
   { id: 'awaken3', meta: true, name: '覚醒者', t: 'いずれかのジュエルを覚醒 ★3 にする', coins: 500, check: (r, s) => Object.values(s.awaken).some((v) => v >= 3) },
   { id: 'heal300', name: 'リジェネレーター', t: '1回のプレイで HP を合計300回復', coins: 300, check: (r) => r.healed >= 300 },

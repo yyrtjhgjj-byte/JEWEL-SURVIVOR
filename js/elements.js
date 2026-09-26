@@ -23,7 +23,7 @@ export const GEM_ELEMENT = {
   aquamarine: 'water', coral: 'water', iolite: 'water',
   sapphire: 'ice', kyanite: 'ice', milkyquartz: 'ice',
   emerald: 'grass', nephrite: 'grass', prase: 'grass', peridot: 'grass',
-  labradorite: 'thunder', tourmaline: 'thunder', amber: 'thunder',
+  labradorite: 'thunder', tourmaline: 'thunder', amber: 'thunder', citrine: 'thunder',
   opal: 'light', angelite: 'light', diamond: 'light', topaz: 'light', titanite: 'light',
   moonstone: 'dark', garnet: 'dark', alexandrite: 'dark',
   granite: 'earth', jasper: 'earth', turquoise: 'earth',
