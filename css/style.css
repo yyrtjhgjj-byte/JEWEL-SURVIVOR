@@ -176,6 +176,18 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .char-detail .sub .en { font-size: 11px; color: var(--muted); letter-spacing: 0.16em; }
 .char-detail .sub .rarbadge, .char-detail .sub > * { margin: 0; }
 .word-tag { display: inline-block; font-family: var(--font-jp); font-weight: 700; font-size: 12px; padding: 1px 10px; border-radius: 6px; border: 1px solid; margin: 4px 0 6px; letter-spacing: 0.1em; }
+/* 属性の札 */
+.etag { display: inline-block; font-family: var(--font-jp); font-weight: 700; font-size: 11px; line-height: 1; padding: 3px 5px; margin-left: 5px; border-radius: 4px; color: var(--ec); border: 1px solid color-mix(in srgb, var(--ec) 45%, transparent); background: color-mix(in srgb, var(--ec) 10%, transparent); vertical-align: middle; letter-spacing: 0; }
+.card .clv .etag { font-size: 10px; padding: 2px 4px; margin-left: 7px; vertical-align: 1px; }
+.elem-note { font-family: var(--font-jp); font-size: 12px; color: var(--muted); line-height: 1.7; margin: 0 2px 10px; }
+.elem-item .elem-big { width: 56px; height: 56px; flex: none; display: grid; place-items: center; font-family: var(--font-jp); font-weight: 900; font-size: 26px; color: var(--ec); border: 1.5px solid color-mix(in srgb, var(--ec) 55%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--ec) 8%, transparent); }
+.elem-item .elem-vs { color: var(--ec); }
+.elem-gems { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 4px; }
+.zitem .elem-gems img { width: 26px; height: 26px; margin: 0; flex: none; }
+.pause-elems { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 8px 0 2px; }
+.pause-elems span { font-family: var(--font); font-weight: 700; font-size: 13px; color: var(--ec); border: 1px solid color-mix(in srgb, var(--ec) 45%, transparent); border-radius: 6px; padding: 2px 7px; }
+.pause-elems b { font-family: var(--font-jp); margin-right: 4px; }
+.pause-elems i { font-style: normal; font-size: 11px; margin-left: 4px; color: var(--text); }
 .char-detail .row { font-family: var(--font-jp); font-size: 12.5px; color: var(--muted); line-height: 1.6; }
 .char-detail .row b { color: var(--text); font-weight: 700; }
 .lore { font-family: var(--font-jp); font-size: 13px; line-height: 1.7; margin-top: 10px; color: #c9c6dc; }

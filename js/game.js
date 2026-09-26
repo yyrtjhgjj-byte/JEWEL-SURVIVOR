@@ -11,6 +11,7 @@ import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
 import { ARTIFACT_BY_ID, ARTIFACT_MAX, unlockedArtifacts } from './artifacts.js';
 import { FX } from './fx.js';
+import { ELEMENTS, recalcElements, procElement, elementVs, tickElements, elementMove, blindDt, touchMul, onElementHit, onElementKill, updateElements, earthGuard, earthBreak } from './elements.js';
 import { LOGIC, weaponStats, drawArea } from './weapons.js';
 import { enemySprite, drawPlayer, xpSprite, itemSprite, roughSprite, backgroundTile, starSprite, dotSprite, softSprite } from './render.js';
 import { audio } from './audio.js';
@@ -203,6 +204,7 @@ export class Game {
     }
     if (this.artSet && this.artSet.has('prism')) s.area *= 1.75 + 1.25 * Math.sin((this.time / 10) * TAU);
     for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
+    recalcElements(this);
     s.cooldown = Math.max(0.35, s.cooldown);
     const oldMax = this.stats ? this.stats.maxHp : s.maxHp;
     this.stats = s;
@@ -251,6 +253,7 @@ export class Game {
     w.s = weaponStats(this, w);
     if (!this.dmgBy[id]) this.dmgBy[id] = 0;
     save.seen.weapons[id] = true;
+    recalcElements(this);
     if (this.artSet.has('box')) this.computeStats(); // 空きの武器枠が変わるので再計算
     return w;
   }
@@ -328,6 +331,7 @@ export class Game {
       return;
     }
     this.healCap = Math.max(0, this.healCap - dt * 6);
+    updateElements(this, dt);
     // 回復量をまとめて緑の数字で表示
     this.healShowT -= dt;
     if (this.healShowT <= 0) {
@@ -643,6 +647,7 @@ export class Game {
       e.vy *= damp;
       if (e.frozenT > 0) e.frozenT -= dt;
       if (e.slowT > 0) e.slowT -= dt;
+      if (!stop) { tickElements(this, e, dt); if (!e.alive) continue; }
       const dx = p.x - e.x, dy = p.y - e.y;
       const dist = Math.hypot(dx, dy) || 1;
       // 魅了：ほかの敵を襲う
@@ -693,9 +698,10 @@ export class Game {
           const mx = mv.mx; mv.mx += -mv.my * w; mv.my += mx * w;
         }
         if (e.boss && e.breakT > 0) { e.breakT -= dt; mv.spd = 0; } // ブレイク中は動かず攻撃もしない
-        else if (e.boss) this.bossAI(e, dt, dist, mv);
-        else if (AI[e.ai]) AI[e.ai](this, e, dt, dist, mv);
+        else if (e.boss) this.bossAI(e, blindDt(e, dt), dist, mv);
+        else if (AI[e.ai]) AI[e.ai](this, e, blindDt(e, dt), dist, mv);
         if (!e.alive) continue;
+        elementMove(e, mv, dx, dy);
         if (e.dash > 0) { mv.spd = e.speed * 4.5; mv.mx = e.dvx; mv.my = e.dvy; e.dash -= dt; }
         if (e.windup > 0) { mv.spd = 0; e.windup -= dt; if (e.windup <= 0) { e.dash = 0.55; } }
         const ml = Math.hypot(mv.mx, mv.my) || 1;
@@ -726,7 +732,7 @@ export class Game {
       }
       // プレイヤーに あたる
       if (dist < e.r + p.r - 2 && !(e.fade > 0) && e.dmg > 0 && !(e.breakT > 0)) {
-        this.hurtPlayer(e.dmg, { src: 'touch:' + e.type });
+        this.hurtPlayer(e.dmg * touchMul(this, e), { src: 'touch:' + e.type });
         if (e.ai === 'wisp') { p.slowT = 1.6; p.slowMul = 0.6; }
       }
       // とおすぎたら まえに もってくる
@@ -1052,13 +1058,15 @@ export class Game {
     if (this.feverT > 0) dmg *= 1.5;
     if (e.breakT > 0) dmg *= 2; // ブレイク中のボスは被ダメージ 2 倍
     if (this.charId === 'ruby' && p.hp < p.maxHp * 0.5) dmg *= 1.3;
-    const crit = o.forceCrit || chance(this.stats.crit);
+    const ev = elementVs(this, e);
+    dmg *= ev.mul;
+    const crit = o.forceCrit || (!o.dot && chance(this.stats.crit + ev.crit));
     if (crit) dmg *= 2.5;
     dmg *= rand(0.92, 1.08);
     dmg = Math.max(1, Math.round(dmg));
     const dealt = Math.min(dmg, e.hp);
     e.hp -= dmg;
-    if (o.wid && !e.boss && !e.segment && this.artSet.has('loupe') && chance(0.08)) e.frozenT = Math.max(e.frozenT, 1.5); // 秘宝「氷晶のルーペ」
+    if (o.wid && !o.dot && !e.boss && !e.segment && this.artSet.has('loupe') && chance(0.08)) e.frozenT = Math.max(e.frozenT, 1.5); // 秘宝「氷晶のルーペ」
     // 形態のあるボスは、形態変化の処理（AI 側）を飛ばして次の形態へ進んだり倒れたりしないようにする
     if (e.ai === 'emperor' && e.phaseNow && e.phaseNow < 3) {
       const floor = e.maxHp * (e.phaseNow === 1 ? 0.66 : 0.33) - 1;
@@ -1101,6 +1109,8 @@ export class Game {
       audio.hit();
     }
     if (o.heal) this.heal(o.heal);
+    onElementHit(this, e, dealt);
+    if (o.wid && !o.dot && e.hp > 0) procElement(this, e, o.wid, dealt);
     if (e.hp <= 0) this.kill(e, o.wid);
     return dealt;
   }
@@ -1111,7 +1121,7 @@ export class Game {
     const p = this.player;
     const d = Math.max(0, Math.hypot(e.x - p.x, e.y - p.y) - e.r);
     const f = d <= 70 ? 2 : d >= 320 ? 0.4 : 2 - ((d - 70) / 250) * 1.6;
-    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * 0.34 * (e.breakNeed || 1))) * f;
+    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * 0.34 * (e.breakNeed || 1))) * f * earthBreak(this);
     e.breakNear = f;
     if (e.breakG >= 1) this.bossBreak(e);
   }
@@ -1141,11 +1151,12 @@ export class Game {
     const col = pick(['#ffffff', '#ffd6f5', '#d6f0ff', '#fff3b0', GEMS[this.charId].color]);
     this.fx.purify(e.x, e.y, col, e.elite || e.boss);
     audio.kill();
+    const xpMul = onElementKill(this, e);
     // けいけんち
     if (e.boss) {
       this.bossDefeated(e);
     } else {
-      this.dropXp(e.x, e.y, e.xp * (e.elite ? 8 : 1));
+      this.dropXp(e.x, e.y, e.xp * (e.elite ? 8 : 1) * xpMul);
       if (e.ai === 'thief') {
         // ジュエルシーフ：原石（原石以上）とコインと宝箱
         this.dropPickup('rough', e.x, e.y, upgradeTier(chance(0.3) ? 'large' : 'rough', this.stage.no, this.heat));
@@ -1344,7 +1355,7 @@ export class Game {
     if ((p.iT > 0 && !o.ignoreIT) || this.god || this.state !== 'play') return;
     if (this.cleared && !this.endless) return; // 最終ボス撃破後、クリア画面までは被弾しない
     if (this.bot) { const k = o.src || 'other'; (this.dmgTaken = this.dmgTaken || {})[k] = (this.dmgTaken[k] || 0) + dmg; }
-    dmg = Math.max(1, Math.round((dmg - this.stats.armor) * (1 - Math.min(0.6, this.stats.guard || 0))));
+    dmg = Math.max(1, Math.round((dmg - this.stats.armor) * (1 - Math.min(0.6, this.stats.guard || 0)) * earthGuard(this)));
     p.hp -= dmg;
     if (!o.ignoreIT) p.iT = 0.45;
     p.hurtT = 0.3;
@@ -2007,6 +2018,17 @@ export class Game {
         ctx.arc(e.x, e.y, 70 * (1 - e.fuse / 0.85), 0, TAU);
         ctx.stroke();
       }
+      // 属性の状態異常：色の細い輪を 1 つだけ（画面がうるさくならないように）
+      const st = e.burnT > 0 ? 'fire' : e.shockT > 0 ? 'thunder' : e.fearT > 0 ? 'dark' : e.wetT > 0 ? 'water' : e.parT > 0 ? 'grass' : e.blindT > 0 ? 'light' : e.chillT > 0 ? 'ice' : null;
+      if (st && !(e.frozenT > 0)) {
+        ctx.strokeStyle = ELEMENTS[st].color;
+        ctx.globalAlpha = 0.5 + 0.25 * Math.sin(this.time * 10 + e.phase);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r * 1.12 + 2, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
       if (e.frozenT > 0 || this.timeStopT > 0) {
         ctx.fillStyle = 'rgba(150,230,255,0.35)';
         ctx.strokeStyle = 'rgba(220,250,255,0.9)';
@@ -2030,6 +2052,19 @@ export class Game {
     if (this.state !== 'dying' && this.state !== 'over') {
       if (p.iT > 0 && Math.floor(this.time * 20) % 2 === 0) ctx.globalAlpha = 0.5;
       drawPlayer(ctx, p, this.time, this.charId);
+      if (this.earthT > 0) {
+        // 土の加護：足元に回る土色の輪
+        ctx.strokeStyle = ELEMENTS.earth.color;
+        ctx.globalAlpha = Math.min(1, this.earthT) * 0.7;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 5]);
+        ctx.lineDashOffset = -this.time * 20;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r + 10, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
       ctx.globalAlpha = 1;
     }
 
