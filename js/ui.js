@@ -160,7 +160,7 @@ export function showTitle() {
           <button class="btn" id="t-atelier">ATELIER<span class="sub">研磨</span>${totalRough() ? `<b class="badge">${totalRough()}</b>` : ''}</button>
         </div>
         <div class="title-row">
-          <button class="btn" id="t-gacha">SUMMON<span class="sub">原石ガチャ</span></button>
+          <button class="btn" id="t-gacha">MINING<span class="sub">採掘</span></button>
           <button class="btn" id="t-zukan">ARCHIVE<span class="sub">図鑑・実績</span></button>
         </div>
       </div>
@@ -238,7 +238,7 @@ export function showCharSelect() {
           <div class="row">特性 <b>${c.perk}</b>${aw ? ` ／ 覚醒+${aw}（攻撃力+${aw * 5}%）` : ''}</div>
         </div>
       </div>
-      <div class="lore">${unlocked ? g.lore : '🔒 解放条件：' + (c.unlock || 'ガチャ')}</div>`;
+      <div class="lore">${unlocked ? g.lore : '🔒 解放条件：' + (c.unlock || '???')}</div>`;
     $('#go', node).disabled = !unlocked;
   };
   CHAR_IDS.forEach((id) => {
@@ -448,7 +448,7 @@ const RANK_COLOR = { R: '#4da3ff', SR: '#ffc53d', SSR: '#ff4fd8', UR: '#ffffff' 
 export function showGacha() {
   const node = el(`
     <div class="screen gacha-screen">
-      ${topbar('SUMMON', '原石ガチャ')}
+      ${topbar('MINING', '採掘')}
       <div class="altar" id="altar"><div class="ring"></div><div class="ring r2"></div><div class="core"></div></div>
       <div id="gres" class="center-col"></div>
       <div class="rbtns" id="gbtns">
@@ -456,7 +456,7 @@ export function showGacha() {
         <button class="btn primary" id="g10">×10<span class="sub">${fmt(GACHA10_COST)} コイン・大原石以上1枠確定</span></button>
       </div>
       <button class="btn dust-btn" id="gex">EXCHANGE<span class="sub">交換所 ／ ジェムダスト <b id="dustn">${fmt(save.dust || 0)}</b></span></button>
-      <div class="odds">UR 3%：秘石 ／ SSR 10%：大原石 ／ SR 27%：原石 ／ R 60%：原石の欠片 ×2<br>引くたびにジェムダスト（UR 10 ／ SSR 5 ／ SR 2 ／ R 1）が貯まり、交換所で秘石・大原石・覚醒と交換できます</div>
+      <div class="odds">UR 3%：秘石 ／ SSR 10%：大原石 ／ SR 27%：原石 ／ R 60%：原石の欠片 ×2<br>掘るたびにジェムダスト（UR 10 ／ SSR 5 ／ SR 2 ／ R 1）が貯まり、交換所で秘石・大原石・覚醒と交換できます</div>
     </div>`);
   show(node);
   $('#back', node).onclick = () => { audio.tap(); showTitle(); };
