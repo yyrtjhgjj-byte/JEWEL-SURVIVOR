@@ -42,14 +42,14 @@ export const MASTERY_BONUS = {
   alexandrite: { growth: 0.01 }, tourmaline: { moveSpeed: 0.005 }, moonstone: { luck: 0.02 },
   topaz: { might: 0.005 }, jasper: { maxHp: 2 }, nephrite: { area: 0.004 }, milkyquartz: { area: 0.004 },
   coral: { luck: 0.02 }, iolite: { cooldown: -0.004 }, prase: { growth: 0.01 }, granite: { guard: 0.003 },
-  coal: { regen: 0.02 }, titanite: { greed: 0.02 }, redberyl: { magnet: 0.02 }, turquoise: { guard: 0.003 },
+  coal: { regen: 0.02 }, titanite: { greed: 0.02 }, redberyl: { magnet: 0.02 }, turquoise: { guard: 0.003 }, citrine: { coinDrop: 0.001 },
   peridot: { moveSpeed: 0.005 },
 };
 const STAT_LABEL = {
   might: ['攻撃力', '%'], magnet: ['回収範囲', '%'], regen: ['HP自然回復', '/秒'], crit: ['クリティカル率', '%'],
   luck: ['幸運', '%'], greed: ['獲得コイン', '%'], maxHp: ['最大HP', ''], area: ['攻撃範囲', '%'],
   growth: ['経験値', '%'], speed: ['弾速', '%'], duration: ['持続', '%'], moveSpeed: ['移動速度', '%'],
-  cooldown: ['クールダウン短縮', '%'], guard: ['被ダメージ軽減', '%'],
+  cooldown: ['クールダウン短縮', '%'], guard: ['被ダメージ軽減', '%'], coinDrop: ['コインのドロップ率', '%'],
 };
 export function statText(k, v) {
   const [label, unit] = STAT_LABEL[k] || [k, ''];
@@ -95,7 +95,7 @@ export function gemBonusText(id, m, ct = save.jewels[id] ? save.jewels[id].ct : 
 // 厳密に合わせると偏りすぎるので、重みの差は最大 10 倍にとどめ、上位の原石ほど差を縮める
 const ABUNDANCE = {
   milkyquartz: 5, granite: 5, coal: 5, jasper: 5,
-  garnet: 4, amber: 4, labradorite: 4, moonstone: 4, nephrite: 4, topaz: 4,
+  garnet: 4, amber: 4, labradorite: 4, moonstone: 4, nephrite: 4, topaz: 4, citrine: 4,
   tourmaline: 3, peridot: 3, aquamarine: 3, iolite: 3, kyanite: 3, turquoise: 3, angelite: 3, prase: 3, opal: 3,
   sapphire: 2, ruby: 2, emerald: 2, diamond: 2, coral: 2, rhodochrosite: 2, titanite: 2,
   alexandrite: 1, redberyl: 1,
