@@ -5,7 +5,7 @@ import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost, backShopRate,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK,
 } from './data.js';
-import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite, shopIcon } from './render.js';
+import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite, shopIcon, pickaxeIcon } from './render.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
@@ -233,7 +233,7 @@ export function showCharSelect() {
         <img src="${gemIcon(sel, 160)}" style="${unlocked ? `filter:drop-shadow(0 0 18px ${gemColor(sel)})` : 'filter:grayscale(1) brightness(.3)'}">
         <div>
           <div class="name">${unlocked ? g.jp : '???'}</div>
-          <div class="sub"><span class="en">${g.en}</span><span class="rarbadge r-${c.rarity}">${c.rarity}</span>${wordTag(sel)}</div>
+          <div class="sub"><span class="en">${g.en}</span>${wordTag(sel)}</div>
           <div class="row">武器 <b>${w.name}</b></div>
           <div class="row">特性 <b>${c.perk}</b>${aw ? ` ／ 覚醒+${aw}（攻撃力+${aw * 5}%）` : ''}</div>
         </div>
@@ -244,7 +244,7 @@ export function showCharSelect() {
   CHAR_IDS.forEach((id) => {
     const c = CHARACTERS[id];
     const cell = el(`<button class="char-cell ${save.unlocked[id] ? '' : 'locked'} ${id === sel ? 'sel' : ''}" style="--c:${gemColor(id)}">
-      <img src="${gemIcon(id, 96)}"><span class="rar rarbadge r-${c.rarity}">${c.rarity}</span>
+      <img src="${gemIcon(id, 96)}">
       ${save.awaken[id] ? `<span class="aw">★${save.awaken[id]}</span>` : ''}</button>`);
     cell.onclick = () => {
       audio.cardFlip(CHAR_IDS.indexOf(id) % 5);
@@ -449,7 +449,7 @@ export function showGacha() {
   const node = el(`
     <div class="screen gacha-screen">
       ${topbar('MINING', '採掘')}
-      <div class="altar" id="altar"><div class="ring"></div><div class="ring r2"></div><div class="core"></div></div>
+      <div class="altar" id="altar"><div class="ring"></div><div class="ring r2"></div><img class="core" src="${pickaxeIcon(160)}"></div>
       <div id="gres" class="center-col"></div>
       <div class="rbtns" id="gbtns">
         <button class="btn gold" id="g1">×1<span class="sub">${fmt(GACHA_COST)} コイン</span></button>

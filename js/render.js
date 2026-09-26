@@ -326,6 +326,79 @@ export function shopIcon(id, size = 72) {
   return u;
 }
 
+// 採掘画面のピッケル
+export function pickaxeIcon(size = 120) {
+  const key = 'pick:' + size;
+  let u = iconCache.get(key);
+  if (u) return u;
+  const c = makeCanvas(size * 2, size * 2);
+  const ctx = c.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.translate(size / 2, size / 2);
+  ctx.rotate(Math.PI / 4);
+  const s = size;
+  ctx.lineJoin = 'round';
+  // 柄：黒地に白の輪郭
+  ctx.beginPath();
+  ctx.roundRect(-s * 0.045, -s * 0.3, s * 0.09, s * 0.72, s * 0.03);
+  const hg = ctx.createLinearGradient(-s * 0.05, 0, s * 0.05, 0);
+  hg.addColorStop(0, '#1a1822');
+  hg.addColorStop(0.5, '#34303f');
+  hg.addColorStop(1, '#0c0b10');
+  ctx.fillStyle = hg;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = s * 0.014;
+  ctx.stroke();
+  // 握りの巻き
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = s * 0.01;
+  for (let i = 0; i < 5; i++) {
+    const y = s * (0.2 + i * 0.04);
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.045, y + s * 0.015);
+    ctx.lineTo(s * 0.045, y - s * 0.015);
+    ctx.stroke();
+  }
+  // 頭：鋼の三日月
+  ctx.save();
+  ctx.shadowColor = 'rgba(190,210,255,0.55)';
+  ctx.shadowBlur = s * 0.08;
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.44, -s * 0.1);
+  ctx.quadraticCurveTo(0, -s * 0.58, s * 0.44, -s * 0.1);
+  ctx.quadraticCurveTo(0, -s * 0.37, -s * 0.44, -s * 0.1);
+  ctx.closePath();
+  const mg = ctx.createLinearGradient(0, -s * 0.36, 0, -s * 0.22);
+  mg.addColorStop(0, '#ffffff');
+  mg.addColorStop(0.35, '#c9d2e4');
+  mg.addColorStop(1, '#5a6278');
+  ctx.fillStyle = mg;
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(20,20,30,0.9)';
+  ctx.lineWidth = s * 0.012;
+  ctx.stroke();
+  // 刃先の光
+  sparkle(ctx, s * 0.42, -s * 0.12, s * 0.06, '#ffffff');
+  // 継ぎ目の金具と宝石
+  ctx.beginPath();
+  ctx.roundRect(-s * 0.075, -s * 0.36, s * 0.15, s * 0.13, s * 0.025);
+  ctx.fillStyle = '#15141c';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = s * 0.012;
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(0, -s * 0.295);
+  ctx.rotate(-Math.PI / 4);
+  drawGem(ctx, s * 0.05, GEMS.diamond);
+  ctx.restore();
+  u = c.toDataURL();
+  iconCache.set(key, u);
+  return u;
+}
+
 // コイン報酬のアイコン（3枚重ねの金貨）
 export function coinIcon(size = 72) {
   const key = 'coin:' + size;
