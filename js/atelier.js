@@ -26,7 +26,8 @@ export const GRADES = [
 ];
 export function gradeFromScore(score) {
   let g = 0;
-  for (let i = 0; i < GRADES.length; i++) if (score >= GRADES[i].min) g = i;
+  // 浮動小数点の誤差（0.8 が 0.7999… になるなど）で 1 段階下がらないよう、わずかに余裕を持たせる
+  for (let i = 0; i < GRADES.length; i++) if (score + 1e-9 >= GRADES[i].min) g = i;
   return g;
 }
 

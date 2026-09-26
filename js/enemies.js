@@ -28,8 +28,8 @@ function laser(g, e, a, o = {}) {
 }
 
 // 予告円 → 着弾
-function warn(g, x, y, r, T, color, fn) {
-  g.warns.push({ x, y, r, t: 0, T, color, fn });
+function warn(g, x, y, r, T, color, fn, owner = null) {
+  g.warns.push({ x, y, r, t: 0, T, color, fn, owner });
 }
 
 export const AI = {
@@ -76,7 +76,7 @@ export const AI = {
       }
       return;
     }
-    if (dist < 50) {
+    if (dist < 50 && !e.elite) { // エリートは自爆しない（撃破して宝箱を落とすため）
       e.fuse = 0.85;
       audio.thunder();
     }
@@ -194,7 +194,7 @@ export const AI = {
           g2.fx.burst(x, y, '#dff6ff', 10, 200, 0.45, 12);
           g2.fx.ring(x, y, 6, 42, 0.3, '#dff6ff', 5);
           if (Math.hypot(g2.player.x - x, g2.player.y - y) < 42 + g2.player.r) g2.hurtPlayer(e.dmg);
-        });
+        }, e);
       }
     }
     if (e.atk2 <= 0) {
@@ -298,7 +298,7 @@ export const AI = {
           warn(g, x, y, 55, 1.2, '#e05cff', (g2) => {
             g2.fx.burst(x, y, '#e05cff', 14, 240, 0.5, 14);
             if (Math.hypot(g2.player.x - x, g2.player.y - y) < 55 + g2.player.r) g2.hurtPlayer(e.dmg);
-          });
+          }, e);
         }
       }
     }

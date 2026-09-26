@@ -33,7 +33,7 @@ export class Input {
       this.keys.add(e.code);
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => { this.keys.clear(); this.end(); });
+    window.addEventListener('blur', () => { this.keys.clear(); this.reset(); });
   }
 
   onStart(e) {

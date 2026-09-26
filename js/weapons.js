@@ -556,16 +556,17 @@ export const LOGIC = {
         audio.whoosh();
       });
     },
-    lance(g, s, x, y, a, mul, split) {
+    lance(g, s, x, y, a, mul, split, hit) {
       const spd = 650 * s.speed;
       g.addProj({
+        hit: hit ? new Set(hit) : undefined, // 分裂した槍が元の敵に当たり直さないように
         x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 12 * s.area * (mul < 1 ? 0.7 : 1), dmg: s.dmg * mul, pierce: 999,
         life: 1.3, wid: 'kyanite', sprite: gemSprite('kyanite', mul < 1 ? 20 : 30, 'long'), rotToVel: true, rotOff: Math.PI / 2,
         trail: '#6f8cff', knock: 220,
         onHit: split ? (g2, pr, e) => {
           if (pr.split) return;
           pr.split = true;
-          for (let k = 0; k < 4; k++) this.lance(g2, s, e.x, e.y, a + (k / 4) * TAU + 0.4, 0.75, false);
+          for (let k = 0; k < 4; k++) this.lance(g2, s, e.x, e.y, a + (k / 4) * TAU + 0.4, 0.75, false, [e]);
           g2.fx.ring(e.x, e.y, 5, 60, 0.3, '#9fb8ff', 5);
         } : null,
       });
@@ -670,9 +671,10 @@ export const LOGIC = {
         audio.shoot();
       });
     },
-    bolt(g, s, x, y, a, bounces, evo, dmg) {
+    bolt(g, s, x, y, a, bounces, evo, dmg, hit) {
       const spd = 520 * s.speed;
       g.addProj({
+        hit: hit ? new Set(hit) : undefined,
         x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 7 * s.area, dmg, pierce: 999, life: 1.2,
         wid: 'tourmaline', sprite: gemSprite('tourmaline', 13, 'long'), rotToVel: true, trail: chance(0.5) ? '#ff5f9a' : '#5fffa0',
         knock: 40, bounces,
@@ -689,7 +691,7 @@ export const LOGIC = {
           pr.life = Math.max(pr.life, 0.6);
           if (evo && pr.bounces > 2 && chance(0.3)) {
             const a2 = Math.atan2(pr.vy, pr.vx) + rand(-1.2, 1.2);
-            this.bolt(g2, s, e.x, e.y, a2, pr.bounces - 3, false, pr.dmg * 0.8);
+            this.bolt(g2, s, e.x, e.y, a2, pr.bounces - 3, false, pr.dmg * 0.8, pr.hit);
           }
         },
       });
@@ -716,7 +718,7 @@ export const LOGIC = {
             if ((e.hitT.moon || 0) > g.time) continue;
             e.hitT.moon = g.time + 0.4;
             g.damage(e, s.dmg * 0.5, { wid: 'moonstone', kb: 60 });
-            if (e.alive && !e.boss && !e.charmT && chance(s.charm * 1.2)) this.charm(g, e, 4, true);
+            if (e.alive && !e.boss && !e.segment && !e.charmT && chance(s.charm * 1.2)) this.charm(g, e, 4, true);
           }
         }
       }
@@ -730,7 +732,7 @@ export const LOGIC = {
           pierce: 999, life: 3, wid: 'moonstone', sprite: moonSprite(26, false), size: 26 * s.area, spin: 12,
           boomerang: { out: true, range: 210 * s.area, dist: 0 }, knock: 70,
           onHit: (g2, pr, e) => {
-            if (e.alive && !e.boss && !e.charmT && chance(s.charm * (evo ? 1.3 : 1))) this.charm(g2, e, evo ? 4 : 3, evo);
+            if (e.alive && !e.boss && !e.segment && !e.charmT && chance(s.charm * (evo ? 1.3 : 1))) this.charm(g2, e, evo ? 4 : 3, evo);
           },
         });
         audio.whoosh();

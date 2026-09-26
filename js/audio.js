@@ -22,7 +22,8 @@ class AudioEngine {
   // iOS は ユーザー操作の中で よばないと 音が でない
   unlock() {
     if (this.ready) {
-      if (this.ctx.state === 'suspended') this.ctx.resume();
+      // 電話や Siri のあと 'interrupted' のままになることがあるので、動いていなければ再開
+      if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
       return;
     }
     try {
@@ -67,7 +68,7 @@ class AudioEngine {
   }
 
   suspend() { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); }
-  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+  resume() { if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => {}); }
 
   // 同じ音が 鳴りすぎないように
   throttle(name, gap) {

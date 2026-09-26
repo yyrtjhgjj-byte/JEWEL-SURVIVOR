@@ -86,8 +86,8 @@ function autoPolish(tier, count, box) {
     res.push(applyPolish(tier, rollGem(tier), autoGrade(), rollCarat(tier)));
   }
   persist();
-  refreshCoinPill();
   metaAch();
+  refreshCoinPill(); // 実績のコインも反映してから表示
   audio.levelUp();
   haptic();
   const ov = el(`<div class="screen dim at-over">
@@ -114,8 +114,7 @@ function autoPolish(tier, count, box) {
 function startPolish(tier) {
   const R = ROUGH[tier];
   if (!save.rough[tier] || save.coins < R.cost) return;
-  save.coins -= R.cost;
-  persist();
+  // コインは研磨が終わったとき（原石を消費するのと同時）に払う。途中でアプリが落ちてもコインだけ失わないように
   const gemId = rollGem(tier);
   const g = GEMS[gemId];
   const hint = gemColor(gemId);
@@ -279,6 +278,7 @@ function startPolish(tier) {
     const score = st.results.reduce((a, b) => a + b, 0) / st.results.length;
     const grade = gradeFromScore(score);
     const ct = rollCarat(tier);
+    save.coins = Math.max(0, save.coins - R.cost);
     const res = applyPolish(tier, gemId, grade, ct);
     persist();
     st.revealed = true;
@@ -317,13 +317,13 @@ function reveal(res, score) {
     </div>
   </div>`);
   show(node);
-  refreshCoinPill();
   guard($('.rbtns', node), 900);
   // 演出
   const big = res.grade >= 3;
   if (res.grade === 4) { audio.bigWin(); haptic(); } else if (big) { audio.levelUp(); haptic(); } else audio.chestOpen();
   node.classList.add(`rv-g${res.grade}`);
   metaAch();
+  refreshCoinPill();
   $('#again', node).onclick = () => { audio.select(); startPolish(res.tier); };
   $('#back2', node).onclick = () => { audio.tap(); showAtelier('polish'); };
 }
