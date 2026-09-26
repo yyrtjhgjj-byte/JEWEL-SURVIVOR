@@ -31,6 +31,8 @@ class Grid {
   clear() {
     for (const a of this.used) a.length = 0;
     this.used.length = 0;
+    // 通ったセルの配列が溜まり続けないよう、ときどき作り直す
+    if (this.map.size > 3000) this.map.clear();
     this.big.length = 0;
   }
   key(cx, cy) { return (cx + 32768) * 65536 + (cy + 32768); }
@@ -275,7 +277,8 @@ export class Game {
   getPassive(id) { return this.passives.find((p) => p.id === id); }
 
   resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // 描画が重いときは解像度を少し下げる（resScale。frame() で自動調整）
+    const dpr = Math.min(window.devicePixelRatio || 1, 2) * (this.resScale || 1);
     const W = window.innerWidth, H = window.innerHeight;
     this.dpr = dpr;
     this.W = W;
@@ -318,10 +321,27 @@ export class Game {
     const t2 = performance.now();
     this.perfU = (this.perfU || 0) * 0.95 + (t1 - t0) * 0.05;
     this.perfR = (this.perfR || 0) * 0.95 + (t2 - t1) * 0.05;
+    if (live) this.autoRes(realDt);
     this.hudT -= realDt;
     if (this.hudT <= 0) {
       this.hudT = 0.05;
       this.hooks.hud(this);
+    }
+  }
+
+  // 描画の負荷に応じて解像度を切り替える。1 フレームの実時間の平均が長い（30 fps を切る）状態が 2 秒続いたら 0.75 倍に、
+  // 軽い状態が 8 秒続いたら元に戻す（iPhone SE2 などで、攻撃エフェクトが画面を埋めたときに落ちるのを防ぐ）
+  autoRes(realDt) {
+    if (realDt > 0.2) return; // 裏から戻った直後などは数えない
+    this.frameAvg = (this.frameAvg || 1 / 60) * 0.9 + realDt * 0.1;
+    const low = (this.resScale || 1) < 1;
+    if (!low && this.frameAvg > 1 / 33) this.resT = (this.resT || 0) + realDt;
+    else if (low && this.frameAvg < 1 / 50) this.resT = (this.resT || 0) + realDt;
+    else this.resT = 0;
+    if (this.resT > (low ? 8 : 2)) {
+      this.resT = 0;
+      this.resScale = low ? 1 : 0.75;
+      this.resize();
     }
   }
 

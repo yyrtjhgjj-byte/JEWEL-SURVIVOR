@@ -74,10 +74,12 @@ export class FX {
   }
 
   ring(x, y, r0, r1, life, color, width = 4, fill = false) {
+    if (this.rings.length >= 150) return; // 数の上限（大量に重なると描画が重くなる）
     this.rings.push({ x, y, r0, r1, life, max: life, color, width, fill });
   }
 
   bolt(x0, y0, x1, y1, color = '#bff6ff', life = 0.22, width = 4) {
+    if (this.bolts.length >= 100) return;
     const pts = [];
     const n = 9;
     for (let i = 0; i <= n; i++) {

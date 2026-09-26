@@ -168,7 +168,9 @@ export const LOGIC = {
       if (!(w.scale > 0)) return;
       const p = g.player;
       const orbs = this.orbs(w, s, p);
-      const size = 22 * s.area * (w.evolved ? 1.25 : 1);
+      // 見た目の大きさは範囲 2 倍ぶんまで（当たり判定はそのまま）。範囲が大きいとオーブ 1 つずつが巨大な絵になり、
+      // 数が多いと描画が重くなって古い iPhone で落ちる原因になっていた
+      const size = 22 * Math.min(2, s.area) * (w.evolved ? 1.25 : 1);
       const spr = gemSprite('sapphire', 22);
       ctx.globalCompositeOperation = 'lighter';
       const glow = starSprite('#6fa0ff');

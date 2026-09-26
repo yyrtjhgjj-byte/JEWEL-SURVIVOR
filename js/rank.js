@@ -11,8 +11,8 @@ export const RANK_CLASSES = [
 ];
 export const rankClass = (lv) => RANK_CLASSES.find((c) => lv <= c.max);
 
-// 次のレベルまでに必要な経験値（7 分のクリアで 400 前後入る。Lv20 までおよそ 16 回、Lv50 までおよそ 85 回）
-export const rankNeed = (lv) => 80 + 25 * lv;
+// 次のレベルまでに必要な経験値（7 分のクリアで 400 前後入る。Lv20 までおよそ 8 回、Lv50 までおよそ 43 回）
+export const rankNeed = (lv) => 40 + Math.round(12.5 * lv);
 
 // 獲得コインの倍率：1 レベルにつき +0.5%（Lv50 で 1.25 倍）
 export const rankCoinMul = (lv = rankLv()) => 1 + 0.005 * lv;
@@ -22,6 +22,13 @@ export function rankState() {
   return save.rank;
 }
 export const rankLv = () => rankState().lv;
+// 必要経験値を下げたとき、貯まっている経験値でレベルを上げ直す
+export function settleRank() {
+  const r = rankState();
+  const lv = r.lv;
+  while (r.xp >= rankNeed(r.lv)) { r.xp -= rankNeed(r.lv); r.lv++; }
+  return r.lv !== lv;
+}
 
 // 1 回のランで入る経験値：生存時間、撃破数、ボス、クリア。ヒートが高いほど多い
 export function runExp(res, cleared) {
