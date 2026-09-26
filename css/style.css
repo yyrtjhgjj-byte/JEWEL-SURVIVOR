@@ -679,3 +679,12 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .refund-row .btn { white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
 .shop-item.off { opacity: 0.45; }
 .shop-item .btn.maxsw { min-width: 72px; }
+
+/* ---------------- 秘宝 ---------------- */
+.art-screen { justify-content: center; gap: 10px; }
+.art-screen #anone { width: min(360px, 92vw); }
+.art-card img { width: 64px; height: 64px; }
+.slotico.art { background: rgba(20,16,30,0.7); border-color: rgba(232,197,106,0.5); }
+.art-screen.scroll { justify-content: flex-start; overflow-y: auto; padding-top: calc(var(--safe-t) + 20px); padding-bottom: 30px; }
+.art-screen.scroll > * { flex: none; }
+.art-screen.scroll .cards { flex: none; }

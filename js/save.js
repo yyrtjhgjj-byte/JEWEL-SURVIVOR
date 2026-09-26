@@ -18,6 +18,7 @@ function defaults() {
     endless: false,
     hyper: false, // ハイパーモード（ステージ選択の切り替え）
     hurry: false, // ハリーモード
+    artSel: null, // 持ち込む秘宝
     upgradesOff: {}, // 工房：最大まで上げた強化のうち、無効にしているもの
     login: { last: '', streak: 0 },
     stages: {},
