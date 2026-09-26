@@ -2,6 +2,7 @@
 //  JEWEL SURVIVOR  ─  エントリーポイント
 // =====================================================================
 import { Game } from './game.js';
+import { refreshLot } from './auction.js';
 import { Input } from './input.js';
 import { audio } from './audio.js';
 import { save, persist } from './save.js';
@@ -263,6 +264,7 @@ function settleRun(res, cleared) {
   if (cleared) save.stats.clears++;
   for (const [k, v] of Object.entries(res.killsByType)) save.kills[k] = (save.kills[k] || 0) + v;
   for (const [t, n] of Object.entries(res.roughGot || {})) save.rough[t] = (save.rough[t] || 0) + n;
+  refreshLot();
   const newBest = {};
   for (const k of ['time', 'kills', 'level', 'damage']) {
     const v = res[k];

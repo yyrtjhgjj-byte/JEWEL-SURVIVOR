@@ -93,7 +93,7 @@ export function gemBonusText(id, m, ct = save.jewels[id] ? save.jewels[id].ct : 
 
 // どの宝石が出るか。実際の宝石の産出量をおおまかに 5 段階にした（5 が多い）。
 // 厳密に合わせると偏りすぎるので、重みの差は最大 10 倍にとどめ、上位の原石ほど差を縮める
-const ABUNDANCE = {
+export const ABUNDANCE = {
   milkyquartz: 5, granite: 5, coal: 5, jasper: 5,
   garnet: 4, amber: 4, labradorite: 4, moonstone: 4, nephrite: 4, topaz: 4, citrine: 4,
   tourmaline: 3, peridot: 3, aquamarine: 3, iolite: 3, kyanite: 3, turquoise: 3, angelite: 3, prase: 3, opal: 3,

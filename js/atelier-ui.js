@@ -13,6 +13,7 @@ import {
   collectionCount,
 } from './atelier.js';
 import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, showTitle, getApp } from './ui.js';
+import { currentLot, awardLot, RIVALS } from './auction.js';
 
 const TAU = Math.PI * 2;
 
@@ -33,6 +34,7 @@ export function showAtelier(tab = 'polish') {
       <div class="tabs">
         <button class="tab ${tab === 'polish' ? 'on' : ''}" data-t="polish">研磨</button>
         <button class="tab ${tab === 'collection' ? 'on' : ''}" data-t="collection">コレクション</button>
+        <button class="tab ${tab === 'auction' ? 'on' : ''}" data-t="auction">オークション</button>
       </div>
       <div id="at"></div>
     </div>`);
@@ -41,6 +43,7 @@ export function showAtelier(tab = 'polish') {
   node.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showAtelier(b.dataset.t); }));
   const box = $('#at', node);
   if (tab === 'polish') renderPolish(box);
+  else if (tab === 'auction') renderAuction(box);
   else renderCollection(box);
 }
 
@@ -410,3 +413,130 @@ function gemDetail(id) {
   ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
 }
 
+
+// ---------------------------------------------------------------- オークション
+const r100 = (v) => Math.round(v / 100) * 100;
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+function lotHead(lot, big) {
+  const g = GEMS[lot.gem];
+  return `<div class="auc-lot ${big ? 'big' : ''}" style="--c:${gemColor(lot.gem)}">
+    <div class="auc-spot"><img src="${gemIcon(lot.gem, big ? 160 : 120)}" alt=""></div>
+    <div class="auc-name">${g.jp}<small>${g.en}</small></div>
+    <div class="auc-q">${gradeBadge(lot.grade)}<span class="rv-ct">${lot.ct.toFixed(2)} ct</span></div>
+  </div>`;
+}
+
+function renderAuction(box) {
+  const lot = currentLot();
+  const rec = save.jewels[lot.gem];
+  const upd = !rec || !rec.n ? '<span class="ctag2 t-new">未所持</span>'
+    : [lot.grade > rec.best ? '<span class="ctag2 t-evo">最高品質 更新</span>' : '', lot.ct > rec.ct ? '<span class="ctag2 t-pair">最大カラット 更新</span>' : ''].join('');
+  const msg = lot.state === 'won' ? '落札済み。次のランのあとに新しい品が出品されます'
+    : lot.state === 'lost' ? 'ほかの入札者が落札しました。次のランのあとに新しい品が出品されます' : '';
+  box.innerHTML = `<div class="panel auc-panel">
+    <div class="label">TODAY'S LOT</div>
+    ${lotHead(lot, false)}
+    <div class="rv-tags">${upd}</div>
+    <div class="rrow2"><span>予想落札価格</span><b>${fmt(r100(lot.est * 0.8))} 〜 ${fmt(r100(lot.est * 1.3))}</b></div>
+    <div class="rrow2"><span>所持コイン</span><b>${fmt(save.coins)}</b></div>
+    ${msg ? `<div class="at-note" style="text-align:center">${msg}</div>` : ''}
+    <button class="btn big primary" id="auc-go" ${lot.state === 'open' ? '' : 'disabled'}>競りに参加</button>
+  </div>
+  <div class="at-note">ランを 1 回終えるごとに、次の品に入れ替わります。落札した宝石は研磨コレクションに入り、最高品質と最大カラットが更新されます。</div>`;
+  $('#auc-go', box).onclick = () => { audio.select(); startBidding(lot); };
+}
+
+function startBidding(lot) {
+  const HAM = 4; // ハンマーの時間（入札のたびに戻る）
+  const st = { price: r100(lot.est * 0.45), leader: null, hammer: HAM, over: false, you: false, log: [] };
+  const rivals = RIVALS.map((r) => ({ ...r, max: r100(lot.est * rnd(...r.cap)), next: rnd(0.3, 1.2), out: false }));
+  const node = el(`<div class="screen auc-screen">
+    <div class="auc-top"><span class="en">AUCTION</span></div>
+    ${lotHead(lot, true)}
+    <div class="auc-price"><small>現在の価格</small><b id="ap">0</b><span id="al"></span></div>
+    <div class="auc-ham"><i id="ah"></i><span id="ahl"></span></div>
+    <div class="auc-rivals" id="ar"></div>
+    <div class="auc-log" id="alog"></div>
+    <div class="auc-bids" id="ab"></div>
+    <button class="btn small" id="aq">降りる</button>
+  </div>`);
+  show(node);
+  const bids = [0.05, 0.1, 0.2];
+  const price = $('#ap', node), lead = $('#al', node), hamBar = $('#ah', node), hamLbl = $('#ahl', node);
+  const log = (t, c) => { st.log.unshift({ t, c }); st.log.length = Math.min(st.log.length, 4); $('#alog', node).innerHTML = st.log.map((x) => `<div style="color:${x.c}">${x.t}</div>`).join(''); };
+  const renderRivals = () => { $('#ar', node).innerHTML = rivals.map((r) => `<span class="${r.out ? 'out' : ''} ${st.leader === r ? 'lead' : ''}" style="--rc:${r.color}">${r.name}</span>`).join(''); };
+  const renderBids = () => {
+    $('#ab', node).innerHTML = bids.map((k, i) => { const v = r100(st.price * (1 + k)); return `<button class="btn gold" data-i="${i}" ${st.over || st.leader === 'you' || v > save.coins ? 'disabled' : ''}>+${k * 100}%<span class="sub">${fmt(v)}</span></button>`; }).join('');
+    $('#ab', node).querySelectorAll('button').forEach((b) => (b.onclick = () => { if (st.over || st.leader === 'you') return; const v = r100(st.price * (1 + bids[+b.dataset.i])); if (v > save.coins) return; audio.coin(); haptic(); st.you = true; place('you', v); for (const r of rivals) r.next = Math.min(r.next, rnd(0.4, 1.3)); }));
+  };
+  const place = (who, v) => {
+    st.price = v; st.leader = who; st.hammer = HAM;
+    price.textContent = fmt(v);
+    price.classList.remove('bump'); void price.offsetWidth; price.classList.add('bump');
+    if (who === 'you') { lead.textContent = 'あなたが最高額'; lead.style.color = '#5dff9a'; log(`あなた　${fmt(v)}`, '#5dff9a'); }
+    else { lead.textContent = `${who.name}が最高額`; lead.style.color = who.color; log(`${who.name}　${fmt(v)}`, who.color); audio.tap(); }
+    renderRivals(); renderBids();
+  };
+  price.textContent = fmt(st.price);
+  lead.textContent = '開始価格';
+  renderRivals(); renderBids();
+  let last = performance.now(), phase = 0;
+  const frame = (now) => {
+    if (!node.isConnected || st.over) return;
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    for (const r of rivals) {
+      if (r.out || st.leader === r) continue;
+      r.next -= dt;
+      if (r.next > 0) continue;
+      r.next = rnd(...r.wait);
+      const v = r100(st.price * (1 + rnd(...r.step)));
+      // 上限を超えるか、成金は相場を超えると降りやすい
+      if (v > r.max || (r.id === 'tycoon' && st.price > lot.est * 0.85 && Math.random() < 0.5)) { r.out = true; log(`${r.name}が降りた`, '#8a86a0'); renderRivals(); continue; }
+      place(r, v);
+    }
+    st.hammer -= dt;
+    hamBar.style.transform = `scaleX(${Math.max(0, st.hammer / HAM)})`;
+    const ph = st.hammer > 2.6 ? 0 : st.hammer > 1.3 ? 1 : st.hammer > 0 ? 2 : 3;
+    if (ph !== phase) {
+      phase = ph;
+      hamLbl.textContent = ['', 'ONCE…', 'TWICE…', 'SOLD!'][ph];
+      if (ph === 1 || ph === 2) audio.countTick();
+    }
+    if (st.hammer <= 0 && st.leader) { finish(); return; }
+    if (st.hammer <= 0) st.hammer = HAM; // 誰も入札していないときは待つ
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  $('#aq', node).onclick = () => {
+    audio.tap();
+    if (!st.you) { showAtelier('auction'); return; } // まだ入札していなければ、出品はそのまま
+    st.over = true; lot.state = 'lost'; persist(); showAtelier('auction');
+  };
+  function finish() {
+    st.over = true;
+    renderBids();
+    const won = st.leader === 'you';
+    audio.bigWin(); haptic();
+    let r = null;
+    if (won) { save.coins -= st.price; r = awardLot(lot); lot.state = 'won'; lot.paid = st.price; }
+    else lot.state = 'lost';
+    persist();
+    metaAch();
+    refreshCoinPill();
+    setTimeout(() => {
+      const tags = won ? [r.isNew ? '<span class="ctag2 t-new">NEW</span>' : '', r.bestUp ? '<span class="ctag2 t-evo">最高品質 更新</span>' : '', r.ctUp ? '<span class="ctag2 t-pair">最大カラット 更新</span>' : ''].join('') : '';
+      const ov = el(`<div class="screen dim reveal-screen">
+        <div class="rays"></div>
+        <div class="big-title prism-text">SOLD</div>
+        <div class="sub-title">${won ? `${fmt(st.price)} コインで落札` : `${st.leader.name}が ${fmt(st.price)} コインで落札`}</div>
+        ${lotHead(lot, true)}
+        <div class="rv-tags">${tags}</div>
+        <button class="btn big primary" id="aok">閉じる</button>
+      </div>`);
+      $('#screens').appendChild(ov);
+      guard($('#aok', ov), 600);
+      $('#aok', ov).onclick = () => { audio.tap(); showAtelier('auction'); };
+    }, 900);
+  }
+}
