@@ -506,32 +506,31 @@ export const LOGIC = {
       }
       if (!w.on) return;
       w.ft = (w.ft || 0) - dt;
-      w.ang = (w.ang || 0) + dt * 3.5;
+      // 炎はすべて前方（進行方向）へ。弾数が増えると扇が広がり、進化すると途切れず噴き出して射程が伸びる
+      const base = Math.atan2(p.dirY, p.dirX);
+      const n = Math.max(1, s.amount) + (evo ? 1 : 0);
+      // 低レベル時は射程を補正（Lv1 で +60%、Lv8 で補正なし）。進化後は射程 1.5 倍
+      const reach = evo ? 1.5 : 1 + 0.6 * Math.max(0, 8 - w.level) / 7;
       if (evo) {
+        // 炎の先に燃え続ける火だまりを残す
         w.trail = (w.trail || 0) - dt;
         if (w.trail <= 0) {
-          w.trail = 0.18;
-          g.addArea({ x: p.x, y: p.y, r: 26 * s.area, life: 1.6, tick: 0.3, dmg: s.dmg * 0.8, wid: 'rhodochrosite', kind: 'fire' });
+          w.trail = 0.22;
+          const d = 270 * s.speed * 0.4 * s.area * reach * 0.8;
+          g.addArea({ x: p.x + Math.cos(base) * d, y: p.y + Math.sin(base) * d, r: 30 * s.area, life: 1.6, tick: 0.3, dmg: s.dmg * 0.8, wid: 'rhodochrosite', kind: 'fire' });
         }
       }
       while (w.ft <= 0) {
         w.ft += 0.085;
         const dirs = [];
-        if (evo) for (let k = 0; k < 3; k++) dirs.push(w.ang + (k / 3) * TAU);
-        else {
-          const base = Math.atan2(p.dirY, p.dirX);
-          dirs.push(base);
-          if (s.amount >= 2) dirs.push(base + Math.PI);
-          if (s.amount >= 3) { dirs.push(base + Math.PI / 2); dirs.push(base - Math.PI / 2); }
-        }
-        // 低レベル時は射程を補正（Lv1 で +60%、Lv8 で補正なし）
-        const reach = evo ? 1 : 1 + 0.6 * Math.max(0, 8 - w.level) / 7;
+        for (let k = 0; k < n; k++) dirs.push(base + (k - (n - 1) / 2) * 0.24);
         for (const a0 of dirs) {
           const a = a0 + rand(-0.28, 0.28);
           const spd = 270 * s.speed * rand(0.85, 1.15);
           g.addProj({
             x: p.x + Math.cos(a) * 10, y: p.y + Math.sin(a) * 10, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
             r: 12 * s.area, dmg: s.dmg * 1.6 * (evo ? 1.2 : 1), pierce: 99, life: 0.4 * s.area * reach, wid: 'rhodochrosite', flame: true, knock: 20,
+            fa: n > 1 ? 1.25 / n + 0.2 : 1, // 炎が重なって白飛びしないよう、本数が多いほど 1 本ずつを薄く
             grow: 1.8,
           });
         }

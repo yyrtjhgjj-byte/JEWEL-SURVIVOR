@@ -20,6 +20,9 @@ function defaults() {
     hurry: false, // ハリーモード
     artSel: null, // 持ち込む秘宝
     upgradesOff: {}, // 工房：最大まで上げた強化のうち、無効にしているもの
+    upgrades2: {}, // 裏工房の強化レベル
+    upgrades2Off: {}, // 裏工房：最大まで上げた強化のうち、無効にしているもの
+    backShop: false, // 裏工房を解放済みか（一度解放したら、工房を返金しても閉じない）
     login: { last: '', streak: 0 },
     stages: {},
     selectedStage: 'wastes',

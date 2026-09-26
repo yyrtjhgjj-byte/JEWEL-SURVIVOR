@@ -2,7 +2,7 @@
 //  UI：タイトル / レベルアップ / 宝箱 / ガチャ / 図鑑 / リザルト
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost, backShopRate,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK,
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite } from './render.js';
@@ -107,12 +107,16 @@ function wordTag(gemId) {
   return `<span class="word-tag" style="color:${c};border-color:${c}66;background:${c}14">${GEMS[gemId].word}</span>`;
 }
 const coinIco = '<i class="coin-ico"></i>';
-function coinPill() { return `<div class="coinpill" id="coinpill">${coinIco}<span>${fmt(save.coins)}</span></div>`; }
+// 桁が多いときは数字を小さくして、画面からはみ出さないようにする
+const coinLen = () => (save.coins >= 1e6 ? 'l2' : save.coins >= 1e5 ? 'l1' : '');
+function coinPill() { return `<div class="coinpill ${coinLen()}" id="coinpill">${coinIco}<span>${fmt(save.coins)}</span></div>`; }
 function refreshCoinPill() {
   const p = $('#coinpill span');
   if (!p) return;
   p.textContent = fmt(save.coins);
   const pill = $('#coinpill');
+  pill.classList.remove('l1', 'l2');
+  if (coinLen()) pill.classList.add(coinLen());
   pill.classList.remove('bump');
   void pill.offsetWidth;
   pill.classList.add('bump');
@@ -336,36 +340,47 @@ export function showStageSelect() {
 
 // ================================================================== 工房
 // 工房：現在の効果量と次のレベルの効果量
-function shopEffect(it, lv, max) {
+function shopEffect(it, lv, max, eff = 1) {
   // 最大 Lv1 の強化（リバイブなど）は数値を増やす形ではないので、説明文をそのまま出す
   if (it.max === 1) return lv ? `<b class="scur">${it.t}</b>` : it.t;
   const m = it.t.match(/^(.*?)([+-]?)(\d+(?:\.\d+)?)(.*)$/);
   if (!m) return it.t;
   const [, label, sign, num, suf] = m;
-  const v = (n) => (n ? sign : '') + +(parseFloat(num) * n).toFixed(2) + suf;
+  const v = (n) => (n ? sign : '') + +(parseFloat(num) * n * eff).toFixed(2) + suf;
   return `${label}<b class="scur">${v(lv)}</b>${max ? '' : `<span class="snext"> → ${v(lv + 1)}</span>`}`;
 }
 
-export function showShop() {
+// back = true で裏工房（工房をすべて最大にすると解放）
+export function showShop(back = false) {
+  const up = back ? save.upgrades2 : save.upgrades;
+  const upOff = back ? save.upgrades2Off : save.upgradesOff;
+  const rate = (it) => (back ? backShopRate(it) : { eff: 1, cost: 1 });
+  const costOf = (it, lv) => shopCost(it, lv) * rate(it).cost;
+  if (!back && !save.backShop && SHOP.every((it) => (save.upgrades[it.id] || 0) >= it.max)) {
+    save.backShop = true;
+    persist();
+  }
   const node = el(`
     <div class="screen">
-      ${topbar('WORKSHOP', '工房 — 永続強化')}
+      ${back ? topbar('BACKROOM', '裏工房') : topbar('WORKSHOP', '工房 — 永続強化')}
+      ${back ? '' : `<button class="btn back-shop-btn" id="ura" ${save.backShop ? '' : 'disabled'}>BACKROOM<span class="sub">${save.backShop ? '裏工房' : '裏工房 — 工房の強化をすべて最大にすると解放'}</span></button>`}
       <div class="shop-list" id="list"></div>
       <div class="refund-row"><button class="btn small" id="refund"></button><span>最大まで上げた強化は ON／OFF を切り替えられます</span></div>
     </div>`);
   show(node);
-  $('#back', node).onclick = () => { audio.tap(); showTitle(); };
+  $('#back', node).onclick = () => { audio.tap(); if (back) showShop(false); else showTitle(); };
+  if (!back) $('#ura', node).onclick = () => { if (!save.backShop) return; audio.select(); showShop(true); };
   const list = $('#list', node);
-  const spent = () => SHOP.reduce((a, it) => { let t = 0; for (let i = 0; i < (save.upgrades[it.id] || 0); i++) t += shopCost(it, i); return a + t; }, 0);
-  // 全額返金：強化をすべて Lv0 に戻し、使ったコインを返す
+  const spent = () => SHOP.reduce((a, it) => { let t = 0; for (let i = 0; i < (up[it.id] || 0); i++) t += costOf(it, i); return a + t; }, 0);
+  // 全額返金：強化をすべて Lv0 に戻し、使ったコインを返す（工房と裏工房は別々）
   $('#refund', node).onclick = () => {
     const v = spent();
     if (!v) return;
     audio.tap();
-    if (!confirm(`工房の強化をすべて Lv0 に戻し、${fmt(v)} コインを返金します。よろしいですか？`)) return;
+    if (!confirm(`${back ? '裏工房' : '工房'}の強化をすべて Lv0 に戻し、${fmt(v)} コインを返金します。よろしいですか？`)) return;
     save.coins += v;
-    save.upgrades = {};
-    save.upgradesOff = {};
+    for (const k of Object.keys(up)) delete up[k];
+    for (const k of Object.keys(upOff)) delete upOff[k];
     persist();
     audio.coin();
     render();
@@ -377,22 +392,22 @@ export function showShop() {
     $('#refund', node).innerHTML = `全額返金 ${coinIco}${fmt(v)}`;
     $('#refund', node).disabled = !v;
     for (const it of SHOP) {
-      const lv = save.upgrades[it.id] || 0;
+      const lv = up[it.id] || 0;
       const max = lv >= it.max;
-      const cost = max ? 0 : shopCost(it, lv);
-      const off = max && !!save.upgradesOff[it.id];
+      const cost = max ? 0 : costOf(it, lv);
+      const off = max && !!upOff[it.id];
       const row = el(`<div class="shop-item ${off ? 'off' : ''}">
         <img src="${gemIcon(it.gem, 72)}">
         <div class="sbody"><div class="sname">${it.name}<small>LV ${lv}/${it.max}</small></div>
-          <div class="sdesc">${shopEffect(it, lv, max)}</div>
+          <div class="sdesc">${shopEffect(it, lv, max, rate(it).eff)}</div>
           <div class="pips">${Array.from({ length: it.max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>
         <button class="btn small ${max ? 'maxsw' : 'gold'}" ${!max && save.coins < cost ? 'disabled' : ''}>${max ? (off ? 'OFF' : 'MAX ON') : coinIco + fmt(cost)}</button>
       </div>`);
       $('.btn', row).onclick = () => {
         if (max) {
           // 最大まで上げた強化は無効にできる
-          if (save.upgradesOff[it.id]) delete save.upgradesOff[it.id];
-          else save.upgradesOff[it.id] = true;
+          if (upOff[it.id]) delete upOff[it.id];
+          else upOff[it.id] = true;
           persist();
           audio.tap();
           render();
@@ -400,7 +415,7 @@ export function showShop() {
         }
         if (save.coins < cost) return;
         save.coins -= cost;
-        save.upgrades[it.id] = lv + 1;
+        up[it.id] = lv + 1;
         persist();
         audio.levelUp();
         haptic();

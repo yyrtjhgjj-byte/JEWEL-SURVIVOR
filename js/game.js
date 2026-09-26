@@ -2,7 +2,7 @@
 //  ゲーム本体
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, LIMIT_BREAK,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, LIMIT_BREAK, backShopRate,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods } from './stages.js';
@@ -181,6 +181,8 @@ export class Game {
     for (const it of SHOP) {
       const lv = save.upgrades[it.id] || 0;
       if (lv && !save.upgradesOff[it.id]) add(it.per, lv); // 工房で無効にした強化は入れない
+      const lv2 = (save.upgrades2 || {})[it.id] || 0; // 裏工房
+      if (lv2 && !(save.upgrades2Off || {})[it.id]) add(it.per, lv2 * backShopRate(it).eff);
     }
     s.might += 0.05 * (save.awaken[this.charId] || 0);
     add(collectionStats()); // 研磨コレクションの練度ボーナス
@@ -1919,7 +1921,7 @@ export class Game {
         ctx.globalCompositeOperation = 'lighter';
         const spr = softSprite(t > 0.6 ? '#ffb84a' : t > 0.3 ? '#ff6a3d' : '#d62d6a');
         const s = pr.r * 0.9;
-        ctx.globalAlpha = Math.min(1, t * 2.2);
+        ctx.globalAlpha = Math.min(1, t * 2.2) * (pr.fa || 1);
         // 進行方向に引き伸ばして、玉が途切れず炎の帯に見えるように
         const L = s + Math.hypot(pr.vx, pr.vy) * 0.09;
         ctx.save();
@@ -1930,7 +1932,7 @@ export class Game {
         if (t > 0.25) {
           // 芯（白飛びしない程度の明るいオレンジ）
           const c = pr.r * 0.5;
-          ctx.globalAlpha = Math.min(0.85, (t - 0.25) * 2);
+          ctx.globalAlpha = Math.min(0.85, (t - 0.25) * 2) * (pr.fa || 1);
           ctx.drawImage(softSprite('#ffcf6a'), pr.x - c, pr.y - c, c * 2, c * 2);
         }
         ctx.globalAlpha = 1;

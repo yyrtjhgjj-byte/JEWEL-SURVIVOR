@@ -137,6 +137,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
   box-shadow: 0 0 8px rgba(255,197,61,0.7); flex: none;
 }
 .coinpill.bump { animation: bump 0.3s; }
+.coinpill.l1 span { font-size: 0.85em; }
+.coinpill.l2 span { font-size: 0.72em; }
 @keyframes bump { 50% { transform: scale(1.12); } }
 
 /* ------------------------------------------------------------------ タイトル */
@@ -440,6 +442,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 
 /* ------------------------------------------------------------------ 工房 */
 .shop-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px; }
+.back-shop-btn { flex: none; width: 100%; max-width: 520px; margin-bottom: 10px; border-color: rgba(196,92,255,0.45); box-shadow: 0 0 14px rgba(196,92,255,0.18); }
 .shop-item { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; }
 .shop-item img { width: 40px; height: 40px; flex: none; }
 .shop-item .sbody { flex: 1; min-width: 0; }
