@@ -38,7 +38,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 #app { position: fixed; inset: 0; overflow: hidden; text-wrap: pretty; line-break: strict; }
 /* 折り返し：最後の行に 1〜2 文字だけ残らないようにする。名前は「・」の位置で分ける（ui.js の addWbr） */
 .evo-name, .card .cname, .zitem .zname, .sub-title, .banner, .toast .tt { text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; }
-.card .cdesc, .zitem .ztext, .zitem .zevo, #screens small { text-wrap: balance; }
+/* 行の長さをそろえるのは短い文字（カードの説明・注記）だけ。図鑑などの長い説明文にかけると不自然な位置で切れるので、ふつうに折り返す */
+.card .cdesc, #screens small { text-wrap: balance; }
+.nw { white-space: nowrap; } /* ひとかたまりで折り返す */
 #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* ------------------------------------------------------------------ 文字 */
