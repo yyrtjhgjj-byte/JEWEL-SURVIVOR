@@ -3,7 +3,7 @@
 // =====================================================================
 import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost,
-  ACHIEVEMENTS, GACHA_COST, GACHA10_COST,
+  ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA_TABLE, EXCHANGE, AWAKEN_MAX,
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, enemySprite } from './render.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
@@ -122,7 +122,7 @@ export function showTitle() {
           <button class="btn" id="t-atelier">ATELIER<span class="sub">研磨</span>${totalRough() ? `<b class="badge">${totalRough()}</b>` : ''}</button>
         </div>
         <div class="title-row">
-          <button class="btn" id="t-gacha">SUMMON<span class="sub">ガチャ</span></button>
+          <button class="btn" id="t-gacha">SUMMON<span class="sub">原石ガチャ</span></button>
           <button class="btn" id="t-zukan">ARCHIVE<span class="sub">図鑑・実績</span></button>
         </div>
       </div>
@@ -339,47 +339,32 @@ export function showShop() {
 }
 
 // ================================================================== ガチャ
-function gachaRoll(guarantee) {
-  const r = Math.random();
-  const locked = CHAR_IDS.filter((id) => !CHARACTERS[id].start);
-  let rank;
-  if (r < 0.03) rank = 'UR';
-  else if (r < 0.13) rank = 'SSR';
-  else if (r < 0.4) rank = 'SR';
-  else rank = 'R';
-  if (guarantee && rank === 'R') rank = 'SR';
-  if (rank === 'UR' || rank === 'SSR') {
-    const poolIds = locked.filter((id) => (rank === 'UR' ? CHARACTERS[id].rarity === 'UR' : CHARACTERS[id].rarity !== 'UR'));
-    const id = pick(poolIds);
-    if (!save.unlocked[id]) {
-      save.unlocked[id] = true;
-      return { rank, kind: 'char', id, isNew: true };
-    }
-    const aw = save.awaken[id] || 0;
-    if (aw < 5) {
-      save.awaken[id] = aw + 1;
-      return { rank, kind: 'awaken', id, level: aw + 1 };
-    }
-    save.coins += 800;
-    return { rank, kind: 'coins', value: 800 };
-  }
-  const value = rank === 'SR' ? 300 : 80;
-  save.coins += value;
-  return { rank, kind: 'coins', value };
+// 1 回分を抽選。minRank 以上を保証する（10 連の確定枠）
+function gachaRoll(minRank = 'R') {
+  const minN = rankNum(minRank);
+  const table = GACHA_TABLE.filter((t) => rankNum(t.rank) >= minN);
+  const total = table.reduce((a, t) => a + t.p, 0);
+  let r = Math.random() * total;
+  let row = table[table.length - 1];
+  for (const t of table) { r -= t.p; if (r <= 0) { row = t; break; } }
+  save.rough[row.tier] = (save.rough[row.tier] || 0) + row.n;
+  save.dust = (save.dust || 0) + row.dust;
+  return { rank: row.rank, tier: row.tier, n: row.n, dust: row.dust };
 }
 const RANK_COLOR = { R: '#4da3ff', SR: '#ffc53d', SSR: '#ff4fd8', UR: '#ffffff' };
 
 export function showGacha() {
   const node = el(`
     <div class="screen gacha-screen">
-      ${topbar('SUMMON', 'ガチャ')}
+      ${topbar('SUMMON', '原石ガチャ')}
       <div class="altar" id="altar"><div class="ring"></div><div class="ring r2"></div><div class="core"></div></div>
       <div id="gres" class="center-col"></div>
       <div class="rbtns" id="gbtns">
         <button class="btn gold" id="g1">×1<span class="sub">${fmt(GACHA_COST)} コイン</span></button>
-        <button class="btn primary" id="g10">×10<span class="sub">${fmt(GACHA10_COST)} コイン・SR以上1枠確定</span></button>
+        <button class="btn primary" id="g10">×10<span class="sub">${fmt(GACHA10_COST)} コイン・大原石以上1枠確定</span></button>
       </div>
-      <div class="odds">UR 3%（ダイヤモンド／オパール／ムーンストーン） ／ SSR 10%（その他のジュエル）<br>SR 27%（300コイン） ／ R 60%（80コイン）<br>所持済みのジュエルは「覚醒」（攻撃力+5%、最大5段階）</div>
+      <button class="btn dust-btn" id="gex">EXCHANGE<span class="sub">交換所 ／ ジェムダスト <b id="dustn">${fmt(save.dust || 0)}</b></span></button>
+      <div class="odds">UR 3%：秘石 ／ SSR 10%：大原石 ／ SR 27%：原石 ／ R 60%：原石の欠片 ×2<br>引くたびにジェムダスト（UR 10 ／ SSR 5 ／ SR 2 ／ R 1）が貯まり、交換所で秘石・大原石・覚醒と交換できます</div>
     </div>`);
   show(node);
   $('#back', node).onclick = () => { audio.tap(); showTitle(); };
@@ -388,7 +373,9 @@ export function showGacha() {
   const upd = () => {
     $('#g1', node).disabled = save.coins < GACHA_COST;
     $('#g10', node).disabled = save.coins < GACHA10_COST;
+    $('#dustn', node).textContent = fmt(save.dust || 0);
   };
+  $('#gex', node).onclick = () => { audio.tap(); showExchange(upd); };
   upd();
   const run = async (n) => {
     const cost = n === 1 ? GACHA_COST : GACHA10_COST;
@@ -396,7 +383,7 @@ export function showGacha() {
     save.coins -= cost;
     save.stats.gacha += n;
     const results = [];
-    for (let i = 0; i < n; i++) results.push(gachaRoll(n === 10 && i === 9 && !results.some((r) => r.rank !== 'R')));
+    for (let i = 0; i < n; i++) results.push(gachaRoll(n === 10 && i === 9 && !results.some((r) => rankNum(r.rank) >= 3) ? 'SSR' : 'R'));
     persist();
     refreshCoinPill();
     btns.style.visibility = 'hidden';
@@ -436,21 +423,63 @@ export function showGacha() {
     }
     btns.style.visibility = '';
     upd();
+    getApp().checkMetaAchievements && getApp().checkMetaAchievements();
+    refreshCoinPill();
   };
   $('#g1', node).onclick = () => run(1);
   $('#g10', node).onclick = () => run(10);
 }
 const rankNum = (r) => ({ R: 1, SR: 2, SSR: 3, UR: 4 })[r] || 0;
 function gachaCardHTML(r, big) {
-  let icon, name;
-  if (r.kind === 'coins') { icon = coinIcon(96); name = `${fmt(r.value)} コイン`; }
-  else if (r.kind === 'char') { icon = gemIcon(r.id, 120); name = GEMS[r.id].jp; }
-  else { icon = gemIcon(r.id, 120); name = `${GEMS[r.id].jp} 覚醒★${r.level}`; }
+  const R = ROUGH[r.tier];
+  const icon = roughIcon(r.tier, R.color, big ? 120 : 72);
+  const name = `${R.name}${r.n > 1 ? ` ×${r.n}` : ''}`;
   if (big) {
     return `<div class="gacha-big"><span class="rarbadge r-${r.rank}" style="font-size:16px;line-height:22px;padding:0 10px">${r.rank}</span><img src="${icon}"><div class="gname">${name}</div>
-      ${r.kind === 'char' ? `<div class="hint">NEW — ${GEMS[r.id].en}「${GEMS[r.id].word}」を獲得</div>` : ''}</div>`;
+      <div class="hint">ジェムダスト +${r.dust}</div></div>`;
   }
-  return `<div class="gcard r-${r.rank}">${r.kind === 'char' ? '<span class="gnew">NEW</span>' : ''}<span class="rarbadge r-${r.rank}">${r.rank}</span><img src="${icon}"><div class="gn">${name}</div></div>`;
+  return `<div class="gcard r-${r.rank}"><span class="rarbadge r-${r.rank}">${r.rank}</span><img src="${icon}"><div class="gn">${name}</div></div>`;
+}
+
+// ------------------------------------------------------------------ 交換所
+function showExchange(onClose) {
+  const ov = el(`<div class="screen dim at-over">
+    <div class="panel exch">
+      <div class="exch-head"><span>EXCHANGE <small>交換所</small></span><span class="dustv">ジェムダスト <b id="xd"></b></span></div>
+      <div id="xl"></div>
+      <button class="btn" id="xok">閉じる</button>
+    </div></div>`);
+  const render = () => {
+    $('#xd', ov).textContent = fmt(save.dust || 0);
+    const xl = $('#xl', ov);
+    xl.innerHTML = '';
+    const row = (icon, name, sub, cost, can, fn) => {
+      const r = el(`<div class="exch-row"><img src="${icon}"><div class="xb"><div class="xn">${name}</div><div class="xs">${sub}</div></div>
+        <button class="btn small gold" ${can && (save.dust || 0) >= cost ? '' : 'disabled'}>${cost}</button></div>`);
+      $('button', r).onclick = () => {
+        if ((save.dust || 0) < cost || !can) return;
+        save.dust -= cost;
+        fn();
+        persist();
+        audio.levelUp();
+        haptic();
+        render();
+      };
+      xl.appendChild(r);
+    };
+    for (const t of ['mystic', 'large']) {
+      row(roughIcon(t, ROUGH[t].color, 72), ROUGH[t].name, `所持 ${save.rough[t] || 0}`, EXCHANGE[t], true, () => { save.rough[t] = (save.rough[t] || 0) + 1; });
+    }
+    xl.appendChild(el('<div class="exch-label">覚醒（攻撃力 +5% ／ 最大 5 段階）</div>'));
+    for (const id of CHAR_IDS) {
+      if (!save.unlocked[id]) continue;
+      const aw = save.awaken[id] || 0;
+      row(gemIcon(id, 72), GEMS[id].jp, aw >= AWAKEN_MAX ? '覚醒 MAX' : `覚醒 ★${aw} → ★${aw + 1}`, EXCHANGE.awaken, aw < AWAKEN_MAX, () => { save.awaken[id] = aw + 1; });
+    }
+  };
+  render();
+  screens().appendChild(ov);
+  $('#xok', ov).onclick = () => { audio.tap(); ov.remove(); if (onClose) onClose(); };
 }
 
 // ================================================================== 図鑑

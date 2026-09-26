@@ -298,6 +298,13 @@ if (save.stats.clears > 0 && !(save.stages.wastes && save.stages.wastes.cleared)
   save.stages.wastes = { cleared: true, heat: 0, best: save.best.time || 600 };
   persist();
 }
+// 解放条件を実績に移したキャラ：すでにその実績を持っていれば解放しておく
+for (const a of ACHIEVEMENTS) {
+  if (a.unlock && save.achievements[a.id] && !save.unlocked[a.unlock]) {
+    save.unlocked[a.unlock] = true;
+    persist();
+  }
+}
 
 UI.initUI({ startGame, toTitle, checkMetaAchievements: () => checkAchievements(null, true) });
 window.__save = save; // デバッグ用
