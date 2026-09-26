@@ -11,6 +11,7 @@ import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
 import { ELEMENTS, GEM_ELEMENT, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState } from './rank.js';
+import { HOWTO } from './howto.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
@@ -171,6 +172,18 @@ function showRank() {
   ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
 }
 
+// ------------------------------------------------------------------ 遊び方
+function showHowTo() {
+  const node = el(`
+    <div class="screen howto-screen">
+      ${topbar('HOW TO PLAY', '遊び方', '<div style="width:44px"></div>')}
+      <div class="howto-list">${HOWTO.map((s) => `<details class="panel howto"><summary>${s.t}</summary><div class="howto-body">${s.b}</div></details>`).join('')}</div>
+    </div>`);
+  show(node);
+  $('#back', node).onclick = () => { audio.tap(); showTitle(); };
+  node.querySelectorAll('summary').forEach((s) => s.addEventListener('click', () => audio.tap()));
+}
+
 export function showTitle() {
   audio.playBgm('title');
   const cid = save.selected;
@@ -196,12 +209,14 @@ export function showTitle() {
           <button class="btn" id="t-gacha">MINING<span class="sub">採掘</span></button>
           <button class="btn" id="t-zukan">ARCHIVE<span class="sub">図鑑・実績</span></button>
         </div>
+        <button class="btn howto-btn" id="t-howto">HOW TO PLAY<span class="sub">遊び方</span></button>
       </div>
     </div>`);
   show(node);
   const tap = (id, fn) => $(id, node).addEventListener('click', () => { audio.unlock(); audio.tap(); fn(); });
   tap('#t-play', showCharSelect);
   tap('#t-rank', showRank);
+  tap('#t-howto', showHowTo);
   tap('#t-shop', showShop);
   tap('#t-gacha', showGacha);
   tap('#t-zukan', () => showZukan('gems'));

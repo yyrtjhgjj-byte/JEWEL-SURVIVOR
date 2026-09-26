@@ -65,6 +65,7 @@ js/artifact-art.js    秘宝の描き下ろしの絵（drawArtifact）。確認�
 js/shop-art.js        工房の強化 19 種の描き下ろしアイコン（drawShopIcon、render.js の shopIcon）。tools/shop-preview.html で一覧できる
 js/elements.js        属性（8 種）の定義、宝石ごとの属性、発動・状態異常・揃えたボーナスの処理
 js/rank.js            ユーザーレベル（ランク）：経験値、称号、獲得コインの倍率
+js/howto.js           遊び方（HOW TO PLAY）の本文。項目ごとの見出しと箇条書き。**仕様を変えたらここも直す**
 js/gem-facts.js       実在の宝石としての情報（モース硬度・主な産地・名前の由来・小ネタ）。研磨コレクションの詳細に出す
 js/atelier-ui.js      研磨工房の画面（研磨ミニゲーム、自動研磨、コレクション）。ui.js と相互に import している
 js/util.js            rand / chance / fmt などの小物
@@ -240,7 +241,9 @@ docs/GEMS.md          ジュエルパワーの対応表
   - 練度 = 最高品質（C=1〜SS=5）＋研磨数 3/10/30 でそれぞれ +1（最大 8）。練度に応じて、宝石ごとのジュエルパワーに沿った小さな永続ボーナスが付く（atelier.js の MASTERY_BONUS。computeStats で加算）。
     ボーナスには最大カラットの倍率 `1 + ct / 10` を掛ける（3.69ct なら ×1.369。atelier.js の caratMul）。工房に比べて弱いと言われて追加した。
   - 実績（meta: true）：初研磨、100 個研磨、SS、14 種、28 種、練度最大。meta の実績はラン以外（研磨時）にも判定する（main.js の checkAchievements(null, true)）。
-- タイトル画面のメニューは START、WORKSHOP、ATELIER（未研磨の原石数をバッジ表示）、MINING（採掘）、ARCHIVE（図鑑・実績）。以前の RECORDS ボタンは、図鑑の「実績」タブに統合した。
+- タイトル画面のメニューは START、WORKSHOP、ATELIER（未研磨の原石数をバッジ表示）、MINING（採掘）、ARCHIVE（図鑑・実績）、一番下に細い HOW TO PLAY（遊び方）。
+- **遊び方（HOW TO PLAY）**：説明と仕様をすべてここにまとめる（js/howto.js、項目ごとに開閉）。各画面にある説明は、その場の方が分かりやすいので消さない（ユーザーの判断）。
+  仕様や数値を変えたら、js/howto.js も合わせて直すこと。以前の RECORDS ボタンは、図鑑の「実績」タブに統合した。
 - **ユーザーレベル（ランク、js/rank.js）**：ランが終わるたびに経験値が入る（settleRun。ボットでは入らない）。
   経験値 = (生存秒 ÷ 6 ＋ 撃破数 ÷ 20 ＋ ボス × 20 ＋ クリア 100) × (1 ＋ 0.1 × ヒート)。10 分のクリアで 400 前後。次のレベルまで 80 ＋ 25 × Lv。
   恩恵は獲得コイン：1 レベルにつき +0.5%（Lv50 で 1.25 倍。computeStats で greed に掛ける）。
@@ -295,7 +298,7 @@ docs/GEMS.md          ジュエルパワーの対応表
 ## 6. リリース手順（毎回これで行う）
 
 1. 作業ブランチは `claude/ios-gem-vampire-survivor-zeod5k`。セッションの指示で別のブランチ名が指定されていれば、そちらに従う。
-2. **sw.js の `CACHE` の版数を必ず 1 つ上げる**（現在は `jewel-survivor-v41`）。新しいファイルを追加したときは `ASSETS` にも足す。
+2. **sw.js の `CACHE` の版数を必ず 1 つ上げる**（現在は `jewel-survivor-v42`）。新しいファイルを追加したときは `ASSETS` にも足す。
 3. `node --check` で構文を確認し、必要に応じて tools/test で動作を確認する。
 4. main に取り込む手順（これまでは毎回 squash マージで、ブランチをリセットしてから載せ直している）：
    ```sh
@@ -388,6 +391,7 @@ NODE_PATH=/opt/node22/lib/node_modules node tools/test/wrap.js
 19. 研磨で出る宝石を実際の産出量に緩く準拠。品質の色を指定どおりに（A 紫・C 緑）し、レア度の色もそれにそろえた。「閉じる」ボタンの見切れを直し、wrap.js に見切れの検出を追加。
 20. 属性システム（8 属性・オマケ程度）を追加。リミットブレイクが進化前に出る不具合を修正。
 21. ユーザーレベル（ランク）を追加。レベルアップのカードの N を白に。カメラを引く案を ?cam= で比較（80% / 90%）。
+22. タイトル画面に HOW TO PLAY（遊び方）を追加し、全仕様をまとめた。
 
 ---
 

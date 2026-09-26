@@ -25,7 +25,7 @@ function findOrphans(label) {
     if (!n.data.trim()) continue;
     const b = blockOf(n);
     if (!b || !b.offsetParent || b.closest('#hud')) continue;
-    if (b.closest('.ztext, .zevo, .lore, .gd-lore, .gd-fr, .gd-trivia, .elem-note')) continue; // 図鑑・ジュエル選択の長い説明文は、ふつうの折り返しでよい（ユーザーの判断）
+    if (b.closest('.ztext, .zevo, .lore, .gd-lore, .gd-fr, .gd-trivia, .elem-note, .howto-body')) continue; // 図鑑・ジュエル選択の長い説明文は、ふつうの折り返しでよい（ユーザーの判断）
     if (!groups.has(b)) groups.set(b, []);
     groups.get(b).push(n);
   }
@@ -146,6 +146,7 @@ async function fullSave(p) {
       await back();
       await p.click('#t-zukan'); await clickAll('.tabs button, .seg button', 'zukan'); await back();
       await p.click('#t-set'); await check('settings'); await back();
+      await p.click('#t-howto'); await p.evaluate(() => document.querySelectorAll('.howto').forEach((d) => (d.open = true))); await check('howto'); await back();
 
       // ラン中の画面
       await p.goto(BASE + '/?auto=ruby&god&build=ruby,sapphire,garnet,amber');
