@@ -38,6 +38,39 @@ let app = null;
 export function initUI(a) {
   app = a;
   setupHaptic();
+  setupWordBreaks();
+}
+
+// ------------------------------------------------------------------ 折り返し
+// 「・」の直後に改行位置（<wbr>）を入れる。名前の欄は CSS の keep-all で単語の途中では改行せず、
+// 「ゴールデン・／ジャックポット」のように「・」で分かれる
+function addWbr(root) {
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const hits = [];
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    const i = n.data.indexOf('・');
+    if (i >= 0 && i < n.data.length - 1) hits.push(n);
+  }
+  for (let n of hits) {
+    let i;
+    while ((i = n.data.indexOf('・')) >= 0 && i < n.data.length - 1) {
+      const rest = n.splitText(i + 1);
+      n.parentNode.insertBefore(document.createElement('wbr'), rest);
+      n = rest;
+    }
+  }
+}
+function setupWordBreaks() {
+  const mo = new MutationObserver((list) => {
+    for (const m of list) for (const n of m.addedNodes) {
+      if (n.nodeType === 1) addWbr(n);
+      else if (n.nodeType === 3 && n.parentNode) addWbr(n.parentNode);
+    }
+  });
+  for (const id of ['screens', 'banners', 'toasts']) {
+    const box = document.getElementById(id);
+    if (box) mo.observe(box, { childList: true, subtree: true });
+  }
 }
 
 // ------------------------------------------------------------------ 振動
@@ -817,12 +850,14 @@ export function banner(text, kind = '', sub = '') {
   box.appendChild(b);
   setTimeout(() => b.remove(), kind === 'warning' ? 2500 : 2300);
 }
-export function toast(title, sub) {
+export function toast(title, sub, label = 'ACHIEVEMENT UNLOCKED') {
   const box = $('#toasts');
-  const t = el('<div class="toast"><span class="label">ACHIEVEMENT UNLOCKED</span><span class="tt"></span><small></small></div>');
+  const t = el('<div class="toast"><span class="label"></span><span class="tt"></span><small></small></div>');
+  $('.label', t).textContent = label;
   $('.tt', t).textContent = title;
   $('small', t).textContent = sub;
   box.appendChild(t);
+  while (box.children.length > 3) box.firstElementChild.remove(); // 同時に出すのは 3 件まで
   audio.milestone();
   setTimeout(() => t.remove(), 3300);
 }

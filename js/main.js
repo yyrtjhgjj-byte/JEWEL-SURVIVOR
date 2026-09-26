@@ -227,7 +227,15 @@ function finishRun(res, cleared) {
   UI.hudShow(false);
   document.getElementById('movehint').classList.add('hidden');
   audio.tempoMul = 1;
-  // セーブ
+  const extra = settleRun(res, cleared);
+  extra.newAch = [...achDuringRun, ...extra.newAch];
+  if (DEBUG.bot) window.__lastResult = { ...res, cleared };
+  UI.results(res, cleared, extra);
+}
+
+// ランの成績をセーブに反映する（コイン・原石・記録・ステージのクリアなど）
+function settleRun(res, cleared) {
+  delete save.pendingRun;
   const stage = STAGE_BY_ID[res.stageId] || STAGE_BY_ID.wastes;
   const rec = save.stages[stage.id] || (save.stages[stage.id] = {});
   const firstClear = cleared && !rec.cleared;
@@ -255,10 +263,25 @@ function finishRun(res, cleared) {
     newBest[k] = v > (save.best[k] || 0) && save.stats.runs > 1;
     if (v > (save.best[k] || 0)) save.best[k] = v;
   }
-  const newAch = [...achDuringRun, ...checkAchievements(res, false)];
+  const newAch = checkAchievements(res, false);
   persist();
-  if (DEBUG.bot) window.__lastResult = { ...res, cleared };
-  UI.results(res, cleared, { coinsEarned, newBest, newAch, firstClear, unlocked, nextStage });
+  return { coinsEarned, newBest, newAch, firstClear, unlocked, nextStage };
+}
+
+// 途中保存：ラン中の成績を数秒ごとにセーブへ書いておく。iPhone がバックグラウンドのアプリを終了させても、
+// 次の起動時にリタイア扱いで報酬を反映する（最終ボス撃破後ならクリア扱い）
+function saveRunSnapshot() {
+  if (!game || DEBUG.bot || game.state === 'over') return;
+  save.pendingRun = game.results();
+  persist();
+}
+setInterval(saveRunSnapshot, 5000);
+window.addEventListener('pagehide', saveRunSnapshot);
+function recoverPendingRun() {
+  const res = save.pendingRun;
+  if (!res || typeof res !== 'object' || !res.stageId) { delete save.pendingRun; return; }
+  const r = settleRun(res, !!res.cleared);
+  setTimeout(() => UI.toast('中断したプレイの報酬を反映', `+${r.coinsEarned} コイン`, 'RECOVERED'), 600);
 }
 
 function toTitle() {
@@ -282,6 +305,7 @@ document.getElementById('pausebtn').addEventListener('click', () => {
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
+    saveRunSnapshot();
     audio.suspend();
     input.reset(); // 指を離したことが伝わらずスティックが効かなくなるのを防ぐ
     if (game && game.pause()) {
@@ -312,6 +336,7 @@ for (const a of ACHIEVEMENTS) {
 
 UI.initUI({ startGame, toTitle, checkMetaAchievements: () => checkAchievements(null, true) });
 window.__save = save; // デバッグ用
+recoverPendingRun();
 
 if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), artifact: params.get('art'), stageId: DEBUG.stage, heat: DEBUG.heat });
 else UI.showTitle();
