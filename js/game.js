@@ -1103,7 +1103,6 @@ export class Game {
     let dmg = amount;
     if (this.feverT > 0) dmg *= 1.5;
     if (e.breakT > 0) dmg *= 2; // ブレイク中のボスは被ダメージ 2 倍
-    if (this.charId === 'ruby' && p.hp < p.maxHp * 0.5) dmg *= 1.3;
     const ev = elementVs(this, e);
     dmg *= ev.mul;
     const crit = o.forceCrit || (!o.dot && chance(this.stats.crit + ev.crit));

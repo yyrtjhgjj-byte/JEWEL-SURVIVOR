@@ -429,7 +429,7 @@ export const BASE_STATS = {
 //  キャラ（初期ジュエル）
 // ---------------------------------------------------------------------
 export const CHARACTERS = {
-  ruby: { weapon: 'ruby', perk: 'HP50%以下で攻撃力 +30%', stats: { might: 0.1 }, start: true },
+  ruby: { weapon: 'ruby', perk: 'クリティカル率 +5% / クリティカル威力 +50%', stats: { crit: 0.05, critDmg: 0.5 }, start: true },
   sapphire: { weapon: 'sapphire', perk: '回収範囲 +20% / クールダウン短縮 5%', stats: { magnet: 0.2, cooldown: -0.05 }, start: true },
   garnet: { weapon: 'garnet', perk: '最大HP +20 / 自然回復 +0.2', stats: { maxHp: 20, regen: 0.2 }, start: true },
   labradorite: { weapon: 'labradorite', perk: 'クリティカル率 +5%', stats: { crit: 0.05 }, unlock: '1回のプレイで1000体撃破' },
@@ -513,13 +513,13 @@ export const SHOP = [
   { id: 'amount', name: '弾数', gem: 'nephrite', max: 1, base: 5000, per: { amount: 1 }, t: '全武器の弾数 +1' },
 ];
 export function shopCost(item, lv) {
-  return Math.round(item.base * [1, 2.2, 3.8, 6, 9, 13][lv] / 10) * 10;
+  return Math.round(item.base * [1, 2.2, 3.8, 6, 9, 13][lv] / 10) * 20;
 }
-// 裏工房：工房をすべて最大にすると解放されるやり込み用の強化。内容と回数は工房と同じで、効果は半分・費用は 12 倍。
-// 回数を増やす強化（リロールなど）や、リバイブ・弾数のように半分にできないものは、効果はそのままで費用 24 倍
+// 裏工房：工房をすべて最大にすると解放されるやり込み用の強化。内容と回数は工房と同じで、効果は半分・費用は工房の 6 倍。
+// 回数を増やす強化（リロールなど）や、リバイブ・弾数のように半分にできないものは、効果はそのままで費用 12 倍
 const BACK_FULL = ['reroll', 'skip', 'banish', 'revive', 'amount'];
 export function backShopRate(item) {
-  return BACK_FULL.includes(item.id) ? { eff: 1, cost: 24 } : { eff: 0.5, cost: 12 };
+  return BACK_FULL.includes(item.id) ? { eff: 1, cost: 12 } : { eff: 0.5, cost: 6 };
 }
 
 // ---------------------------------------------------------------------
