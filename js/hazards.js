@@ -118,7 +118,7 @@ export class Hazards {
       for (const o of list) if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 < (o.r - 4) ** 2) inLava = true;
       if (inLava && this.lavaT <= 0) {
         this.lavaT = 0.4;
-        g.hurtPlayer(6 * g.stageDmg, { ignoreIT: true, silent: true });
+        g.hurtPlayer(12 * g.stageDmg, { ignoreIT: true, silent: true }); // 溶岩（敵の攻撃力と合わせて 2 倍）
         g.fx.burst(p.x, p.y, '#ff6a3d', 4, 120, 0.3, 8);
       }
       // 噴火
@@ -134,7 +134,7 @@ export class Hazards {
             g2.fx.ring(x, y, 8, 60, 0.35, '#ffb84a', 6);
             g2.fx.shake(3);
             audio.bomb();
-            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 55 + g2.player.r) g2.hurtPlayer(16 * g2.stageDmg);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 55 + g2.player.r) g2.hurtPlayer(32 * g2.stageDmg); // 噴火（2 倍）
             g2.aoe(x, y, 55, 300 * g2.hpScale(), null, { kb: 150 });
           });
         }
