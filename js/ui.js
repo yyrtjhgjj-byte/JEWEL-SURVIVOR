@@ -5,7 +5,7 @@ import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost, backShopRate,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK,
 } from './data.js';
-import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite } from './render.js';
+import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite, shopIcon } from './render.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
@@ -397,7 +397,7 @@ export function showShop(back = false) {
       const cost = max ? 0 : costOf(it, lv);
       const off = max && !!upOff[it.id];
       const row = el(`<div class="shop-item ${off ? 'off' : ''}">
-        <img src="${gemIcon(it.gem, 72)}">
+        <img src="${shopIcon(it.id, 72)}">
         <div class="sbody"><div class="sname">${it.name}<small>LV ${lv}/${it.max}</small></div>
           <div class="sdesc">${shopEffect(it, lv, max, rate(it).eff)}</div>
           <div class="pips">${Array.from({ length: it.max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>

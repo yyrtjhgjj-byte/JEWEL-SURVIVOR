@@ -1,10 +1,10 @@
 // オフラインでも あそべるように キャッシュする
-const CACHE = 'jewel-survivor-v30';
+const CACHE = 'jewel-survivor-v31';
 const ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/game.js', './js/weapons.js', './js/data.js', './js/render.js', './js/fx.js',
   './js/audio.js', './js/input.js', './js/ui.js', './js/save.js', './js/util.js',
-  './js/stages.js', './js/enemies.js', './js/hazards.js', './js/atelier.js', './js/atelier-ui.js', './js/artifacts.js', './js/artifact-art.js',
+  './js/stages.js', './js/enemies.js', './js/hazards.js', './js/atelier.js', './js/atelier-ui.js', './js/artifacts.js', './js/artifact-art.js', './js/shop-art.js',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
 ];
 

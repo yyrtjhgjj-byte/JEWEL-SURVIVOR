@@ -4,6 +4,7 @@
 import { GEMS } from './data.js';
 import { TAU, mix, rgba, hexToRgb } from './util.js';
 import { drawArtifact } from './artifact-art.js';
+import { drawShopIcon } from './shop-art.js';
 
 const RES = 2; // スプライトの 解像度倍率
 
@@ -305,6 +306,21 @@ export function artifactIcon(id, size = 72) {
   ctx.translate(W / 2, W / 2);
   drawArtifact(ctx, id, W * 0.92);
   ctx.restore();
+  u = c.toDataURL();
+  iconCache.set(key, u);
+  return u;
+}
+
+// 工房の強化のアイコン（描き下ろし。shop-art.js）。枠は付けない（工房のカードの中に置くため）
+export function shopIcon(id, size = 72) {
+  const key = 'shop:' + id + ':' + size;
+  let u = iconCache.get(key);
+  if (u) return u;
+  const c = makeCanvas(size * 2, size * 2);
+  const ctx = c.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.translate(size / 2, size / 2);
+  drawShopIcon(ctx, id, size * 0.96);
   u = c.toDataURL();
   iconCache.set(key, u);
   return u;

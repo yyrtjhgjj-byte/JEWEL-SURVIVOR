@@ -62,6 +62,7 @@ js/save.js            localStorage へのセーブ（キー jewel-survivor-save-
 js/atelier.js         研磨工房のロジック（原石の等級、品質、練度、コレクションボーナス、ドロップ）
 js/artifacts.js       秘宝（アルカナ相当）の定義と解放判定
 js/artifact-art.js    秘宝の描き下ろしの絵（drawArtifact）。確認用に tools/artifact-preview.html で 11 種を一覧できる
+js/shop-art.js        工房の強化 19 種の描き下ろしアイコン（drawShopIcon、render.js の shopIcon）。tools/shop-preview.html で一覧できる
 js/atelier-ui.js      研磨工房の画面（研磨ミニゲーム、自動研磨、コレクション）。ui.js と相互に import している
 js/util.js            rand / chance / fmt などの小物
 sw.js                 Service Worker（ネットワーク優先、オフライン時はキャッシュ）
@@ -248,7 +249,7 @@ docs/GEMS.md          ジュエルパワーの対応表
 ## 6. リリース手順（毎回これで行う）
 
 1. 作業ブランチは `claude/ios-gem-vampire-survivor-zeod5k`。セッションの指示で別のブランチ名が指定されていれば、そちらに従う。
-2. **sw.js の `CACHE` の版数を必ず 1 つ上げる**（現在は `jewel-survivor-v30`）。新しいファイルを追加したときは `ASSETS` にも足す。
+2. **sw.js の `CACHE` の版数を必ず 1 つ上げる**（現在は `jewel-survivor-v31`）。新しいファイルを追加したときは `ASSETS` にも足す。
 3. `node --check` で構文を確認し、必要に応じて tools/test で動作を確認する。
 4. main に取り込む手順（これまでは毎回 squash マージで、ブランチをリセットしてから載せ直している）：
    ```sh
