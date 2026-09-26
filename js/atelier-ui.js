@@ -369,8 +369,7 @@ function factsHtml(id, has) {
     <div class="rrow2"><span>モース硬度</span><b class="gd-hard">${has ? hs : q}<span class="hbar">${bar}</span></b></div>
     <div class="gd-fr"><span>主な産地</span><p>${has ? f.o.split('・').map((s) => `<span class="nw">${s}</span>`).join('・<wbr>') : q}</p></div>
     <div class="gd-fr"><span>名前の由来</span><p>${has ? f.n : q}</p></div>
-    ${f.d ? `<div class="gd-desc">${has ? f.d : q}</div>` : ''}
-    <div class="gd-trivia">${has ? f.t : q}</div>
+    <div class="gd-trivia">${has ? `${f.d ? `<p>${f.d}</p>` : ''}<p>${f.t}</p>` : q}</div>
   </div>`;
 }
 
