@@ -5,7 +5,7 @@ import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, LIMIT_BREAK, backShopRate,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
-import { STAGE_BY_ID, heatMods } from './stages.js';
+import { STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
 import { AI, onEnemyKilled } from './enemies.js';
 import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
@@ -75,7 +75,7 @@ const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500
 
 // さいしょは すぐ レベルアップ → だんだん ゆっくり
 // 必要経験値（初期カーブの 1.75 × 1.8 倍）
-const xpFor = (l) => Math.round(1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
+const xpFor = (l) => Math.round(TIME_SCALE * 1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
 
 export class Game {
   constructor(canvas, hooks, opts = {}) {
@@ -134,7 +134,7 @@ export class Game {
     this.comboT = 0;
     this.maxCombo = 0;
     this.feverGauge = 0;
-    this.feverNeed = 120;
+    this.feverNeed = Math.round(120 * TIME_SCALE);
     this.feverT = 0;
     this.fevers = 0;
     this.evolvedCount = 0;
@@ -435,10 +435,13 @@ export class Game {
     for (const x of W) if (this.time >= x[0]) w = x;
     return w;
   }
+  // 難易度の曲線に使う経過時間（1 戦の長さを縮めたぶん速く進む。7 分で、もとの 10 分と同じ）
+  progress() { return this.time / TIME_SCALE; }
   hpScale() {
-    const m = Math.min(this.time, 600) / 60;
+    const pt = this.progress();
+    const m = Math.min(pt, 600) / 60;
     let s = 1 + 0.375 * m + 0.09 * m * m;
-    if (this.time > 600) s *= 1 + (this.time - 600) / 60 * 0.1; // 10分以降
+    if (pt > 600) s *= 1 + (pt - 600) / 60 * 0.1; // もとの 10 分以降（虚空聖堂）
     if (this.time > this.stageTime) s *= 1 + (this.time - this.stageTime) / 60 * 0.15; // エンドレス
     return s * this.stage.hp * this.heatM.hp;
   }
@@ -575,7 +578,7 @@ export class Game {
       const a = -Math.PI / 2 + rand(-0.5, 0.5);
       const e = this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * (this.viewR * 0.8), p.y + Math.sin(a) * (this.viewR * 0.8), { mul: ev.mul || 1 });
       // 6:00 以降の中ボスは秘宝の宝箱を落とす
-      e.artChest = ev.t !== undefined && ev.t >= 300 && ev.enemy !== this.stage.finalBoss;
+      e.artChest = ev.t !== undefined && ev.t >= 300 * TIME_SCALE && ev.enemy !== this.stage.finalBoss; // 2 体目以降の中ボス
       this.boss = e;
       e.atkT = 2;
       e.atk2 = 5;
@@ -594,7 +597,7 @@ export class Game {
       : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1); // 大群イベント・エリート・シーフは連動させない
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
-      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.time, 900) / 600) * this.stageDmg, xp: d.xp,
+      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * this.stageDmg, xp: d.xp,
       vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop, segment: !!d.segment,
       frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
       ai: d.ai || type, spr: d.sprite || type,
@@ -1213,7 +1216,7 @@ export class Game {
       ['heart', 30], ['coinbag', 25], ['magnet', 16], ['bomb', 10], ['clock', 9], ['bigxp', 10],
     ], (x) => x[1])[0];
     if (r === 'coinbag') for (let i = 0; i < 6; i++) this.dropPickup('coin', e.x, e.y, randi(2, 5));
-    else if (r === 'bigxp') this.dropXp(e.x, e.y, 25 + Math.floor(this.time / 20));
+    else if (r === 'bigxp') this.dropXp(e.x, e.y, 25 + Math.floor(this.progress() / 20));
     else this.dropPickup(r, e.x, e.y);
   }
 

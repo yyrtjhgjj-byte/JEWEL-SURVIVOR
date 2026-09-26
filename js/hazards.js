@@ -124,8 +124,8 @@ export class Hazards {
       // 噴火
       this.eruptT -= dt;
       if (this.eruptT <= 0) {
-        this.eruptT = g.time > 300 ? 3.8 : 5;
-        const n = g.time > 300 ? 4 : 3;
+        this.eruptT = g.progress() > 300 ? 3.8 : 5;
+        const n = g.progress() > 300 ? 4 : 3;
         for (let i = 0; i < n; i++) {
           const x = p.x + (i ? rand(-150, 150) : p.dirX * (p.moving ? 60 : 0));
           const y = p.y + (i ? rand(-150, 150) : p.dirY * (p.moving ? 60 : 0));
@@ -157,7 +157,7 @@ export class Hazards {
     } else if (this.kind === 'darkness') {
       this.riftT -= dt;
       if (this.riftT <= 0) {
-        this.riftT = g.time > 360 ? 18 : 25;
+        this.riftT = g.progress() > 360 ? 18 : 25;
         const a = rand(TAU);
         this.rifts.push({ x: p.x + Math.cos(a) * 230, y: p.y + Math.sin(a) * 230, t: 0, T: 6, n: 0 });
         g.hooks.banner('RIFT', 'swarm', '虚空の裂け目が開いた');
