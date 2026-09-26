@@ -11,6 +11,8 @@ import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
 import { ARTIFACT_BY_ID, ARTIFACT_MAX, unlockedArtifacts } from './artifacts.js';
 import { FX } from './fx.js';
+import { rankCoinMul } from './rank.js';
+const CAM_SCALE = +new URLSearchParams(location.search).get('cam') || 1; // 試し用：?cam=0.8
 import { ELEMENTS, recalcElements, procElement, elementVs, tickElements, elementMove, blindDt, touchMul, onElementHit, onElementKill, updateElements, earthGuard, earthBreak } from './elements.js';
 import { LOGIC, weaponStats, drawArea } from './weapons.js';
 import { enemySprite, drawPlayer, xpSprite, itemSprite, roughSprite, backgroundTile, starSprite, dotSprite, softSprite } from './render.js';
@@ -204,6 +206,7 @@ export class Game {
     }
     if (this.artSet && this.artSet.has('prism')) s.area *= 1.75 + 1.25 * Math.sin((this.time / 10) * TAU);
     for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
+    s.greed *= rankCoinMul(); // ユーザーレベルによる獲得コインの倍率
     recalcElements(this);
     s.cooldown = Math.max(0.35, s.cooldown);
     const oldMax = this.stats ? this.stats.maxHp : s.maxHp;
@@ -280,6 +283,7 @@ export class Game {
     // みじかい辺に 440 ぐらい 見えるように
     this.zoom = Math.min(W, H) / 370;
     if (Math.max(W, H) / this.zoom > 1100) this.zoom = Math.max(W, H) / 1100;
+    this.zoom *= CAM_SCALE; // カメラを引く（小さいほど広く見える）
     this.viewW = W / this.zoom;
     this.viewH = H / this.zoom;
     this.viewR = Math.hypot(this.viewW, this.viewH) / 2;

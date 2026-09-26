@@ -11,6 +11,7 @@ import { STAGES, STAGE_BY_ID, heatMods } from './stages.js';
 import { gemSprite, starSprite, backgroundTile } from './render.js';
 import { TAU, rand, pick } from './util.js';
 import * as UI from './ui.js';
+import { addRankExp, runExp } from './rank.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -263,9 +264,10 @@ function settleRun(res, cleared) {
     newBest[k] = v > (save.best[k] || 0) && save.stats.runs > 1;
     if (v > (save.best[k] || 0)) save.best[k] = v;
   }
+  const rankUp = DEBUG.bot ? null : addRankExp(runExp(res, cleared)); // ユーザーレベルの経験値
   const newAch = checkAchievements(res, false);
   persist();
-  return { coinsEarned, newBest, newAch, firstClear, unlocked, nextStage };
+  return { coinsEarned, newBest, newAch, firstClear, unlocked, nextStage, rankUp };
 }
 
 // 途中保存：ラン中の成績を数秒ごとにセーブへ書いておく。iPhone がバックグラウンドのアプリを終了させても、
