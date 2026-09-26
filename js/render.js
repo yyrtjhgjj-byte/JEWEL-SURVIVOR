@@ -1065,9 +1065,40 @@ export function enemySprite(type, r, frame = 0, flash = false, colOverride) {
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.fillRect(0, 0, c.width, c.height);
   }
+  outline(c, r >= 30 ? 1.6 : 1.1);
   c.logical = S;
   enemyCache.set(key, c);
   return c;
+}
+
+// 縁取り：外側に黒、内側に白の線を付ける（攻撃エフェクトの上でも敵の形が分かるように）。w は論理ピクセル
+function tintedCopy(src, color) {
+  const t = makeCanvas(src.width, src.height);
+  const x = t.getContext('2d');
+  x.drawImage(src, 0, 0);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = color;
+  x.fillRect(0, 0, t.width, t.height);
+  return t;
+}
+function outline(c, w) {
+  const src = makeCanvas(c.width, c.height);
+  src.getContext('2d').drawImage(c, 0, 0);
+  const black = tintedCopy(src, '#000'), white = tintedCopy(src, '#fff');
+  const ctx = c.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.clearRect(0, 0, c.width, c.height);
+  const ring = (img, d) => {
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * TAU;
+      ctx.drawImage(img, Math.cos(a) * d, Math.sin(a) * d);
+    }
+  };
+  ring(black, w * 2 * RES);
+  ring(white, w * RES);
+  ctx.drawImage(src, 0, 0);
 }
 const ENEMY_COLORS = {
   slime: '#7a64a8', bat: '#5a4a80', ghost: '#9c90c8', toge: '#6a3a70', golem: '#7a6a60', knight: '#3c3456',

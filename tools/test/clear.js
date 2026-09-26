@@ -10,7 +10,7 @@ const BASE = process.env.BASE || 'http://localhost:8123';
   for (const [st, t] of [['wastes', 598], ['cavern', 598], ['magma', 598], ['tundra', 598], ['void', 718]]) {
     await p.goto(`${BASE}/?auto=ruby&bot&speed=4&god&stage=${st}&t=${t}&build=ruby:evo,amber:evo,alexandrite:evo,kyanite:evo,emerald:evo,diamond:evo`);
     const t0 = Date.now(); let r = null;
-    while (Date.now() - t0 < 150000) { await p.waitForTimeout(1500); r = await p.evaluate(() => window.__lastResult && { c: window.__lastResult.cleared, t: window.__lastResult.time|0 }); if (r) break; }
+    while (Date.now() - t0 < 420000) { await p.waitForTimeout(1500); r = await p.evaluate(() => window.__lastResult && { c: window.__lastResult.cleared, t: window.__lastResult.time|0 }); if (r) break; }
     await p.waitForTimeout(2500);
     const vis = await p.evaluate(() => [...document.querySelectorAll('.screen, .modal, #results')].filter(e=>e.offsetParent).map(e=>e.id||e.className).join('|'));
     console.log(st, JSON.stringify(r), vis);

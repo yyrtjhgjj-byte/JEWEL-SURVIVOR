@@ -254,6 +254,7 @@ export class Game {
     this.dpr = dpr;
     this.W = W;
     this.H = H;
+    this.stillDrawn = false;
     this.canvas.width = Math.round(W * dpr);
     this.canvas.height = Math.round(H * dpr);
     // みじかい辺に 440 ぐらい 見えるように
@@ -282,7 +283,11 @@ export class Game {
       this.fx.update(realDt * 0.3); // モーダル中も すこし キラキラ
     }
     const t1 = performance.now();
-    if (!this.noRender) this.render();
+    // ポーズ・レベルアップなどの画面の間は、止まった盤面を 1 回だけ描いて使い回す
+    // （上に重なる画面のぼかしを毎フレーム計算し直さずに済み、古い iPhone の負荷が下がる）
+    const live = this.state === 'play' || this.state === 'dying';
+    if (!this.noRender && (live || !this.stillDrawn)) this.render();
+    this.stillDrawn = !live;
     const t2 = performance.now();
     this.perfU = (this.perfU || 0) * 0.95 + (t1 - t0) * 0.05;
     this.perfR = (this.perfR || 0) * 0.95 + (t2 - t1) * 0.05;
@@ -1767,6 +1772,65 @@ export class Game {
       ctx.globalAlpha = 1;
     }
 
+    // ぶき（うしろ）
+    for (const w of this.weapons) if (w.id === 'aquamarine') LOGIC.aquamarine.draw(this, w, w.s, ctx);
+
+    for (const w of this.weapons) {
+      if (w.id === 'sapphire') LOGIC.sapphire.draw(this, w, w.s, ctx);
+      else if (w.id === 'opal') LOGIC.opal.draw(this, w, w.s, ctx);
+      else if (w.id === 'moonstone') LOGIC.moonstone.draw(this, w, w.s, ctx);
+    }
+
+    // たま
+    for (const pr of this.projs) {
+      if (!this.inView(pr, 60)) continue;
+      if (pr.fall) {
+        // かげ
+        const t = Math.min(1, pr.ft / pr.fall);
+        ctx.fillStyle = `rgba(80,30,90,${0.15 + t * 0.2})`;
+        ctx.beginPath();
+        ctx.ellipse(pr.tx, pr.ty, 8 + t * 10, 4 + t * 4, 0, 0, TAU);
+        ctx.fill();
+      }
+      if (pr.flame) {
+        const t = pr.life / pr.max;
+        ctx.globalCompositeOperation = 'lighter';
+        const spr = softSprite(t > 0.6 ? '#ffb84a' : t > 0.3 ? '#ff6a3d' : '#d62d6a');
+        const s = pr.r * 0.9;
+        ctx.globalAlpha = Math.min(1, t * 2.2);
+        // 進行方向に引き伸ばして、玉が途切れず炎の帯に見えるように
+        const L = s + Math.hypot(pr.vx, pr.vy) * 0.09;
+        ctx.save();
+        ctx.translate(pr.x, pr.y);
+        ctx.rotate(Math.atan2(pr.vy, pr.vx));
+        ctx.drawImage(spr, -L, -s, L * 2, s * 2);
+        ctx.restore();
+        if (t > 0.25) {
+          // 芯（白飛びしない程度の明るいオレンジ）
+          const c = pr.r * 0.5;
+          ctx.globalAlpha = Math.min(0.85, (t - 0.25) * 2);
+          ctx.drawImage(softSprite('#ffcf6a'), pr.x - c, pr.y - c, c * 2, c * 2);
+        }
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        continue;
+      }
+      if (!pr.sprite) continue;
+      const spr = pr.sprite;
+      const Ls = pr.size ? spr.logical * (pr.size / (spr.base || spr.logical)) : spr.logical;
+      ctx.save();
+      ctx.translate(pr.x, pr.y);
+      let rot = pr.rot;
+      if (pr.rotToVel) rot = Math.atan2(pr.vy, pr.vx) + (pr.rotOff || Math.PI / 2);
+      if (pr.coinFlip) ctx.scale(Math.abs(Math.cos(this.time * 12 + pr.tx)) * 0.8 + 0.2, 1);
+      ctx.rotate(rot);
+      ctx.drawImage(spr, -Ls / 2, -Ls / 2, Ls, Ls);
+      ctx.restore();
+    }
+
+    this.fx.draw(ctx, this.time);
+
+    // 敵と自機は攻撃エフェクトより上に描く（エフェクトが重なっても見失わないように）
     // てき
     for (const e of this.enemies) {
       if (!e.alive || !this.inView(e, e.r * 2)) continue;
@@ -1828,15 +1892,6 @@ export class Game {
       }
     }
 
-    // ぶき（うしろ）
-    for (const w of this.weapons) if (w.id === 'aquamarine') LOGIC.aquamarine.draw(this, w, w.s, ctx);
-
-    for (const w of this.weapons) {
-      if (w.id === 'sapphire') LOGIC.sapphire.draw(this, w, w.s, ctx);
-      else if (w.id === 'opal') LOGIC.opal.draw(this, w, w.s, ctx);
-      else if (w.id === 'moonstone') LOGIC.moonstone.draw(this, w, w.s, ctx);
-    }
-
     // プレイヤー（いちばん うえ）
     if (this.state !== 'dying' && this.state !== 'over') {
       if (p.iT > 0 && Math.floor(this.time * 20) % 2 === 0) ctx.globalAlpha = 0.5;
@@ -1844,54 +1899,6 @@ export class Game {
       ctx.globalAlpha = 1;
     }
 
-    // たま
-    for (const pr of this.projs) {
-      if (!this.inView(pr, 60)) continue;
-      if (pr.fall) {
-        // かげ
-        const t = Math.min(1, pr.ft / pr.fall);
-        ctx.fillStyle = `rgba(80,30,90,${0.15 + t * 0.2})`;
-        ctx.beginPath();
-        ctx.ellipse(pr.tx, pr.ty, 8 + t * 10, 4 + t * 4, 0, 0, TAU);
-        ctx.fill();
-      }
-      if (pr.flame) {
-        const t = pr.life / pr.max;
-        ctx.globalCompositeOperation = 'lighter';
-        const spr = softSprite(t > 0.6 ? '#ffb84a' : t > 0.3 ? '#ff6a3d' : '#d62d6a');
-        const s = pr.r * 0.9;
-        ctx.globalAlpha = Math.min(1, t * 2.2);
-        // 進行方向に引き伸ばして、玉が途切れず炎の帯に見えるように
-        const L = s + Math.hypot(pr.vx, pr.vy) * 0.09;
-        ctx.save();
-        ctx.translate(pr.x, pr.y);
-        ctx.rotate(Math.atan2(pr.vy, pr.vx));
-        ctx.drawImage(spr, -L, -s, L * 2, s * 2);
-        ctx.restore();
-        if (t > 0.25) {
-          // 芯（白飛びしない程度の明るいオレンジ）
-          const c = pr.r * 0.5;
-          ctx.globalAlpha = Math.min(0.85, (t - 0.25) * 2);
-          ctx.drawImage(softSprite('#ffcf6a'), pr.x - c, pr.y - c, c * 2, c * 2);
-        }
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = 'source-over';
-        continue;
-      }
-      if (!pr.sprite) continue;
-      const spr = pr.sprite;
-      const Ls = pr.size ? spr.logical * (pr.size / (spr.base || spr.logical)) : spr.logical;
-      ctx.save();
-      ctx.translate(pr.x, pr.y);
-      let rot = pr.rot;
-      if (pr.rotToVel) rot = Math.atan2(pr.vy, pr.vx) + (pr.rotOff || Math.PI / 2);
-      if (pr.coinFlip) ctx.scale(Math.abs(Math.cos(this.time * 12 + pr.tx)) * 0.8 + 0.2, 1);
-      ctx.rotate(rot);
-      ctx.drawImage(spr, -Ls / 2, -Ls / 2, Ls, Ls);
-      ctx.restore();
-    }
-
-    this.fx.draw(ctx, this.time);
     this.hazards.drawOverlay(ctx);
 
     // レーザー
@@ -1931,11 +1938,24 @@ export class Game {
       ctx.drawImage(dotSprite(b.color || '#ff3ddc'), b.x - s, b.y - s, s * 2, s * 2);
     }
     ctx.globalCompositeOperation = 'source-over';
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#ffffff';
-    for (const b of this.ebullets) {
-      if (!this.inView(b, 20)) continue;
-      ctx.fillStyle = '#ffe6ff';
+    // 敵弾は 黒の外縁 → 白の縁 → 色の芯 の順に重ねる（どんな背景・エフェクトの上でも見えるように）
+    const vis = this._eb || (this._eb = []);
+    vis.length = 0;
+    for (const b of this.ebullets) if (this.inView(b, 20)) vis.push(b);
+    const disc = (grow, color) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (const b of vis) {
+        const r = b.r * 0.55 + grow;
+        ctx.moveTo(b.x + r, b.y);
+        ctx.arc(b.x, b.y, r, 0, TAU);
+      }
+      ctx.fill();
+    };
+    disc(2.6, '#000000');
+    disc(1.3, '#ffffff');
+    for (const b of vis) {
+      ctx.fillStyle = b.color || '#ff3ddc';
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.r * 0.55, 0, TAU);
       ctx.fill();
