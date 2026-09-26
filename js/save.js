@@ -16,6 +16,9 @@ function defaults() {
     kills: {},
     settings: { bgm: 0.55, sfx: 0.8, haptic: true, dmgNum: true, shake: true },
     endless: false,
+    hyper: false, // ハイパーモード（ステージ選択の切り替え）
+    hurry: false, // ハリーモード
+    upgradesOff: {}, // 工房：最大まで上げた強化のうち、無効にしているもの
     login: { last: '', streak: 0 },
     stages: {},
     selectedStage: 'wastes',

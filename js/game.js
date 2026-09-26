@@ -80,6 +80,9 @@ export class Game {
     this.hooks = hooks;
     this.charId = opts.charId || 'ruby';
     this.endless = !!opts.endless;
+    this.hyper = !!opts.hyper; // 自機・敵の移動 ×1.65、敵弾 ×1.2、コイン ×1.5
+    this.hurry = !!opts.hurry; // ステージの時計が 2 倍速で進む
+    this.banished = new Set(); // バニッシュした武器・チャーム（このランでは候補に出ない）
     this.stage = STAGE_BY_ID[opts.stageId] || STAGE_BY_ID.wastes;
     this.heat = opts.heat || 0;
     this.heatM = heatMods(this.heat);
@@ -148,6 +151,8 @@ export class Game {
     this.computeStats();
     this.player.hp = this.stats.maxHp;
     this.rerolls = this.stats.reroll;
+    this.skips = this.stats.skip;
+    this.banishes = this.stats.banish;
     this.revives = this.stats.revive;
     this.addWeapon(CHARACTERS[this.charId].weapon);
     if (opts.build) this.debugBuild(opts.build);
@@ -161,7 +166,7 @@ export class Game {
     add(CHARACTERS[this.charId].stats);
     for (const it of SHOP) {
       const lv = save.upgrades[it.id] || 0;
-      if (lv) add(it.per, lv);
+      if (lv && !save.upgradesOff[it.id]) add(it.per, lv); // 工房で無効にした強化は入れない
     }
     s.might += 0.05 * (save.awaken[this.charId] || 0);
     add(collectionStats()); // 研磨コレクションの練度ボーナス
@@ -258,7 +263,7 @@ export class Game {
   }
 
   update(dt) {
-    this.time += dt;
+    this.time += dt * (this.hurry ? 2 : 1);
     const p = this.player;
     // スローモーション
     if (this.slowT > 0) {
@@ -289,7 +294,7 @@ export class Game {
     p.moving = il > 0.08;
     p.slowT = Math.max(0, p.slowT - dt);
     if (p.moving) {
-      const spd = 150 * this.stats.moveSpeed * this.hazards.speedMul() * (p.slowT > 0 ? p.slowMul : 1);
+      const spd = 150 * this.stats.moveSpeed * this.hazards.speedMul() * (p.slowT > 0 ? p.slowMul : 1) * (this.hyper ? 1.65 : 1);
       p.x += ix * spd * dt;
       p.y += iy * spd * dt;
       const n = Math.hypot(ix, iy) || 1;
@@ -484,7 +489,7 @@ export class Game {
     const mul = d.boss ? (o.mul || 1) * 1.15 * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1);
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
-      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed, dmg: d.dmg * (1 + Math.min(this.time, 900) / 600) * this.stageDmg, xp: d.xp,
+      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.time, 900) / 600) * this.stageDmg, xp: d.xp,
       vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop, segment: !!d.segment,
       frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
       ai: d.ai || type, spr: d.sprite || type,
@@ -749,8 +754,9 @@ export class Game {
     const p = this.player;
     for (const b of this.ebullets) {
       if (this.timeStopT > 0) continue;
-      b.x += b.vx * dt;
-      b.y += b.vy * dt;
+      const bm = this.hyper ? 1.2 : 1;
+      b.x += b.vx * dt * bm;
+      b.y += b.vy * dt * bm;
       b.life -= dt;
       const rr = b.r + p.r - 3;
       if ((b.x - p.x) ** 2 + (b.y - p.y) ** 2 < rr * rr) {
@@ -1310,11 +1316,11 @@ export class Game {
     for (const w of this.weapons) {
       const def = WEAPONS[w.id];
       if (!w.evolved && w.level >= WEAPON_MAX && this.hasPassive(def.evo.with)) evos.push({ type: 'evo', id: w.id });
-      else if (!w.evolved && w.level < WEAPON_MAX) pool.push({ type: 'wup', id: w.id, weight: 10 });
+      else if (!w.evolved && w.level < WEAPON_MAX && !this.banished.has(w.id)) pool.push({ type: 'wup', id: w.id, weight: 10 });
     }
-    for (const p of this.passives) if (p.level < PASSIVES[p.id].max) pool.push({ type: 'pup', id: p.id, weight: 7 });
-    if (this.weapons.length < MAX_WEAPONS) for (const id of WEAPON_IDS) if (!this.getWeapon(id)) pool.push({ type: 'wnew', id, weight: 5 });
-    if (this.passives.length < MAX_CHARMS) for (const id of PASSIVE_IDS) if (!this.getPassive(id)) {
+    for (const p of this.passives) if (p.level < PASSIVES[p.id].max && !this.banished.has(p.id)) pool.push({ type: 'pup', id: p.id, weight: 7 });
+    if (this.weapons.length < MAX_WEAPONS) for (const id of WEAPON_IDS) if (!this.getWeapon(id) && !this.banished.has(id)) pool.push({ type: 'wnew', id, weight: 5 });
+    if (this.passives.length < MAX_CHARMS) for (const id of PASSIVE_IDS) if (!this.getPassive(id) && !this.banished.has(id)) {
       // しんかに ひつようなら でやすく
       const need = this.weapons.some((w) => WEAPONS[w.id].evo.with === id && !w.evolved);
       pool.push({ type: 'pnew', id, weight: need ? 9 : 4 });
@@ -1456,7 +1462,7 @@ export class Game {
   results() {
     return {
       time: this.time, kills: this.kills, level: this.level, coins: this.coins, damage: this.totalDmg,
-      roughGot: { ...this.roughGot }, maxCombo: this.maxCombo, fevers: this.fevers, evolved: this.evolvedCount, bosses: this.bosses,
+      roughGot: { ...this.roughGot }, hyper: this.hyper, hurry: this.hurry, maxCombo: this.maxCombo, fevers: this.fevers, evolved: this.evolvedCount, bosses: this.bosses,
       miracles: this.miracles, weaponCount: this.weapons.length, cleared: this.cleared, dmgBy: { ...this.dmgBy },
       weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved })),
       passives: this.passives.map((p) => ({ id: p.id, level: p.level })),

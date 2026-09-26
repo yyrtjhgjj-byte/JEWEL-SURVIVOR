@@ -255,12 +255,18 @@ export function showStageSelect() {
     $('#opts', node).innerHTML = `
       <div class="toggle-row"><span>HEAT<small>${rec.cleared ? `敵HP ×${m.hp.toFixed(2)} ／ 敵攻撃 ×${m.dmg.toFixed(2)} ／ 獲得コイン ×${m.coin.toFixed(1)}` : 'このステージをクリアすると解放'}</small></span>
         <div class="heat-ctl"><button class="iconbtn" id="hm" ${h <= 0 ? 'disabled' : ''}>−</button><b class="heat-val h${h}">${h}</b><button class="iconbtn" id="hp" ${h >= maxHeat ? 'disabled' : ''}>＋</button></div></div>
-      ${rec.cleared ? `<div class="toggle-row" style="margin-top:10px"><span>ENDLESS<small>最終ボス撃破後も続行（敵が際限なく強化）</small></span><button class="switch ${save.endless ? 'on' : ''}" id="en"></button></div>` : ''}`;
+      ${rec.cleared ? `<div class="toggle-row" style="margin-top:10px"><span>ENDLESS<small>最終ボス撃破後も続行（敵が際限なく強化）</small></span><button class="switch ${save.endless ? 'on' : ''}" id="en"></button></div>
+      <div class="toggle-row" style="margin-top:10px"><span>HYPER<small>自機・敵の移動速度 ×1.65、敵弾 ×1.2、獲得コイン ×1.5</small></span><button class="switch ${save.hyper ? 'on' : ''}" id="hy"></button></div>
+      <div class="toggle-row" style="margin-top:10px"><span>HURRY<small>ステージの時間が 2 倍速で進む</small></span><button class="switch ${save.hurry ? 'on' : ''}" id="hu"></button></div>` : ''}`;
     const hm = $('#hm', node), hp = $('#hp', node);
     hm.onclick = () => { save.heatSel = Math.max(0, h - 1); audio.tap(); renderOpts(); };
     hp.onclick = () => { save.heatSel = Math.min(maxHeat, h + 1); audio.tap(); renderOpts(); };
     const en = $('#en', node);
     if (en) en.onclick = () => { save.endless = !save.endless; en.classList.toggle('on', save.endless); audio.tap(); persist(); };
+    for (const [id, k] of [['#hy', 'hyper'], ['#hu', 'hurry']]) {
+      const b = $(id, node);
+      if (b) b.onclick = () => { save[k] = !save[k]; b.classList.toggle('on', save[k]); audio.tap(); persist(); };
+    }
   };
   const render = () => {
     list.innerHTML = '';
@@ -284,13 +290,15 @@ export function showStageSelect() {
     save.selectedStage = sel;
     persist();
     const rec = stageRec(sel);
-    app.startGame(save.selected, { stageId: sel, heat: save.heatSel || 0, endless: !!rec.cleared && save.endless });
+    app.startGame(save.selected, { stageId: sel, heat: save.heatSel || 0, endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry });
   };
 }
 
 // ================================================================== 工房
 // 工房：現在の効果量と次のレベルの効果量
 function shopEffect(it, lv, max) {
+  // 最大 Lv1 の強化（リバイブなど）は数値を増やす形ではないので、説明文をそのまま出す
+  if (it.max === 1) return lv ? `<b class="scur">${it.t}</b>` : it.t;
   const m = it.t.match(/^(.*?)([+-]?)(\d+(?:\.\d+)?)(.*)$/);
   if (!m) return it.t;
   const [, label, sign, num, suf] = m;
@@ -303,25 +311,54 @@ export function showShop() {
     <div class="screen">
       ${topbar('WORKSHOP', '工房 — 永続強化')}
       <div class="shop-list" id="list"></div>
+      <div class="refund-row"><button class="btn small" id="refund"></button><span>最大まで上げた強化は ON／OFF を切り替えられます</span></div>
     </div>`);
   show(node);
   $('#back', node).onclick = () => { audio.tap(); showTitle(); };
   const list = $('#list', node);
+  const spent = () => SHOP.reduce((a, it) => { let t = 0; for (let i = 0; i < (save.upgrades[it.id] || 0); i++) t += shopCost(it, i); return a + t; }, 0);
+  // 全額返金：強化をすべて Lv0 に戻し、使ったコインを返す
+  $('#refund', node).onclick = () => {
+    const v = spent();
+    if (!v) return;
+    audio.tap();
+    if (!confirm(`工房の強化をすべて Lv0 に戻し、${fmt(v)} コインを返金します。よろしいですか？`)) return;
+    save.coins += v;
+    save.upgrades = {};
+    save.upgradesOff = {};
+    persist();
+    audio.coin();
+    render();
+    refreshCoinPill();
+  };
   const render = () => {
     list.innerHTML = '';
+    const v = spent();
+    $('#refund', node).innerHTML = `全額返金 ${coinIco}${fmt(v)}`;
+    $('#refund', node).disabled = !v;
     for (const it of SHOP) {
       const lv = save.upgrades[it.id] || 0;
       const max = lv >= it.max;
       const cost = max ? 0 : shopCost(it, lv);
-      const row = el(`<div class="shop-item">
+      const off = max && !!save.upgradesOff[it.id];
+      const row = el(`<div class="shop-item ${off ? 'off' : ''}">
         <img src="${gemIcon(it.gem, 72)}">
         <div class="sbody"><div class="sname">${it.name}<small>LV ${lv}/${it.max}</small></div>
           <div class="sdesc">${shopEffect(it, lv, max)}</div>
           <div class="pips">${Array.from({ length: it.max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>
-        <button class="btn small ${max ? '' : 'gold'}" ${max || save.coins < cost ? 'disabled' : ''}>${max ? 'MAX' : coinIco + fmt(cost)}</button>
+        <button class="btn small ${max ? 'maxsw' : 'gold'}" ${!max && save.coins < cost ? 'disabled' : ''}>${max ? (off ? 'OFF' : 'MAX ON') : coinIco + fmt(cost)}</button>
       </div>`);
       $('.btn', row).onclick = () => {
-        if (max || save.coins < cost) return;
+        if (max) {
+          // 最大まで上げた強化は無効にできる
+          if (save.upgradesOff[it.id]) delete save.upgradesOff[it.id];
+          else save.upgradesOff[it.id] = true;
+          persist();
+          audio.tap();
+          render();
+          return;
+        }
+        if (save.coins < cost) return;
         save.coins -= cost;
         save.upgrades[it.id] = lv + 1;
         persist();
@@ -830,14 +867,31 @@ export function levelUp(g, done) {
       <div class="big-title prism-text">LEVEL UP</div>
       <div class="sub-title"><b>LV ${g.level - g.pendingLevels}</b>　強化を1つ選択</div>
       <div class="cards" id="cards"></div>
-      <div class="lvl-actions"><button class="btn small" id="reroll"></button></div>
+      <div class="lvl-actions"><button class="btn small" id="reroll"></button><button class="btn small" id="skip"></button><button class="btn small" id="banish"></button></div>
+      <div class="banish-hint">除外する候補をタップ（このランでは二度と出なくなります）</div>
     </div>`);
   screens().appendChild(node);
   const cardsEl = $('#cards', node);
-  const rr = $('#reroll', node);
+  const rr = $('#reroll', node), sk = $('#skip', node), bn = $('#banish', node);
   let locked = false;
+  let banishMode = false;
+  let cur = [];
+  // バニッシュ：その武器・チャームをこのランの候補から外し、カードを消す
+  const banish = (c) => {
+    if (c.type === 'evo' || g.banishes <= 0) return;
+    g.banishes--;
+    g.banished.add(c.id);
+    audio.whoosh();
+    haptic();
+    banishMode = false;
+    let next = cur.filter((x) => x !== c);
+    if (!next.some((x) => x.type !== 'heal25')) next = g.rollChoices();
+    render(next);
+  };
   const render = (choices) => {
+    cur = choices;
     cardsEl.innerHTML = '';
+    node.classList.toggle('banishing', banishMode);
     node.classList.toggle('many', choices.length >= 5); // 選択肢が多いときは詰めて表示
     choices.forEach((c, i) => {
       if (c.type === 'heal25') {
@@ -846,7 +900,7 @@ export function levelUp(g, done) {
         const card = el(`<button class="card slim"><span class="heal-ico">＋</span><span class="cname">HP 25% 回復</span><span class="hv">${v > 0 ? `+${v} HP` : 'HP 満タン'}</span></button>`);
         card.style.animationDelay = i * 0.07 + 's';
         card.onclick = () => {
-          if (locked) return;
+          if (locked || banishMode) return;
           locked = true;
           audio.heal();
           haptic();
@@ -870,6 +924,7 @@ export function levelUp(g, done) {
       setTimeout(() => audio.cardFlip(i), i * 70);
       card.onclick = () => {
         if (locked) return;
+        if (banishMode) { banish(c); return; }
         locked = true;
         audio.select();
         haptic();
@@ -885,11 +940,31 @@ export function levelUp(g, done) {
     });
     if (choices.some((c) => c.type === 'evo')) setTimeout(() => audio.bigWin(), 200);
     rr.textContent = `REROLL ×${g.rerolls}`;
-    rr.disabled = g.rerolls <= 0;
+    rr.disabled = g.rerolls <= 0 || banishMode;
+    sk.textContent = `SKIP ×${g.skips}`;
+    sk.disabled = g.skips <= 0 || banishMode;
+    bn.textContent = banishMode ? 'CANCEL' : `BANISH ×${g.banishes}`;
+    bn.disabled = !banishMode && g.banishes <= 0;
     guard(cardsEl, 480);
   };
+  sk.onclick = () => {
+    if (locked || g.skips <= 0) return;
+    locked = true;
+    g.skips--;
+    audio.whoosh();
+    node.remove();
+    done();
+  };
+  bn.onclick = () => {
+    if (locked) return;
+    if (!banishMode && g.banishes <= 0) return;
+    banishMode = !banishMode;
+    audio.tap();
+    node.classList.toggle('banishing', banishMode);
+    render(cur);
+  };
   rr.onclick = () => {
-    if (locked || g.rerolls <= 0) return;
+    if (locked || g.rerolls <= 0 || banishMode) return;
     g.rerolls--;
     audio.whoosh();
     render(g.rollChoices());
@@ -1052,7 +1127,7 @@ export function results(res, cleared, extra) {
       <div class="rays"></div>
       <div class="result-head">
         ${cleared ? '<div class="big-title prism-text">STAGE CLEAR</div>' : '<div class="big-title lose">GAME OVER</div>'}
-        <div class="sub-title" style="margin-top:6px">STAGE ${STAGE_BY_ID[res.stageId].no}　${STAGE_BY_ID[res.stageId].name}${res.heat ? `　HEAT ${res.heat}` : ''}${res.endless ? '　ENDLESS' : ''}</div>
+        <div class="sub-title" style="margin-top:6px">STAGE ${STAGE_BY_ID[res.stageId].no}　${STAGE_BY_ID[res.stageId].name}${res.heat ? `　HEAT ${res.heat}` : ''}${res.endless ? '　ENDLESS' : ''}${res.hyper ? '　HYPER' : ''}${res.hurry ? '　HURRY' : ''}</div>
         ${extra.firstClear ? `<div class="hint" style="margin-top:6px;color:#ffe39a">初クリア報酬 ${fmt(STAGE_BY_ID[res.stageId].reward)} コイン${extra.unlocked ? ` ／ ${GEMS[extra.unlocked].jp} 解放` : ''}${extra.nextStage ? ` ／ ${extra.nextStage} 解放` : ''}</div>` : ''}
       </div>
       <div class="panel" id="rows"></div>
@@ -1067,7 +1142,7 @@ export function results(res, cleared, extra) {
     </div>`);
   show(node);
   guard($('.rbtns', node), 1500);
-  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless }); };
+  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry }); };
   $('#home', node).onclick = () => { audio.tap(); app.toTitle(); };
   const rowsEl = $('#rows', node);
   const rows = [

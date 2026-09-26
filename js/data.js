@@ -396,7 +396,7 @@ export const MAX_CHARMS = 6;
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
-  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, crit: 0.05, revive: 0, reroll: 2, guard: 0,
+  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, crit: 0.05, revive: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
 };
 
 // ---------------------------------------------------------------------
@@ -479,6 +479,8 @@ export const SHOP = [
   { id: 'greed', name: '強欲', gem: 'titanite', max: 5, base: 150, per: { greed: 0.1 }, t: '獲得コイン +10%' },
   { id: 'crit', name: 'クリティカル', gem: 'diamond', max: 5, base: 250, per: { crit: 0.02 }, t: 'クリティカル率 +2%' },
   { id: 'reroll', name: 'リロール', gem: 'labradorite', max: 5, base: 200, per: { reroll: 1 }, t: 'リロール回数 +1' },
+  { id: 'skip', name: 'スキップ', gem: 'peridot', max: 3, base: 150, per: { skip: 1 }, t: 'スキップ回数 +1' },
+  { id: 'banish', name: 'バニッシュ', gem: 'obsidian', max: 3, base: 250, per: { banish: 1 }, t: 'バニッシュ回数 +1' },
   { id: 'revive', name: 'リバイブ', gem: 'angelite', max: 1, base: 3000, per: { revive: 1 }, t: '倒れても1度だけ復活' },
   { id: 'amount', name: '弾数', gem: 'nephrite', max: 1, base: 5000, per: { amount: 1 }, t: '全武器の弾数 +1' },
 ];
