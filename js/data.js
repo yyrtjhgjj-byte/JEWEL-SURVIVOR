@@ -574,10 +574,10 @@ export const EXCHANGE = {
 };
 export const AWAKEN_MAX = 5;
 export const RARITY = {
-  N: { name: 'N', color: '#c9c9d9', rank: 0 },
-  R: { name: 'R', color: '#5ab0ff', rank: 1 },
-  SR: { name: 'SR', color: '#ffc21a', rank: 2 },
-  SSR: { name: 'SSR', color: '#ff5fd2', rank: 3 },
+  N: { name: 'N', color: '#7dffb0', rank: 0 },
+  R: { name: 'R', color: '#7fd0ff', rank: 1 },
+  SR: { name: 'SR', color: '#c78bff', rank: 2 },
+  SSR: { name: 'SSR', color: '#ffd24a', rank: 3 },
   UR: { name: 'UR', color: 'rainbow', rank: 4 },
 };
 

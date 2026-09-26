@@ -443,7 +443,7 @@ function gachaRoll(minRank = 'R') {
   save.dust = (save.dust || 0) + row.dust;
   return { rank: row.rank, tier: row.tier, n: row.n, dust: row.dust };
 }
-const RANK_COLOR = { R: '#4da3ff', SR: '#ffc53d', SSR: '#ff4fd8', UR: '#ffffff' };
+const RANK_COLOR = { R: '#7fd0ff', SR: '#c78bff', SSR: '#ffd24a', UR: '#ffffff' };
 
 export function showGacha() {
   const node = el(`
