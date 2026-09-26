@@ -8,7 +8,7 @@ export const BEAST_COST = 10;
 // shape：100×100 の座標で、台座（y 86〜）の上に立つ形。['e', 中心x, 中心y, 半径x, 半径y, 傾き°] ／ ['p', x1, y1, x2, y2, …]
 export const BEASTS = {
   ruby: {
-    name: 'ニホンウサギ', stat: 'might', base: 0.1, step: 0.01, eye: [69, 44, 1.7], spark: [[63, 40, 3], [34, 60, 2.2]],
+    name: 'ニホンウサギ', stat: 'might', base: 0.1, step: 0.01, spark: [[63, 40, 3], [34, 60, 2.2]],
     shape: [
       ['e', 44, 68, 23, 17, 0],
       ['e', 36, 74, 17, 12, 0],
@@ -121,13 +121,6 @@ export function beastIcon(id, size = 96) {
   for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) x.drawImage(rim, dx * k * 0.6, dy * k * 0.6);
   x.restore();
   x.drawImage(body, 0, 0);
-  if (B.eye) {
-    const [ex, ey, er] = B.eye;
-    x.fillStyle = mix(g.dark, '#000000', 0.6);
-    x.beginPath(); x.arc(ex * k, ey * k, er * k, 0, Math.PI * 2); x.fill();
-    x.fillStyle = 'rgba(255,255,255,0.85)';
-    x.beginPath(); x.arc((ex - er * 0.3) * k, (ey - er * 0.35) * k, er * 0.35 * k, 0, Math.PI * 2); x.fill();
-  }
   // きらめき
   x.save(); x.scale(k, k); x.globalCompositeOperation = 'lighter';
   for (const [sx, sy, r] of B.spark || []) {
