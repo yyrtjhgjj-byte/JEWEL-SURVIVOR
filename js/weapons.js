@@ -14,15 +14,16 @@ export function weaponStats(g, w) {
     for (const k in d) if (k !== 't') s[k] = (s[k] || 0) + d[k];
   }
   const P = g.stats;
+  const lb = w.lb || {}; // リミットブレイク
   return {
-    dmg: s.dmg * P.might * (def.dmgMul || 1) * (w.evolved ? def.evo.mul || 1 : 1 + (def.lowBoost || 0) * Math.max(0, 8 - w.level) / 7),
-    cd: Math.max(0.08, s.cd * P.cooldown),
-    amount: (s.amount || 0) + P.amount + (g.hasArt && g.hasArt('crown') && w.id === g.startWeapon ? 3 : 0), // 秘宝「職人の王冠」
-    speed: (s.speed || 1) * P.speed,
-    area: (s.area || 1) * P.area,
+    dmg: s.dmg * P.might * (def.dmgMul || 1) * (w.evolved ? def.evo.mul || 1 : 1 + (def.lowBoost || 0) * Math.max(0, 8 - w.level) / 7) * (1 + (lb.dmg || 0)),
+    cd: Math.max(0.08, s.cd * P.cooldown * (1 - (lb.cd || 0))),
+    amount: (s.amount || 0) + P.amount + (lb.amount || 0) + (g.hasArt && g.hasArt('crown') && w.id === g.startWeapon ? 3 : 0), // 秘宝「職人の王冠」
+    speed: (s.speed || 1) * P.speed * (1 + (lb.speed || 0)),
+    area: (s.area || 1) * P.area * (1 + (lb.area || 0)),
     pierce: s.pierce || 0,
-    duration: (s.duration || 0) * P.duration,
-    life: (s.life || 1) * P.duration,
+    duration: (s.duration || 0) * P.duration * (1 + (lb.dur || 0)),
+    life: (s.life || 1) * P.duration * (1 + (lb.dur || 0)),
     knock: s.knock || 1,
     bounce: s.bounce || 0,
     charm: s.charm || 0,

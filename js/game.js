@@ -2,7 +2,7 @@
 //  ゲーム本体
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, LIMIT_BREAK,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods } from './stages.js';
@@ -434,6 +434,7 @@ export class Game {
         this.runEvent(pick([
           { type: 'swarm', enemy: pick(late), n: 80 }, { type: 'ring', enemy: pick(late), n: 50 },
           { type: 'elite', enemy: pick(late) }, { type: 'elite', enemy: 'knight' }, { type: 'ring', enemy: pick(late), n: 60 },
+          { type: 'wall', enemy: (this.stage.events.find((x) => x.type === 'swarm') || {}).enemy || 'bat', n: 70 }, { type: 'vortex', enemy: (this.stage.events.find((x) => x.type === 'swarm') || {}).enemy || 'bat', n: 80 }, { type: 'thief' },
         ]));
       }
       if (t >= this.nextEndlessBoss) {
@@ -510,6 +511,35 @@ export class Game {
         this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * R, p.y + Math.sin(a) * R);
       }
       this.hooks.banner('SURROUNDED', 'swarm', '包囲された');
+    } else if (ev.type === 'wall') {
+      // 横一列の壁になって画面を横切る大群
+      const a = rand(TAU), ux = Math.cos(a), uy = Math.sin(a);
+      const cx = p.x - ux * (this.viewR + 40), cy = p.y - uy * (this.viewR + 40);
+      const len = this.viewR * 2.2;
+      for (let i = 0; i < ev.n; i++) {
+        const k = (i / (ev.n - 1) - 0.5) * len;
+        const e = this.spawnEnemy(ev.enemy, cx - uy * k + rand(-6, 6), cy + ux * k + rand(-6, 6));
+        e.swarm = { vx: ux, vy: uy, t: 9 };
+      }
+      this.hooks.banner('WALL', 'swarm', '大群の壁が迫る');
+      audio.whoosh();
+    } else if (ev.type === 'vortex') {
+      // 渦を巻きながら中心へ迫る大群（中心は出現時の自機の位置）
+      const R = this.viewR * 1.05;
+      for (let i = 0; i < ev.n; i++) {
+        const a = (i / ev.n) * TAU * 2; // 2 周ぶん
+        const r = R + (i / ev.n) * 80;
+        const e = this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * r, p.y + Math.sin(a) * r);
+        e.vortex = { cx: p.x, cy: p.y, a, r, t: 11 };
+      }
+      this.hooks.banner('VORTEX', 'swarm', '渦を巻く大群');
+      audio.whoosh();
+    } else if (ev.type === 'thief') {
+      const a = rand(TAU), d = this.viewR * 0.55;
+      const e = this.spawnEnemy('thief', p.x + Math.cos(a) * d, p.y + Math.sin(a) * d);
+      e.life = 15;
+      e.restT = -1;
+      this.hooks.banner('JEWEL THIEF', 'elite', '撃破で原石と宝箱');
     } else if (ev.type === 'warning') {
       this.hooks.banner('WARNING', 'warning', '強大な反応が接近中');
       audio.warning();
@@ -625,6 +655,16 @@ export class Game {
           e.swarm.t -= dt;
           mv.mx = e.swarm.vx; mv.my = e.swarm.vy;
           mv.spd *= 1.6;
+        } else if (e.vortex && e.vortex.t > 0) {
+          // 渦：中心のまわりを回りながら半径を縮める
+          const v = e.vortex;
+          v.t -= dt;
+          v.a += (0.75 + 30 / Math.max(60, v.r)) * dt;
+          v.r = Math.max(0, v.r - 34 * dt);
+          if (v.r < 30) v.t = 0;
+          mv.mx = v.cx + Math.cos(v.a) * v.r - e.x;
+          mv.my = v.cy + Math.sin(v.a) * v.r - e.y;
+          mv.spd = Math.min(Math.hypot(mv.mx, mv.my) / dt, e.speed * 3);
         } else if (e.type === 'bat') {
           const w = Math.sin(this.time * 5 + e.phase) * 0.6;
           const mx = mv.mx; mv.mx += -mv.my * w; mv.my += mx * w;
@@ -664,17 +704,18 @@ export class Game {
         }
       }
       // プレイヤーに あたる
-      if (dist < e.r + p.r - 2 && !(e.fade > 0)) {
+      if (dist < e.r + p.r - 2 && !(e.fade > 0) && e.dmg > 0) {
         this.hurtPlayer(e.dmg, { src: 'touch:' + e.type });
         if (e.ai === 'wisp') { p.slowT = 1.6; p.slowMul = 0.6; }
       }
       // とおすぎたら まえに もってくる
-      if (dist > farR && !e.boss) {
+      if (dist > farR && !e.boss && e.ai !== 'thief') {
         const a = p.moving ? Math.atan2(p.dirY, p.dirX) + rand(-1, 1) : rand(TAU);
         const d = this.viewR + 30;
         e.x = p.x + Math.cos(a) * d;
         e.y = p.y + Math.sin(a) * d;
         e.swarm = null;
+        e.vortex = null;
       }
     }
     if (removed > 60) this.enemies = this.enemies.filter((e) => e.alive);
@@ -1008,7 +1049,7 @@ export class Game {
         const d = Math.hypot(e.x - p.x, e.y - p.y) || 1;
         kx = (e.x - p.x) / d; ky = (e.y - p.y) / d;
       }
-      const k = e.boss ? 0.05 : e.elite ? 0.3 : 1;
+      const k = e.boss ? 0.05 : e.elite || e.ai === 'thief' ? 0.3 : 1;
       e.vx += kx * o.kb * k;
       e.vy += ky * o.kb * k;
     }
@@ -1055,6 +1096,15 @@ export class Game {
       this.bossDefeated(e);
     } else {
       this.dropXp(e.x, e.y, e.xp * (e.elite ? 8 : 1));
+      if (e.ai === 'thief') {
+        // ジュエルシーフ：原石（原石以上）とコインと宝箱
+        this.dropPickup('rough', e.x, e.y, upgradeTier(chance(0.3) ? 'large' : 'rough', this.stage.no, this.heat));
+        for (let i = 0; i < 12; i++) this.dropPickup('coin', e.x, e.y, randi(3, 7));
+        this.dropPickup('chest', e.x, e.y);
+        this.fx.confetti(e.x, e.y, 40);
+        this.fx.shake(6);
+        this.hooks.banner('THIEF DEFEATED', 'item', '');
+      }
       if (e.elite) {
         const t = eliteDrop();
         if (t) this.dropPickup('rough', e.x, e.y, upgradeTier(t, this.stage.no, this.heat));
@@ -1442,6 +1492,10 @@ export class Game {
       else if (!w.evolved && w.level < WEAPON_MAX && !this.banished.has(w.id)) pool.push({ type: 'wup', id: w.id, weight: 10 });
     }
     for (const p of this.passives) if (p.level < PASSIVES[p.id].max && !this.banished.has(p.id)) pool.push({ type: 'pup', id: p.id, weight: 7 });
+    for (const w of this.weapons) {
+      const c = this.limitBreakChoice(w);
+      if (c) pool.push({ ...c, weight: 6 });
+    }
     if (this.weapons.length < MAX_WEAPONS) for (const id of WEAPON_IDS) if (!this.getWeapon(id) && !this.banished.has(id)) pool.push({ type: 'wnew', id, weight: 5 });
     if (this.passives.length < MAX_CHARMS) for (const id of PASSIVE_IDS) if (!this.getPassive(id) && !this.banished.has(id)) {
       // しんかに ひつようなら でやすく
@@ -1473,6 +1527,19 @@ export class Game {
     return out;
   }
 
+  // リミットブレイク：Lv8 の武器の小さな強化を 1 つ選ぶ（進化できる状態の武器は進化を優先）
+  limitBreakChoice(w) {
+    const def = WEAPONS[w.id];
+    if (w.level < WEAPON_MAX || this.banished.has(w.id)) return null;
+    if (!w.evolved && this.hasPassive(def.evo.with)) return null;
+    const lb = w.lb || {};
+    const has = (n) => [].concat(n).some((k) => def.base[k] !== undefined);
+    const opts = LIMIT_BREAK.filter((o) => (!o.need || has(o.need)) && (!o.max || (lb[o.k] || 0) < o.max));
+    if (!opts.length) return null;
+    const o = weightedPick(opts, (x) => x.w);
+    return { type: 'lb', id: w.id, stat: LIMIT_BREAK.indexOf(o) };
+  }
+
   applyChoice(c) {
     let evolved = null;
     if (c.type === 'wnew') this.addWeapon(c.id);
@@ -1490,6 +1557,12 @@ export class Game {
       this.evolvedCount++;
       save.seen.evos[c.id] = true;
       evolved = w;
+    } else if (c.type === 'lb') {
+      const w = this.getWeapon(c.id);
+      const o = LIMIT_BREAK[c.stat];
+      w.lb = w.lb || {};
+      w.lb[o.k] = (w.lb[o.k] || 0) + o.v;
+      w.lbN = (w.lbN || 0) + 1;
     } else if (c.type === 'coins') {
       this.coins += Math.round(c.value * this.stats.greed);
     } else if (c.type === 'heal') {
@@ -1515,6 +1588,7 @@ export class Game {
         const pool = [];
         for (const w of this.weapons) if (!w.evolved && w.level < WEAPON_MAX) pool.push({ type: 'wup', id: w.id });
         for (const p of this.passives) if (p.level < PASSIVES[p.id].max) pool.push({ type: 'pup', id: p.id });
+        if (!pool.length) for (const w of this.weapons) { const lb = this.limitBreakChoice(w); if (lb) pool.push(lb); }
         c = pool.length ? pick(pool) : { type: 'coins', value: 100 };
       }
       items.push(c);
@@ -1839,7 +1913,7 @@ export class Game {
       if (e.fade > 0) ctx.globalAlpha = Math.abs(e.fade - 0.25) * 3.5;
       const sq = Math.sin(this.time * 9 + e.anim) * 0.06;
       const Ls = spr.logical;
-      if (e.elite || e.boss) {
+      if (e.elite || e.boss || e.ai === 'thief') {
         ctx.globalCompositeOperation = 'lighter';
         const g = starSprite(e.boss ? '#ff3ddc' : '#ffd24a');
         const s = e.r * 2.4;
@@ -1882,7 +1956,7 @@ export class Game {
         ctx.fill();
         ctx.stroke();
       }
-      if (e.elite && !e.boss) {
+      if ((e.elite || e.ai === 'thief') && !e.boss) {
         // HPバー
         const w = e.r * 2;
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -2013,6 +2087,7 @@ export class Game {
     const items = [];
     if (this.boss && this.boss.alive) items.push({ x: this.boss.x, y: this.boss.y, color: '#ff3ddc', label: 'BOSS' });
     for (const pk of this.pickups) if (pk.kind === 'chest' || pk.kind === 'bigchest') items.push({ x: pk.x, y: pk.y, color: '#ffc21a', label: 'CHEST' });
+    for (const e of this.enemies) if (e.alive && e.ai === 'thief') items.push({ x: e.x, y: e.y, color: '#ffd24a', label: 'THIEF' });
     const hw = this.viewW / 2 - 18, hh = this.viewH / 2 - 60;
     for (const it of items) {
       const dx = it.x - camX, dy = it.y - camY;
