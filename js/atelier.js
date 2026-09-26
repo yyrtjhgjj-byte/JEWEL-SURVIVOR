@@ -3,7 +3,7 @@
 //  ラン中に拾った原石を研磨して宝石にし、宝石ごとの「練度」に応じて
 //  小さな永続ボーナスを得る。
 // =====================================================================
-import { GEMS, CHARACTERS } from './data.js';
+import { GEMS } from './data.js';
 import { save } from './save.js';
 import { chance, weightedPick } from './util.js';
 
@@ -18,9 +18,9 @@ export const ROUGH_IDS = Object.keys(ROUGH);
 
 // 品質
 export const GRADES = [
-  { id: 'C', min: 0, color: '#9a93b0' },
+  { id: 'C', min: 0, color: '#7dffb0' },
   { id: 'B', min: 0.35, color: '#7fd0ff' },
-  { id: 'A', min: 0.6, color: '#7dffb0' },
+  { id: 'A', min: 0.6, color: '#c78bff' },
   { id: 'S', min: 0.8, color: '#ffd24a' },
   { id: 'SS', min: 0.95, color: 'rainbow' },
 ];
@@ -91,12 +91,19 @@ export function gemBonusText(id, m, ct = save.jewels[id] ? save.jewels[id].ct : 
   return Object.entries(MASTERY_BONUS[id]).map(([k, v]) => statText(k, v * m * caratMul(ct))).join(' / ');
 }
 
-// どの宝石が出るか。レアな宝石ほど出にくく、上位の原石ほど出やすい
+// どの宝石が出るか。実際の宝石の産出量をおおまかに 5 段階にした（5 が多い）。
+// 厳密に合わせると偏りすぎるので、重みの差は最大 10 倍にとどめ、上位の原石ほど差を縮める
+const ABUNDANCE = {
+  milkyquartz: 5, granite: 5, coal: 5, jasper: 5,
+  garnet: 4, amber: 4, labradorite: 4, moonstone: 4, nephrite: 4, topaz: 4,
+  tourmaline: 3, peridot: 3, aquamarine: 3, iolite: 3, kyanite: 3, turquoise: 3, angelite: 3, prase: 3, opal: 3,
+  sapphire: 2, ruby: 2, emerald: 2, diamond: 2, coral: 2, rhodochrosite: 2, titanite: 2,
+  alexandrite: 1, redberyl: 1,
+};
+const ABUNDANCE_W = [0, 1, 2.5, 4.5, 7, 10];
 function gemWeight(id, tier) {
-  const c = CHARACTERS[id];
-  const r = c ? c.rarity : 'R';
-  const t = ROUGH[tier].rare;
-  return r === 'UR' ? 1.5 * t : r === 'SR' ? 4 * Math.sqrt(t) : 10;
+  const a = ABUNDANCE[id] || 3;
+  return ABUNDANCE_W[a] * Math.pow(ROUGH[tier].rare, (5 - a) / 4);
 }
 export function rollGem(tier) {
   return weightedPick(COLLECTION_IDS, (id) => gemWeight(id, tier));

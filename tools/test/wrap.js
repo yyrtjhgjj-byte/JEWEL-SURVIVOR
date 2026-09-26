@@ -1,9 +1,10 @@
-// 文字の折り返しチェック：画面を一通り開き、「最後の行が 1〜2 文字だけ」になっている箇所を一覧にする
+// 文字の折り返しチェック：画面を一通り開き、「最後の行が 1〜2 文字だけ」になっている箇所と、
+// ボタンの文字が上下（左右）に見切れている箇所を一覧にする
 // 使い方：NODE_PATH=/opt/node22/lib/node_modules node tools/test/wrap.js
-// 画面幅は iPhone SE（375）・13（390）・Pro Max（430）の 3 通りで確認する。
+// 画面は iPhone SE（375×667）・13 mini（375×812）・13（390×844）・Pro Max（430×932）で確認する。
 const { chromium, devices } = require('playwright');
 const BASE = process.env.BASE || 'http://localhost:8123';
-const WIDTHS = (process.env.WIDTHS || '375,390,430').split(',').map(Number);
+const SIZES = (process.env.SIZES || '375x667,375x812,390x844,430x932').split(',').map((s) => s.split('x').map(Number));
 
 // ページ内で実行：折り返しの悪い要素を探す
 function findOrphans(label) {
@@ -24,7 +25,7 @@ function findOrphans(label) {
     if (!n.data.trim()) continue;
     const b = blockOf(n);
     if (!b || !b.offsetParent || b.closest('#hud')) continue;
-    if (b.closest('.ztext, .zevo, .lore')) continue; // 図鑑・ジュエル選択の長い説明文は、ふつうの折り返しでよい（ユーザーの判断）
+    if (b.closest('.ztext, .zevo, .lore, .gd-lore, .gd-fr, .gd-trivia')) continue; // 図鑑・ジュエル選択の長い説明文は、ふつうの折り返しでよい（ユーザーの判断）
     if (!groups.has(b)) groups.set(b, []);
     groups.get(b).push(n);
   }
@@ -55,6 +56,30 @@ function findOrphans(label) {
   return out;
 }
 
+// ページ内で実行：ボタンの中の文字がボタンの枠からはみ出して見切れていないか
+function findClipped(label) {
+  const out = [];
+  const r = document.createRange();
+  for (const b of document.querySelectorAll('#app button, #app .btn')) {
+    if (!b.offsetParent || b.closest('#hud')) continue;
+    const br = b.getBoundingClientRect();
+    if (!br.width || !br.height) continue;
+    const walker = document.createTreeWalker(b, NodeFilter.SHOW_TEXT);
+    let bad = '';
+    for (let n = walker.nextNode(); n && !bad; n = walker.nextNode()) {
+      if (!n.data.trim()) continue;
+      r.selectNodeContents(n);
+      for (const rc of r.getClientRects()) {
+        if (!rc.width) continue;
+        // 文字の上下 2px 以上、左右 1px 以上が枠の外に出ていたら見切れ
+        if (rc.top < br.top - 2 || rc.bottom > br.bottom + 2 || rc.left < br.left - 1 || rc.right > br.right + 1) { bad = n.data.trim(); break; }
+      }
+    }
+    if (bad) out.push(`${label} | CLIP button.${[...b.classList].join('.')}${b.id ? '#' + b.id : ''} h=${Math.round(br.height)} | ${bad}`);
+  }
+  return out;
+}
+
 async function fullSave(p) {
   await p.evaluate(async () => {
     const D = await import('/js/data.js');
@@ -79,14 +104,15 @@ async function fullSave(p) {
   const b = await chromium.launch();
   const found = new Set();
   const errs = [];
-  for (const W of WIDTHS) {
+  for (const [W, H] of SIZES) {
     for (const mode of ['fresh', 'full']) {
-      const ctx = await b.newContext({ ...devices['iPhone 13'], viewport: { width: W, height: Math.round(W * 2.16) } });
+      const ctx = await b.newContext({ ...devices['iPhone 13'], viewport: { width: W, height: H } });
       const p = await ctx.newPage();
       p.on('pageerror', (e) => errs.push(e.message));
       const check = async (label) => {
         await p.waitForTimeout(350);
-        for (const s of await p.evaluate(findOrphans, `${W} ${mode} ${label}`)) found.add(s.replace(/^\d+ \w+ /, `[${W}] `));
+        for (const s of await p.evaluate(findOrphans, `${W} ${mode} ${label}`)) found.add(s.replace(/^\d+ \w+ /, `[${W}x${H}] `));
+        for (const s of await p.evaluate(findClipped, `${W} ${mode} ${label}`)) found.add(s.replace(/^\d+ \w+ /, `[${W}x${H}] `));
       };
       const clickAll = async (sel, label) => {
         const n = await p.$$eval(sel, (e) => e.length);
@@ -106,7 +132,15 @@ async function fullSave(p) {
       await back(); await back();
       await p.click('#t-shop'); await check('shop'); await back();
       await p.click('#t-atelier'); await check('atelier');
-      await clickAll('.seg button, .tabs button', 'atelier-tab'); await back();
+      await clickAll('.seg button, .tabs button', 'atelier-tab');
+      // コレクションの詳細（閉じるボタンがパネルの中にある）
+      const cells = await p.$$eval('.coll-cell', (e) => e.length);
+      for (let i = 0; i < cells; i += mode === 'full' ? 1 : 7) {
+        await p.$$eval('.coll-cell', (e, i) => e[i].click(), i);
+        await check('gem-detail#' + i);
+        await p.evaluate(() => document.querySelector('.at-over')?.remove());
+      }
+      await back();
       await p.click('#t-gacha'); await check('gacha');
       if (await p.$('#gex')) { await p.click('#gex'); await check('exchange'); await p.evaluate(() => document.querySelector('#xok, #xd')?.click()); }
       await back();
