@@ -9,6 +9,7 @@ import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite, shopIcon, pick
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
+import { ELEMENTS, GEM_ELEMENT, elemOf, elementMul } from './elements.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
@@ -104,7 +105,12 @@ export function haptic() {
 function gemColor(id) { return GEMS[id].rainbow ? '#e6d4ff' : GEMS[id].color; }
 function wordTag(gemId) {
   const c = gemColor(gemId);
-  return `<span class="word-tag" style="color:${c};border-color:${c}66;background:${c}14">${GEMS[gemId].word}</span>`;
+  return `<span class="word-tag" style="color:${c};border-color:${c}66;background:${c}14">${GEMS[gemId].word}</span>${elemTag(gemId)}`;
+}
+// 属性の小さな札
+export function elemTag(gemId) {
+  const k = elemOf(gemId);
+  return k ? `<span class="etag" style="--ec:${ELEMENTS[k].color}">${ELEMENTS[k].jp}</span>` : '';
 }
 const coinIco = '<i class="coin-ico"></i>';
 // 桁が多いときは数字を小さくして、画面からはみ出さないようにする
@@ -585,6 +591,7 @@ export function showZukan(tab = 'gems') {
         <button class="tab ${tab === 'enemies' ? 'on' : ''}" data-t="enemies">敵</button>
         <button class="tab ${tab === 'arts' ? 'on' : ''}" data-t="arts">秘宝</button>
         <button class="tab ${tab === 'stages' ? 'on' : ''}" data-t="stages">ステージ</button>
+        <button class="tab ${tab === 'elems' ? 'on' : ''}" data-t="elems">属性</button>
         <button class="tab ${tab === 'trophy' ? 'on' : ''}" data-t="trophy">実績</button>
       </div>
       <div class="zlist" id="zl"></div>
@@ -643,6 +650,19 @@ export function showZukan(tab = 'gems') {
         <div><div class="zname">${a.no}　${ok ? a.name : '???'}<span class="en">${a.en}</span></div>
           <div class="ztext">${ok ? a.desc : '未解放'}</div>
           ${ok ? '' : `<div class="zevo">解放条件：${ach ? ach.t : '???'}</div>`}
+        </div></div>`));
+    }
+  } else if (tab === 'elems') {
+    zl.appendChild(el(`<div class="elem-note">攻撃が当たると、その武器の属性の効果が低い確率で発動します。同じ属性の宝石（武器・チャーム）を 2 つで 1.15 倍、3 つで 1.3 倍、4 つ以上で 1.5 倍に効果が伸びます。土はチャームだけの属性で、持っていると一定時間ごとに発動します。</div>`));
+    for (const k in ELEMENTS) {
+      const E = ELEMENTS[k];
+      const gems = Object.keys(GEM_ELEMENT).filter((g) => GEM_ELEMENT[g] === k);
+      zl.appendChild(el(`<div class="zitem elem-item" style="--ec:${E.color}">
+        <div class="elem-big">${E.jp}</div>
+        <div><div class="zname">${E.st}</div>
+          <div class="ztext">${E.d}</div>
+          ${E.vs ? `<div class="ztext elem-vs">${E.vs}</div>` : ''}
+          <div class="elem-gems">${gems.map((g) => `<img src="${gemIcon(g, 48)}">`).join('')}</div>
         </div></div>`));
     }
   } else if (tab === 'stages') {
@@ -1031,7 +1051,7 @@ export function levelUp(g, done) {
       const info = choiceInfo(g, c);
       const card = el(`<button class="card r-${info.rar}">
         <img src="${info.icon}">
-        <div class="cbody"><div class="clv">${info.lv}</div><div class="cname">${info.name}</div>
+        <div class="cbody"><div class="clv">${info.lv}${elemTag((WEAPONS[c.id] || PASSIVES[c.id] || {}).gem)}</div><div class="cname">${info.name}</div>
           ${info.tags ? `<div class="ctags">${info.tags}</div>` : ''}
           <div class="cdesc">${info.desc}</div><div class="cword">${info.word}</div></div>
         <span class="ctag rarbadge r-${info.rar}">${info.rar}</span>
@@ -1199,6 +1219,12 @@ export function chest(g, big, done) {
 }
 
 // ================================================================== ポーズ
+// 揃えた属性の数と倍率
+function elemSummary(g) {
+  const ks = Object.keys(ELEMENTS).filter((k) => (g.elemCnt || {})[k]);
+  if (!ks.length) return '';
+  return `<div class="pause-elems">${ks.map((k) => `<span style="--ec:${ELEMENTS[k].color}"><b>${ELEMENTS[k].jp}</b>${g.elemCnt[k]}${g.elemCnt[k] >= 2 ? `<i>×${elementMul(g.elemCnt[k])}</i>` : ''}</span>`).join('')}</div>`;
+}
 export function pauseMenu(g, onResume, onQuit) {
   const node = el(`
     <div class="screen dim" style="justify-content:center;gap:14px">
@@ -1211,6 +1237,7 @@ export function pauseMenu(g, onResume, onQuit) {
         <div class="pause-build">
           ${g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 64)}"><b>${p.level}</b></div>`).join('')}
         </div>
+        ${elemSummary(g)}
         <div class="hint">${fmtTime(g.time)} ／ ${fmt(g.kills)} KILLS ／ ${fmt(g.coins)} COINS</div>
       </div>
       <button class="btn big primary" id="resume">RESUME</button>
