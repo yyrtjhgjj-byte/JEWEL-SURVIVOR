@@ -600,7 +600,7 @@ export const LOGIC = {
           if (d > r + e.r) continue;
           wv.hit.add(e);
           g.damage(e, s.dmg, { wid: 'aquamarine', kx: (e.x - p.x) / (d || 1), ky: (e.y - p.y) / (d || 1), kb: 160 * s.knock });
-          if (evo && !e.boss) e.frozenT = 1.2;
+          if (evo && !e.boss && e.ai !== 'thief') e.frozenT = 1.2;
         }
         if (Math.random() < 0.6) {
           const a = rand(TAU);
@@ -718,7 +718,7 @@ export const LOGIC = {
             if ((e.hitT.moon || 0) > g.time) continue;
             e.hitT.moon = g.time + 0.4;
             g.damage(e, s.dmg * 0.5, { wid: 'moonstone', kb: 60 });
-            if (e.alive && !e.boss && !e.segment && !e.charmT && chance(s.charm * 1.2)) this.charm(g, e, 4, true);
+            if (e.alive && !e.boss && !e.segment && e.ai !== 'thief' && !e.charmT && chance(s.charm * 1.2)) this.charm(g, e, 4, true);
           }
         }
       }
@@ -732,7 +732,7 @@ export const LOGIC = {
           pierce: 999, life: 3, wid: 'moonstone', sprite: moonSprite(26, false), size: 26 * s.area, spin: 12,
           boomerang: { out: true, range: 210 * s.area, dist: 0 }, knock: 70,
           onHit: (g2, pr, e) => {
-            if (e.alive && !e.boss && !e.segment && !e.charmT && chance(s.charm * (evo ? 1.3 : 1))) this.charm(g2, e, evo ? 4 : 3, evo);
+            if (e.alive && !e.boss && !e.segment && e.ai !== 'thief' && !e.charmT && chance(s.charm * (evo ? 1.3 : 1))) this.charm(g2, e, evo ? 4 : 3, evo);
           },
         });
         audio.whoosh();

@@ -35,13 +35,6 @@ function warn(g, x, y, r, T, color, fn, owner = null) {
 export const AI = {
   // ------------------------------------------------ ジュエルシーフ（逃げ回る。時間がたつと消える）
   thief(g, e, dt, dist, mv) {
-    e.life -= dt;
-    if (e.life <= 0) {
-      e.alive = false;
-      g.fx.burst(e.x, e.y, '#ffd24a', 14, 220, 0.5, 10);
-      g.hooks.banner('ESCAPED', 'item', 'ジュエルシーフに逃げられた');
-      return;
-    }
     // ときどき立ち止まって振り返る（追いつける隙）
     e.restT -= dt;
     if (e.restT <= -2.4) e.restT = 0.7;
@@ -169,7 +162,7 @@ export const AI = {
     const mx = mv.mx, my = mv.my;
     mv.mx = mx - my * w;
     mv.my = my + mx * w;
-    mv.spd = enr ? 125 : 105;
+    mv.spd *= enr ? 1.3 : 1.1; // ヒート・HYPER の速度補正が効くように、基本の速度から掛ける
     if (!e.segs) {
       e.segs = [];
       e.trail = [];
@@ -329,6 +322,16 @@ export const AI = {
     }
   },
 };
+
+// ジュエルシーフの逃走までの時間（AI の外で進める。凍結や目くらましで延びないように）。逃げたら true
+export function thiefTick(g, e, dt) {
+  e.life -= dt;
+  if (e.life > 0) return false;
+  e.alive = false;
+  g.fx.burst(e.x, e.y, '#ffd24a', 14, 220, 0.5, 10);
+  g.hooks.banner('ESCAPED', 'item', 'ジュエルシーフに逃げられた');
+  return true;
+}
 
 // 分裂型が倒れたとき
 export function onEnemyKilled(g, e) {

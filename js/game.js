@@ -6,7 +6,7 @@ import {
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
-import { AI, onEnemyKilled } from './enemies.js';
+import { AI, onEnemyKilled, thiefTick } from './enemies.js';
 import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
 import { ARTIFACT_BY_ID, ARTIFACT_MAX, unlockedArtifacts } from './artifacts.js';
@@ -189,6 +189,8 @@ export class Game {
     }
     s.might += 0.05 * (save.awaken[this.charId] || 0);
     add(collectionStats()); // 研磨コレクションの練度ボーナス
+    // チャームは秘宝の倍率（ペンダントの最大HP・プリズムの範囲）より先に足す（チャームの分にも倍率が掛かるように）
+    for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
     // 秘宝
     if (this.artSet && this.artSet.has('box')) {
       const empty = Math.max(0, MAX_WEAPONS - (this.weapons ? this.weapons.length : 1));
@@ -205,8 +207,9 @@ export class Game {
       s.duration += 0.1 * n;
     }
     if (this.artSet && this.artSet.has('prism')) s.area *= 1.75 + 1.25 * Math.sin((this.time / 10) * TAU);
-    for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
     s.greed *= rankCoinMul(); // ユーザーレベルによる獲得コインの倍率
+    // ヒート・HYPER のコインの倍率もラン中に掛ける（HUD のコインとリザルトの獲得コインが一致するように）
+    s.greed *= this.heatM.coin * (this.hyper ? 1.5 : 1);
     recalcElements(this);
     s.cooldown = Math.max(0.35, s.cooldown);
     const oldMax = this.stats ? this.stats.maxHp : s.maxHp;
@@ -371,6 +374,7 @@ export class Game {
       if (Math.abs(ix) > 0.1) p.face = ix > 0 ? 1 : -1;
     }
     p.iT = Math.max(0, p.iT - dt);
+    p.reviveT = Math.max(0, (p.reviveT || 0) - dt);
     p.hurtT = Math.max(0, p.hurtT - dt);
     if (this.stats.regen > 0) this.heal(this.stats.regen * dt, true);
 
@@ -644,7 +648,7 @@ export class Game {
           acc += d; px = q.x; py = q.y;
           e.x = px; e.y = py;
         }
-        if (Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r - 2) this.hurtPlayer(e.dmg);
+        if (!stop && !(h.breakT > 0) && Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r - 2) this.hurtPlayer(e.dmg * touchMul(this, h), { src: 'touch:worm' });
         continue;
       }
       // ノックバック
@@ -655,7 +659,11 @@ export class Game {
       e.vy *= damp;
       if (e.frozenT > 0) e.frozenT -= dt;
       if (e.slowT > 0) e.slowT -= dt;
-      if (!stop) { tickElements(this, e, dt); if (!e.alive) continue; }
+      if (!stop) {
+        tickElements(this, e, dt);
+        if (!e.alive) continue;
+        if (e.ai === 'thief' && thiefTick(this, e, dt)) continue; // 逃走までの時間（目くらましなどの影響を受けない）
+      }
       const dx = p.x - e.x, dy = p.y - e.y;
       const dist = Math.hypot(dx, dy) || 1;
       // 魅了：ほかの敵を襲う
@@ -739,7 +747,7 @@ export class Game {
         }
       }
       // プレイヤーに あたる
-      if (dist < e.r + p.r - 2 && !(e.fade > 0) && e.dmg > 0 && !(e.breakT > 0)) {
+      if (!stop && dist < e.r + p.r - 2 && !(e.fade > 0) && e.dmg > 0 && !(e.breakT > 0)) {
         this.hurtPlayer(e.dmg * touchMul(this, e), { src: 'touch:' + e.type });
         if (e.ai === 'wisp') { p.slowT = 1.6; p.slowMul = 0.6; }
       }
@@ -898,10 +906,14 @@ export class Game {
     for (const L of this.lasers) {
       const o = L.owner;
       if (!o || !o.alive) { L.dur = 0; L.tele = 0; continue; }
+      // 水晶柱はレーザーも遮る（予告の線も柱で止める）
+      L.cut = this.hazards.rayCut(o.x, o.y, L.a, L.len);
       if (L.tele > 0) { L.tele -= dt; continue; }
       L.dur -= dt;
       L.a += L.va * dt;
-      const bx = o.x + Math.cos(L.a) * L.len, by = o.y + Math.sin(L.a) * L.len;
+      L.cut = this.hazards.rayCut(o.x, o.y, L.a, L.len);
+      const bx = o.x + Math.cos(L.a) * L.cut, by = o.y + Math.sin(L.a) * L.cut;
+      if (L.cut < L.len && Math.random() < 0.35) this.fx.add(bx, by, rand(-80, 80), rand(-80, 80), 0.3, 7, L.color, 'star');
       const dx = bx - o.x, dy = by - o.y;
       let t = ((p.x - o.x) * dx + (p.y - o.y) * dy) / (dx * dx + dy * dy);
       t = t < 0 ? 0 : t > 1 ? 1 : t;
@@ -1074,11 +1086,14 @@ export class Game {
     dmg = Math.max(1, Math.round(dmg));
     const dealt = Math.min(dmg, e.hp);
     e.hp -= dmg;
-    if (o.wid && !o.dot && !e.boss && !e.segment && this.artSet.has('loupe') && chance(0.08)) e.frozenT = Math.max(e.frozenT, 1.5); // 秘宝「氷晶のルーペ」
+    if (o.wid && !o.dot && !e.boss && !e.segment && e.ai !== 'thief' && this.artSet.has('loupe') && chance(0.08)) e.frozenT = Math.max(e.frozenT, 1.5); // 秘宝「氷晶のルーペ」
     // 形態のあるボスは、形態変化の処理（AI 側）を飛ばして次の形態へ進んだり倒れたりしないようにする
     if (e.ai === 'emperor' && e.phaseNow && e.phaseNow < 3) {
       const floor = e.maxHp * (e.phaseNow === 1 ? 0.66 : 0.33) - 1;
-      if (e.hp < floor) e.hp = floor;
+      if (e.hp < floor) {
+        e.hp = floor;
+        if (e.breakT > 0) e.breakT = 0; // ダウン中に境目まで削ったら、すぐ起き上がって形態変化する（被ダメージ 2 倍を無駄にしない）
+      }
     }
     e.flash = 0.08;
     if (o.kb) {
@@ -1253,8 +1268,12 @@ export class Game {
       if (i < 120) this.fx.burst(b.x, b.y, '#ffd6f5', 3, 90, 0.35, 6);
     }
     this.ebullets.length = 0;
-    if (e.type === this.stage.finalBoss && !this.endless && !this.cleared) {
-      this.cleared = true;
+    if (e.type === this.stage.finalBoss && !this.cleared) {
+      this.cleared = true; // ENDLESS でもクリアは記録する（ランはそのまま続く）
+      if (this.endless) {
+        this.hooks.banner('STAGE CLEAR', 'victory', 'ENDLESS 続行');
+        return;
+      }
       setTimeout(() => {
         if (this.state === 'over') return;
         this.pendingClear = true;
@@ -1360,7 +1379,7 @@ export class Game {
 
   hurtPlayer(dmg, o = {}) {
     const p = this.player;
-    if ((p.iT > 0 && !o.ignoreIT) || this.god || this.state !== 'play') return;
+    if ((p.iT > 0 && !o.ignoreIT) || p.reviveT > 0 || this.god || this.state !== 'play') return;
     if (this.cleared && !this.endless) return; // 最終ボス撃破後、クリア画面までは被弾しない
     if (this.bot) { const k = o.src || 'other'; (this.dmgTaken = this.dmgTaken || {})[k] = (this.dmgTaken[k] || 0) + dmg; }
     dmg = Math.max(1, Math.round((dmg - this.stats.armor) * (1 - Math.min(0.6, this.stats.guard || 0)) * earthGuard(this)));
@@ -1383,6 +1402,7 @@ export class Game {
       if (this.artSet.has('pendant')) { this.revBuff++; this.computeStats(); } // 秘宝「護石のペンダント」
       p.hp = p.maxHp;
       p.iT = 2.5;
+      p.reviveT = 2.5; // 溶岩など、無敵時間を無視するダメージも受けない
       this.jewelFlash(true);
       this.hooks.banner('REVIVE', 'victory', '光は再び灯る');
       audio.heal();
@@ -1660,8 +1680,8 @@ export class Game {
       if (evo) c = { type: 'evo', id: evo.id };
       else {
         const pool = [];
-        for (const w of this.weapons) if (!w.evolved && w.level < WEAPON_MAX) pool.push({ type: 'wup', id: w.id });
-        for (const p of this.passives) if (p.level < PASSIVES[p.id].max) pool.push({ type: 'pup', id: p.id });
+        for (const w of this.weapons) if (!w.evolved && w.level < WEAPON_MAX && !this.banished.has(w.id)) pool.push({ type: 'wup', id: w.id });
+        for (const p of this.passives) if (p.level < PASSIVES[p.id].max && !this.banished.has(p.id)) pool.push({ type: 'pup', id: p.id });
         if (!pool.length) for (const w of this.weapons) { const lb = this.limitBreakChoice(w); if (lb) pool.push(lb); }
         c = pool.length ? pick(pool) : { type: 'coins', value: 100 };
       }
@@ -1825,7 +1845,7 @@ export class Game {
       if (!o) continue;
       const ax = Math.cos(L.a), ay = Math.sin(L.a);
       const t = (p.x - o.x) * ax + (p.y - o.y) * ay;
-      if (t < 0 || t > L.len) continue;
+      if (t < 0 || t > (L.cut ?? L.len)) continue;
       const nx = p.x - (o.x + ax * t), ny = p.y - (o.y + ay * t), d = Math.hypot(nx, ny) || 1;
       if (d < 70) { fx += (nx / d) * 0.25 + ay * Math.sign(L.va || 1) * 0.1; fy += (ny / d) * 0.25 - ax * Math.sign(L.va || 1) * 0.1; }
     }
@@ -2087,7 +2107,8 @@ export class Game {
     for (const L of this.lasers) {
       const o = L.owner;
       if (!o) continue;
-      const bx = o.x + Math.cos(L.a) * L.len, by = o.y + Math.sin(L.a) * L.len;
+      const len = L.cut ?? L.len;
+      const bx = o.x + Math.cos(L.a) * len, by = o.y + Math.sin(L.a) * len;
       ctx.lineCap = 'round';
       if (L.tele > 0) {
         ctx.globalAlpha = 0.5 + 0.4 * Math.sin(this.time * 30);

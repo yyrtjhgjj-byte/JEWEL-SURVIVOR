@@ -96,6 +96,28 @@ export class Hazards {
     return false;
   }
 
+  // (x, y) から角度 a へ伸びる長さ len の線が、最初に柱に当たるまでの長さ（ボスのレーザーを柱で遮る）
+  rayCut(x, y, a, len) {
+    if (this.kind !== 'pillars') return len;
+    const ax = Math.cos(a), ay = Math.sin(a);
+    const ex = x + ax * len, ey = y + ay * len;
+    const x0 = Math.floor((Math.min(x, ex) - 50) / CHUNK), x1 = Math.floor((Math.max(x, ex) + 50) / CHUNK);
+    const y0 = Math.floor((Math.min(y, ey) - 50) / CHUNK), y1 = Math.floor((Math.max(y, ey) + 50) / CHUNK);
+    let best = len;
+    for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) {
+      for (const o of this.chunk(i, j)) {
+        if ((o.x - x) ** 2 + (o.y - y) ** 2 < o.r * o.r) continue; // 柱の中から撃つ場合（ボスは柱をすり抜ける）は遮らない
+        const t = (o.x - x) * ax + (o.y - y) * ay;
+        if (t < 0 || t - o.r > best) continue;
+        const cx = x + ax * t - o.x, cy = y + ay * t - o.y;
+        const d2 = cx * cx + cy * cy;
+        if (d2 >= o.r * o.r) continue;
+        best = Math.min(best, Math.max(0, t - Math.sqrt(o.r * o.r - d2)));
+      }
+    }
+    return best;
+  }
+
   // 移動速度への補正
   speedMul() {
     return this.kind === 'blizzard' && this.storm ? 0.72 : 1;
@@ -153,6 +175,15 @@ export class Hazards {
       if (this.storm) {
         p.x += Math.cos(this.wind) * 28 * dt;
         p.y += Math.sin(this.wind) * 28 * dt;
+        // 雪（画面に対する割合の座標。フレームレートによらず同じ速さで流れるよう、ここで動かす）
+        while (this.snow.length < 90) this.snow.push({ x: Math.random(), y: Math.random(), s: rand(1, 3), v: rand(0.3, 0.8) });
+        const wx = Math.cos(this.wind), wy = Math.sin(this.wind);
+        for (const f of this.snow) {
+          f.x += (wx * 0.6 + 0.05) * f.v * 3 * dt;
+          f.y += (wy * 0.6 + 0.4) * f.v * 3 * dt;
+          if (f.x > 1.05) f.x -= 1.1; if (f.x < -0.05) f.x += 1.1;
+          if (f.y > 1.05) f.y -= 1.1; if (f.y < -0.05) f.y += 1.1;
+        }
       }
     } else if (this.kind === 'darkness') {
       this.riftT -= dt;
@@ -282,15 +313,10 @@ export class Hazards {
     grd.addColorStop(1, `rgba(220,235,255,${0.55 * k})`);
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, CW, CH);
-    // 雪
-    while (this.snow.length < 90) this.snow.push({ x: Math.random(), y: Math.random(), s: rand(1, 3), v: rand(0.3, 0.8) });
+    // 雪（動きは update で進める）
     const wx = Math.cos(this.wind), wy = Math.sin(this.wind);
     ctx.strokeStyle = `rgba(240,248,255,${0.8 * k})`;
     for (const f of this.snow) {
-      f.x += (wx * 0.6 + 0.05) * f.v * 0.016 * 3;
-      f.y += (wy * 0.6 + 0.4) * f.v * 0.016 * 3;
-      if (f.x > 1.05) f.x -= 1.1; if (f.x < -0.05) f.x += 1.1;
-      if (f.y > 1.05) f.y -= 1.1; if (f.y < -0.05) f.y += 1.1;
       ctx.lineWidth = f.s * dpr;
       ctx.beginPath();
       ctx.moveTo(f.x * CW, f.y * CH);
