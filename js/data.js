@@ -125,7 +125,8 @@ export const GEMS = {
 export const WEAPONS = {
   ruby: {
     gem: 'ruby', name: 'ブレイブ・バレット',
-    dmgMul: 2.5, // バランス調整（Lv帯）
+    dmgMul: 1.65, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: 0.81, // 低レベル時の補正（Lv1 で ×1.81、Lv8 で ×1）
     desc: '最も近い敵へ紅玉の弾丸を撃ち込む',
     base: { dmg: 95, cd: 1.1, amount: 1, speed: 1, pierce: 0, area: 1, life: 1.4 },
     levels: [
@@ -138,14 +139,14 @@ export const WEAPONS = {
       { dmg: 90, pierce: 1, t: 'ダメージ +90 / 貫通 +1' },
     ],
     evo: {
-      mul: 0.22, with: 'jasper', name: 'ブレイブハート・バースト',
+      mul: 0.44, with: 'jasper', name: 'ブレイブハート・バースト',
       desc: '着弾時に爆発。HP50%以下でダメージ2倍',
     },
   },
   sapphire: {
     gem: 'sapphire', name: 'ボンド・オービット',
-    dmgMul: 2.8, // バランス調整（Lv帯）
-    lowBoost: 0.7, // 低レベル時の補正（Lv1 で ×1.7、Lv8 で ×1）
+    dmgMul: 2.89, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: -0.1, // 低レベル時の補正（Lv1 で ×0.9、Lv8 で ×1）
     desc: '周囲を旋回する蒼玉。近くの敵へ援護射撃も行う',
     base: { dmg: 85, cd: 1.8, amount: 2, speed: 1, area: 1, duration: 4 },
     levels: [
@@ -157,11 +158,12 @@ export const WEAPONS = {
       { dmg: 40, t: 'ダメージ +40' },
       { amount: 1, dmg: 30, t: 'オーブ +1 / ダメージ +30' },
     ],
-    evo: { mul: 0.6, with: 'nephrite', name: 'エターナル・ボンド', desc: '二重の軌道が途切れることなく回り続ける' },
+    evo: { mul: 0.51, with: 'nephrite', name: 'エターナル・ボンド', desc: '二重の軌道が途切れることなく回り続ける' },
   },
   garnet: {
     gem: 'garnet', name: 'アムール・ハート',
-    dmgMul: 1.2, // バランス調整（Lv帯）
+    dmgMul: 2.19, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: -0.11, // 低レベル時の補正（Lv1 で ×0.89、Lv8 で ×1）
     desc: '放物線を描くハートを投擲。命中するとHPを吸収',
     base: { dmg: 150, cd: 1.5, amount: 1, speed: 1, area: 1, pierce: 4 },
     levels: [
@@ -173,11 +175,12 @@ export const WEAPONS = {
       { dmg: 70, t: 'ダメージ +70' },
       { amount: 1, t: '投擲数 +1' },
     ],
-    evo: { mul: 1.25, with: 'milkyquartz', name: 'アムール・テンペスト', desc: '周囲にハートが降り注ぐ。吸収量アップ' },
+    evo: { mul: 1.07, with: 'milkyquartz', name: 'アムール・テンペスト', desc: '周囲にハートが降り注ぐ。吸収量アップ' },
   },
   labradorite: {
     gem: 'labradorite', name: 'ヒドゥン・ボルト',
-    dmgMul: 1.0, // バランス調整（Lv帯）
+    dmgMul: 1.3, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: -0.3, // 低レベル時の補正（Lv1 で ×0.7、Lv8 で ×1）
     desc: '画面内のランダムな敵へ落雷',
     base: { dmg: 190, cd: 2.2, amount: 2, area: 1 },
     levels: [
@@ -189,11 +192,12 @@ export const WEAPONS = {
       { dmg: 90, cd: -0.2, t: 'ダメージ +90 / クールダウン短縮' },
       { amount: 1, t: '落雷数 +1' },
     ],
-    evo: { mul: 1.4, with: 'iolite', name: 'ヒドゥン・ストーム', desc: '落雷が次々と敵を連鎖する' },
+    evo: { mul: 1.54, with: 'iolite', name: 'ヒドゥン・ストーム', desc: '落雷が次々と敵を連鎖する' },
   },
   opal: {
     gem: 'opal', name: 'ミラクル・プリズム',
-    dmgMul: 1.5, // バランス調整（Lv帯）
+    dmgMul: 2.33, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: 0.2, // 低レベル時の補正（Lv1 で ×1.2、Lv8 で ×1）
     desc: '回転する虹色の光線。確率で10倍ダメージの「奇跡」',
     base: { dmg: 45, cd: 3.5, amount: 1, area: 1, speed: 1, duration: 2 },
     levels: [
@@ -205,11 +209,12 @@ export const WEAPONS = {
       { duration: 0.5, area: 0.2, t: '照射時間・射程アップ' },
       { dmg: 40, t: 'ダメージ +40' },
     ],
-    evo: { mul: 0.55, with: 'coral', name: 'ミラクル・スペクトラム', desc: '常時照射。奇跡の発生率が大幅アップ' },
+    evo: { mul: 0.52, with: 'coral', name: 'ミラクル・スペクトラム', desc: '常時照射。奇跡の発生率が大幅アップ' },
   },
   amber: {
     gem: 'amber', name: 'ゴールド・レイン',
-    dmgMul: 0.8, // バランス調整（Lv帯）
+    dmgMul: 1.66, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: -0.25, // 低レベル時の補正（Lv1 で ×0.75、Lv8 で ×1）
     desc: '敵の頭上に金貨を落とす。この武器で倒すとコインをドロップ',
     base: { dmg: 120, cd: 1.7, amount: 2, area: 1 },
     levels: [
@@ -221,11 +226,12 @@ export const WEAPONS = {
       { dmg: 70, t: 'ダメージ +70' },
       { amount: 1, t: '金貨 +1' },
     ],
-    evo: { mul: 1.6, with: 'titanite', name: 'ゴールデン・ジャックポット', desc: '金貨の豪雨。確率で777ジャックポットが発生' },
+    evo: { mul: 1.29, with: 'titanite', name: 'ゴールデン・ジャックポット', desc: '金貨の豪雨。確率で777ジャックポットが発生' },
   },
   angelite: {
     gem: 'angelite', name: 'セラフ・オーラ',
-    dmgMul: 1.0, // バランス調整（Lv帯）
+    dmgMul: 2.68, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: 0.55, // 低レベル時の補正（Lv1 で ×1.55、Lv8 で ×1）
     desc: '周囲に光のオーラを展開。接近した敵にダメージ、自身はHPを回復し続ける',
     base: { dmg: 25, cd: 0.5, area: 1, knock: 0.4 },
     levels: [
@@ -237,11 +243,12 @@ export const WEAPONS = {
       { area: 0.15, t: '範囲アップ' },
       { dmg: 15, cd: -0.05, t: 'ダメージ +15 / ヒット間隔短縮' },
     ],
-    evo: { mul: 1.0, with: 'redberyl', name: 'サンクチュアリ', desc: '聖域化。敵を減速させ、弱った敵を即座に浄化する。回復量アップ' },
+    evo: { mul: 1.38, with: 'redberyl', name: 'サンクチュアリ', desc: '聖域化。敵を減速させ、弱った敵を即座に浄化する。回復量アップ' },
   },
   diamond: {
     gem: 'diamond', name: 'ブリリアント・カット',
-    dmgMul: 2.6, // バランス調整（Lv帯）
+    dmgMul: 3.83, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: -0.48, // 低レベル時の補正（Lv1 で ×0.52、Lv8 で ×1）
     desc: '金剛石の破片を全方位へ炸裂させる',
     base: { dmg: 90, cd: 1.4, amount: 5, speed: 1, pierce: 1, life: 0.5 },
     levels: [
@@ -253,11 +260,12 @@ export const WEAPONS = {
       { dmg: 45, t: 'ダメージ +45' },
       { amount: 2, t: '破片 +2' },
     ],
-    evo: { mul: 0.2, with: 'topaz', name: 'スターダスト・カリスマ', desc: '螺旋状に破片を連射。全弾クリティカル' },
+    evo: { mul: 0.27, with: 'topaz', name: 'スターダスト・カリスマ', desc: '螺旋状に破片を連射。全弾クリティカル' },
   },
   emerald: {
     gem: 'emerald', name: 'ハーモニー・フィールド',
-    dmgMul: 0.7, // バランス調整（Lv帯）
+    dmgMul: 1.59, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: -0.25, // 低レベル時の補正（Lv1 で ×0.75、Lv8 で ×1）
     desc: '地面に光のクローバー畑を展開し、上の敵に継続ダメージ',
     base: { dmg: 40, cd: 2.6, amount: 1, area: 1, duration: 2.5 },
     levels: [
@@ -269,12 +277,12 @@ export const WEAPONS = {
       { dmg: 8, t: 'ダメージ +8' },
       { amount: 1, t: 'フィールド +1' },
     ],
-    evo: { mul: 1.35, with: 'granite', name: 'エデン・ガーデン', desc: '範囲拡大＋敵を減速。四つ葉がアイテムを落とす' },
+    evo: { mul: 1.21, with: 'granite', name: 'エデン・ガーデン', desc: '範囲拡大＋敵を減速。四つ葉がアイテムを落とす' },
   },
   rhodochrosite: {
     gem: 'rhodochrosite', name: 'パッション・フレイム',
-    dmgMul: 3.75, // バランス調整（Lv帯）。使いにくい分、正面火力を高めに（炎を前方だけにしたときに 2.5 → 3.75）
-    lowBoost: 1.33, // 低レベル時の補正（Lv1 で ×2.33、Lv8 で ×1）。Lv1 の強さは dmgMul 2.5・lowBoost 2.5 のときと同じ
+    dmgMul: 2.66, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: 0.49, // 低レベル時の補正（Lv1 で ×1.49、Lv8 で ×1）
     desc: '進行方向へ炎を放射する',
     base: { dmg: 22, cd: 2.2, amount: 1, area: 1, duration: 1.2 },
     levels: [
@@ -286,11 +294,12 @@ export const WEAPONS = {
       { duration: 0.4, t: '放射時間アップ' },
       { dmg: 10, area: 0.2, t: 'ダメージ +10 / 射程アップ' },
     ],
-    evo: { mul: 0.65, with: 'peridot', name: 'パッション・インフェルノ', desc: '前方へ絶え間なく噴き出す業火。射程が伸び、炎の先は燃え続ける' },
+    evo: { mul: 0.52, with: 'peridot', name: 'パッション・インフェルノ', desc: '前方へ絶え間なく噴き出す業火。射程が伸び、炎の先は燃え続ける' },
   },
   kyanite: {
     gem: 'kyanite', name: 'ディサイシブ・ランス',
-    dmgMul: 0.65, // バランス調整（Lv帯）
+    dmgMul: 1.54, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: -0.36, // 低レベル時の補正（Lv1 で ×0.64、Lv8 で ×1）
     desc: '最もHPの高い敵へ槍を投擲。無限貫通',
     base: { dmg: 300, cd: 2.2, amount: 1, speed: 1, area: 1 },
     levels: [
@@ -302,11 +311,12 @@ export const WEAPONS = {
       { amount: 1, t: '槍 +1' },
       { dmg: 120, t: 'ダメージ +120' },
     ],
-    evo: { mul: 0.9, with: 'prase', name: 'ディサイシブ・ブレード', desc: '命中時に4本へ分裂する' },
+    evo: { mul: 1.33, with: 'prase', name: 'ディサイシブ・ブレード', desc: '命中時に4本へ分裂する' },
   },
   aquamarine: {
     gem: 'aquamarine', name: 'タイダル・ウェーブ',
-    dmgMul: 1.6, // バランス調整（Lv帯）
+    dmgMul: 1.61, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: 0.85, // 低レベル時の補正（Lv1 で ×1.85、Lv8 で ×1）
     desc: '周囲に波動を放ち、敵を押し返す',
     base: { dmg: 70, cd: 2.4, amount: 1, area: 1, knock: 2 },
     levels: [
@@ -318,11 +328,12 @@ export const WEAPONS = {
       { area: 0.2, t: '範囲アップ' },
       { dmg: 40, cd: -0.3, t: 'ダメージ +40 / クールダウン短縮' },
     ],
-    evo: { mul: 0.7, with: 'coal', name: 'アビサル・タイド', desc: '深海の圧力。命中した敵を泡で拘束する' },
+    evo: { mul: 1.35, with: 'coal', name: 'アビサル・タイド', desc: '深海の圧力。命中した敵を泡で拘束する' },
   },
   alexandrite: {
     gem: 'alexandrite', name: 'ドリーム・シフト',
-    dmgMul: 3.0, // バランス調整（Lv帯）
+    dmgMul: 1.87, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: -0.28, // 低レベル時の補正（Lv1 で ×0.72、Lv8 で ×1）
     desc: '敵を追尾する光弾を放つ。翠の弾は貫通、紅の弾は爆発と交互に変化',
     base: { dmg: 110, cd: 1.5, amount: 2, speed: 1, pierce: 1, area: 1, life: 2.2 },
     levels: [
@@ -334,11 +345,12 @@ export const WEAPONS = {
       { dmg: 50, t: 'ダメージ +50' },
       { amount: 1, t: '光弾 +1' },
     ],
-    evo: { mul: 0.55, with: 'turquoise', name: 'ポッシビリティ', desc: '翠と紅が同時に宿る。全弾が貫通しつつ爆発し、追尾性能も上昇' },
+    evo: { mul: 0.93, with: 'turquoise', name: 'ポッシビリティ', desc: '翠と紅が同時に宿る。全弾が貫通しつつ爆発し、追尾性能も上昇' },
   },
   tourmaline: {
     gem: 'tourmaline', name: 'ボンド・リコシェ',
-    dmgMul: 1.2, // バランス調整（Lv帯）
+    dmgMul: 1.3, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: 0.31, // 低レベル時の補正（Lv1 で ×1.31、Lv8 で ×1）
     desc: '命中するたびに近くの敵へ跳ね移る雷光を放つ',
     base: { dmg: 100, cd: 1.3, amount: 1, speed: 1, bounce: 3, area: 1 },
     levels: [
@@ -350,11 +362,12 @@ export const WEAPONS = {
       { bounce: 2, t: '跳弾 +2' },
       { dmg: 50, amount: 1, t: 'ダメージ +50 / 雷光 +1' },
     ],
-    evo: { mul: 0.67, with: 'citrine', name: 'グランド・アドベンチャー', desc: '跳弾が大幅に増え、跳ねるたびに分岐する' },
+    evo: { mul: 0.9, with: 'citrine', name: 'グランド・アドベンチャー', desc: '跳弾が大幅に増え、跳ねるたびに分岐する' },
   },
   moonstone: {
     gem: 'moonstone', name: 'ルナ・ハロ',
-    dmgMul: 0.7, // バランス調整（Lv帯）
+    dmgMul: 1.49, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: -0.12, // 低レベル時の補正（Lv1 で ×0.88、Lv8 で ×1）
     desc: '往復する三日月の刃。命中した敵を確率で魅了し、他の敵を襲わせる',
     base: { dmg: 90, cd: 1.8, amount: 1, speed: 1, area: 1, charm: 0.12 },
     levels: [
@@ -366,7 +379,7 @@ export const WEAPONS = {
       { area: 0.2, charm: 0.06, t: 'サイズ・魅了率アップ' },
       { amount: 1, dmg: 40, t: '刃 +1 / ダメージ +40' },
     ],
-    evo: { mul: 1.15, with: 'milkyquartz', name: 'フルムーン・グレイス', desc: '満月が周囲を巡り、魅了された敵は解除時に爆ぜる' },
+    evo: { mul: 1.94, with: 'milkyquartz', name: 'フルムーン・グレイス', desc: '満月が周囲を巡り、魅了された敵は解除時に爆ぜる' },
   },
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
@@ -393,11 +406,11 @@ export const PASSIVES = {
   coral: { gem: 'coral', name: 'サンゴ', max: 5, per: { luck: 0.15, crit: 0.01 }, t: '幸運 +15% / クリティカル率 +1%' },
   iolite: { gem: 'iolite', name: 'アイオライト', max: 5, per: { cooldown: -0.08 }, t: 'クールダウン短縮 8%' },
   prase: { gem: 'prase', name: 'クリソプレーズ', max: 5, per: { growth: 0.1 }, t: '経験値 +10%' },
-  granite: { gem: 'granite', name: 'グラナイト', max: 5, per: { armor: 1 }, t: 'アーマー +1' },
-  coal: { gem: 'coal', name: 'コール', max: 5, per: { regen: 0.25 }, t: 'HP自然回復 +0.25/秒' },
+  granite: { gem: 'granite', name: 'グラナイト', max: 5, per: { armor: 1.5 }, t: 'アーマー +1.5' },
+  coal: { gem: 'coal', name: 'コール', max: 5, per: { regen: 0.4 }, t: 'HP自然回復 +0.4/秒' },
   titanite: { gem: 'titanite', name: 'チタナイト', max: 5, per: { greed: 0.2 }, t: '獲得コイン +20%' },
   redberyl: { gem: 'redberyl', name: 'レッドベリル', max: 5, per: { magnet: 0.3 }, t: '回収範囲 +30%' },
-  turquoise: { gem: 'turquoise', name: 'ターコイズ', max: 5, per: { guard: 0.06 }, t: '被ダメージ -6%' },
+  turquoise: { gem: 'turquoise', name: 'ターコイズ', max: 5, per: { guard: 0.08 }, t: '被ダメージ -8%' },
   citrine: { gem: 'citrine', name: 'シトリン', max: 5, per: { coinDrop: 0.02 }, t: 'コインのドロップ率 +2%' },
   peridot: { gem: 'peridot', name: 'ペリドット', max: 5, per: { moveSpeed: 0.08, speed: 0.08, duration: 0.08 }, t: '移動速度・弾速・持続 +8%' },
 };
@@ -444,9 +457,9 @@ export const ENEMIES = {
   toge: { name: 'ソーンコア', hp: 300, speed: 62, dmg: 10, r: 16, xp: 3, color: '#5a3a5e', desc: '棘に覆われた核。硬く、接触ダメージが高い。' },
   golem: { name: 'ロックゴーレム', hp: 800, speed: 36, dmg: 14, r: 24, xp: 6, color: '#6e5f58', desc: '鈍重だが非常にタフな岩塊。' },
   knight: { name: 'オブシディアンナイト', hp: 1200, speed: 55, dmg: 16, r: 20, xp: 8, color: '#3c3456', desc: '黒曜の鎧を纏うダスクの精鋭。' },
-  boss1: { name: 'ダスク・キング', hp: 30000, speed: 50, dmg: 20, r: 48, xp: 200, boss: true, color: '#5b3f8a', desc: '粘体の王。2:00に出現。全方位弾と眷属召喚。' },
-  boss2: { name: 'ヴォイド・ドラゴン', hp: 90000, speed: 62, dmg: 26, r: 52, xp: 500, boss: true, color: '#2e1f4f', desc: '夜空を塗り潰す竜。4:00に出現。螺旋弾と突進。' },
-  boss3: { name: 'オブシディアン・クイーン', hp: 260000, speed: 55, dmg: 32, r: 58, xp: 2000, boss: true, color: '#1a0d2a', desc: 'ダスクの女王。黒曜石の力で世界の輝きを奪う。7:00に出現。' },
+  boss1: { name: 'ダスク・キング', hp: 18000, speed: 50, dmg: 20, r: 48, xp: 200, boss: true, color: '#5b3f8a', desc: '粘体の王。2:00に出現。全方位弾と眷属召喚。' },
+  boss2: { name: 'ヴォイド・ドラゴン', hp: 37000, speed: 62, dmg: 26, r: 52, xp: 500, boss: true, color: '#2e1f4f', desc: '夜空を塗り潰す竜。4:00に出現。螺旋弾と突進。' },
+  boss3: { name: 'オブシディアン・クイーン', hp: 245000, speed: 55, dmg: 32, r: 58, xp: 2000, boss: true, color: '#1a0d2a', desc: 'ダスクの女王。黒曜石の力で世界の輝きを奪う。7:00に出現。' },
   // ---- 新種
   spitter: { name: 'クリスタル・スピッター', hp: 160, speed: 42, dmg: 7, r: 14, xp: 2, ai: 'spitter', desc: '距離を取って結晶弾を撃ってくる。近づいて倒せ。' },
   splitter: { name: 'スプリット・ジェル', hp: 240, speed: 46, dmg: 9, r: 17, xp: 2, ai: 'splitter', desc: '倒すと2体の小さな粘体に分裂する。' },
@@ -456,20 +469,20 @@ export const ENEMIES = {
   wisp: { name: 'フロスト・ウィスプ', hp: 170, speed: 66, dmg: 6, r: 13, xp: 2, ai: 'wisp', desc: '触れると体が凍えて足が鈍る。' },
   phantom: { name: 'ヴォイド・ファントム', hp: 280, speed: 52, dmg: 10, r: 15, xp: 3, ai: 'phantom', desc: '闇に溶け、背後へ瞬間移動してくる。' },
   // ---- ステージ別の中ボス
-  boss1_cavern: { name: 'クリスタル・キング', hp: 36000, speed: 50, dmg: 20, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#2f7fb0', desc: '水晶洞窟の粘体王。2:00に出現。' },
-  boss2_cavern: { name: 'ジェム・ドラゴン', hp: 100000, speed: 62, dmg: 26, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'boss2', tint: '#1f4f8a', desc: '宝石を喰らって育った竜。4:00に出現。' },
-  boss1_magma: { name: 'ブレイズ・キング', hp: 36000, speed: 52, dmg: 22, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#b8401f', desc: '溶岩をまとう粘体王。2:00に出現。' },
-  boss2_magma: { name: 'インフェルノ・ドラゴン', hp: 100000, speed: 64, dmg: 28, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'boss2', tint: '#8a1f1f', desc: '灼熱の吐息を放つ竜。4:00に出現。' },
-  boss1_tundra: { name: 'グレイシャー・キング', hp: 36000, speed: 48, dmg: 22, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#7fa8d0', desc: '氷河を背負う粘体王。2:00に出現。' },
-  boss3_tundra: { name: 'スノウ・クイーン', hp: 120000, speed: 56, dmg: 28, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#3a5a8a', desc: '氷原を統べる女王。4:00に出現。' },
-  boss1_void: { name: 'ヴォイド・キング', hp: 40000, speed: 52, dmg: 24, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#3a1a5a', desc: '虚空の粘体王。2:00に出現。' },
-  boss3_void: { name: 'クイーン・シャドウ', hp: 150000, speed: 58, dmg: 30, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#2a0a3a', desc: '女王の残影。虚空聖堂の6:00に出現。' },
+  boss1_cavern: { name: 'クリスタル・キング', hp: 14000, speed: 50, dmg: 20, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#2f7fb0', desc: '水晶洞窟の粘体王。2:00に出現。' },
+  boss2_cavern: { name: 'ジェム・ドラゴン', hp: 20000, speed: 62, dmg: 26, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'boss2', tint: '#1f4f8a', desc: '宝石を喰らって育った竜。4:00に出現。' },
+  boss1_magma: { name: 'ブレイズ・キング', hp: 21000, speed: 52, dmg: 22, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#b8401f', desc: '溶岩をまとう粘体王。2:00に出現。' },
+  boss2_magma: { name: 'インフェルノ・ドラゴン', hp: 40000, speed: 64, dmg: 28, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'boss2', tint: '#8a1f1f', desc: '灼熱の吐息を放つ竜。4:00に出現。' },
+  boss1_tundra: { name: 'グレイシャー・キング', hp: 14000, speed: 48, dmg: 22, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#7fa8d0', desc: '氷河を背負う粘体王。2:00に出現。' },
+  boss3_tundra: { name: 'スノウ・クイーン', hp: 28000, speed: 56, dmg: 28, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#3a5a8a', desc: '氷原を統べる女王。4:00に出現。' },
+  boss1_void: { name: 'ヴォイド・キング', hp: 12500, speed: 52, dmg: 24, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#3a1a5a', desc: '虚空の粘体王。2:00に出現。' },
+  boss3_void: { name: 'クイーン・シャドウ', hp: 55000, speed: 58, dmg: 30, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#2a0a3a', desc: '女王の残影。虚空聖堂の6:00に出現。' },
   // ---- 最終ボス
-  prism: { name: 'プリズム・コロッサス', hp: 260000, speed: 40, dmg: 30, r: 62, xp: 2000, boss: true, ai: 'prism', desc: '水晶洞窟の主。回転するレーザーで空間を切り裂く。7:00に出現。' },
-  worm: { name: 'マグマ・ワーム', hp: 340000, speed: 95, dmg: 30, r: 34, xp: 2000, boss: true, ai: 'worm', desc: '溶岩の中を泳ぐ大蛇。胴体も攻撃が通る。7:00に出現。' },
+  prism: { name: 'プリズム・コロッサス', hp: 210000, speed: 40, dmg: 30, r: 62, xp: 2000, boss: true, ai: 'prism', desc: '水晶洞窟の主。回転するレーザーで空間を切り裂く。7:00に出現。' },
+  worm: { name: 'マグマ・ワーム', hp: 520000, speed: 95, dmg: 30, r: 34, xp: 2000, boss: true, ai: 'worm', desc: '溶岩の中を泳ぐ大蛇。胴体も攻撃が通る。7:00に出現。' },
   wormseg: { name: 'マグマ・ワーム（胴）', hp: 1, speed: 0, dmg: 22, r: 26, xp: 0, segment: true, sprite: 'wormseg', desc: '' },
-  lich: { name: 'フロスト・リッチ', hp: 260000, speed: 45, dmg: 30, r: 50, xp: 2000, boss: true, ai: 'lich', desc: '氷原に眠っていた魔導士。氷柱と冷気で逃げ場を奪う。7:00に出現。' },
-  emperor: { name: 'ヴォイド・エンペラー', hp: 300000, speed: 50, dmg: 34, r: 66, xp: 4000, boss: true, ai: 'emperor', desc: 'ダスクを生み出した虚空の皇帝。3つの形態を持つ。8:00に出現。' },
+  lich: { name: 'フロスト・リッチ', hp: 270000, speed: 45, dmg: 30, r: 50, xp: 2000, boss: true, ai: 'lich', desc: '氷原に眠っていた魔導士。氷柱と冷気で逃げ場を奪う。7:00に出現。' },
+  emperor: { name: 'ヴォイド・エンペラー', hp: 170000, speed: 50, dmg: 34, r: 66, xp: 4000, boss: true, ai: 'emperor', desc: 'ダスクを生み出した虚空の皇帝。3つの形態を持つ。8:00に出現。' },
   thief: { name: 'ジュエルシーフ', hp: 2600, speed: 128, dmg: 0, r: 15, xp: 6, ai: 'thief', sprite: 'ghost', tint: '#d8a93a', desc: '原石を抱えて逃げ回る盗賊。7:00以降に現れ、しばらくすると姿を消す。倒すと原石と宝箱を落とす。' },
   crystal: { name: 'ライトクリスタル', hp: 1, speed: 0, dmg: 0, r: 16, xp: 0, prop: true, color: '#ffffff', desc: '破壊するとアイテムを落とす。' },
 };

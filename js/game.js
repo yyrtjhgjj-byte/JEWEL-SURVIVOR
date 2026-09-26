@@ -227,7 +227,7 @@ export class Game {
     this.trashMul = Math.min(10, Math.max(1, Math.sqrt(this.estPower() / 3500)));
   }
 
-  // 自機の火力の目安（武器 1 つの DPS を bench.js の実測から：Lv1 約 300、Lv4 約 700、Lv8 約 6500、進化後 約 20000）
+  // 自機の火力の目安（武器 1 つの群れへの DPS の目安：Lv1 約 300、Lv4 約 700、Lv8 約 6500、進化後 約 20000。wbench.js の計測とほぼ同じ桁）
   estPower() {
     const EST = [300, 420, 560, 700, 1100, 1800, 3200, 6500];
     let sum = 0;
@@ -464,7 +464,7 @@ export class Game {
   hpScale() {
     const pt = this.progress();
     const m = Math.min(pt, 600) / 60;
-    let s = 1 + 0.375 * m + 0.09 * m * m;
+    let s = 1 + 0.35 * m + 0.06 * m * m; // もとの 10 分で 10.5 倍
     if (pt > 600) s *= 1 + (pt - 600) / 60 * 0.1; // もとの 10 分以降（虚空聖堂）
     if (this.time > this.stageTime) s *= 1 + (this.time - this.stageTime) / 60 * 0.15; // エンドレス
     return s * this.stage.hp * this.heatM.hp;
@@ -617,8 +617,10 @@ export class Game {
   spawnEnemy(type, x, y, o = {}) {
     const d = ENEMIES[type];
     const elite = !!o.elite;
-    const mul = d.boss ? (o.mul || 1) * 1.15 * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp
-      : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1); // 大群イベント・エリート・シーフは連動させない
+    // ボスの HP は段階ごとの基本値（data.js）× ステージ × ヒート（自機のレベルが 20 を超えた分だけ 1%/Lv 硬くなる）。
+    // 雑魚は時間の伸び（hpScale）× 自機の強さ（trashMul。大群イベント・エリート・シーフは連動させない）、エリートは雑魚の 2 倍
+    const mul = d.boss ? (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp
+      : d.prop ? 1 : this.hpScale() * (elite ? 2 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1);
     // 敵の攻撃力（dmg）：雑魚・エリート 2 倍、ボス 1.5 倍（弾・レーザーもこれをもとにする）
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
@@ -1085,7 +1087,7 @@ export class Game {
       e.flash = 0.08;
       if (!e.parent || !e.parent.alive) return 0;
       e = e.parent;
-      amount *= 0.2;
+      amount *= 0.1; // 範囲攻撃が何節にも同時に当たるので低め
       o = { ...o, kb: 0 };
     }
     if (e.invulnT > 0) return 0;
@@ -1875,13 +1877,21 @@ export class Game {
         if (d < o.r + 30) { fx += (dx / d) * 0.15; fy += (dy / d) * 0.15; }
       }
     }
-    // アイテムに ちかづく
-    let best = null, bd = 250 * 250;
+    // ボスとはブレイクがたまる距離（体の縁から 90 ほど）を保って戦う（ダウン中は近づく）
+    const bs = this.boss && this.boss.alive ? this.boss : null;
+    if (bs) {
+      const dx = bs.x - p.x, dy = bs.y - p.y, d = Math.hypot(dx, dy) || 1;
+      const k = ((d - (bs.r + (bs.breakT > 0 ? 40 : 90))) / 200) * 0.03;
+      fx += (dx / d) * k; fy += (dy / d) * k;
+    }
+    // アイテムに ちかづく（安全なときは遠くまで拾いに行く）
+    const danger0 = Math.hypot(fx, fy);
+    let best = null, bd = (danger0 < 0.012 ? 420 : 250) ** 2;
     for (const pk of this.pickups) {
       const d = (pk.x - p.x) ** 2 + (pk.y - p.y) ** 2;
       if (d < bd) { bd = d; best = pk; }
     }
-    const danger = Math.hypot(fx, fy);
+    const danger = danger0;
     if (best) {
       const d = Math.sqrt(bd) || 1;
       const k = danger < 0.01 ? 1 : danger < 0.03 ? 0.4 : 0.1;
