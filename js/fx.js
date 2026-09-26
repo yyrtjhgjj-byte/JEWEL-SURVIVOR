@@ -195,7 +195,7 @@ export class FX {
       const t = p.life / p.max;
       ctx.globalAlpha = Math.min(1, t * 1.6);
       const s = p.size * (p.kind === 'star' ? 0.6 + t * 0.6 : t);
-      const col = p.color === 'rainbow' ? RAINBOW[Math.floor((time * 20 + p.rot * 3) % RAINBOW.length)] : p.color;
+      const col = p.color === 'rainbow' ? RAINBOW[((Math.floor(time * 20 + p.rot * 3) % RAINBOW.length) + RAINBOW.length) % RAINBOW.length] : p.color;
       const spr = p.kind === 'star' ? starSprite(col) : dotSprite(col);
       if (p.kind === 'star') {
         ctx.save();

@@ -118,9 +118,18 @@ function renderTitle(dt) {
 // ------------------------------------------------------------------ ループ
 let last = performance.now();
 function loop(now) {
+  // 1 フレームの例外でループが止まり、ゲームが固まらないよう、次のフレームは先に予約しておく
+  requestAnimationFrame(loop);
   let dt = (now - last) / 1000;
   last = now;
   if (dt > 0.25) dt = 0.25;
+  try {
+    step(dt);
+  } catch (e) {
+    console.error(e);
+  }
+}
+function step(dt) {
   if (game) {
     if (game.state === 'play') {
       const v = input.read();
@@ -132,7 +141,6 @@ function loop(now) {
   } else {
     renderTitle(dt);
   }
-  requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
@@ -209,6 +217,7 @@ function startGame(charId, opt = {}) {
 }
 
 function finishRun(res, cleared) {
+  cleared = cleared || !!res.cleared; // 最終ボス撃破後、クリア画面の前に倒れた・リタイアした場合もクリア扱い
   input.enabled = false;
   input.reset();
   UI.hudShow(false);
@@ -270,9 +279,11 @@ document.getElementById('pausebtn').addEventListener('click', () => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     audio.suspend();
+    input.reset(); // 指を離したことが伝わらずスティックが効かなくなるのを防ぐ
     if (game && game.pause()) {
       UI.pauseMenu(game, () => game && game.resume(), () => {
         game.state = 'over';
+        audio.stopBgm();
         finishRun(game.results(), false);
       });
     }

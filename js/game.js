@@ -21,13 +21,17 @@ class Grid {
     this.cell = cell;
     this.map = new Map();
     this.used = [];
+    // 体の大きい敵（ボスなど）は中心のセルだけでは縁の当たりを取りこぼすので別に持つ
+    this.big = [];
   }
   clear() {
     for (const a of this.used) a.length = 0;
     this.used.length = 0;
+    this.big.length = 0;
   }
   key(cx, cy) { return (cx + 32768) * 65536 + (cy + 32768); }
   insert(e) {
+    if (e.r > 24) { this.big.push(e); return; }
     const k = this.key(Math.floor(e.x / this.cell), Math.floor(e.y / this.cell));
     let a = this.map.get(k);
     if (!a) { a = []; this.map.set(k, a); }
@@ -44,6 +48,10 @@ class Grid {
         const a = this.map.get(this.key(cx, cy));
         if (a) for (let i = 0; i < a.length; i++) out.push(a[i]);
       }
+    }
+    for (const e of this.big) {
+      const rr = r + e.r;
+      if ((e.x - x) ** 2 + (e.y - y) ** 2 < rr * rr) out.push(e);
     }
     return out;
   }
@@ -133,8 +141,8 @@ export class Game {
     this.hudT = 0;
     this.achT = 0;
     this.cleared = false;
-    this.nextEndlessBoss = this.stageTime + 180;
-    this.nextEndlessEvent = this.stageTime + 45;
+    this.nextEndlessBoss = Math.max(this.stageTime, this.time) + 180;
+    this.nextEndlessEvent = Math.max(this.stageTime, this.time) + 45;
     this.rerolls = 0;
     this.player = { x: 0, y: 0, r: 12, hp: 100, maxHp: 100, face: 1, dirX: 1, dirY: 0, moving: false, hurtT: 0, iT: 0, slowT: 0, slowMul: 1 };
     this.computeStats();
@@ -498,6 +506,7 @@ export class Game {
     for (const e of this.enemies) {
       if (!e.alive) { removed++; continue; }
       e.flash -= dt;
+      if (stop && e.invulnT > 0) e.invulnT -= dt; // 時間停止中も無敵時間は進める
       if (e.prop) {
         if (Math.hypot(e.x - p.x, e.y - p.y) > this.viewR * 2.5) { e.alive = false; }
         continue;
@@ -756,6 +765,7 @@ export class Game {
   // ボスのレーザーと 予告円
   updateLasers(dt) {
     const p = this.player;
+    if (this.timeStopT > 0) return; // 時間停止中はレーザーも予告攻撃も止まる
     for (const L of this.lasers) {
       const o = L.owner;
       if (!o || !o.alive) { L.dur = 0; L.tele = 0; continue; }
@@ -771,6 +781,7 @@ export class Game {
     }
     this.lasers = this.lasers.filter((L) => L.tele > 0 || L.dur > 0);
     for (const w of this.warns) {
+      if (w.owner && !w.owner.alive) { w.done = true; continue; } // 撃破したボスの予告攻撃は消す
       w.t += dt;
       if (w.t >= w.T && !w.done) { w.done = true; w.fn(this); }
     }
@@ -931,6 +942,11 @@ export class Game {
     dmg = Math.max(1, Math.round(dmg));
     const dealt = Math.min(dmg, e.hp);
     e.hp -= dmg;
+    // 形態のあるボスは、形態変化の処理（AI 側）を飛ばして次の形態へ進んだり倒れたりしないようにする
+    if (e.ai === 'emperor' && e.phaseNow && e.phaseNow < 3) {
+      const floor = e.maxHp * (e.phaseNow === 1 ? 0.66 : 0.33) - 1;
+      if (e.hp < floor) e.hp = floor;
+    }
     e.flash = 0.08;
     if (o.kb) {
       let kx = o.kx, ky = o.ky;
@@ -1033,8 +1049,12 @@ export class Game {
   bossDefeated(e) {
     this.bosses++;
     (this.bossLog = this.bossLog || []).push(e.type + '@' + Math.round(this.time));
-    this.boss = null;
-    this.hooks.bossBar(null);
+    // 別のボスがまだ生きていれば、そちらを表示対象にする
+    const other = this.enemies.find((o) => o.alive && o.boss && o !== e && !o.segment) || null;
+    if (this.boss === e || !this.boss || !this.boss.alive) {
+      this.boss = other;
+      this.hooks.bossBar(other);
+    }
     this.fx.shake(20);
     this.fx.screenFlash(0.9);
     this.fx.confetti(e.x, e.y, 80, 500);
@@ -1049,7 +1069,7 @@ export class Game {
     // けいけんちの シャワー
     for (let i = 0; i < 30; i++) this.dropXp(e.x + rand(-60, 60), e.y + rand(-60, 60), Math.ceil(e.xp / 30));
     for (let i = 0; i < 25; i++) this.dropPickup('coin', e.x, e.y, randi(3, 8));
-    if (this.state !== 'over') audio.playBgm(this.stage.bgm);
+    if (this.state !== 'over' && !other) audio.playBgm(this.stage.bgm);
     this.lasers.length = 0;
     // 盤面の敵弾をすべて消す
     for (let i = 0; i < this.ebullets.length; i++) {
@@ -1095,6 +1115,7 @@ export class Game {
   hurtPlayer(dmg, o = {}) {
     const p = this.player;
     if ((p.iT > 0 && !o.ignoreIT) || this.god || this.state !== 'play') return;
+    if (this.cleared && !this.endless) return; // 最終ボス撃破後、クリア画面までは被弾しない
     if (this.bot) { const k = o.src || 'other'; (this.dmgTaken = this.dmgTaken || {})[k] = (this.dmgTaken[k] || 0) + dmg; }
     dmg = Math.max(1, Math.round((dmg - this.stats.armor) * (1 - Math.min(0.6, this.stats.guard || 0))));
     p.hp -= dmg;
@@ -1157,6 +1178,7 @@ export class Game {
     // フィーバー中は回収範囲が 10 秒かけて外側へ広がる（近い石から順に少しずつ集まる）
     const mR = 62 * this.stats.magnet * (this.feverT > 0 ? 2 : 1) + (this.feverT > 0 ? (1 - this.feverT / 10) * 1500 : 0);
     const mR2 = mR * mR;
+    const farItem2 = (this.viewR * 3) ** 2;
     let keep = 0;
     const list = this.pickups;
     for (let i = 0; i < list.length; i++) {
@@ -1169,6 +1191,10 @@ export class Game {
       const dx = p.x - pk.x, dy = p.y - pk.y;
       const d2 = dx * dx + dy * dy;
       const isChest = pk.kind === 'chest' || pk.kind === 'bigchest';
+      // 宝箱と原石が水晶柱の中に埋まって取れなくならないよう押し出す
+      if (isChest || pk.kind === 'rough') this.hazards.collide(pk, 12);
+      // 遠くに取り残したコイン・回復などは消す（エンドレスで溜まり続けないように）
+      if (!isChest && pk.kind !== 'rough' && pk.kind !== 'xp' && d2 > farItem2) continue;
       if (!isChest && pk.t > 0.25 && (d2 < mR2 || pk.vac)) {
         pk.vac = true;
         const d = Math.sqrt(d2) || 1;

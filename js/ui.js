@@ -379,7 +379,7 @@ export function showGacha() {
         <button class="btn gold" id="g1">×1<span class="sub">${fmt(GACHA_COST)} コイン</span></button>
         <button class="btn primary" id="g10">×10<span class="sub">${fmt(GACHA10_COST)} コイン・SR以上1枠確定</span></button>
       </div>
-      <div class="odds">UR 3%（ダイヤモンド／オパール） ／ SSR 10%（その他のジュエル）<br>SR 27%（300コイン） ／ R 60%（80コイン）<br>所持済みのジュエルは「覚醒」（攻撃力+5%、最大5段階）</div>
+      <div class="odds">UR 3%（ダイヤモンド／オパール／ムーンストーン） ／ SSR 10%（その他のジュエル）<br>SR 27%（300コイン） ／ R 60%（80コイン）<br>所持済みのジュエルは「覚醒」（攻撃力+5%、最大5段階）</div>
     </div>`);
   show(node);
   $('#back', node).onclick = () => { audio.tap(); showTitle(); };
@@ -596,7 +596,10 @@ function setupBackup(node) {
     const when = data.lastBackup ? new Date(data.lastBackup).toLocaleString('ja-JP') : '不明';
     const msg = `このバックアップで現在のデータを上書きします。\n\n書き出し日時：${when}\nコイン：${fmt(data.coins)}\nクリア済みステージ：${clears}\n解放ジュエル：${chars}\n\nよろしいですか？`;
     if (!confirm(msg)) return;
+    const login = { ...save.login }; // ログインボーナスを二重に受け取れないよう、今の受け取り状況は引き継ぐ
     importSave(data);
+    save.login = login;
+    persist();
     audio.applyVolume();
     audio.levelUp();
     showTitle();
