@@ -533,7 +533,7 @@ export const ACHIEVEMENTS = [
   { id: 'coll5', meta: true, name: 'ジュエル・ビギナー', t: '宝石を5種類コレクションする', coins: 150, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 5 },
   { id: 'awaken3', meta: true, name: '覚醒者', t: 'いずれかのジュエルを覚醒 ★3 にする', coins: 500, check: (r, s) => Object.values(s.awaken).some((v) => v >= 3) },
   { id: 'heal300', name: 'リジェネレーター', t: '1回のプレイで HP を合計300回復', coins: 300, check: (r) => r.healed >= 300 },
-  { id: 'solo', name: 'ソリスト', t: '武器1つだけでステージをクリア', coins: 1500, check: (r) => r.cleared && r.weaponCount === 1 },
+  { id: 'solo', name: 'ミニマリスト', t: '武器2つ以下でステージをクリア', coins: 1500, check: (r) => r.cleared && r.weaponCount <= 2 },
   { id: 'runner', name: 'ワンダラー', t: '1回のプレイで長い距離を移動する', coins: 300, check: (r) => r.moved >= 30000 },
   { id: 'master', meta: true, name: '極めし輝き', t: 'いずれかの宝石の練度を最大にする', coins: 1500, check: (r, s) => Object.values(s.jewels).some((j) => j.best >= 4 && j.n >= 30) },
 ];

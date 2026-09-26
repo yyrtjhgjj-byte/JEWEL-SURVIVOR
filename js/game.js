@@ -192,12 +192,12 @@ export class Game {
     }
     if (this.revBuff) {
       const n = this.revBuff;
-      s.maxHp *= 1 + 0.1 * n;
+      s.maxHp *= 1 + 0.2 * n;
       s.armor += n;
-      s.might += 0.05 * n;
-      s.area += 0.05 * n;
-      s.speed += 0.05 * n;
-      s.duration += 0.05 * n;
+      s.might += 0.1 * n;
+      s.area += 0.1 * n;
+      s.speed += 0.1 * n;
+      s.duration += 0.1 * n;
     }
     if (this.artSet && this.artSet.has('prism')) s.area *= 1.75 + 1.25 * Math.sin((this.time / 10) * TAU);
     for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
@@ -1147,7 +1147,7 @@ export class Game {
     if (this.artSet.has(id)) return;
     this.arts.push(id);
     this.artSet.add(id);
-    if (id === 'pendant' || id === 'box') this.revives += 3;
+    if (id === 'pendant' || id === 'box') this.revives += 1;
     this.computeStats();
     if (!silent) {
       const a = ARTIFACT_BY_ID[id];
