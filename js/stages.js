@@ -55,12 +55,18 @@ function makeEvents(o) {
     { t: 560, type: 'elite', enemy: o.e[4] },
     { t: 575, type: 'ring', enemy: o.r[1], n: 60 },
   ];
+  // 7:00 以降：ジュエルシーフと大群ラッシュ（壁・渦）で、最終ボスまでの間にやることを作る
+  ev.push(
+    { t: 432, type: 'thief' }, { t: 462, type: 'wall', enemy: o.sw, n: 56 }, { t: 492, type: 'thief' },
+    { t: 520, type: 'vortex', enemy: o.sw, n: 64 }, { t: 548, type: 'wall', enemy: o.sw, n: 64 }, { t: 582, type: 'thief' },
+  );
   if (o.b.length === 3) {
     ev.push({ t: 592, type: 'warning' }, { t: 600, type: 'boss', enemy: o.b[2] });
   } else {
     // 12分ステージ：9:00 に中ボス、12:00 に最終ボス
     ev.push(
       { t: 532, type: 'warning' }, { t: 540, type: 'boss', enemy: o.b[2] },
+      { t: 605, type: 'thief' }, { t: 635, type: 'vortex', enemy: o.sw, n: 72 }, { t: 665, type: 'thief' }, { t: 692, type: 'wall', enemy: o.sw, n: 72 },
       { t: 620, type: 'elite', enemy: o.e[4] }, { t: 650, type: 'ring', enemy: o.r[2], n: 70 },
       { t: 680, type: 'swarm', enemy: o.sw, n: 90 }, { t: 700, type: 'elite', enemy: o.e[4] },
       { t: 712, type: 'warning' }, { t: 720, type: 'boss', enemy: o.b[3] },

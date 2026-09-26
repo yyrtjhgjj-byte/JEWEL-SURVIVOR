@@ -33,6 +33,31 @@ function warn(g, x, y, r, T, color, fn, owner = null) {
 }
 
 export const AI = {
+  // ------------------------------------------------ ジュエルシーフ（逃げ回る。時間がたつと消える）
+  thief(g, e, dt, dist, mv) {
+    e.life -= dt;
+    if (e.life <= 0) {
+      e.alive = false;
+      g.fx.burst(e.x, e.y, '#ffd24a', 14, 220, 0.5, 10);
+      g.hooks.banner('ESCAPED', 'item', 'ジュエルシーフに逃げられた');
+      return;
+    }
+    // ときどき立ち止まって振り返る（追いつける隙）
+    e.restT -= dt;
+    if (e.restT <= -2.4) e.restT = 0.7;
+    if (e.restT > 0) { mv.spd = 0; return; }
+    const w = Math.sin(g.time * 3 + e.phase) * 0.7;
+    mv.mx = -mv.mx; mv.my = -mv.my;
+    const mx = mv.mx; mv.mx += -mv.my * w; mv.my += mx * w;
+    // 画面の外へは逃げない（端に着いたら端に沿って走る）
+    const rx = e.x - g.player.x, ry = e.y - g.player.y;
+    const bx = g.viewW * 0.4, by = g.viewH * 0.36;
+    if (rx > bx && mv.mx > 0) mv.mx = -0.3;
+    if (rx < -bx && mv.mx < 0) mv.mx = 0.3;
+    if (ry > by && mv.my > 0) mv.my = -0.3;
+    if (ry < -by && mv.my < 0) mv.my = 0.3;
+  },
+
   // ------------------------------------------------ 遠距離型
   spitter(g, e, dt, dist, mv) {
     const p = g.player;

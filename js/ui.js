@@ -3,7 +3,7 @@
 // =====================================================================
 import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost,
-  ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA_TABLE, EXCHANGE, AWAKEN_MAX,
+  ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK,
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite } from './render.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
@@ -803,11 +803,11 @@ export function hud(g) {
     if (lastCoins >= 0) { H.coinstat.classList.remove('bump'); void H.coinstat.offsetWidth; H.coinstat.classList.add('bump'); }
     lastCoins = g.coins;
   }
-  const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '')).join() + '|' + g.passives.map((p) => p.id + p.level).join() + '|' + g.arts.join();
+  const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '') + (w.lbN || 0)).join() + '|' + g.passives.map((p) => p.id + p.level).join() + '|' + g.arts.join();
   if (key !== lastSlots) {
     lastSlots = key;
     const empty = (n, max) => '<div class="slotico empty"></div>'.repeat(Math.max(0, max - n));
-    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
+    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}${w.lbN ? `<i>+${w.lbN}</i>` : ''}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
       '<i style="grid-column:1/-1;height:0"></i>' +
       g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
       (g.arts.length ? '<i style="grid-column:1/-1;height:0"></i>' + g.arts.map((id) => `<div class="slotico art"><img src="${artifactIcon(id, 48)}"></div>`).join('') : '');
@@ -879,13 +879,17 @@ function evoTagForWeapon(g, def) {
 }
 
 function choiceInfo(g, c) {
-  if (c.type === 'wnew' || c.type === 'wup' || c.type === 'evo') {
+  if (c.type === 'wnew' || c.type === 'wup' || c.type === 'evo' || c.type === 'lb') {
     const def = WEAPONS[c.id];
     const gem = GEMS[def.gem];
     const word = `${gem.jp}「${gem.word}」`;
     if (c.type === 'wnew') {
       const tags = (save.seen.weapons[c.id] ? '' : T_NEW) + evoTagForWeapon(g, def);
       return { icon: gemIcon(def.gem, 96), name: def.name, lv: 'NEW', desc: def.desc, word, rar: g.hasPassive(def.evo.with) ? 'SR' : 'R', tags };
+    }
+    if (c.type === 'lb') {
+      const w = g.getWeapon(c.id);
+      return { icon: gemIcon(def.gem, 96), name: w.evolved ? def.evo.name : def.name, lv: `LIMIT BREAK ${(w.lbN || 0) + 1}`, desc: LIMIT_BREAK[c.stat].t, word, rar: 'SR', tags: '' };
     }
     if (c.type === 'evo') {
       return { icon: gemIcon(def.gem, 96), name: def.evo.name, lv: 'EVOLUTION', desc: def.evo.desc, word: `${def.name} ＋ ${GEMS[def.evo.with].jp}`, rar: 'UR', tags: save.seen.evos[c.id] ? '' : T_NEW };
@@ -1090,11 +1094,12 @@ export function evolveScene(w, done) {
 // ================================================================== 宝箱
 function itemIcon(c) {
   if (c.type === 'coins') return coinIcon(72);
-  if (c.type === 'wup' || c.type === 'evo') return gemIcon(WEAPONS[c.id].gem, 72);
+  if (c.type === 'wup' || c.type === 'evo' || c.type === 'lb') return gemIcon(WEAPONS[c.id].gem, 72);
   return gemIcon(PASSIVES[c.id].gem, 72);
 }
 function itemLabel(g, c) {
   if (c.type === 'evo') return 'EVOLVE';
+  if (c.type === 'lb') return `LIMIT +${g.getWeapon(c.id).lbN}`;
   if (c.type === 'wup') return `LV ${g.getWeapon(c.id).level}`;
   if (c.type === 'pup') return `LV ${g.getPassive(c.id).level}`;
   return 'COIN';
@@ -1179,7 +1184,7 @@ export function pauseMenu(g, onResume, onQuit) {
       <div class="panel" style="text-align:center">
         <div class="label">LOADOUT</div>
         <div class="pause-build">
-          ${g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 64)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('')}
+          ${g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 64)}"><b>${w.evolved ? '★' : w.level}${w.lbN ? `<i>+${w.lbN}</i>` : ''}</b></div>`).join('')}
         </div>
         <div class="pause-build">
           ${g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 64)}"><b>${p.level}</b></div>`).join('')}

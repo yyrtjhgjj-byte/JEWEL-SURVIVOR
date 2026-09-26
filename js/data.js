@@ -369,6 +369,16 @@ export const WEAPONS = {
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
 export const WEAPON_MAX = 8;
+// リミットブレイク：Lv8（進化済みを含む）の武器を、レベルアップのたびに少しずつ強化する
+// need：その武器が持っている性能だけを候補にする。max：1 つの武器で強化できる回数の上限
+export const LIMIT_BREAK = [
+  { k: 'dmg', v: 0.06, t: 'ダメージ +6%', w: 5 },
+  { k: 'cd', v: 0.03, t: 'クールダウン短縮 3%', w: 3 },
+  { k: 'area', v: 0.05, t: '攻撃範囲 +5%', w: 3, need: 'area' },
+  { k: 'speed', v: 0.06, t: '弾速 +6%', w: 2, need: 'speed' },
+  { k: 'dur', v: 0.06, t: '持続 +6%', w: 2, need: ['duration', 'life'] },
+  { k: 'amount', v: 1, t: '弾数 +1', w: 1, need: 'amount', max: 2 },
+];
 
 // ---------------------------------------------------------------------
 //  チャーム（パッシブ）
@@ -457,6 +467,7 @@ export const ENEMIES = {
   wormseg: { name: 'マグマ・ワーム（胴）', hp: 1, speed: 0, dmg: 22, r: 26, xp: 0, segment: true, sprite: 'wormseg', desc: '' },
   lich: { name: 'フロスト・リッチ', hp: 260000, speed: 45, dmg: 30, r: 50, xp: 2000, boss: true, ai: 'lich', desc: '氷原に眠っていた魔導士。氷柱と冷気で逃げ場を奪う。10:00に出現。' },
   emperor: { name: 'ヴォイド・エンペラー', hp: 300000, speed: 50, dmg: 34, r: 66, xp: 4000, boss: true, ai: 'emperor', desc: 'ダスクを生み出した虚空の皇帝。3つの形態を持つ。12:00に出現。' },
+  thief: { name: 'ジュエルシーフ', hp: 2600, speed: 128, dmg: 0, r: 15, xp: 6, ai: 'thief', sprite: 'ghost', tint: '#d8a93a', desc: '原石を抱えて逃げ回る盗賊。7:00以降に現れ、しばらくすると姿を消す。倒すと原石と宝箱を落とす。' },
   crystal: { name: 'ライトクリスタル', hp: 1, speed: 0, dmg: 0, r: 16, xp: 0, prop: true, color: '#ffffff', desc: '破壊するとアイテムを落とす。' },
 };
 
