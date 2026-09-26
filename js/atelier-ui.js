@@ -2,6 +2,7 @@
 //  研磨工房の画面（研磨ミニゲーム・一括研磨・コレクション）
 // =====================================================================
 import { GEMS } from './data.js';
+import { GEM_FACTS } from './gem-facts.js';
 import { gemIcon, roughIcon, drawRough } from './render.js';
 import { fmt, rand } from './util.js';
 import { audio } from './audio.js';
@@ -342,15 +343,34 @@ function renderCollection(box) {
     const rec = save.jewels[id];
     const has = rec && rec.n;
     const m = mastery(rec);
+    const name = GEMS[id].jp;
     const cell = el(`<button class="coll-cell ${has ? '' : 'none'}" style="--c:${gemColor(id)}">
       <img src="${gemIcon(id, 80)}">
-      ${has ? gradeBadge(rec.best) : ''}
-      <span class="cm">${has ? `練度 ${m}` : '未入手'}</span>
+      ${has ? `<span class="cq">${gradeBadge(rec.best)}<span class="cmv">練度${m}</span></span>` : ''}
+      <span class="cm ${name.length >= 9 ? 'xlong' : name.length >= 7 ? 'long' : ''}">${name}</span>
     </button>`);
     cell.onclick = () => { audio.tap(); gemDetail(id); };
     grid.appendChild(cell);
   }
   box.appendChild(grid);
+}
+
+// 実在の宝石としての情報（研磨して入手するまでは伏せる）
+function factsHtml(id, has) {
+  const f = GEM_FACTS[id];
+  if (!f) return '';
+  const q = '？？？';
+  const [lo, hi] = f.h;
+  const hs = lo === hi ? `${lo}` : `${lo}〜${hi}`;
+  let bar = '';
+  for (let i = 1; i <= 10; i++) bar += `<i class="${has && i <= Math.ceil(hi) ? (i <= Math.floor(lo) ? 'on' : 'rng') : ''}"></i>`;
+  return `<div class="gd-facts">
+    <div class="gd-fh">GEM DATA</div>
+    <div class="rrow2"><span>モース硬度</span><b class="gd-hard">${has ? hs : q}<span class="hbar">${bar}</span></b></div>
+    <div class="gd-fr"><span>主な産地</span><p>${has ? f.o.split('・').map((s) => `<span class="nw">${s}</span>`).join('・<wbr>') : q}</p></div>
+    <div class="gd-fr"><span>名前の由来</span><p>${has ? f.n : q}</p></div>
+    <div class="gd-trivia">${has ? f.t : q}</div>
+  </div>`;
 }
 
 function gemDetail(id) {
@@ -366,7 +386,7 @@ function gemDetail(id) {
     if (nm) next.push(`研磨数 ${nm} で練度 +1（現在 ${rec.n}）`);
   }
   const ov = el(`<div class="screen dim at-over">
-    <div class="panel gem-detail">
+    <div class="panel gem-detail" style="--c:${gemColor(id)}">
       <div class="gd-top">
         <img src="${gemIcon(id, 120)}" style="${has ? `filter:drop-shadow(0 0 16px ${gemColor(id)})` : 'filter:grayscale(1) brightness(.35)'}">
         <div>
@@ -382,6 +402,7 @@ function gemDetail(id) {
       <div class="rrow2"><span>ボーナス</span><b>${m ? gemBonusText(id, m) : '—'}</b></div>
       <div class="gd-next">${next.length ? next.join('<br>') : '練度は最大です'}</div>
       ${g.lore ? `<div class="gd-lore">${has ? g.lore : ''}</div>` : ''}
+      ${factsHtml(id, has)}
       <button class="btn" id="ok">閉じる</button>
     </div></div>`);
   $('#screens').appendChild(ov);
