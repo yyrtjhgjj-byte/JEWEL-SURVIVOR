@@ -329,7 +329,7 @@ docs/GEMS.md          ジュエルパワーの対応表
 ## 6. リリース手順（毎回これで行う）
 
 1. 作業ブランチは `claude/ios-gem-vampire-survivor-zeod5k`。セッションの指示で別のブランチ名が指定されていれば、そちらに従う。
-2. **sw.js の `CACHE` の版数を必ず 1 つ上げる**（現在は `jewel-survivor-v52`）。新しいファイルを追加したときは `ASSETS` にも足す。
+2. **sw.js の `CACHE` の版数を必ず 1 つ上げる**（現在は `jewel-survivor-v53`）。新しいファイルを追加したときは `ASSETS` にも足す。
 3. `node --check` で構文を確認し、必要に応じて tools/test で動作を確認する。
 4. main に取り込む手順（これまでは毎回 squash マージで、ブランチをリセットしてから載せ直している）：
    ```sh
