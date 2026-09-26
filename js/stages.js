@@ -154,18 +154,19 @@ export const STAGES = [
   v.sort((a, b) => a[0] - b[0]);
 }
 
-// 1 戦の長さの調整：もとは 10 分（虚空聖堂は 12 分）で作った予定表を、まとめて 0.7 倍に縮める（10 分 → 7 分、12 分 → 8 分 24 秒）。
+// 1 戦の長さの調整：もとは 10 分（虚空聖堂は 12 分）で作った予定表を、まとめて 0.7 倍に縮める（10 分 → 7 分、12 分 → 8 分。ボスの時刻とステージの長さは分単位に切り捨て）。
 // 敵の硬さなどの曲線も game.js で同じ倍率で縮める（progress）。ボスの前の予告（warning）は、ボスの 8 秒前のまま
 export const TIME_SCALE = 0.7;
 for (const st of STAGES) {
-  st.time = Math.round(st.time * TIME_SCALE);
+  st.time = Math.floor((st.time * TIME_SCALE) / 60) * 60; // ステージの長さは分単位（秒は切り捨て）
   st.waves = st.waves.map(([t, ...rest]) => [Math.round(t * TIME_SCALE), ...rest]);
   st.events = st.events.map((e) => ({ ...e, t: Math.round(e.t * TIME_SCALE) }));
-  for (const e of st.events) {
-    if (e.type !== 'warning') continue;
-    const boss = st.events.find((b) => b.type === 'boss' && b.t >= e.t);
-    if (boss) e.t = boss.t - 8;
-  }
+  for (const e of st.events) if (e.type === 'boss') e.t = Math.floor(e.t / 60) * 60; // ボスの時刻は分単位（秒は切り捨て）
+  // 最終ボスを分単位に早めたぶん、その予告より後ろに来た出来事は外す（もとはすべて最終ボスより前の出来事）
+  st.events = st.events.filter((e) => e.type === 'boss' || e.t < st.time - 8);
+  // ボスの予告は付け直す（各ボスの 8 秒前）
+  st.events = st.events.filter((e) => e.type !== 'warning');
+  for (const e of st.events.filter((x) => x.type === 'boss')) st.events.push({ t: e.t - 8, type: 'warning' });
   st.events.sort((a, b) => a.t - b.t);
 }
 
