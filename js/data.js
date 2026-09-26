@@ -410,11 +410,11 @@ export const CHARACTERS = {
   amber: { weapon: 'amber', perk: 'コイン +30%', stats: { greed: 0.3 }, rarity: 'SR', unlock: '1回のプレイでコイン500枚獲得' },
   angelite: { weapon: 'angelite', perk: 'HP自然回復 +0.4', stats: { regen: 0.4 }, rarity: 'SR', unlock: '5分間生存' },
   diamond: { weapon: 'diamond', perk: '攻撃範囲 +10% / クリティカル率 +3%', stats: { area: 0.1, crit: 0.03 }, rarity: 'UR', unlock: 'ステージクリア' },
-  opal: { weapon: 'opal', perk: '幸運 +25%', stats: { luck: 0.25 }, rarity: 'UR', unlock: 'ガチャ' },
-  emerald: { weapon: 'emerald', perk: '経験値 +10% / 幸運 +10%', stats: { growth: 0.1, luck: 0.1 }, rarity: 'SR', unlock: 'ガチャ' },
-  rhodochrosite: { weapon: 'rhodochrosite', perk: '攻撃力 +15% / 最大HP -10', stats: { might: 0.15, maxHp: -10 }, rarity: 'SR', unlock: 'ガチャ' },
-  kyanite: { weapon: 'kyanite', perk: '弾速 +20%', stats: { speed: 0.2 }, rarity: 'SR', unlock: 'ガチャ' },
-  aquamarine: { weapon: 'aquamarine', perk: '持続 +15% / アーマー +1', stats: { duration: 0.15, armor: 1 }, rarity: 'SR', unlock: 'ガチャ' },
+  opal: { weapon: 'opal', perk: '幸運 +25%', stats: { luck: 0.25 }, rarity: 'UR', unlock: '宝石を14種類コレクション（研磨工房）' },
+  emerald: { weapon: 'emerald', perk: '経験値 +10% / 幸運 +10%', stats: { growth: 0.1, luck: 0.1 }, rarity: 'SR', unlock: 'レベル30到達' },
+  rhodochrosite: { weapon: 'rhodochrosite', perk: '攻撃力 +15% / 最大HP -10', stats: { might: 0.15, maxHp: -10 }, rarity: 'SR', unlock: '1回のプレイで5回フィーバー' },
+  kyanite: { weapon: 'kyanite', perk: '弾速 +20%', stats: { speed: 0.2 }, rarity: 'SR', unlock: '1回のプレイでボスを2体撃破' },
+  aquamarine: { weapon: 'aquamarine', perk: '持続 +15% / アーマー +1', stats: { duration: 0.15, armor: 1 }, rarity: 'SR', unlock: 'HEAT 1以上でクリア' },
   tourmaline: { weapon: 'tourmaline', perk: '移動速度 +8% / 幸運 +10%', stats: { moveSpeed: 0.08, luck: 0.1 }, rarity: 'SR', unlock: '水晶洞窟をクリア' },
   alexandrite: { weapon: 'alexandrite', perk: '経験値 +15%', stats: { growth: 0.15 }, rarity: 'SR', unlock: '灼熱鉱脈をクリア' },
   moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +10% / 回収範囲 +20%', stats: { area: 0.1, magnet: 0.2 }, rarity: 'UR', unlock: '凍晶氷原をクリア' },
@@ -496,7 +496,7 @@ export const ACHIEVEMENTS = [
   { id: 'kill1000', name: '千人斬り', t: '1回のプレイで1000体撃破', coins: 300, unlock: 'labradorite', check: (r) => r.kills >= 1000 },
   { id: 'kill3000', name: 'ダスクハンター', t: '1回のプレイで3000体撃破', coins: 800, check: (r) => r.kills >= 3000 },
   { id: 'lv10', name: 'Lv.10', t: 'レベル10到達', coins: 50, check: (r) => r.level >= 10 },
-  { id: 'lv30', name: 'Lv.30', t: 'レベル30到達', coins: 200, check: (r) => r.level >= 30 },
+  { id: 'lv30', name: 'Lv.30', t: 'レベル30到達', coins: 200, unlock: 'emerald', check: (r) => r.level >= 30 },
   { id: 'lv50', name: 'Lv.50', t: 'レベル50到達', coins: 600, check: (r) => r.level >= 50 },
   { id: 'time3', name: 'サバイバー I', t: '3分間生存', coins: 80, check: (r) => r.time >= 180 },
   { id: 'time5', name: 'サバイバー II', t: '5分間生存', coins: 200, unlock: 'angelite', check: (r) => r.time >= 300 },
@@ -505,7 +505,7 @@ export const ACHIEVEMENTS = [
   { id: 'clear3', name: 'マグマ・ダイバー', t: '灼熱鉱脈をクリア', coins: 3000, check: (r) => r.cleared && r.stageId === 'magma' },
   { id: 'clear4', name: 'アブソリュート・ゼロ', t: '凍晶氷原をクリア', coins: 3500, check: (r) => r.cleared && r.stageId === 'tundra' },
   { id: 'clear5', name: 'ヴォイド・ウォーカー', t: '虚空聖堂をクリア', coins: 8000, check: (r) => r.cleared && r.stageId === 'void' },
-  { id: 'heat1', name: 'ヒートアップ', t: 'HEAT 1以上でクリア', coins: 500, check: (r) => r.cleared && r.heat >= 1 },
+  { id: 'heat1', name: 'ヒートアップ', t: 'HEAT 1以上でクリア', coins: 500, unlock: 'aquamarine', check: (r) => r.cleared && r.heat >= 1 },
   { id: 'heat3', name: 'オーバーヒート', t: 'HEAT 3以上でクリア', coins: 2000, check: (r) => r.cleared && r.heat >= 3 },
   { id: 'heat5', name: 'メルトダウン', t: 'HEAT 5でクリア', coins: 6000, check: (r) => r.cleared && r.heat >= 5 },
   { id: 'heat5void', name: '極光', t: '虚空聖堂を HEAT 5 でクリア', coins: 15000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'void' },
@@ -514,9 +514,9 @@ export const ACHIEVEMENTS = [
   { id: 'evo', name: 'エヴォリューション', t: '武器を進化させる', coins: 200, check: (r) => r.evolved >= 1 },
   { id: 'evo3', name: 'トリプル・エヴォ', t: '1回のプレイで3つ進化', coins: 800, check: (r) => r.evolved >= 3 },
   { id: 'fever', name: 'FEVER', t: 'フィーバーを発動', coins: 50, check: (r) => r.fevers >= 1 },
-  { id: 'fever5', name: 'フィーバー中毒', t: '1回のプレイで5回フィーバー', coins: 300, check: (r) => r.fevers >= 5 },
+  { id: 'fever5', name: 'フィーバー中毒', t: '1回のプレイで5回フィーバー', coins: 300, unlock: 'rhodochrosite', check: (r) => r.fevers >= 5 },
   { id: 'boss1', name: 'レジサイド', t: 'ダスク・キングを倒す', coins: 150, check: (r) => r.bosses >= 1 },
-  { id: 'boss2', name: 'ドラゴンスレイヤー', t: 'ヴォイド・ドラゴンを倒す', coins: 400, check: (r) => r.bosses >= 2 },
+  { id: 'boss2', name: 'ドラゴンスレイヤー', t: '1回のプレイでボスを2体撃破', coins: 400, unlock: 'kyanite', check: (r) => r.bosses >= 2 },
   { id: 'coin500', name: 'リッチ', t: '1回のプレイでコイン500枚', coins: 100, unlock: 'amber', check: (r) => r.coins >= 500 },
   { id: 'miracle', name: 'ミラクル', t: 'オパールの奇跡を発生させる', coins: 100, check: (r) => r.miracles >= 1 },
   { id: 'full', name: 'フルセット', t: '武器を4種類そろえる', coins: 200, check: (r) => r.weaponCount >= 4 },
@@ -526,7 +526,7 @@ export const ACHIEVEMENTS = [
   { id: 'polish1', meta: true, name: 'ファースト・カット', t: '原石を研磨する', coins: 50, check: (r, s) => s.stats.polished >= 1 },
   { id: 'polish100', meta: true, name: '研磨職人', t: '原石を100個研磨する', coins: 1000, check: (r, s) => s.stats.polished >= 100 },
   { id: 'polishSS', meta: true, name: 'パーフェクト・カット', t: 'SS品質の宝石を研磨する', coins: 500, check: (r, s) => s.stats.polishSS >= 1 },
-  { id: 'coll14', meta: true, name: 'コレクター', t: '宝石を14種類コレクションする', coins: 400, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 14 },
+  { id: 'coll14', meta: true, name: 'コレクター', t: '宝石を14種類コレクションする', coins: 400, unlock: 'opal', check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 14 },
   { id: 'coll28', meta: true, name: 'ジュエル・マスター', t: '宝石を全28種類コレクションする', coins: 3000, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 28 },
   { id: 'master', meta: true, name: '極めし輝き', t: 'いずれかの宝石の練度を最大にする', coins: 1500, check: (r, s) => Object.values(s.jewels).some((j) => j.best >= 4 && j.n >= 30) },
 ];
@@ -536,6 +536,19 @@ export const ACHIEVEMENTS = [
 // ---------------------------------------------------------------------
 export const GACHA_COST = 300;
 export const GACHA10_COST = 2700;
+// ガチャの中身は原石。引くたびにジェムダストが貯まり、交換所で使える
+export const GACHA_TABLE = [
+  { rank: 'UR', p: 0.03, tier: 'mystic', n: 1, dust: 10 },
+  { rank: 'SSR', p: 0.10, tier: 'large', n: 1, dust: 5 },
+  { rank: 'SR', p: 0.27, tier: 'rough', n: 1, dust: 2 },
+  { rank: 'R', p: 0.60, tier: 'shard', n: 2, dust: 1 },
+];
+export const EXCHANGE = {
+  mystic: 40, // 秘石 1 個
+  large: 15, // 大原石 1 個
+  awaken: 30, // 覚醒 1 段階（解放済みのジュエル、最大 5）
+};
+export const AWAKEN_MAX = 5;
 export const RARITY = {
   N: { name: 'N', color: '#c9c9d9', rank: 0 },
   R: { name: 'R', color: '#5ab0ff', rank: 1 },
