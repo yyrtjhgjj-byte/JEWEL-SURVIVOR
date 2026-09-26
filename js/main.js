@@ -202,7 +202,7 @@ function startGame(charId, opt = {}) {
     ...hooks,
     ...botHooks,
     checkAchievements: (r, live) => { achDuringRun.push(...checkAchievements(r, live)); },
-  },{ charId, endless: !!opt.endless, stageId: stage.id, heat: opt.heat || 0, bot: DEBUG.bot, god: DEBUG.god, startTime: DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
+  },{ charId, endless: !!opt.endless, hyper: !!opt.hyper, hurry: !!opt.hurry, stageId: stage.id, heat: opt.heat || 0, bot: DEBUG.bot, god: DEBUG.god, startTime: DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
   achDuringRun = [];
   window.__game = game; // デバッグ用
   UI.hudShow(true);
@@ -238,7 +238,7 @@ function finishRun(res, cleared) {
     rec.heat = Math.max(rec.heat ?? 0, res.heat || 0);
   }
   rec.best = Math.max(rec.best || 0, res.time);
-  const coinsEarned = Math.round(res.coins * heatMods(res.heat || 0).coin + (firstClear ? stage.reward : cleared ? 500 : 0));
+  const coinsEarned = Math.round(res.coins * heatMods(res.heat || 0).coin * (res.hyper ? 1.5 : 1) + (firstClear ? stage.reward : cleared ? 500 : 0));
   save.coins += coinsEarned;
   save.totalCoins += coinsEarned;
   save.stats.kills += res.kills;
@@ -309,7 +309,7 @@ for (const a of ACHIEVEMENTS) {
 UI.initUI({ startGame, toTitle, checkMetaAchievements: () => checkAchievements(null, true) });
 window.__save = save; // デバッグ用
 
-if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), stageId: DEBUG.stage, heat: DEBUG.heat });
+if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), stageId: DEBUG.stage, heat: DEBUG.heat });
 else UI.showTitle();
 
 // オフライン用 サービスワーカー

@@ -665,3 +665,17 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .exch-row .xs { font-family: var(--font-jp); font-size: 11px; color: var(--muted); }
 .exch-row .btn { min-width: 64px; }
 .exch-label { font-family: var(--font-jp); font-size: 12px; color: #ffe39a; margin-top: 8px; }
+
+/* レベルアップ：スキップ・バニッシュ */
+.lvl-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.banish-hint { display: none; font-family: var(--font-jp); font-size: 12px; color: #ff8aa0; }
+.lvl-screen.banishing .banish-hint { display: block; }
+.lvl-screen.banishing .card:not(.slim):not(.r-UR) { border-color: #ff4d6d; box-shadow: 0 0 14px rgba(255,77,109,0.45), inset 3px 0 0 #ff4d6d; }
+.lvl-screen.banishing .card.slim, .lvl-screen.banishing .card.r-UR { opacity: 0.35; }
+.lvl-screen.banishing #banish { border-color: #ff4d6d; color: #ff8aa0; }
+
+/* 工房：返金・無効化 */
+.refund-row { display: flex; align-items: center; gap: 10px; margin: 12px 2px 24px; font-family: var(--font-jp); font-size: 11px; color: var(--muted); }
+.refund-row .btn { white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.shop-item.off { opacity: 0.45; }
+.shop-item .btn.maxsw { min-width: 72px; }
