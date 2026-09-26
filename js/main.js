@@ -7,7 +7,7 @@ import { audio } from './audio.js';
 import { save, persist } from './save.js';
 import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES } from './data.js';
 import { ARTIFACTS } from './artifacts.js';
-import { STAGES, STAGE_BY_ID, heatMods } from './stages.js';
+import { STAGES, STAGE_BY_ID } from './stages.js';
 import { gemSprite, starSprite, backgroundTile } from './render.js';
 import { TAU, rand, pick } from './util.js';
 import * as UI from './ui.js';
@@ -251,7 +251,8 @@ function settleRun(res, cleared) {
     rec.heat = Math.max(rec.heat ?? 0, res.heat || 0);
   }
   rec.best = Math.max(rec.best || 0, res.time);
-  const coinsEarned = Math.round(res.coins * heatMods(res.heat || 0).coin * (res.hyper ? 1.5 : 1) + (firstClear ? stage.reward : cleared ? 500 : 0));
+  // ヒート・HYPER の倍率はラン中のコインに掛け済み（game.js の computeStats）
+  const coinsEarned = Math.round(res.coins + (firstClear ? stage.reward : cleared ? 500 : 0));
   save.coins += coinsEarned;
   save.totalCoins += coinsEarned;
   save.stats.kills += res.kills;
@@ -326,6 +327,12 @@ window.addEventListener('keydown', (e) => {
 // 旧バージョンのセーブ：ステージ1クリア済みなら引き継ぐ
 if (save.stats.clears > 0 && !(save.stages.wastes && save.stages.wastes.cleared)) {
   save.stages.wastes = { cleared: true, heat: 0, best: save.best.time || 600 };
+  persist();
+}
+// 旧セーブ：全ステージ共通だった HEAT の選択を、最後に選んでいたステージの分として引き継ぐ
+if ('heatSel' in save) {
+  if (save.heatSel && save.heatSels[save.selectedStage] === undefined) save.heatSels[save.selectedStage] = save.heatSel;
+  delete save.heatSel;
   persist();
 }
 // 解放条件を実績に移したキャラ：すでにその実績を持っていれば解放しておく

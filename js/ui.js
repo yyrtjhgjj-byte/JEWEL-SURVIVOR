@@ -336,8 +336,9 @@ export function showStageSelect() {
   const renderOpts = () => {
     const rec = stageRec(sel);
     const maxHeat = rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0;
-    if ((save.heatSel || 0) > maxHeat) save.heatSel = maxHeat;
-    const h = save.heatSel || 0;
+    // HEAT はステージごとに覚える（上限の低いステージを見ただけで、別のステージの選択が下がらないように）
+    const hs = save.heatSels || (save.heatSels = {});
+    const h = Math.min(maxHeat, hs[sel] ?? 0);
     const m = heatMods(h);
     const arts = unlockedArtifacts();
     if (save.artSel && !arts.includes(save.artSel)) save.artSel = null;
@@ -351,8 +352,8 @@ export function showStageSelect() {
       <div class="toggle-row" style="margin-top:10px"><span>HYPER<small>自機・敵の移動速度 ×1.65、敵弾 ×1.2、獲得コイン ×1.5</small></span><button class="switch ${save.hyper ? 'on' : ''}" id="hy"></button></div>
       <div class="toggle-row" style="margin-top:10px"><span>HURRY<small>ステージの時間が 2 倍速で進む</small></span><button class="switch ${save.hurry ? 'on' : ''}" id="hu"></button></div>` : ''}`;
     const hm = $('#hm', node), hp = $('#hp', node);
-    hm.onclick = () => { save.heatSel = Math.max(0, h - 1); audio.tap(); renderOpts(); };
-    hp.onclick = () => { save.heatSel = Math.min(maxHeat, h + 1); audio.tap(); renderOpts(); };
+    hm.onclick = () => { hs[sel] = Math.max(0, h - 1); audio.tap(); persist(); renderOpts(); };
+    hp.onclick = () => { hs[sel] = Math.min(maxHeat, h + 1); audio.tap(); persist(); renderOpts(); };
     $('#artsel', node).onclick = () => { audio.tap(); pickArtifact(arts, (id) => { save.artSel = id; persist(); renderOpts(); }, true); };
     const en = $('#en', node);
     if (en) en.onclick = () => { save.endless = !save.endless; en.classList.toggle('on', save.endless); audio.tap(); persist(); };
@@ -383,7 +384,7 @@ export function showStageSelect() {
     save.selectedStage = sel;
     persist();
     const rec = stageRec(sel);
-    app.startGame(save.selected, { stageId: sel, heat: save.heatSel || 0, endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry, artifact: save.artSel || null });
+    app.startGame(save.selected, { stageId: sel, heat: Math.min((save.heatSels || {})[sel] ?? 0, rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0), endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry, artifact: save.artSel || null });
   };
 }
 

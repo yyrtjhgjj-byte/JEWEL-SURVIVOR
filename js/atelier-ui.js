@@ -9,7 +9,7 @@ import { audio } from './audio.js';
 import { save, persist } from './save.js';
 import {
   ROUGH, ROUGH_IDS, GRADES, gradeFromScore, COLLECTION_IDS, MASTERY_MAX,
-  mastery, nextMilestone, collectionStats, gemBonusText, statText, rollGem, rollCarat, applyPolish, autoGrade,
+  mastery, nextMilestone, collectionStats, gemBonusText, statText, nextGem, rollCarat, applyPolish, autoGrade,
   collectionCount,
 } from './atelier.js';
 import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, showTitle, getApp } from './ui.js';
@@ -84,7 +84,7 @@ function autoPolish(tier, count, box) {
   for (let i = 0; i < count; i++) {
     if (save.coins < R.cost || !save.rough[tier]) break;
     save.coins -= R.cost;
-    res.push(applyPolish(tier, rollGem(tier), autoGrade(), rollCarat(tier)));
+    res.push(applyPolish(tier, nextGem(tier), autoGrade(), rollCarat(tier)));
   }
   persist();
   metaAch();
@@ -116,8 +116,8 @@ function startPolish(tier) {
   const R = ROUGH[tier];
   if (!save.rough[tier] || save.coins < R.cost) return;
   // コインは研磨が終わったとき（原石を消費するのと同時）に払う。途中でアプリが落ちてもコインだけ失わないように
-  const gemId = rollGem(tier);
-  const g = GEMS[gemId];
+  const gemId = nextGem(tier);
+  persist();
   const hint = gemColor(gemId);
 
   const node = el(`<div class="screen polish-screen">

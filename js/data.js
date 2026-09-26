@@ -537,7 +537,7 @@ export const ACHIEVEMENTS = [
   { id: 'evo3', name: 'トリプル・エヴォ', t: '1回のプレイで3つ進化', coins: 800, check: (r) => r.evolved >= 3 },
   { id: 'fever', name: 'FEVER', t: 'フィーバーを発動', coins: 50, check: (r) => r.fevers >= 1 },
   { id: 'fever5', name: 'フィーバー中毒', t: '1回のプレイで5回フィーバー', coins: 300, unlock: 'rhodochrosite', check: (r) => r.fevers >= 5 },
-  { id: 'boss1', name: 'レジサイド', t: 'ダスク・キングを倒す', coins: 150, check: (r) => r.bosses >= 1 },
+  { id: 'boss1', name: 'レジサイド', t: 'ボスを倒す', coins: 150, check: (r) => r.bosses >= 1 },
   { id: 'boss2', name: 'ドラゴンスレイヤー', t: '1回のプレイでボスを2体撃破', coins: 400, unlock: 'kyanite', check: (r) => r.bosses >= 2 },
   { id: 'coin500', name: 'リッチ', t: '1回のプレイでコイン500枚', coins: 100, unlock: 'amber', check: (r) => r.coins >= 500 },
   { id: 'miracle', name: 'ミラクル', t: 'オパールの奇跡を発生させる', coins: 100, check: (r) => r.miracles >= 1 },

@@ -108,6 +108,11 @@ function gemWeight(id, tier) {
 export function rollGem(tier) {
   return weightedPick(COLLECTION_IDS, (id) => gemWeight(id, tier));
 }
+// 次に磨く原石の中身（等級ごと）。最初に決めた時点でセーブに書き、研磨の途中でアプリを終了しても変わらない
+export function nextGem(tier) {
+  const q = save.nextGem || (save.nextGem = {});
+  return q[tier] || (q[tier] = rollGem(tier));
+}
 export function rollCarat(tier) {
   const [a, b] = ROUGH[tier].ct;
   // 大きいものほど出にくい
@@ -124,6 +129,7 @@ export function applyPolish(tier, gemId, grade, ct) {
   save.stats.polished = (save.stats.polished || 0) + 1;
   if (grade === GRADES.length - 1) save.stats.polishSS = (save.stats.polishSS || 0) + 1;
   save.rough[tier]--;
+  if (save.nextGem) delete save.nextGem[tier];
   return {
     gemId, grade, ct, tier,
     isNew: before.n === 0,

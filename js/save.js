@@ -27,10 +27,11 @@ function defaults() {
     login: { last: '', streak: 0 },
     stages: {},
     selectedStage: 'wastes',
-    heatSel: 0,
+    heatSels: {}, // ステージごとに選んでいる HEAT
     lastBackup: 0, // 最後にバックアップを書き出した時刻（ms）
     rough: { shard: 0, rough: 0, large: 0, mystic: 0 }, // 手持ちの原石
     dust: 0, // ジェムダスト（ガチャで貯まり、交換所で使う）
+    nextGem: {}, // 次に磨く原石の中身（等級ごと。atelier.js の nextGem）
     jewels: {}, // コレクション { gemId: { n: 研磨数, best: 最高品質, ct: 最大カラット } }
   };
 }
