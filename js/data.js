@@ -271,7 +271,7 @@ export const WEAPONS = {
   },
   rhodochrosite: {
     gem: 'rhodochrosite', name: 'パッション・フレイム',
-    dmgMul: 2.0, // バランス調整（Lv帯）
+    dmgMul: 2.5, // バランス調整（Lv帯）。使いにくい分、正面火力を高めに
     lowBoost: 2.5, // 低レベル時の補正（Lv1 で ×3.5、Lv8 で ×1）
     desc: '進行方向へ炎を放射する',
     base: { dmg: 22, cd: 2.2, amount: 1, area: 1, duration: 1.2 },

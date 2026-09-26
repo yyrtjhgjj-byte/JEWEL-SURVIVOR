@@ -637,3 +637,15 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .rrough { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; font-family: var(--font-jp); font-weight: 700; font-size: 13px; margin-top: -4px; }
 .rrough span { display: flex; align-items: center; gap: 4px; }
 .rrough img { width: 28px; height: 28px; }
+
+/* レベルアップの「HP 25% 回復」（細いカード） */
+.card.slim { min-height: 0; padding: 10px 14px; display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid rgba(93,255,154,0.35); border-radius: 14px; }
+.card.slim .heal-ico { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: #0b1a10; background: #5dff9a; box-shadow: 0 0 10px rgba(93,255,154,0.6); flex: none; }
+.card.slim .cname { flex: 1; text-align: left; font-size: 15px; }
+.card.slim .hv { font-family: var(--font); font-weight: 700; color: #5dff9a; }
+.lvl-screen.many { gap: 4px; }
+.lvl-screen.many .big-title { font-size: min(10vw, 42px); }
+.lvl-screen.many .cards { gap: 6px; }
+.lvl-screen.many .card { padding: 7px 12px; }
+.lvl-screen.many .card img { width: 46px; height: 46px; }
+.lvl-screen.many .card .cword { display: none; }

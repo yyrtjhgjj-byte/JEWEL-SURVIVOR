@@ -124,7 +124,7 @@ function startPolish(tier) {
     <div class="pol-head"><div class="en">POLISHING</div><div class="jp">${R.name}</div>
       <div class="facets">${Array.from({ length: R.facets }, () => '<i></i>').join('')}</div></div>
     <canvas id="pc"></canvas>
-    <div class="pol-hint">光る面に針が重なったらタップ</div>
+    <div class="pol-hint" id="ph">タップで研磨開始</div>
   </div>`);
   show(node);
   const cv = $('#pc', node);
@@ -137,8 +137,9 @@ function startPolish(tier) {
 
   const st = {
     facet: 0, ang: -Math.PI / 2, target: 0, results: [], cuts: [], pops: [], lockT: 0, done: false, t: 0, flash: 0,
+    ready: false, goT: 0, // 最初のタップで開始し、少し間を置いてから針が動く
   };
-  const zone = { p: 0.1 * R.zone, g: 0.2 * R.zone, ok: 0.32 * R.zone };
+  const zone = { p: 0.2 * R.zone, g: 0.4 * R.zone, ok: 0.64 * R.zone };
   const speed = () => 2.2 * R.speed * (1 + 0.1 * st.facet);
   const place = () => { st.target = st.ang + rand(1.8, 4.3); };
   place();
@@ -164,7 +165,14 @@ function startPolish(tier) {
   };
   node.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    if (st.done || st.lockT > 0) return;
+    if (!st.ready) {
+      st.ready = true;
+      st.goT = 0.8;
+      audio.select();
+      $('#ph', node).textContent = '光る面に針が重なったらタップ';
+      return;
+    }
+    if (st.done || st.lockT > 0 || st.goT > 0) return;
     let diff = (st.ang - st.target) % TAU;
     if (diff > Math.PI) diff -= TAU;
     if (diff < -Math.PI) diff += TAU;
@@ -179,7 +187,8 @@ function startPolish(tier) {
     st.t += dt;
     st.lockT = Math.max(0, st.lockT - dt);
     st.flash = Math.max(0, st.flash - dt * 3);
-    if (!st.done) {
+    if (st.goT > 0) st.goT -= dt;
+    else if (!st.done && st.ready) {
       st.ang += speed() * dt;
       // 通り過ぎたら MISS
       if (st.ang - st.target > zone.ok) resolve(st.ang - st.target);
@@ -246,6 +255,15 @@ function startPolish(tier) {
     ctx.shadowColor = hint; ctx.shadowBlur = 14;
     ctx.beginPath(); ctx.arc(nx, ny, 7, 0, TAU); ctx.fill();
     ctx.shadowBlur = 0;
+    // 開始前の表示
+    if (!st.ready || st.goT > 0) {
+      ctx.fillStyle = st.ready ? '#ffd24a' : '#ffffff';
+      ctx.globalAlpha = st.ready ? 1 : 0.6 + 0.4 * Math.sin(st.t * 4);
+      ctx.font = '700 24px Rajdhani, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(st.ready ? 'READY' : 'TAP TO START', C, C - W * 0.3);
+      ctx.globalAlpha = 1;
+    }
     // 判定表示
     for (const p of st.pops) {
       if (p.t > 0.8) continue;
