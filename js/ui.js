@@ -591,7 +591,7 @@ export function showZukan(tab = 'gems') {
       const ok = artifactUnlocked(a.id);
       const ach = ACHIEVEMENTS.find((x) => x.id === a.ach);
       zl.appendChild(el(`<div class="zitem ${ok ? '' : 'unk'}">
-        <img src="${artifactIcon(a.no, a.gem, 96)}" style="${ok ? '' : 'filter:grayscale(1) brightness(.4)'}">
+        <img src="${artifactIcon(a.id, 96)}" style="${ok ? '' : 'filter:grayscale(1) brightness(.4)'}">
         <div><div class="zname">${a.no}　${ok ? a.name : '???'}<span class="en">${a.en}</span></div>
           <div class="ztext">${ok ? a.desc : '未解放'}</div>
           ${ok ? '' : `<div class="zevo">解放条件：${ach ? ach.t : '???'}</div>`}
@@ -777,7 +777,7 @@ export function hud(g) {
     H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
       '<i style="grid-column:1/-1;height:0"></i>' +
       g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
-      (g.arts.length ? '<i style="grid-column:1/-1;height:0"></i>' + g.arts.map((id) => `<div class="slotico art"><img src="${artifactIcon(ARTIFACT_BY_ID[id].no, ARTIFACT_BY_ID[id].gem, 48)}"></div>`).join('') : '');
+      (g.arts.length ? '<i style="grid-column:1/-1;height:0"></i>' + g.arts.map((id) => `<div class="slotico art"><img src="${artifactIcon(id, 48)}"></div>`).join('') : '');
   }
   const f = g.feverT > 0 ? g.feverT / 10 : g.feverGauge / g.feverNeed;
   H.fever.style.transform = `scaleX(${Math.min(1, f)})`;
@@ -895,7 +895,7 @@ function pickArtifact(ids, cb, isStart) {
   ids.forEach((id, i) => {
     const a = ARTIFACT_BY_ID[id];
     const card = el(`<button class="card r-SSR art-card">
-      <img src="${artifactIcon(a.no, a.gem, 96)}">
+      <img src="${artifactIcon(a.id, 96)}">
       <div class="cbody"><div class="clv">${a.no} ・ ${a.en}</div><div class="cname">${a.name}</div><div class="cdesc">${a.desc}</div></div>
     </button>`);
     card.style.animationDelay = i * 0.08 + 's';
