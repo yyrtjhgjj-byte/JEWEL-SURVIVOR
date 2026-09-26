@@ -63,6 +63,7 @@ js/atelier.js         研磨工房のロジック（原石の等級、品質、�
 js/artifacts.js       秘宝（アルカナ相当）の定義と解放判定
 js/artifact-art.js    秘宝の描き下ろしの絵（drawArtifact）。確認用に tools/artifact-preview.html で 11 種を一覧できる
 js/shop-art.js        工房の強化 19 種の描き下ろしアイコン（drawShopIcon、render.js の shopIcon）。tools/shop-preview.html で一覧できる
+js/gem-art.js         宝石の絵（カット別のテンプレートに GEMS の色を乗せる。GEM_CUT で宝石ごとのカット）。tools/gem-preview.html で一覧できる
 js/elements.js        属性（8 種）の定義、宝石ごとの属性、発動・状態異常・揃えたボーナスの処理
 js/rank.js            ユーザーレベル（ランク）：経験値、称号、獲得コインの倍率
 js/howto.js           遊び方（HOW TO PLAY）の本文。項目ごとの見出しと箇条書き。**仕様を変えたらここも直す**
@@ -276,7 +277,7 @@ docs/GEMS.md          ジュエルパワーの対応表
 ### 新しい宝石を追加するときの手順（更新する場所）
 
 必ず更新する：
-1. js/data.js の `GEMS`：jp・en・word（ジュエルパワー）・kana・color / light / dark・cut（round / oval / emerald / drop / long / heart）・lore（図鑑のフレーバー）
+1. js/data.js の `GEMS`：jp・en・word（ジュエルパワー）・kana・color / light / dark・lore（図鑑のフレーバー）。絵のカットは js/gem-art.js の `GEM_CUT`（brilliant / oval / cushion / pear / trillion / step / baguette / cab / cabOval / crystal / tumble / lump）
 2. チャームなら js/data.js の `PASSIVES`（per・max・t）。武器なら `WEAPONS` と js/weapons.js の LOGIC（挙動と描画）、`CHARACTERS`（特性と解放条件）
 3. js/elements.js の `GEM_ELEMENT`（属性）
 4. js/atelier.js の `MASTERY_BONUS`（研磨の練度ボーナス）と `ABUNDANCE`（研磨で出る重み 1〜5）
@@ -291,6 +292,11 @@ docs/GEMS.md          ジュエルパワーの対応表
 
 - タイトル画面のロゴの下には何も置かない。画面の一番下のクレジット表記もなし。
 - ジュエルのレア度（R / SR / UR）は画面に出さない（「基準もシステム的な意味もない」とユーザーに言われて外した）。CHARACTERS の `rarity` も削除した。
+- **宝石の絵**（js/gem-art.js の drawCutGem）：実物に近いカット別のテンプレートに、GEMS の色（color / light / dark）を乗せて描く。
+  ブリリアント系（ラウンド・オーバル・クッション・ペア・トリリアント）、ステップカット系（エメラルドカット・バゲット）、
+  カボション（不透明な石。オパールの遊色、ラブラドライトの光の帯、ムーンストーンの揺らめき、ターコイズの網目、ロードクロサイトの平行な縞など）、原石風（乳石英の結晶・花崗岩の丸石・石炭の塊）。
+  ユーザーの判断：ハートなどの変わった形はやめて一般的なカットに、不透明な石はカボションに。ロードクロサイトの同心の縞は「キモい」と言われて平行な縞にした。
+  gemSprite / gemIcon を宝石の id で呼ぶと新しい絵になる。形を指定した呼び出し（ガーネットの弾のハート、カイヤナイトの槍、トルマリンの光など）と、GEMS 以外の色の宝石（経験値の宝石など）は従来の drawGem のまま。
 - 採掘画面の中央はピッケルの絵（render.js の pickaxeIcon）。最初は白く光り、溜めの間は振り下ろす動きをして、最高レアの色に光る。
 - ジュエル選択の詳細欄は「名前（1 行目・折り返さない）／英名＋ジュエルパワー（2 行目）／武器と特性」の固定レイアウト。
 - カードの背景は `var(--panel)`（半透明の黒）にして、背景が透けすぎないようにする。ボタン（.btn）やタブも同じ黒地を敷いている。
@@ -323,7 +329,7 @@ docs/GEMS.md          ジュエルパワーの対応表
 ## 6. リリース手順（毎回これで行う）
 
 1. 作業ブランチは `claude/ios-gem-vampire-survivor-zeod5k`。セッションの指示で別のブランチ名が指定されていれば、そちらに従う。
-2. **sw.js の `CACHE` の版数を必ず 1 つ上げる**（現在は `jewel-survivor-v49`）。新しいファイルを追加したときは `ASSETS` にも足す。
+2. **sw.js の `CACHE` の版数を必ず 1 つ上げる**（現在は `jewel-survivor-v50`）。新しいファイルを追加したときは `ASSETS` にも足す。
 3. `node --check` で構文を確認し、必要に応じて tools/test で動作を確認する。
 4. main に取り込む手順（これまでは毎回 squash マージで、ブランチをリセットしてから載せ直している）：
    ```sh
@@ -421,6 +427,7 @@ NODE_PATH=/opt/node22/lib/node_modules node tools/test/wrap.js
 22. タイトル画面に HOW TO PLAY（遊び方）を追加し、全仕様をまとめた。図鑑の属性タブを遊び方に移動。爆発と MIRACLE の音の重なりを抑制。リザルトのダメージ内訳が iPhone で抜ける問題に対処。
 23. 1 戦を 10 分 → 7 分に（予定表と難易度の曲線を 0.7 倍に縮めた。ボスの時刻は分単位に切り捨て）。
 24. チャーム「シトリン」を追加し、宝石を追加するときの手順をまとめた。
+25. 宝石の絵を実際のカット（ブリリアント・ステップ・カボション・原石風）に描き直した。
 
 ---
 
