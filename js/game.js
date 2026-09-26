@@ -127,6 +127,8 @@ export class Game {
     this.boss = null;
     this.milestoneIdx = 0;
     this.healCap = 0;
+    this.healShow = 0; // 表示待ちの回復量
+    this.healShowT = 0;
     this.acc = 0;
     this.hudT = 0;
     this.achT = 0;
@@ -260,6 +262,16 @@ export class Game {
       return;
     }
     this.healCap = Math.max(0, this.healCap - dt * 6);
+    // 回復量をまとめて緑の数字で表示
+    this.healShowT -= dt;
+    if (this.healShowT <= 0) {
+      this.healShowT = 0.6;
+      if (this.healShow >= 1) {
+        const v = Math.floor(this.healShow);
+        this.healShow -= v;
+        this.fx.text(this.player.x + rand(-8, 8), this.player.y - 26, '+' + v, { size: 15, color: '#5dff9a', life: 0.7 });
+      }
+    }
 
     // ---- 入力
     if (this.bot) this.botInput();
@@ -1075,7 +1087,9 @@ export class Game {
       if (this.healCap > 6) return;
       this.healCap += v;
     }
+    const before = p.hp;
     p.hp = Math.min(p.maxHp, p.hp + v);
+    this.healShow += p.hp - before;
   }
 
   hurtPlayer(dmg, o = {}) {
@@ -1298,6 +1312,8 @@ export class Game {
     }
     if (!out.length) {
       out.push({ type: 'coins', value: 50 }, { type: 'heal' });
+    } else {
+      out.push({ type: 'heal25' }); // 常に選べる「HP 25% 回復」
     }
     return out;
   }
@@ -1322,7 +1338,9 @@ export class Game {
     } else if (c.type === 'coins') {
       this.coins += Math.round(c.value * this.stats.greed);
     } else if (c.type === 'heal') {
-      this.player.hp = this.player.maxHp;
+      this.heal(this.player.maxHp, true);
+    } else if (c.type === 'heal25') {
+      this.heal(this.player.maxHp * 0.25, true);
     }
     this.computeStats();
     return evolved;

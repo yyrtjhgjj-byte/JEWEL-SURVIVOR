@@ -806,7 +806,25 @@ export function levelUp(g, done) {
   let locked = false;
   const render = (choices) => {
     cardsEl.innerHTML = '';
+    node.classList.toggle('many', choices.length >= 5); // 選択肢が多いときは詰めて表示
     choices.forEach((c, i) => {
+      if (c.type === 'heal25') {
+        const p = g.player;
+        const v = Math.min(Math.round(p.maxHp * 0.25), Math.ceil(p.maxHp - p.hp));
+        const card = el(`<button class="card slim"><span class="heal-ico">＋</span><span class="cname">HP 25% 回復</span><span class="hv">${v > 0 ? `+${v} HP` : 'HP 満タン'}</span></button>`);
+        card.style.animationDelay = i * 0.07 + 's';
+        card.onclick = () => {
+          if (locked) return;
+          locked = true;
+          audio.heal();
+          haptic();
+          cardsEl.querySelectorAll('.card').forEach((x) => x.classList.add(x === card ? 'chosen' : 'notchosen'));
+          g.applyChoice(c);
+          setTimeout(() => { node.remove(); done(); }, 420);
+        };
+        cardsEl.appendChild(card);
+        return;
+      }
       const info = choiceInfo(g, c);
       const card = el(`<button class="card r-${info.rar}">
         <img src="${info.icon}">
