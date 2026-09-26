@@ -5,6 +5,7 @@ import { GEMS } from './data.js';
 import { TAU, mix, rgba, hexToRgb } from './util.js';
 import { drawArtifact } from './artifact-art.js';
 import { drawShopIcon } from './shop-art.js';
+import { drawCutGem } from './gem-art.js';
 
 const RES = 2; // スプライトの 解像度倍率
 
@@ -182,7 +183,9 @@ export function gemSprite(id, size = 32, cutOverride) {
   const ctx = c.getContext('2d');
   ctx.scale(RES, RES);
   ctx.translate(size / 2 + pad, size / 2 + pad);
-  drawGem(ctx, size / 2, g, cutOverride);
+  // 宝石の id で呼んだときはカット別の新しい絵（gem-art.js）。形を指定したとき（弾のハートや槍など）は従来の絵
+  if (typeof id === 'string' && !cutOverride) drawCutGem(ctx, size / 2, g, id);
+  else drawGem(ctx, size / 2, g, cutOverride);
   c.logical = size + pad * 2;
   c.base = size;
   gemCache.set(key, c);
@@ -451,7 +454,7 @@ export function gemIcon(id, size = 72) {
   const ctx = c.getContext('2d');
   ctx.scale(2, 2);
   ctx.translate(size / 2, size / 2);
-  drawGem(ctx, size * 0.36, g);
+  drawCutGem(ctx, size * 0.36, g, id);
   u = c.toDataURL();
   iconCache.set(key, u);
   return u;

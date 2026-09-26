@@ -202,7 +202,7 @@ export const LOGIC = {
           const tx = p.x + Math.cos(a) * d, ty = p.y + Math.sin(a) * d;
           g.addProj({
             x: tx, y: ty - 340, tx, ty, fall: 0.38, ft: 0, r: 0, dmg: 0, life: 1, wid: 'garnet',
-            sprite: gemSprite('garnet', 24), spin: 4,
+            sprite: gemSprite('garnet', 24, 'heart'), spin: 4,
             land: (g2, pr) => {
               g2.aoe(pr.tx, pr.ty, 56 * s.area, s.dmg * 1.9, 'garnet', { heal: 0.5, kb: 80 });
               g2.fx.burst(pr.tx, pr.ty, '#ff6fa8', 6, 140, 0.4, 10);
@@ -220,7 +220,7 @@ export const LOGIC = {
         g.addProj({
           x: p.x, y: p.y, vx, vy: -rand(430, 530) * Math.sqrt(s.speed), gravity: 900,
           r: 12 * s.area, dmg: s.dmg, pierce: s.pierce, life: 2.4, wid: 'garnet',
-          sprite: gemSprite('garnet', 22), size: 22 * s.area, spin: vx > 0 ? 6 : -6, heal: 0.4, knock: 60,
+          sprite: gemSprite('garnet', 22, 'heart'), size: 22 * s.area, spin: vx > 0 ? 6 : -6, heal: 0.4, knock: 60,
         });
         audio.whoosh();
       });
