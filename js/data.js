@@ -139,7 +139,7 @@ export const WEAPONS = {
       { dmg: 90, pierce: 1, t: 'ダメージ +90 / 貫通 +1' },
     ],
     evo: {
-      mul: 0.44, with: 'jasper', name: 'ブレイブハート・バースト',
+      mul: 0.54, with: 'jasper', name: 'ブレイブハート・バースト',
       desc: '着弾時に爆発。HP50%以下でダメージ2倍',
     },
   },
@@ -158,7 +158,7 @@ export const WEAPONS = {
       { dmg: 40, t: 'ダメージ +40' },
       { amount: 1, dmg: 30, t: 'オーブ +1 / ダメージ +30' },
     ],
-    evo: { mul: 0.51, with: 'nephrite', name: 'エターナル・ボンド', desc: '二重の軌道が途切れることなく回り続ける' },
+    evo: { mul: 0.65, with: 'nephrite', name: 'エターナル・ボンド', desc: '二重の軌道が途切れることなく回り続ける' },
   },
   garnet: {
     gem: 'garnet', name: 'アムール・ハート',
@@ -226,7 +226,7 @@ export const WEAPONS = {
       { dmg: 70, t: 'ダメージ +70' },
       { amount: 1, t: '金貨 +1' },
     ],
-    evo: { mul: 1.29, with: 'titanite', name: 'ゴールデン・ジャックポット', desc: '金貨の豪雨。確率で777ジャックポットが発生' },
+    evo: { mul: 1.53, with: 'titanite', name: 'ゴールデン・ジャックポット', desc: '金貨の豪雨。確率で777ジャックポットが発生' },
   },
   angelite: {
     gem: 'angelite', name: 'セラフ・オーラ',
@@ -243,7 +243,7 @@ export const WEAPONS = {
       { area: 0.15, t: '範囲アップ' },
       { dmg: 15, cd: -0.05, t: 'ダメージ +15 / ヒット間隔短縮' },
     ],
-    evo: { mul: 1.38, with: 'redberyl', name: 'サンクチュアリ', desc: '聖域化。敵を減速させ、弱った敵を即座に浄化する。回復量アップ' },
+    evo: { mul: 1.86, with: 'redberyl', name: 'サンクチュアリ', desc: '聖域化。敵を減速させ、弱った敵を即座に浄化する。回復量アップ' },
   },
   diamond: {
     gem: 'diamond', name: 'ブリリアント・カット',
@@ -277,7 +277,7 @@ export const WEAPONS = {
       { dmg: 8, t: 'ダメージ +8' },
       { amount: 1, t: 'フィールド +1' },
     ],
-    evo: { mul: 1.21, with: 'granite', name: 'エデン・ガーデン', desc: '範囲拡大＋敵を減速。四つ葉がアイテムを落とす' },
+    evo: { mul: 1.4, with: 'granite', name: 'エデン・ガーデン', desc: '範囲拡大＋敵を減速。四つ葉がアイテムを落とす' },
   },
   rhodochrosite: {
     gem: 'rhodochrosite', name: 'パッション・フレイム',
@@ -294,7 +294,7 @@ export const WEAPONS = {
       { duration: 0.4, t: '放射時間アップ' },
       { dmg: 10, area: 0.2, t: 'ダメージ +10 / 射程アップ' },
     ],
-    evo: { mul: 0.52, with: 'peridot', name: 'パッション・インフェルノ', desc: '前方へ絶え間なく噴き出す業火。射程が伸び、炎の先は燃え続ける' },
+    evo: { mul: 0.73, with: 'peridot', name: 'パッション・インフェルノ', desc: '前方へ絶え間なく噴き出す業火。射程が伸び、炎の先は燃え続ける' },
   },
   kyanite: {
     gem: 'kyanite', name: 'ディサイシブ・ランス',
@@ -311,7 +311,7 @@ export const WEAPONS = {
       { amount: 1, t: '槍 +1' },
       { dmg: 120, t: 'ダメージ +120' },
     ],
-    evo: { mul: 1.33, with: 'prase', name: 'ディサイシブ・ブレード', desc: '命中時に4本へ分裂する' },
+    evo: { mul: 1.64, with: 'prase', name: 'ディサイシブ・ブレード', desc: '命中時に4本へ分裂する' },
   },
   aquamarine: {
     gem: 'aquamarine', name: 'タイダル・ウェーブ',
@@ -328,7 +328,7 @@ export const WEAPONS = {
       { area: 0.2, t: '範囲アップ' },
       { dmg: 40, cd: -0.3, t: 'ダメージ +40 / クールダウン短縮' },
     ],
-    evo: { mul: 1.35, with: 'coal', name: 'アビサル・タイド', desc: '深海の圧力。命中した敵を泡で拘束する' },
+    evo: { mul: 1.61, with: 'coal', name: 'アビサル・タイド', desc: '深海の圧力。命中した敵を泡で拘束する' },
   },
   alexandrite: {
     gem: 'alexandrite', name: 'ドリーム・シフト',
@@ -345,7 +345,7 @@ export const WEAPONS = {
       { dmg: 50, t: 'ダメージ +50' },
       { amount: 1, t: '光弾 +1' },
     ],
-    evo: { mul: 0.93, with: 'turquoise', name: 'ポッシビリティ', desc: '翠と紅が同時に宿る。全弾が貫通しつつ爆発し、追尾性能も上昇' },
+    evo: { mul: 1.14, with: 'turquoise', name: 'ポッシビリティ', desc: '翠と紅が同時に宿る。全弾が貫通しつつ爆発し、追尾性能も上昇' },
   },
   tourmaline: {
     gem: 'tourmaline', name: 'ボンド・リコシェ',
@@ -362,7 +362,7 @@ export const WEAPONS = {
       { bounce: 2, t: '跳弾 +2' },
       { dmg: 50, amount: 1, t: 'ダメージ +50 / 雷光 +1' },
     ],
-    evo: { mul: 0.9, with: 'citrine', name: 'グランド・アドベンチャー', desc: '跳弾が大幅に増え、跳ねるたびに分岐する' },
+    evo: { mul: 1.08, with: 'citrine', name: 'グランド・アドベンチャー', desc: '跳弾が大幅に増え、跳ねるたびに分岐する' },
   },
   moonstone: {
     gem: 'moonstone', name: 'ルナ・ハロ',
@@ -379,7 +379,7 @@ export const WEAPONS = {
       { area: 0.2, charm: 0.06, t: 'サイズ・魅了率アップ' },
       { amount: 1, dmg: 40, t: '刃 +1 / ダメージ +40' },
     ],
-    evo: { mul: 1.94, with: 'milkyquartz', name: 'フルムーン・グレイス', desc: '満月が周囲を巡り、魅了された敵は解除時に爆ぜる' },
+    evo: { mul: 2.18, with: 'milkyquartz', name: 'フルムーン・グレイス', desc: '満月が周囲を巡り、魅了された敵は解除時に爆ぜる' },
   },
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
