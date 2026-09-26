@@ -3,6 +3,16 @@
 // =====================================================================
 import { MAX_WEAPONS, MAX_CHARMS, WEAPON_MAX, GACHA_COST, GACHA10_COST } from './data.js';
 import { ARTIFACT_MAX } from './artifacts.js';
+import { ELEMENTS, GEM_ELEMENT } from './elements.js';
+import { GEMS } from './data.js';
+
+// 属性ごとの効果と、その属性の宝石
+function elementList() {
+  return `<div class="howto-elems">${Object.entries(ELEMENTS).map(([k, E]) => {
+    const gems = Object.keys(GEM_ELEMENT).filter((g) => GEM_ELEMENT[g] === k).map((g) => GEMS[g].jp).join('・');
+    return `<div class="he" style="--ec:${E.color}"><div class="he-h"><b>${E.jp}</b>${E.st}</div><p>${E.d}</p>${E.vs ? `<p class="he-vs">${E.vs}</p>` : ''}<p class="he-g">${gems}</p></div>`;
+  }).join('')}</div>`;
+}
 
 const ul = (items) => `<ul>${items.map((t) => `<li>${t}</li>`).join('')}</ul>`;
 
@@ -52,8 +62,7 @@ export const HOWTO = [
       '攻撃が当たると、その武器の属性の効果が低い確率で発動し、敵が状態異常になります。状態異常の敵には、属性ごとの小さな追加効果があります。',
       '同じ属性の宝石（武器・チャーム）を 2 つで 1.15 倍、3 つで 1.3 倍、4 つ以上で 1.5 倍に効果が伸びます。',
       '土はチャームだけの属性で、持っていると一定時間ごとに自分に加護が付きます。',
-      '効果の一覧は、図鑑の「属性」タブで見られます。',
-    ]),
+    ]) + elementList(),
   },
   {
     t: 'アイテム',
@@ -138,7 +147,7 @@ export const HOWTO = [
     t: 'ジュエルと解放',
     b: ul([
       'ジュエルごとに最初の武器と特性が違います。最初はルビー・サファイア・ガーネットの 3 つで、ほかは実績やステージのクリアで解放されます。',
-      '図鑑（ARCHIVE）で、武器・チャーム・敵・秘宝・ステージ・属性・実績を確認できます。',
+      '図鑑（ARCHIVE）で、武器・チャーム・敵・秘宝・ステージ・実績を確認できます。',
       '実績を達成するとコインが入ります。ジュエルや秘宝が解放されるものもあります。',
       '毎日ログインするとボーナスがもらえます（7 日周期）。',
     ]),

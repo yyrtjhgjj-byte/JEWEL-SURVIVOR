@@ -9,7 +9,7 @@ import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite, shopIcon, pick
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
-import { ELEMENTS, GEM_ELEMENT, elemOf, elementMul } from './elements.js';
+import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState } from './rank.js';
 import { HOWTO } from './howto.js';
 import { audio } from './audio.js';
@@ -634,7 +634,6 @@ export function showZukan(tab = 'gems') {
         <button class="tab ${tab === 'enemies' ? 'on' : ''}" data-t="enemies">敵</button>
         <button class="tab ${tab === 'arts' ? 'on' : ''}" data-t="arts">秘宝</button>
         <button class="tab ${tab === 'stages' ? 'on' : ''}" data-t="stages">ステージ</button>
-        <button class="tab ${tab === 'elems' ? 'on' : ''}" data-t="elems">属性</button>
         <button class="tab ${tab === 'trophy' ? 'on' : ''}" data-t="trophy">実績</button>
       </div>
       <div class="zlist" id="zl"></div>
@@ -693,19 +692,6 @@ export function showZukan(tab = 'gems') {
         <div><div class="zname">${a.no}　${ok ? a.name : '???'}<span class="en">${a.en}</span></div>
           <div class="ztext">${ok ? a.desc : '未解放'}</div>
           ${ok ? '' : `<div class="zevo">解放条件：${ach ? ach.t : '???'}</div>`}
-        </div></div>`));
-    }
-  } else if (tab === 'elems') {
-    zl.appendChild(el(`<div class="elem-note">攻撃が当たると、その武器の属性の効果が低い確率で発動します。同じ属性の宝石（武器・チャーム）を 2 つで 1.15 倍、3 つで 1.3 倍、4 つ以上で 1.5 倍に効果が伸びます。土はチャームだけの属性で、持っていると一定時間ごとに発動します。</div>`));
-    for (const k in ELEMENTS) {
-      const E = ELEMENTS[k];
-      const gems = Object.keys(GEM_ELEMENT).filter((g) => GEM_ELEMENT[g] === k);
-      zl.appendChild(el(`<div class="zitem elem-item" style="--ec:${E.color}">
-        <div class="elem-big">${E.jp}</div>
-        <div><div class="zname">${E.st}</div>
-          <div class="ztext">${E.d}</div>
-          ${E.vs ? `<div class="ztext elem-vs">${E.vs}</div>` : ''}
-          <div class="elem-gems">${gems.map((g) => `<img src="${gemIcon(g, 48)}">`).join('')}</div>
         </div></div>`));
     }
   } else if (tab === 'stages') {

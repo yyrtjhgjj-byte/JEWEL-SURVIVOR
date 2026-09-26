@@ -1526,7 +1526,7 @@ export class Game {
     this.fx.shake(16);
     this.fx.ring(p.x, p.y, 10, this.viewR, 0.6, 'rainbow', 16);
     this.fx.confetti(p.x, p.y, 60, 500);
-    audio.bomb();
+    audio.bomb(true);
     if (!fromRevive) this.hooks.banner('JEWEL FLASH', 'item', '画面内の敵を一掃');
     for (const e of this.enemies) {
       if (!e.alive || e.prop) continue;
