@@ -75,7 +75,7 @@ const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500
 
 // さいしょは すぐ レベルアップ → だんだん ゆっくり
 // 必要経験値（初期カーブの 1.75 × 1.8 倍）
-const xpFor = (l) => Math.round(1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
+const xpFor = (l) => Math.round(1.25 * 1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
 
 export class Game {
   constructor(canvas, hooks, opts = {}) {
@@ -134,7 +134,7 @@ export class Game {
     this.comboT = 0;
     this.maxCombo = 0;
     this.feverGauge = 0;
-    this.feverNeed = Math.round(120 * TIME_SCALE);
+    this.feverNeed = 120;
     this.feverT = 0;
     this.fevers = 0;
     this.evolvedCount = 0;
@@ -597,7 +597,7 @@ export class Game {
       : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1); // 大群イベント・エリート・シーフは連動させない
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
-      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * this.stageDmg, xp: d.xp,
+      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * this.stageDmg * (d.boss ? 1.5 : 2), // 敵の攻撃力：雑魚・エリート 2 倍、ボス 1.5 倍（弾・レーザーもこれをもとにする） xp: d.xp,
       vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop, segment: !!d.segment,
       frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
       ai: d.ai || type, spr: d.sprite || type,
