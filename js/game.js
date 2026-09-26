@@ -1588,11 +1588,16 @@ export class Game {
     return out;
   }
 
-  // リミットブレイク：Lv8 の武器の小さな強化を 1 つ選ぶ（進化できる状態の武器は進化を優先）
+  // リミットブレイク：Lv8 の武器の小さな強化を 1 つ選ぶ。
+  // 未進化の武器には、もう進化できないとき（進化用のチャームがなく、チャーム枠が埋まっているか、そのチャームを外した）だけ出す
   limitBreakChoice(w) {
     const def = WEAPONS[w.id];
     if (w.level < WEAPON_MAX || this.banished.has(w.id)) return null;
-    if (!w.evolved && this.hasPassive(def.evo.with)) return null;
+    if (!w.evolved) {
+      const partner = def.evo.with;
+      if (this.hasPassive(partner)) return null; // 進化できる
+      if (this.passives.length < MAX_CHARMS && !this.banished.has(partner)) return null; // まだ進化用のチャームを取れる
+    }
     const lb = w.lb || {};
     const has = (n) => [].concat(n).some((k) => def.base[k] !== undefined);
     const opts = LIMIT_BREAK.filter((o) => (!o.need || has(o.need)) && (!o.max || (lb[o.k] || 0) < o.max));
