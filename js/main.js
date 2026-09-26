@@ -5,7 +5,7 @@ import { Game } from './game.js';
 import { Input } from './input.js';
 import { audio } from './audio.js';
 import { save, persist } from './save.js';
-import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES } from './data.js';
+import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, shopCost, backShopRate } from './data.js';
 import { ARTIFACTS } from './artifacts.js';
 import { STAGES, STAGE_BY_ID } from './stages.js';
 import { gemSprite, starSprite, backgroundTile } from './render.js';
@@ -350,6 +350,12 @@ if ('heatSel' in save) {
   persist();
 }
 if (settleRank()) persist(); // ランクの必要経験値を下げた分を反映
+// 工房の返金額：払ったコインを記録する前のセーブは、当時の値段（表の工房は今の半分、裏工房は今と同じ）で数えて引き継ぐ
+if (!save.shopPaid) {
+  const sum = (up, cost) => SHOP.reduce((a, it) => { for (let i = 0; i < ((up || {})[it.id] || 0); i++) a += cost(it, i); return a; }, 0);
+  save.shopPaid = { front: sum(save.upgrades, (it, i) => shopCost(it, i) / 2), back: sum(save.upgrades2, (it, i) => shopCost(it, i) * backShopRate(it).cost) };
+  persist();
+}
 // 解放条件を実績に移したキャラ：すでにその実績を持っていれば解放しておく
 for (const a of ACHIEVEMENTS) {
   if (a.unlock && save.achievements[a.id] && !save.unlocked[a.unlock]) {

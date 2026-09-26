@@ -425,7 +425,10 @@ export function showShop(back = false) {
   $('#back', node).onclick = () => { audio.tap(); if (back) showShop(false); else showTitle(); };
   if (!back) $('#ura', node).onclick = () => { if (!save.backShop) return; audio.select(); showShop(true); };
   const list = $('#list', node);
-  const spent = () => SHOP.reduce((a, it) => { let t = 0; for (let i = 0; i < (up[it.id] || 0); i++) t += costOf(it, i); return a + t; }, 0);
+  // 実際に払ったコイン（値段を変えても、払った分だけ返す。main.js で旧セーブから引き継ぐ）
+  const paid = save.shopPaid || (save.shopPaid = { front: 0, back: 0 });
+  const pk = back ? 'back' : 'front';
+  const spent = () => paid[pk] || 0;
   // 全額返金：強化をすべて Lv0 に戻し、使ったコインを返す（工房と裏工房は別々）
   $('#refund', node).onclick = () => {
     const v = spent();
@@ -433,6 +436,7 @@ export function showShop(back = false) {
     audio.tap();
     if (!confirm(`${back ? '裏工房' : '工房'}の強化をすべて Lv0 に戻し、${fmt(v)} コインを返金します。よろしいですか？`)) return;
     save.coins += v;
+    paid[pk] = 0;
     for (const k of Object.keys(up)) delete up[k];
     for (const k of Object.keys(upOff)) delete upOff[k];
     persist();
@@ -469,6 +473,7 @@ export function showShop(back = false) {
         }
         if (save.coins < cost) return;
         save.coins -= cost;
+        paid[pk] = (paid[pk] || 0) + cost;
         up[it.id] = lv + 1;
         persist();
         audio.levelUp();

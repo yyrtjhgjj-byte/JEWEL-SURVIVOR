@@ -11,8 +11,8 @@ export const RANK_CLASSES = [
 ];
 export const rankClass = (lv) => RANK_CLASSES.find((c) => lv <= c.max);
 
-// 次のレベルまでに必要な経験値（7 分のクリアで 400 前後入る。Lv20 までおよそ 8 回、Lv50 までおよそ 43 回）
-export const rankNeed = (lv) => 40 + Math.round(12.5 * lv);
+// 次のレベルまでに必要な経験値（7 分のクリアで 400 前後入る。Lv20 までおよそ 5 回、Lv50 までおよそ 29 回）
+export const rankNeed = (lv) => Math.round((80 + 25 * lv) / 3);
 
 // 獲得コインの倍率：1 レベルにつき +0.5%（Lv50 で 1.25 倍）
 export const rankCoinMul = (lv = rankLv()) => 1 + 0.005 * lv;
