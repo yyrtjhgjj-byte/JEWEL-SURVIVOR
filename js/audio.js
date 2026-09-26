@@ -116,6 +116,19 @@ class AudioEngine {
   }
 
   // ------------------------------------------------------------------ SFX
+  // 大きい音（爆発・MIRACLE）の重なりを抑える：グループごとに同時に鳴る数の上限を設け、
+  // 重なっている数に応じて新しい音を小さくする（戻り値は音量の倍率。0 なら鳴らさない）
+  voice(group, max, dur) {
+    if (!this.ctx) return 0;
+    const now = this.ctx.currentTime;
+    const vg = this.vg || (this.vg = {});
+    const L = (vg[group] || []).filter((t) => t > now);
+    vg[group] = L;
+    if (L.length >= max) return 0;
+    L.push(now + dur);
+    return 1 / (1 + 0.6 * (L.length - 1));
+  }
+
   shoot() {
     if (!this.throttle('shoot', 70)) return;
     this.tone(900 + Math.random() * 200, 0.07, { type: 'square', vol: 0.035, slide: 500 });
@@ -203,10 +216,13 @@ class AudioEngine {
     [60, 67, 72, 79, 84, 91, 96].forEach((n, i) => this.tone(mtof(n), 0.6, { type: 'sawtooth', vol: 0.03, when: 0.4 + i * 0.05 }));
     this.tone(mtof(48), 1.5, { type: 'sine', vol: 0.2, when: 0.4 });
   }
-  bomb() {
-    this.noise(1.0, { vol: 0.35, freq: 3000, slide: 80, q: 0.5, type: 'lowpass' });
-    this.tone(120, 0.8, { type: 'sine', vol: 0.3, slide: 30 });
-    this.tone(mtof(96), 0.5, { type: 'triangle', vol: 0.06 });
+  bomb(force) {
+    if (!force && !this.throttle('bomb', 90)) return;
+    const k = force ? 1 : this.voice('loud', 3, 0.7); // アイテムのボムは必ず鳴らす
+    if (!k) return;
+    this.noise(1.0, { vol: 0.35 * k, freq: 3000, slide: 80, q: 0.5, type: 'lowpass' });
+    this.tone(120, 0.8, { type: 'sine', vol: 0.3 * k, slide: 30 });
+    this.tone(mtof(96), 0.5, { type: 'triangle', vol: 0.06 * k });
   }
   thunder() {
     if (!this.throttle('thunder', 90)) return;
@@ -222,13 +238,11 @@ class AudioEngine {
     this.noise(0.4, { vol: 0.12, freq: 1200, slide: 300, q: 1 });
   }
   miracle() {
-    // 同時に鳴るのは 6 個まで（オパールの MIRACLE が重なるとうるさいため。効果そのものは制限しない）
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-    this.miracleEnds = (this.miracleEnds || []).filter((t) => t > now);
-    if (this.miracleEnds.length >= 6) return;
-    this.miracleEnds.push(now + 0.46);
-    [84, 88, 91, 96, 100, 103, 108].forEach((n, i) => this.tone(mtof(n), 0.25, { type: 'sine', vol: 0.07, when: i * 0.035 }));
+    // MIRACLE の音は爆発と同じグループで重なりを抑える（効果そのものは制限しない）
+    if (!this.throttle('miracle', 70)) return;
+    const k = this.voice('loud', 3, 0.46);
+    if (!k) return;
+    [84, 88, 91, 96, 100, 103, 108].forEach((n, i) => this.tone(mtof(n), 0.25, { type: 'sine', vol: 0.07 * k, when: i * 0.035 }));
   }
   jackpot() {
     for (let i = 0; i < 14; i++) this.tone(mtof(i % 2 ? 88 : 83), 0.08, { type: 'square', vol: 0.05, when: i * 0.06 });
