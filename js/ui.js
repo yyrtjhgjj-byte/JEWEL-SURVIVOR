@@ -807,7 +807,7 @@ export function hud(g) {
   if (key !== lastSlots) {
     lastSlots = key;
     const empty = (n, max) => '<div class="slotico empty"></div>'.repeat(Math.max(0, max - n));
-    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
+    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
       '<i style="grid-column:1/-1;height:0"></i>' +
       g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
       (g.arts.length ? '<i style="grid-column:1/-1;height:0"></i>' + g.arts.map((id) => `<div class="slotico art"><img src="${artifactIcon(id, 48)}"></div>`).join('') : '');
@@ -1179,7 +1179,7 @@ export function pauseMenu(g, onResume, onQuit) {
       <div class="panel" style="text-align:center">
         <div class="label">LOADOUT</div>
         <div class="pause-build">
-          ${g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 64)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('')}
+          ${g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 64)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('')}
         </div>
         <div class="pause-build">
           ${g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 64)}"><b>${p.level}</b></div>`).join('')}
