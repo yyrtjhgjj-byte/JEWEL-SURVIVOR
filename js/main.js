@@ -281,7 +281,7 @@ function recoverPendingRun() {
   const res = save.pendingRun;
   if (!res || typeof res !== 'object' || !res.stageId) { delete save.pendingRun; return; }
   const r = settleRun(res, !!res.cleared);
-  setTimeout(() => UI.toast('中断したプレイの報酬を反映', `+${r.coinsEarned} コイン`, 'RECOVERED'), 600);
+  if (r.coinsEarned > 0) setTimeout(() => UI.toast('中断したプレイの報酬を反映', `+${r.coinsEarned} コイン`, 'RECOVERED'), 600);
 }
 
 function toTitle() {

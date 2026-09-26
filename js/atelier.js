@@ -78,12 +78,17 @@ export function collectionStats() {
   for (const id of COLLECTION_IDS) {
     const m = mastery(save.jewels[id]);
     if (!m) continue;
-    for (const [k, v] of Object.entries(MASTERY_BONUS[id])) s[k] = (s[k] || 0) + v * m;
+    const c = caratMul(save.jewels[id].ct);
+    for (const [k, v] of Object.entries(MASTERY_BONUS[id])) s[k] = (s[k] || 0) + v * m * c;
   }
   return s;
 }
-export function gemBonusText(id, m) {
-  return Object.entries(MASTERY_BONUS[id]).map(([k, v]) => statText(k, v * m)).join(' / ');
+// 最大カラットによる倍率：3.69ct なら ×1.369
+export function caratMul(ct) {
+  return 1 + (ct || 0) / 10;
+}
+export function gemBonusText(id, m, ct = save.jewels[id] ? save.jewels[id].ct : 0) {
+  return Object.entries(MASTERY_BONUS[id]).map(([k, v]) => statText(k, v * m * caratMul(ct))).join(' / ');
 }
 
 // どの宝石が出るか。レアな宝石ほど出にくく、上位の原石ほど出やすい

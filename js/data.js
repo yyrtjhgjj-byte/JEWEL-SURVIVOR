@@ -97,7 +97,7 @@ export const GEMS = {
     lore: '海が育んだ守護と幸運の石。思わぬ幸運と会心の一撃を呼び込む。' },
   iolite: { jp: 'アイオライト', en: 'IOLITE', word: 'リフレッシュ', kana: 'リフレッシュ', color: '#6c5ce7', light: '#cfc8ff', dark: '#2a1f82', cut: 'oval',
     lore: 'リフレッシュの菫青石。澄んだ心が、次の一手を早くする。' },
-  prase: { jp: 'プレーズ', en: 'PRASE', word: '勉強', kana: 'べんきょう', color: '#7cb35a', light: '#d6f5bf', dark: '#355a1f', cut: 'emerald',
+  prase: { jp: 'クリソプレーズ', en: 'CHRYSOPRASE', word: '勉強', kana: 'べんきょう', color: '#7cb35a', light: '#d6f5bf', dark: '#355a1f', cut: 'emerald',
     lore: '学びの石。倒した敵の一体一体から、より多くを学び取る。' },
   granite: { jp: 'グラナイト', en: 'GRANITE', word: '安心', kana: 'あんしん', color: '#b7aca3', light: '#f3ede8', dark: '#5c534c', cut: 'emerald',
     lore: '安心の花崗岩。大地のように揺るがず、主を攻撃から守る。' },
@@ -271,20 +271,20 @@ export const WEAPONS = {
   },
   rhodochrosite: {
     gem: 'rhodochrosite', name: 'パッション・フレイム',
-    dmgMul: 2.5, // バランス調整（Lv帯）。使いにくい分、正面火力を高めに
-    lowBoost: 2.5, // 低レベル時の補正（Lv1 で ×3.5、Lv8 で ×1）
+    dmgMul: 3.75, // バランス調整（Lv帯）。使いにくい分、正面火力を高めに（炎を前方だけにしたときに 2.5 → 3.75）
+    lowBoost: 1.33, // 低レベル時の補正（Lv1 で ×2.33、Lv8 で ×1）。Lv1 の強さは dmgMul 2.5・lowBoost 2.5 のときと同じ
     desc: '進行方向へ炎を放射する',
     base: { dmg: 22, cd: 2.2, amount: 1, area: 1, duration: 1.2 },
     levels: [
       { dmg: 6, t: 'ダメージ +6' },
       { duration: 0.4, t: '放射時間アップ' },
       { area: 0.2, t: '射程アップ' },
-      { amount: 1, t: '後方にも放射' },
+      { amount: 1, t: '炎の幅アップ' },
       { dmg: 8, cd: -0.3, t: 'ダメージ +8 / クールダウン短縮' },
       { duration: 0.4, t: '放射時間アップ' },
       { dmg: 10, area: 0.2, t: 'ダメージ +10 / 射程アップ' },
     ],
-    evo: { mul: 0.65, with: 'peridot', name: 'パッション・インフェルノ', desc: '四方へ回転する炎の渦。通った跡も燃え続ける' },
+    evo: { mul: 0.65, with: 'peridot', name: 'パッション・インフェルノ', desc: '前方へ絶え間なく噴き出す業火。射程が伸び、炎の先は燃え続ける' },
   },
   kyanite: {
     gem: 'kyanite', name: 'ディサイシブ・ランス',
@@ -390,7 +390,7 @@ export const PASSIVES = {
   milkyquartz: { gem: 'milkyquartz', name: 'ミルキークオーツ', max: 5, per: { area: 0.1 }, t: '攻撃範囲 +10%' },
   coral: { gem: 'coral', name: 'サンゴ', max: 5, per: { luck: 0.15, crit: 0.01 }, t: '幸運 +15% / クリティカル率 +1%' },
   iolite: { gem: 'iolite', name: 'アイオライト', max: 5, per: { cooldown: -0.08 }, t: 'クールダウン短縮 8%' },
-  prase: { gem: 'prase', name: 'プレーズ', max: 5, per: { growth: 0.1 }, t: '経験値 +10%' },
+  prase: { gem: 'prase', name: 'クリソプレーズ', max: 5, per: { growth: 0.1 }, t: '経験値 +10%' },
   granite: { gem: 'granite', name: 'グラナイト', max: 5, per: { armor: 1 }, t: 'アーマー +1' },
   coal: { gem: 'coal', name: 'コール', max: 5, per: { regen: 0.25 }, t: 'HP自然回復 +0.25/秒' },
   titanite: { gem: 'titanite', name: 'チタナイト', max: 5, per: { greed: 0.2 }, t: '獲得コイン +20%' },
@@ -497,6 +497,12 @@ export const SHOP = [
 ];
 export function shopCost(item, lv) {
   return Math.round(item.base * [1, 2.2, 3.8, 6, 9, 13][lv] / 10) * 10;
+}
+// 裏工房：工房をすべて最大にすると解放されるやり込み用の強化。内容と回数は工房と同じで、効果は半分・費用は 12 倍。
+// 回数を増やす強化（リロールなど）や、リバイブ・弾数のように半分にできないものは、効果はそのままで費用 24 倍
+const BACK_FULL = ['reroll', 'skip', 'banish', 'revive', 'amount'];
+export function backShopRate(item) {
+  return BACK_FULL.includes(item.id) ? { eff: 1, cost: 24 } : { eff: 0.5, cost: 12 };
 }
 
 // ---------------------------------------------------------------------
