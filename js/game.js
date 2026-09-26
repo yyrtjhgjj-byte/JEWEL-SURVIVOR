@@ -472,6 +472,8 @@ export class Game {
       max = Math.min(300, 220 * k);
       rate = 12 * k * this.heatM.spawn;
     }
+    // ボス戦の間は雑魚の同時出現数と出現ペースを少し絞る（ボスに集中できるように）
+    if (this.boss && this.boss.alive) { max = Math.round(max * 0.65); rate *= 0.65; }
     let alive = 0;
     for (const e of this.enemies) if (e.alive && !e.prop) alive++;
     this.spawnAcc += rate * dt;
@@ -579,7 +581,7 @@ export class Game {
     const d = ENEMIES[type];
     const elite = !!o.elite;
     const mul = d.boss ? (o.mul || 1) * 1.15 * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp
-      : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1) * (o.soft || d.ai === 'thief' ? 1 : this.trashMul || 1); // 大群イベントとシーフは柔らかいまま
+      : d.prop ? 1 : this.hpScale() * (elite ? 12 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1); // 大群イベント・エリート・シーフは連動させない
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
       speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.time, 900) / 600) * this.stageDmg, xp: d.xp,
@@ -1107,13 +1109,13 @@ export class Game {
     const p = this.player;
     const d = Math.max(0, Math.hypot(e.x - p.x, e.y - p.y) - e.r);
     const f = d <= 70 ? 2 : d >= 320 ? 0.4 : 2 - ((d - 70) / 250) * 1.6;
-    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * 0.24 * (e.breakNeed || 1))) * f;
+    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * 0.34 * (e.breakNeed || 1))) * f;
     e.breakNear = f;
     if (e.breakG >= 1) this.bossBreak(e);
   }
   bossBreak(e) {
     e.breakG = 0;
-    e.breakNeed = (e.breakNeed || 1) * 1.3; // 次のブレイクは少し遠くなる
+    e.breakNeed = (e.breakNeed || 1) * 1.4; // 次のブレイクは少し遠くなる
     e.breakT = 4;
     e.dash = 0;
     e.windup = 0;

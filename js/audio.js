@@ -222,6 +222,12 @@ class AudioEngine {
     this.noise(0.4, { vol: 0.12, freq: 1200, slide: 300, q: 1 });
   }
   miracle() {
+    // 同時に鳴るのは 6 個まで（オパールの MIRACLE が重なるとうるさいため。効果そのものは制限しない）
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.miracleEnds = (this.miracleEnds || []).filter((t) => t > now);
+    if (this.miracleEnds.length >= 6) return;
+    this.miracleEnds.push(now + 0.46);
     [84, 88, 91, 96, 100, 103, 108].forEach((n, i) => this.tone(mtof(n), 0.25, { type: 'sine', vol: 0.07, when: i * 0.035 }));
   }
   jackpot() {
