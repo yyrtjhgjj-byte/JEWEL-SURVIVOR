@@ -214,6 +214,8 @@ export class Game {
     s.greed *= this.heatM.coin * (this.hyper ? 1.5 : 1);
     recalcElements(this);
     s.cooldown = Math.max(0.35, s.cooldown);
+    // 攻撃範囲は 3 倍まで（分光プリズムなどで範囲が極端に大きくなると、描画が重くなって古い iPhone で落ちる）
+    s.area = Math.min(3, s.area);
     const oldMax = this.stats ? this.stats.maxHp : s.maxHp;
     this.stats = s;
     const p = this.player;
@@ -329,18 +331,20 @@ export class Game {
     }
   }
 
-  // 描画の負荷に応じて解像度を切り替える。1 フレームの実時間の平均が長い（30 fps を切る）状態が 2 秒続いたら 0.75 倍に、
-  // 軽い状態が 8 秒続いたら元に戻す（iPhone SE2 などで、攻撃エフェクトが画面を埋めたときに落ちるのを防ぐ）
+  // 描画の負荷に応じて画質を段階的に下げる（iPhone SE2 などで、攻撃エフェクトが画面を埋めたときに落ちるのを防ぐ）。
+  // 段階 0：通常、1：解像度 0.75 倍、2：解像度 0.6 倍＋演出を軽く（fx.lite）。
+  // 1 フレームの実時間の平均が 30 fps を切る状態が 2 秒続いたら 1 段下げ、50 fps を超える状態が 8 秒続いたら 1 段戻す
   autoRes(realDt) {
     if (realDt > 0.2) return; // 裏から戻った直後などは数えない
     this.frameAvg = (this.frameAvg || 1 / 60) * 0.9 + realDt * 0.1;
-    const low = (this.resScale || 1) < 1;
-    if (!low && this.frameAvg > 1 / 33) this.resT = (this.resT || 0) + realDt;
-    else if (low && this.frameAvg < 1 / 50) this.resT = (this.resT || 0) + realDt;
-    else this.resT = 0;
-    if (this.resT > (low ? 8 : 2)) {
+    const q = this.quality || 0;
+    const up = q > 0 && this.frameAvg < 1 / 50, down = q < 2 && this.frameAvg > 1 / 33;
+    this.resT = up || down ? (this.resT || 0) + realDt : 0;
+    if (this.resT > (up ? 8 : 2)) {
       this.resT = 0;
-      this.resScale = low ? 1 : 0.75;
+      this.quality = q + (up ? -1 : 1);
+      this.resScale = [1, 0.75, 0.6][this.quality];
+      this.fx.lite = this.quality >= 2;
       this.resize();
     }
   }
@@ -1720,10 +1724,12 @@ export class Game {
     const m = this.modalQueue.shift();
     if (!m) return;
     this.state = 'modal';
+    this.curModal = m;
     this.input.x = this.input.y = 0;
     const done = () => {
       if (this.state === 'over') return;
       this.state = 'play';
+      this.curModal = null;
       this.player.iT = Math.max(this.player.iT, 0.6);
       if (this.pendingClear) this.finishClear();
     };
@@ -1763,6 +1769,59 @@ export class Game {
     this.state = 'over';
     audio.stopBgm();
     this.hooks.gameOver(this.results(), true);
+  }
+
+  // ---------------------------------------------------------------- 中断からの再開
+  // アプリが落ちても続きから遊べるように、ランの状態を保存する（main.js の途中保存でセーブに書く）。
+  // 雑魚・弾・アイテムは保存せず、装備・レベル・時間・生きているボスなどだけを戻す
+  snapshot() {
+    const p = this.player;
+    const modals = [...(this.state === 'modal' && this.curModal ? [this.curModal] : []), ...this.modalQueue];
+    return {
+      v: 1, time: this.time, level: this.level, xp: this.xp, kills: this.kills, coins: this.coins, totalDmg: this.totalDmg,
+      dmgBy: { ...this.dmgBy }, killsByType: { ...this.killsByType }, maxCombo: this.maxCombo,
+      feverGauge: this.feverGauge, feverNeed: this.feverNeed, fevers: this.fevers, evolvedCount: this.evolvedCount, bosses: this.bosses, miracles: this.miracles,
+      weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved, lb: w.lb, lbN: w.lbN })),
+      passives: this.passives.map((x) => ({ id: x.id, level: x.level })),
+      arts: [...this.arts], revives: this.revives, revBuff: this.revBuff, rerolls: this.rerolls, skips: this.skips, banishes: this.banishes, banished: [...this.banished],
+      roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
+      hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big })),
+      nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
+      bossList: this.enemies.filter((e) => e.alive && e.boss).map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1 })),
+    };
+  }
+  restore(s) {
+    const S = ['level', 'xp', 'kills', 'coins', 'totalDmg', 'maxCombo', 'feverGauge', 'feverNeed', 'fevers', 'evolvedCount', 'bosses', 'miracles', 'revBuff', 'rerolls', 'skips', 'banishes',
+      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext'];
+    this.weapons = [];
+    for (const x of s.weapons) {
+      const w = this.addWeapon(x.id);
+      w.level = x.level; w.evolved = x.evolved; if (x.lb) w.lb = x.lb; if (x.lbN) w.lbN = x.lbN;
+    }
+    this.passives = s.passives.map((x) => ({ id: x.id, level: x.level }));
+    for (const id of s.arts) this.addArtifact(id, true);
+    for (const k of S) if (s[k] !== undefined) this[k] = s[k];
+    this.revives = s.revives;
+    this.xpNext = xpFor(this.level);
+    this.dmgBy = { ...this.dmgBy, ...s.dmgBy };
+    this.killsByType = { ...s.killsByType };
+    this.roughGot = { ...this.roughGot, ...s.roughGot };
+    this.banished = new Set(s.banished);
+    this.computeStats();
+    this.player.hp = Math.max(1, Math.min(this.player.maxHp, s.hp));
+    this.player.iT = 2;
+    const p = this.player;
+    for (const b of s.bossList || []) {
+      const a = -Math.PI / 2 + rand(-0.5, 0.5);
+      const e = this.spawnEnemy(b.type, p.x + Math.cos(a) * this.viewR * 0.8, p.y + Math.sin(a) * this.viewR * 0.8);
+      e.maxHp = b.maxHp; e.hp = b.hp; e.artChest = b.artChest; e.breakNeed = b.breakNeed; e.atkT = 2; e.atk2 = 5;
+      this.boss = e;
+    }
+    if (this.boss) {
+      this.hooks.bossBar(this.boss);
+      audio.playBgm(this.boss.type === this.stage.finalBoss ? 'final' : 'boss');
+    }
+    for (const m of s.modals || []) this.modalQueue.push(m);
   }
 
   pause() {

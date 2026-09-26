@@ -24,6 +24,7 @@ export class FX {
   // ----- パーティクル
   // kind: 'star' | 'dot' | 'conf' | 'smoke'
   add(x, y, vx, vy, life, size, color, kind = 'dot', extra) {
+    if (this.lite && this.parts.length >= 200) return; // 軽量モード（game.js の autoRes）では数を絞り、新しいものを捨てる
     if (this.parts.length >= MAX_PARTS) {
       // ふるいのを うわがき
       this.parts.shift();
@@ -61,7 +62,7 @@ export class FX {
   // ----- テキスト
   text(x, y, str, { color = '#fff', size = 16, stroke = 'rgba(0,0,0,0.75)', life = 0.7, vy = -60, crit = false, rainbow = false, pop = 1 } = {}) {
     if (!save.settings.dmgNum && !crit && !rainbow && typeof str === 'number') return;
-    if (this.texts.length >= MAX_TEXTS) {
+    if (this.texts.length >= (this.lite ? 20 : MAX_TEXTS)) {
       // クリティカルじゃない ふるい すうじを すてる
       const idx = this.texts.findIndex((t) => !t.crit && !t.rainbow);
       if (idx >= 0) this.texts.splice(idx, 1);
@@ -199,7 +200,7 @@ export class FX {
       const s = p.size * (p.kind === 'star' ? 0.6 + t * 0.6 : t);
       const col = p.color === 'rainbow' ? RAINBOW[((Math.floor(time * 20 + p.rot * 3) % RAINBOW.length) + RAINBOW.length) % RAINBOW.length] : p.color;
       const spr = p.kind === 'star' ? starSprite(col) : dotSprite(col);
-      if (p.kind === 'star') {
+      if (p.kind === 'star' && !this.lite) {
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rot * 0.3);

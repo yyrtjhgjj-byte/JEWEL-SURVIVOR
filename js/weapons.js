@@ -781,7 +781,7 @@ export function drawArea(ctx, a, time) {
     ctx.arc(a.x, a.y, a.r, 0, TAU);
     ctx.fill();
     // クローバー
-    const n = Math.max(3, Math.floor(a.r / 14));
+    const n = Math.min(10, Math.max(3, Math.floor(a.r / 14))); // 範囲が大きくても描く数は 10 まで
     for (let i = 0; i < n; i++) {
       const ang = a.seed + i * 2.4 + time * 0.5;
       const d = a.r * (0.25 + ((i * 37) % 10) / 14);

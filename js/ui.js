@@ -1288,6 +1288,32 @@ export function pauseMenu(g, onResume, onQuit) {
   };
 }
 
+// ================================================================== 中断したランの再開
+export function resumePrompt(res, onResume, onSettle) {
+  const st = STAGE_BY_ID[res.stageId];
+  const r = res.resume;
+  const node = el(`
+    <div class="screen dim" style="justify-content:center;gap:14px;text-align:center">
+      <div class="big-title prism-text">RESUME</div>
+      <div class="sub-title">中断したランがあります</div>
+      <div class="panel" style="min-width:260px">
+        <div class="rrow"><span>ステージ</span><b>${st.name}${res.heat ? `　HEAT ${res.heat}` : ''}</b></div>
+        <div class="rrow"><span>ジュエル</span><b>${GEMS[res.charId].jp}</b></div>
+        <div class="rrow"><span>経過時間</span><b>${fmtTime(r.time)}</b></div>
+        <div class="rrow"><span>レベル</span><b>LV ${r.level}</b></div>
+      </div>
+      <div class="rbtns">
+        <button class="btn big primary" id="rs-go">再開</button>
+        <button class="btn" id="rs-end">精算して終了</button>
+      </div>
+    </div>`);
+  screens().appendChild(node);
+  node.querySelectorAll('.rrow').forEach((x) => x.classList.add('show'));
+  guard(node, 500);
+  $('#rs-go', node).onclick = () => { audio.unlock(); audio.select(); node.remove(); onResume(); };
+  $('#rs-end', node).onclick = () => { audio.unlock(); audio.tap(); node.remove(); onSettle(); };
+}
+
 // ================================================================== リザルト
 // ユーザーレベルの経験値バーを伸ばす（レベルが上がったら数字と色を切り替える）
 async function rankAnim(box, ru) {

@@ -207,17 +207,21 @@ function startGame(charId, opt = {}) {
     ...hooks,
     ...botHooks,
     checkAchievements: (r, live) => { achDuringRun.push(...checkAchievements(r, live)); },
-  },{ charId, artifact: opt.artifact || null, endless: !!opt.endless, hyper: !!opt.hyper, hurry: !!opt.hurry, stageId: stage.id, heat: opt.heat || 0, bot: DEBUG.bot, god: DEBUG.god, startTime: DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
+  },{ charId, artifact: opt.artifact || null, endless: !!opt.endless, hyper: !!opt.hyper, hurry: !!opt.hurry, stageId: stage.id, heat: opt.heat || 0, bot: DEBUG.bot, god: DEBUG.god, startTime: opt.resume ? opt.resume.time : DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
   achDuringRun = [];
   window.__game = game; // デバッグ用
   UI.hudShow(true);
+  if (opt.resume) game.restore(opt.resume); // 中断したランの続き（HUD の準備のあとに）
   moveHint = document.getElementById('movehint');
   moveHint.classList.remove('hidden', 'gone');
   audio.tempoMul = 1;
-  audio.playBgm(stage.bgm);
+  if (!(opt.resume && game.boss)) audio.playBgm(stage.bgm);
   const m = Math.floor(stage.time / 60);
-  UI.banner(stage.en, 'start', `${m}:00 — ${ENEMIES[stage.finalBoss].name}を撃破せよ`);
-  save.stats.runs++;
+  if (opt.resume) UI.banner('RESUME', 'start', stage.name);
+  else {
+    UI.banner(stage.en, 'start', `${m}:00 — ${ENEMIES[stage.finalBoss].name}を撃破せよ`);
+    save.stats.runs++;
+  }
   persist();
 }
 
@@ -271,11 +275,13 @@ function settleRun(res, cleared) {
   return { coinsEarned, newBest, newAch, firstClear, unlocked, nextStage, rankUp };
 }
 
-// 途中保存：ラン中の成績を数秒ごとにセーブへ書いておく。iPhone がバックグラウンドのアプリを終了させても、
-// 次の起動時にリタイア扱いで報酬を反映する（最終ボス撃破後ならクリア扱い）
+// 途中保存：ラン中の成績と状態を数秒ごとにセーブへ書いておく。アプリが落ちたり終了させられたりしても、
+// 次の起動時に「再開」か「精算」（リタイア扱い。最終ボス撃破後ならクリア扱い）を選べる
 function saveRunSnapshot() {
   if (!game || DEBUG.bot || game.state === 'over') return;
-  save.pendingRun = game.results();
+  const res = game.results();
+  if (!game.cleared && game.state !== 'dying') res.resume = game.snapshot();
+  save.pendingRun = res;
   persist();
 }
 setInterval(saveRunSnapshot, 5000);
@@ -283,8 +289,16 @@ window.addEventListener('pagehide', saveRunSnapshot);
 function recoverPendingRun() {
   const res = save.pendingRun;
   if (!res || typeof res !== 'object' || !res.stageId) { delete save.pendingRun; return; }
-  const r = settleRun(res, !!res.cleared);
-  if (r.coinsEarned > 0) setTimeout(() => UI.toast('中断したプレイの報酬を反映', `+${r.coinsEarned} コイン`, 'RECOVERED'), 600);
+  const settle = () => {
+    const r = settleRun(res, !!res.cleared);
+    if (r.coinsEarned > 0) setTimeout(() => UI.toast('中断したプレイの報酬を反映', `+${r.coinsEarned} コイン`, 'RECOVERED'), 600);
+  };
+  if (res.resume && !res.cleared && STAGE_BY_ID[res.stageId]) {
+    UI.resumePrompt(res, () => {
+      delete save.pendingRun;
+      startGame(res.charId, { stageId: res.stageId, heat: res.heat || 0, endless: !!res.endless, hyper: !!res.hyper, hurry: !!res.hurry, resume: res.resume });
+    }, () => { settle(); UI.refreshCoinPill(); });
+  } else settle();
 }
 
 function toTitle() {
@@ -346,10 +360,14 @@ for (const a of ACHIEVEMENTS) {
 
 UI.initUI({ startGame, toTitle, checkMetaAchievements: () => checkAchievements(null, true) });
 window.__save = save; // デバッグ用
-recoverPendingRun();
 
-if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), artifact: params.get('art'), stageId: DEBUG.stage, heat: DEBUG.heat });
-else UI.showTitle();
+if (DEBUG.autostart) {
+  if (save.pendingRun) { delete save.pendingRun; persist(); }
+  startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), artifact: params.get('art'), stageId: DEBUG.stage, heat: DEBUG.heat });
+} else {
+  UI.showTitle();
+  recoverPendingRun(); // 再開の確認はタイトル（ログインボーナス）の上に出す
+}
 
 // オフライン用 サービスワーカー
 // 新しい版が入ったら自動で再読み込み（プレイ中・リザルト中ならタイトルに戻ったときに）
