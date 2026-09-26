@@ -211,6 +211,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .r-R { --rc: #7fd0ff; }
 .r-SR { --rc: #c78bff; }
 .r-SSR { --rc: #ffd24a; }
+/* ラン中のレベルアップのカードでは N を白にする（全部に色が付くと SR 以上が目立たないため） */
+.lvl-screen .r-N { --rc: #e8e6f2; }
 .r-UR { --rc: #ffffff; }
 .rarbadge { font-family: var(--font); font-weight: 700; font-size: 11px; letter-spacing: 0.12em; padding: 0 6px; border-radius: 4px; color: var(--rc); border: 1px solid var(--rc); line-height: 16px; display: inline-block; }
 .rarbadge.r-UR { color: #fff; border-color: transparent; background: var(--prism); background-size: 200% 100%; animation: prismMove 1.5s linear infinite; }
@@ -733,3 +735,28 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .art-screen.scroll { justify-content: flex-start; overflow-y: auto; padding-top: calc(var(--safe-t) + 20px); padding-bottom: 30px; }
 .art-screen.scroll > * { flex: none; }
 .art-screen.scroll .cards { flex: none; }
+
+/* ------------------------------------------------------------------ ユーザーレベル */
+.rank-chip { margin-right: auto; position: relative; overflow: hidden; display: flex; align-items: baseline; gap: 6px; height: 40px; padding: 0 12px 2px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--rk) 50%, transparent); background: var(--panel); color: var(--rk); }
+.rank-chip small { font-family: var(--font); font-weight: 700; font-size: 10px; letter-spacing: 0.18em; color: var(--muted); align-self: center; }
+.rank-chip b { font-family: var(--font); font-weight: 700; font-size: 22px; line-height: 38px; }
+.rank-chip i { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--rk); }
+.rank-chip.rk-prism { border-color: transparent; background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--prism) border-box; }
+.rank-chip.rk-prism i { background: var(--prism); }
+.rank-card { width: min(340px, 90vw); display: flex; flex-direction: column; gap: 6px; }
+.rank-card > * { flex-shrink: 0; }
+.rk-head { display: flex; align-items: center; gap: 14px; margin: 2px 0 4px; }
+.rk-num { font-family: var(--font); font-weight: 700; font-size: 52px; line-height: 1; color: var(--rk); }
+.rk-cls { font-family: var(--font-jp); font-weight: 900; font-size: 20px; color: var(--rk); }
+.rk-cls.rk-prism { background: var(--prism); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rk-en { font-family: var(--font); font-size: 11px; letter-spacing: 0.2em; color: var(--muted); }
+.rk-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); overflow: hidden; }
+.rk-bar i { display: block; height: 100%; background: var(--rk); border-radius: 3px; transition: width 0.45s ease-out; }
+.rk-next { font-family: var(--font-jp); font-size: 12px; color: var(--muted); text-align: right; }
+.rk-next b { color: var(--text); font-family: var(--font); font-size: 14px; }
+.rrank { display: flex; align-items: center; gap: 10px; width: min(340px, 88vw); margin: -2px auto 6px; }
+.rrank .rk-l { font-family: var(--font); font-weight: 700; font-size: 12px; letter-spacing: 0.12em; color: var(--muted); white-space: nowrap; }
+.rrank .rk-l b { font-size: 18px; color: var(--rk); letter-spacing: 0; }
+.rrank .rk-bar { flex: 1; }
+.rrank .rk-e { font-family: var(--font); font-weight: 700; font-size: 12px; color: var(--rk); white-space: nowrap; }
+.rrank.up .rk-l b { animation: bump 0.35s; }

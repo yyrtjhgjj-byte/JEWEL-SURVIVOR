@@ -10,6 +10,7 @@ import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from '
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
 import { ELEMENTS, GEM_ELEMENT, elemOf, elementMul } from './elements.js';
+import { rankClass, rankNeed, rankCoinMul, rankState } from './rank.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
@@ -144,13 +145,39 @@ function countUp(elm, target, dur, fmtFn, tick = true) {
 }
 
 // ================================================================== タイトル
+// ------------------------------------------------------------------ ユーザーレベル
+const rankStyle = (lv) => { const c = rankClass(lv).color; return c === 'prism' ? 'rk-prism' : ''; };
+const rankColor = (lv) => { const c = rankClass(lv).color; return c === 'prism' ? '#e6c8ff' : c; };
+function rankChip() {
+  const r = rankState();
+  return `<button class="rank-chip ${rankStyle(r.lv)}" id="t-rank" style="--rk:${rankColor(r.lv)}"><small>RANK</small><b>${r.lv}</b><i style="width:${(r.xp / rankNeed(r.lv)) * 100}%"></i></button>`;
+}
+function showRank() {
+  const r = rankState();
+  const cls = rankClass(r.lv);
+  const need = rankNeed(r.lv);
+  const pct = (m) => ((m - 1) * 100).toFixed(1);
+  const ov = el(`<div class="screen dim at-over">
+    <div class="panel rank-card" style="--rk:${rankColor(r.lv)}">
+      <div class="label">USER RANK</div>
+      <div class="rk-head"><b class="rk-num">${r.lv}</b><div><div class="rk-cls ${rankStyle(r.lv)}">${cls.name}</div><div class="rk-en">${cls.en}</div></div></div>
+      <div class="rk-bar"><i style="width:${(r.xp / need) * 100}%"></i></div>
+      <div class="rk-next">次のレベルまで <b>${fmt(need - r.xp)}</b> EXP</div>
+      <div class="rrow2"><span>獲得コイン</span><b>+${pct(rankCoinMul(r.lv))}%<span class="up">→ +${pct(rankCoinMul(r.lv + 1))}%</span></b></div>
+      <button class="btn" id="ok" style="margin-top:8px">閉じる</button>
+    </div></div>`);
+  $('#screens').appendChild(ov);
+  $('#ok', ov).onclick = () => { audio.tap(); ov.remove(); };
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+}
+
 export function showTitle() {
   audio.playBgm('title');
   const cid = save.selected;
   const g = GEMS[cid];
   const node = el(`
     <div class="screen title-screen">
-      <div class="title-top">${coinPill()}<button class="iconbtn" id="t-set" aria-label="設定">⚙</button></div>
+      <div class="title-top">${rankChip()}${coinPill()}<button class="iconbtn" id="t-set" aria-label="設定">⚙</button></div>
       <div class="logo">
         <div class="main">JEWEL<br>SURVIVOR</div>
         <div class="line"></div>
@@ -174,6 +201,7 @@ export function showTitle() {
   show(node);
   const tap = (id, fn) => $(id, node).addEventListener('click', () => { audio.unlock(); audio.tap(); fn(); });
   tap('#t-play', showCharSelect);
+  tap('#t-rank', showRank);
   tap('#t-shop', showShop);
   tap('#t-gacha', showGacha);
   tap('#t-zukan', () => showZukan('gems'));
@@ -1259,6 +1287,33 @@ export function pauseMenu(g, onResume, onQuit) {
 }
 
 // ================================================================== リザルト
+// ユーザーレベルの経験値バーを伸ばす（レベルが上がったら数字と色を切り替える）
+async function rankAnim(box, ru) {
+  const bar = $('.rk-bar i', box), num = $('#rkl', box);
+  let lv = ru.from.lv;
+  await wait(200);
+  while (lv < ru.to.lv) {
+    bar.style.width = '100%';
+    await wait(450);
+    lv++;
+    num.textContent = lv;
+    box.style.setProperty('--rk', rankColor(lv));
+    box.classList.remove('up');
+    void box.offsetWidth;
+    box.classList.add('up');
+    audio.levelUp();
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    void bar.offsetWidth;
+    bar.style.transition = '';
+  }
+  bar.style.width = (ru.to.xp / rankNeed(lv)) * 100 + '%';
+  if (ru.to.lv > ru.from.lv) {
+    const cls = rankClass(ru.to.lv);
+    $('.rk-e', box).innerHTML = `RANK UP${rankClass(ru.from.lv) !== cls ? ` ／ ${cls.name}` : ''}`;
+  }
+  await wait(400);
+}
 function roughResultHTML(got) {
   const items = ROUGH_IDS.filter((t) => got && got[t]);
   if (!items.length) return '';
@@ -1277,6 +1332,7 @@ export function results(res, cleared, extra) {
       </div>
       <div class="panel" id="rows"></div>
       <div class="rcoins">${coinIco}<span id="rc">+0</span></div>
+      ${extra.rankUp ? `<div class="rrank" id="rrank" style="--rk:${rankColor(extra.rankUp.from.lv)}"><span class="rk-l">RANK <b id="rkl">${extra.rankUp.from.lv}</b></span><div class="rk-bar"><i style="width:${(extra.rankUp.from.xp / rankNeed(extra.rankUp.from.lv)) * 100}%"></i></div><span class="rk-e">+${fmt(extra.rankUp.exp)} EXP</span></div>` : ''}
       ${roughResultHTML(res.roughGot)}
       <div class="rbtns">
         <button class="btn big primary" id="again">RETRY</button>
@@ -1320,6 +1376,7 @@ export function results(res, cleared, extra) {
     await countUp($('#rc', node), extra.coinsEarned, Math.min(2000, 500 + extra.coinsEarned * 2), (v) => '+' + fmt(v));
     audio.bigWin();
     haptic();
+    if (extra.rankUp) await rankAnim($('#rrank', node), extra.rankUp);
     if (extra.newAch.length) {
       const ach = $('#ach', node);
       ach.classList.remove('hidden');
