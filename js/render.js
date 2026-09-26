@@ -282,6 +282,39 @@ export function roughIcon(tier, color, size = 72) {
 }
 export { drawRough };
 
+// 秘宝のアイコン（金の縁取りのカードに宝石とローマ数字）
+export function artifactIcon(no, gemId, size = 72) {
+  const key = 'art:' + no + ':' + gemId + ':' + size;
+  let u = iconCache.get(key);
+  if (u) return u;
+  const W = size, H = size;
+  const c = makeCanvas(W * 2, H * 2);
+  const ctx = c.getContext('2d');
+  ctx.scale(2, 2);
+  const cw = W * 0.7, ch = H * 0.94, x0 = (W - cw) / 2, y0 = (H - ch) / 2;
+  const rr = W * 0.08;
+  ctx.beginPath();
+  ctx.moveTo(x0 + rr, y0); ctx.arcTo(x0 + cw, y0, x0 + cw, y0 + ch, rr); ctx.arcTo(x0 + cw, y0 + ch, x0, y0 + ch, rr);
+  ctx.arcTo(x0, y0 + ch, x0, y0, rr); ctx.arcTo(x0, y0, x0 + cw, y0, rr); ctx.closePath();
+  const bg = ctx.createLinearGradient(0, y0, 0, y0 + ch);
+  bg.addColorStop(0, '#1d1830'); bg.addColorStop(1, '#0b0a12');
+  ctx.fillStyle = bg; ctx.fill();
+  ctx.strokeStyle = '#e8c56a'; ctx.lineWidth = Math.max(1, W * 0.03); ctx.stroke();
+  ctx.strokeStyle = 'rgba(232,197,106,0.35)'; ctx.lineWidth = 1;
+  ctx.strokeRect(x0 + W * 0.05, y0 + W * 0.05, cw - W * 0.1, ch - W * 0.1);
+  ctx.fillStyle = '#e8c56a';
+  ctx.font = `700 ${Math.round(W * 0.14)}px Rajdhani, serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(no, W / 2, y0 + W * 0.2);
+  ctx.save();
+  ctx.translate(W / 2, H * 0.56);
+  drawGem(ctx, W * 0.2, GEMS[gemId]);
+  ctx.restore();
+  u = c.toDataURL();
+  iconCache.set(key, u);
+  return u;
+}
+
 // コイン報酬のアイコン（3枚重ねの金貨）
 export function coinIcon(size = 72) {
   const key = 'coin:' + size;

@@ -9,6 +9,7 @@ import { STAGE_BY_ID, heatMods } from './stages.js';
 import { AI, onEnemyKilled } from './enemies.js';
 import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
+import { ARTIFACT_BY_ID, ARTIFACT_MAX, unlockedArtifacts } from './artifacts.js';
 import { FX } from './fx.js';
 import { LOGIC, weaponStats, drawArea } from './weapons.js';
 import { enemySprite, drawPlayer, xpSprite, itemSprite, roughSprite, backgroundTile, starSprite, dotSprite, softSprite } from './render.js';
@@ -83,6 +84,15 @@ export class Game {
     this.hyper = !!opts.hyper; // 自機・敵の移動 ×1.65、敵弾 ×1.2、コイン ×1.5
     this.hurry = !!opts.hurry; // ステージの時計が 2 倍速で進む
     this.banished = new Set(); // バニッシュした武器・チャーム（このランでは候補に出ない）
+    // 秘宝
+    this.arts = [];
+    this.artSet = new Set();
+    this.revBuff = 0; // 護石のペンダント：復活した回数
+    this.healedTotal = 0;
+    this.moved = 0;
+    this.goldFeverT = 0;
+    this.goldFeverCd = 0;
+    this.prismT = 0;
     this.stage = STAGE_BY_ID[opts.stageId] || STAGE_BY_ID.wastes;
     this.heat = opts.heat || 0;
     this.heatM = heatMods(this.heat);
@@ -154,7 +164,11 @@ export class Game {
     this.skips = this.stats.skip;
     this.banishes = this.stats.banish;
     this.revives = this.stats.revive;
+    this.startWeapon = CHARACTERS[this.charId].weapon;
     this.addWeapon(CHARACTERS[this.charId].weapon);
+    this.lodestoneNext = (Math.floor(this.time / 120) + 1) * 120;
+    this.hopeNext = this.time + 60;
+    if (opts.artifact && ARTIFACT_BY_ID[opts.artifact]) this.addArtifact(opts.artifact, true);
     if (opts.build) this.debugBuild(opts.build);
     this.resize();
   }
@@ -170,6 +184,22 @@ export class Game {
     }
     s.might += 0.05 * (save.awaken[this.charId] || 0);
     add(collectionStats()); // 研磨コレクションの練度ボーナス
+    // 秘宝
+    if (this.artSet && this.artSet.has('box')) {
+      const empty = Math.max(0, MAX_WEAPONS - (this.weapons ? this.weapons.length : 1));
+      s.might += 0.2 * empty;
+      s.cooldown -= 0.08 * empty;
+    }
+    if (this.revBuff) {
+      const n = this.revBuff;
+      s.maxHp *= 1 + 0.1 * n;
+      s.armor += n;
+      s.might += 0.05 * n;
+      s.area += 0.05 * n;
+      s.speed += 0.05 * n;
+      s.duration += 0.05 * n;
+    }
+    if (this.artSet && this.artSet.has('prism')) s.area *= 1.75 + 1.25 * Math.sin((this.time / 10) * TAU);
     for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
     s.cooldown = Math.max(0.35, s.cooldown);
     const oldMax = this.stats ? this.stats.maxHp : s.maxHp;
@@ -204,6 +234,7 @@ export class Game {
     w.s = weaponStats(this, w);
     if (!this.dmgBy[id]) this.dmgBy[id] = 0;
     save.seen.weapons[id] = true;
+    if (this.artSet.has('box')) this.computeStats(); // 空きの武器枠が変わるので再計算
     return w;
   }
   addPassive(id) {
@@ -283,6 +314,12 @@ export class Game {
         const v = Math.floor(this.healShow);
         this.healShow -= v;
         this.fx.text(this.player.x + rand(-8, 8), this.player.y - 26, '+' + v, { size: 15, color: '#5dff9a', life: 0.7 });
+        if (this.artSet.has('grail')) {
+          // 回復量に応じた衝撃波
+          const R = (90 + Math.min(60, v * 2)) * this.stats.area;
+          this.aoe(this.player.x, this.player.y, R, v * 60 * this.stats.might, null, { kb: 140 });
+          this.fx.ring(this.player.x, this.player.y, 10, R, 0.35, '#5dff9a', 5);
+        }
       }
     }
 
@@ -297,6 +334,7 @@ export class Game {
       const spd = 150 * this.stats.moveSpeed * this.hazards.speedMul() * (p.slowT > 0 ? p.slowMul : 1) * (this.hyper ? 1.65 : 1);
       p.x += ix * spd * dt;
       p.y += iy * spd * dt;
+      this.moved += spd * dt * il;
       const n = Math.hypot(ix, iy) || 1;
       p.dirX = ix / n;
       p.dirY = iy / n;
@@ -314,7 +352,9 @@ export class Game {
     this.hazards.update(dt);
 
     // ---- ぶき
-    for (const w of this.weapons) LOGIC[w.id].update(this, w, w.s, dt);
+    const wdt = this.artSet.has('wheel') && p.moving ? dt * 1.5 : dt; // 秘宝「研磨ホイール」
+    for (const w of this.weapons) LOGIC[w.id].update(this, w, w.s, wdt);
+    this.updateArtifacts(dt);
 
     this.updateProjs(dt);
     this.updateAreas(dt);
@@ -472,6 +512,8 @@ export class Game {
     } else if (ev.type === 'boss') {
       const a = -Math.PI / 2 + rand(-0.5, 0.5);
       const e = this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * (this.viewR * 0.8), p.y + Math.sin(a) * (this.viewR * 0.8), { mul: ev.mul || 1 });
+      // 6:00 以降の中ボスは秘宝の宝箱を落とす
+      e.artChest = ev.t !== undefined && ev.t >= 300 && ev.enemy !== this.stage.finalBoss;
       this.boss = e;
       e.atkT = 2;
       e.atk2 = 5;
@@ -948,6 +990,7 @@ export class Game {
     dmg = Math.max(1, Math.round(dmg));
     const dealt = Math.min(dmg, e.hp);
     e.hp -= dmg;
+    if (o.wid && !e.boss && !e.segment && this.artSet.has('loupe') && chance(0.08)) e.frozenT = Math.max(e.frozenT, 1.5); // 秘宝「氷晶のルーペ」
     // 形態のあるボスは、形態変化の処理（AI 側）を飛ばして次の形態へ進んだり倒れたりしないようにする
     if (e.ai === 'emperor' && e.phaseNow && e.phaseNow < 3) {
       const floor = e.maxHp * (e.phaseNow === 1 ? 0.66 : 0.33) - 1;
@@ -1015,6 +1058,8 @@ export class Game {
         this.fx.shake(6);
       }
     }
+    // ゴールドフィーバー中は倒した敵がコインを落とす
+    if (this.goldFeverT > 0 && chance(0.35)) this.dropPickup('coin', e.x, e.y, randi(1, 3));
     // コイン
     const coinP = (0.05 + (wid === 'amber' ? 0.25 : 0) + (wid === 'amber' && this.getWeapon('amber')?.evolved ? 0.75 : 0)) * this.stats.luck;
     if (chance(coinP)) this.dropPickup('coin', e.x, e.y, randi(1, 3));
@@ -1071,6 +1116,7 @@ export class Game {
     setTimeout(() => audio.bigWin(), 400);
     this.hooks.banner('BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     this.dropPickup('bigchest', e.x, e.y);
+    if (e.artChest && this.arts.length < ARTIFACT_MAX && this.artifactChoices().length) this.modalQueue.push({ type: 'artifact' });
     this.dropPickup('rough', e.x, e.y, upgradeTier(bossDrop(e.type === this.stage.finalBoss, this.heat), this.stage.no, this.heat));
     // けいけんちの シャワー
     for (let i = 0; i < 30; i++) this.dropXp(e.x + rand(-60, 60), e.y + rand(-60, 60), Math.ceil(e.xp / 30));
@@ -1090,6 +1136,74 @@ export class Game {
         this.pendingClear = true;
       }, 2800);
     }
+  }
+
+  // ---------------------------------------------------------------- 秘宝
+  hasArt(id) { return this.artSet.has(id); }
+  artifactChoices() {
+    return unlockedArtifacts().filter((id) => !this.artSet.has(id));
+  }
+  addArtifact(id, silent) {
+    if (this.artSet.has(id)) return;
+    this.arts.push(id);
+    this.artSet.add(id);
+    if (id === 'pendant' || id === 'box') this.revives += 3;
+    this.computeStats();
+    if (!silent) {
+      const a = ARTIFACT_BY_ID[id];
+      this.hooks.banner(a.name, 'item', '秘宝を獲得');
+    }
+  }
+  updateArtifacts(dt) {
+    const p = this.player;
+    // ロードストーン：偶数分ごとに全部引き寄せる
+    if (this.artSet.has('lodestone') && this.time >= this.lodestoneNext) {
+      this.lodestoneNext += 120;
+      for (const pk of this.pickups) {
+        if (pk.kind === 'chest' || pk.kind === 'bigchest') { pk.x = p.x + rand(-50, 50); pk.y = p.y + rand(-50, 50); }
+        else pk.vac = true;
+      }
+      this.hooks.banner('LODESTONE', 'item', 'すべてを引き寄せた');
+      audio.levelUp();
+    }
+    // 呪われた宝石：1 分ごとにエリート
+    if (this.artSet.has('hope') && this.time >= this.hopeNext) {
+      this.hopeNext += 60;
+      const types = this.wave()[1];
+      const [x, y] = this.ringPos();
+      this.spawnEnemy(pick(types), x, y, { elite: true });
+      this.hooks.banner('ELITE', 'elite', '呪われた宝石が強敵を呼んだ');
+    }
+    // 分光プリズム：攻撃範囲の変動を反映
+    if (this.artSet.has('prism')) {
+      this.prismT -= dt;
+      if (this.prismT <= 0) { this.prismT = 0.25; this.computeStats(); }
+    }
+    // 黄金の天秤
+    if (this.goldFeverT > 0) {
+      this.goldFeverT -= dt;
+      if (this.goldFeverT <= 0) this.hooks.banner('GOLD FEVER END', 'item', '');
+    }
+    this.goldFeverCd = Math.max(0, this.goldFeverCd - dt);
+  }
+  goldScale() {
+    if (this.goldFeverT > 0) { this.heal(1.5, true); return; }
+    if (this.goldFeverCd <= 0 && chance(0.06)) {
+      this.goldFeverT = 8;
+      this.goldFeverCd = 30;
+      this.hooks.banner('GOLD FEVER', 'fever', '8秒間 敵がコインを落とし、コインで回復');
+      audio.bigWin();
+    }
+  }
+  starfall() {
+    const p = this.player;
+    const kind = weightedPick([['heart', 30], ['magnet', 20], ['clock', 12], ['bomb', 15], ['coin', 23]], (x) => x[1])[0];
+    const a = rand(TAU), d = rand(60, 150);
+    const x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
+    if (kind === 'coin') for (let i = 0; i < 5; i++) this.dropPickup('coin', x, y, randi(2, 5));
+    else this.dropPickup(kind, x, y);
+    this.fx.burst(x, y, '#fff6c9', 12, 200, 0.5, 10);
+    this.fx.ring(x, y, 4, 40, 0.35, '#ffe39a', 4);
   }
 
   startFever() {
@@ -1113,9 +1227,11 @@ export class Game {
       if (this.healCap > 6) return;
       this.healCap += v;
     }
+    if (this.artSet.has('grail')) v *= 2; // 秘宝「癒しの聖杯」
     const before = p.hp;
     p.hp = Math.min(p.maxHp, p.hp + v);
     this.healShow += p.hp - before;
+    this.healedTotal += p.hp - before;
   }
 
   hurtPlayer(dmg, o = {}) {
@@ -1140,6 +1256,7 @@ export class Game {
     const p = this.player;
     if (this.revives > 0) {
       this.revives--;
+      if (this.artSet.has('pendant')) { this.revBuff++; this.computeStats(); } // 秘宝「護石のペンダント」
       p.hp = p.maxHp;
       p.iT = 2.5;
       this.jewelFlash(true);
@@ -1228,6 +1345,7 @@ export class Game {
         break;
       }
       case 'coin': {
+        if (this.artSet.has('scale')) this.goldScale(); // 秘宝「黄金の天秤」
         const v = Math.max(1, Math.round(pk.value * this.stats.greed));
         this.coins += v;
         audio.coin();
@@ -1278,6 +1396,7 @@ export class Game {
       this.xpNext = xpFor(this.level);
       this.pendingLevels++;
       this.modalQueue.push({ type: 'level' });
+      if (this.artSet.has('musicbox')) this.starfall(); // 秘宝「流星のオルゴール」
     }
   }
 
@@ -1433,6 +1552,9 @@ export class Game {
       this.fx.confetti(p.x, p.y, 20, 250);
       audio.levelUp();
       this.hooks.levelUp(this, done);
+    } else if (m.type === 'artifact') {
+      audio.chestOpen();
+      this.hooks.artifact(this, done);
     } else if (m.type === 'chest') {
       this.hooks.chest(this, m.big, done);
     }
@@ -1462,7 +1584,7 @@ export class Game {
   results() {
     return {
       time: this.time, kills: this.kills, level: this.level, coins: this.coins, damage: this.totalDmg,
-      roughGot: { ...this.roughGot }, hyper: this.hyper, hurry: this.hurry, maxCombo: this.maxCombo, fevers: this.fevers, evolved: this.evolvedCount, bosses: this.bosses,
+      roughGot: { ...this.roughGot }, hyper: this.hyper, hurry: this.hurry, arts: [...this.arts], healed: this.healedTotal, moved: this.moved, maxCombo: this.maxCombo, fevers: this.fevers, evolved: this.evolvedCount, bosses: this.bosses,
       miracles: this.miracles, weaponCount: this.weapons.length, cleared: this.cleared, dmgBy: { ...this.dmgBy },
       weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved })),
       passives: this.passives.map((p) => ({ id: p.id, level: p.level })),

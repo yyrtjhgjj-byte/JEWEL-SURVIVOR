@@ -5,7 +5,8 @@ import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, shopCost,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA_TABLE, EXCHANGE, AWAKEN_MAX,
 } from './data.js';
-import { gemIcon, coinIcon, roughIcon, enemySprite } from './render.js';
+import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite } from './render.js';
+import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
 import { audio } from './audio.js';
@@ -252,7 +253,12 @@ export function showStageSelect() {
     if ((save.heatSel || 0) > maxHeat) save.heatSel = maxHeat;
     const h = save.heatSel || 0;
     const m = heatMods(h);
+    const arts = unlockedArtifacts();
+    if (save.artSel && !arts.includes(save.artSel)) save.artSel = null;
+    const artA = save.artSel ? ARTIFACT_BY_ID[save.artSel] : null;
     $('#opts', node).innerHTML = `
+      <div class="toggle-row art-row" style="margin-bottom:10px"><span>ARTIFACT<small>${arts.length ? (artA ? `${artA.no}　${artA.name}` : '持ち込まない') : '実績を達成すると解放'}</small></span>
+        <button class="btn small" id="artsel" ${arts.length ? '' : 'disabled'}>${artA ? '変更' : '選ぶ'}</button></div>
       <div class="toggle-row"><span>HEAT<small>${rec.cleared ? `敵HP ×${m.hp.toFixed(2)} ／ 敵攻撃 ×${m.dmg.toFixed(2)} ／ 獲得コイン ×${m.coin.toFixed(1)}` : 'このステージをクリアすると解放'}</small></span>
         <div class="heat-ctl"><button class="iconbtn" id="hm" ${h <= 0 ? 'disabled' : ''}>−</button><b class="heat-val h${h}">${h}</b><button class="iconbtn" id="hp" ${h >= maxHeat ? 'disabled' : ''}>＋</button></div></div>
       ${rec.cleared ? `<div class="toggle-row" style="margin-top:10px"><span>ENDLESS<small>最終ボス撃破後も続行（敵が際限なく強化）</small></span><button class="switch ${save.endless ? 'on' : ''}" id="en"></button></div>
@@ -261,6 +267,7 @@ export function showStageSelect() {
     const hm = $('#hm', node), hp = $('#hp', node);
     hm.onclick = () => { save.heatSel = Math.max(0, h - 1); audio.tap(); renderOpts(); };
     hp.onclick = () => { save.heatSel = Math.min(maxHeat, h + 1); audio.tap(); renderOpts(); };
+    $('#artsel', node).onclick = () => { audio.tap(); pickArtifact(arts, (id) => { save.artSel = id; persist(); renderOpts(); }, true); };
     const en = $('#en', node);
     if (en) en.onclick = () => { save.endless = !save.endless; en.classList.toggle('on', save.endless); audio.tap(); persist(); };
     for (const [id, k] of [['#hy', 'hyper'], ['#hu', 'hurry']]) {
@@ -290,7 +297,7 @@ export function showStageSelect() {
     save.selectedStage = sel;
     persist();
     const rec = stageRec(sel);
-    app.startGame(save.selected, { stageId: sel, heat: save.heatSel || 0, endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry });
+    app.startGame(save.selected, { stageId: sel, heat: save.heatSel || 0, endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry, artifact: save.artSel || null });
   };
 }
 
@@ -528,6 +535,7 @@ export function showZukan(tab = 'gems') {
         <button class="tab ${tab === 'gems' ? 'on' : ''}" data-t="gems">武器</button>
         <button class="tab ${tab === 'charms' ? 'on' : ''}" data-t="charms">チャーム</button>
         <button class="tab ${tab === 'enemies' ? 'on' : ''}" data-t="enemies">敵</button>
+        <button class="tab ${tab === 'arts' ? 'on' : ''}" data-t="arts">秘宝</button>
         <button class="tab ${tab === 'stages' ? 'on' : ''}" data-t="stages">ステージ</button>
         <button class="tab ${tab === 'trophy' ? 'on' : ''}" data-t="trophy">実績</button>
       </div>
@@ -576,6 +584,17 @@ export function showZukan(tab = 'gems') {
         <div><div class="zname">${seen ? e.name : '???'} ${e.boss ? '<span class="rarbadge r-SSR">BOSS</span>' : ''}</div>
           <div class="ztext">${seen ? e.desc : '未遭遇'}</div>
           <div class="ztext muted">撃破数 <b style="color:#fff">${fmt(save.kills[id] || 0)}</b></div>
+        </div></div>`));
+    }
+  } else if (tab === 'arts') {
+    for (const a of ARTIFACTS) {
+      const ok = artifactUnlocked(a.id);
+      const ach = ACHIEVEMENTS.find((x) => x.id === a.ach);
+      zl.appendChild(el(`<div class="zitem ${ok ? '' : 'unk'}">
+        <img src="${artifactIcon(a.no, a.gem, 96)}" style="${ok ? '' : 'filter:grayscale(1) brightness(.4)'}">
+        <div><div class="zname">${a.no}　${ok ? a.name : '???'}<span class="en">${a.en}</span></div>
+          <div class="ztext">${ok ? a.desc : '未解放'}</div>
+          ${ok ? '' : `<div class="zevo">解放条件：${ach ? ach.t : '???'}</div>`}
         </div></div>`));
     }
   } else if (tab === 'stages') {
@@ -751,13 +770,14 @@ export function hud(g) {
     if (lastCoins >= 0) { H.coinstat.classList.remove('bump'); void H.coinstat.offsetWidth; H.coinstat.classList.add('bump'); }
     lastCoins = g.coins;
   }
-  const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '')).join() + '|' + g.passives.map((p) => p.id + p.level).join();
+  const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '')).join() + '|' + g.passives.map((p) => p.id + p.level).join() + '|' + g.arts.join();
   if (key !== lastSlots) {
     lastSlots = key;
     const empty = (n, max) => '<div class="slotico empty"></div>'.repeat(Math.max(0, max - n));
     H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
       '<i style="grid-column:1/-1;height:0"></i>' +
-      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS);
+      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
+      (g.arts.length ? '<i style="grid-column:1/-1;height:0"></i>' + g.arts.map((id) => `<div class="slotico art"><img src="${artifactIcon(ARTIFACT_BY_ID[id].no, ARTIFACT_BY_ID[id].gem, 48)}"></div>`).join('') : '');
   }
   const f = g.feverT > 0 ? g.feverT / 10 : g.feverGauge / g.feverNeed;
   H.fever.style.transform = `scaleX(${Math.min(1, f)})`;
@@ -857,6 +877,42 @@ function choiceInfo(g, c) {
   }
   if (c.type === 'coins') return { icon: coinIcon(96), name: 'コイン', lv: '', desc: `${c.value} コイン獲得`, word: '', rar: 'N' };
   return { icon: gemIcon('garnet', 96), name: '全回復', lv: '', desc: 'HPを全回復', word: '', rar: 'N' };
+}
+
+// ------------------------------------------------------------------ 秘宝の選択
+// ids から 1 つ選ぶ（「選ばない」も選べる）。cb(id | null)
+function pickArtifact(ids, cb, isStart) {
+  const ov = el(`<div class="screen dim art-screen">
+    <div class="rays"></div>
+    <div class="big-title prism-text">ARTIFACT</div>
+    <div class="sub-title">${isStart ? '持ち込む秘宝を選択' : '秘宝を1つ選択'}</div>
+    ${isStart ? '<button class="btn" id="anone">選ばない</button>' : ''}
+    <div class="cards" id="acards"></div>
+    ${isStart ? '' : '<button class="btn" id="anone">選ばない</button>'}
+  </div>`);
+  if (isStart) ov.classList.add('scroll');
+  const box = $('#acards', ov);
+  ids.forEach((id, i) => {
+    const a = ARTIFACT_BY_ID[id];
+    const card = el(`<button class="card r-SSR art-card">
+      <img src="${artifactIcon(a.no, a.gem, 96)}">
+      <div class="cbody"><div class="clv">${a.no} ・ ${a.en}</div><div class="cname">${a.name}</div><div class="cdesc">${a.desc}</div></div>
+    </button>`);
+    card.style.animationDelay = i * 0.08 + 's';
+    card.onclick = () => { audio.select(); haptic(); ov.remove(); cb(id); };
+    box.appendChild(card);
+  });
+  $('#anone', ov).onclick = () => { audio.tap(); ov.remove(); cb(null); };
+  screens().appendChild(ov);
+  guard(box, 450);
+}
+// 中ボス撃破時の秘宝の宝箱：未所持から 3 つ
+export function artifactChoice(g, done) {
+  const pool = g.artifactChoices();
+  const ids = [];
+  while (ids.length < 3 && pool.length) ids.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  audio.bigWin();
+  pickArtifact(ids, (id) => { if (id) g.addArtifact(id); done(); }, false);
 }
 
 export function levelUp(g, done) {
@@ -1142,7 +1198,7 @@ export function results(res, cleared, extra) {
     </div>`);
   show(node);
   guard($('.rbtns', node), 1500);
-  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry }); };
+  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, artifact: save.artSel || null }); };
   $('#home', node).onclick = () => { audio.tap(); app.toTitle(); };
   const rowsEl = $('#rows', node);
   const rows = [
@@ -1179,7 +1235,7 @@ export function results(res, cleared, extra) {
       const ach = $('#ach', node);
       ach.classList.remove('hidden');
       ach.innerHTML = '<div class="label">ACHIEVEMENTS UNLOCKED</div>' +
-        extra.newAch.map((a) => `<div>◆ ${a.name} <span class="muted">+${fmt(a.coins)}${a.unlock ? ` ／ ${GEMS[a.unlock].jp} 解放` : ''}</span></div>`).join('');
+        extra.newAch.map((a) => { const art = ARTIFACTS.find((x) => x.ach === a.id); return `<div>◆ ${a.name} <span class="muted">+${fmt(a.coins)}${a.unlock ? ` ／ ${GEMS[a.unlock].jp} 解放` : ''}${art ? ` ／ 秘宝「${art.name}」解放` : ''}</span></div>`; }).join('');
     }
   })();
 }

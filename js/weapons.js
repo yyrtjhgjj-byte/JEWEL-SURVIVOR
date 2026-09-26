@@ -17,7 +17,7 @@ export function weaponStats(g, w) {
   return {
     dmg: s.dmg * P.might * (def.dmgMul || 1) * (w.evolved ? def.evo.mul || 1 : 1 + (def.lowBoost || 0) * Math.max(0, 8 - w.level) / 7),
     cd: Math.max(0.08, s.cd * P.cooldown),
-    amount: (s.amount || 0) + P.amount,
+    amount: (s.amount || 0) + P.amount + (g.hasArt && g.hasArt('crown') && w.id === g.startWeapon ? 3 : 0), // 秘宝「職人の王冠」
     speed: (s.speed || 1) * P.speed,
     area: (s.area || 1) * P.area,
     pierce: s.pierce || 0,

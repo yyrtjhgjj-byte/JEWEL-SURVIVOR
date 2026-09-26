@@ -6,6 +6,7 @@ import { Input } from './input.js';
 import { audio } from './audio.js';
 import { save, persist } from './save.js';
 import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES } from './data.js';
+import { ARTIFACTS } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, heatMods } from './stages.js';
 import { gemSprite, starSprite, backgroundTile } from './render.js';
 import { TAU, rand, pick } from './util.js';
@@ -157,7 +158,8 @@ function checkAchievements(r, live) {
       save.unlocked[a.unlock] = true;
     }
     got.push(a);
-    if (live) UI.toast(a.name, `+${a.coins} コイン${a.unlock ? ` ／ ${GEMS[a.unlock].jp} 解放` : ''}`);
+    const art = ARTIFACTS.find((x) => x.ach === a.id);
+    if (live) UI.toast(a.name, `+${a.coins} コイン${a.unlock ? ` ／ ${GEMS[a.unlock].jp} 解放` : ''}${art ? ` ／ 秘宝「${art.name}」解放` : ''}`);
   }
   if (got.length) persist();
   return got;
@@ -174,6 +176,7 @@ const hooks = {
   haptic: () => UI.haptic(),
   levelUp: (g, done) => UI.levelUp(g, done),
   chest: (g, big, done) => UI.chest(g, big, done),
+  artifact: (g, done) => UI.artifactChoice(g, done),
   checkAchievements: (r, live) => checkAchievements(r, live),
   gameOver: (res, cleared) => finishRun(res, cleared),
 };
@@ -197,12 +200,13 @@ function startGame(charId, opt = {}) {
       done();
     },
     chest: (g, big, done) => { g.rollChest(big); done(); },
+    artifact: (g, done) => { const c = g.artifactChoices(); if (c.length) g.addArtifact(c[0]); done(); },
   } : {};
   game = new Game(canvas, {
     ...hooks,
     ...botHooks,
     checkAchievements: (r, live) => { achDuringRun.push(...checkAchievements(r, live)); },
-  },{ charId, endless: !!opt.endless, hyper: !!opt.hyper, hurry: !!opt.hurry, stageId: stage.id, heat: opt.heat || 0, bot: DEBUG.bot, god: DEBUG.god, startTime: DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
+  },{ charId, artifact: opt.artifact || null, endless: !!opt.endless, hyper: !!opt.hyper, hurry: !!opt.hurry, stageId: stage.id, heat: opt.heat || 0, bot: DEBUG.bot, god: DEBUG.god, startTime: DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
   achDuringRun = [];
   window.__game = game; // デバッグ用
   UI.hudShow(true);
@@ -309,7 +313,7 @@ for (const a of ACHIEVEMENTS) {
 UI.initUI({ startGame, toTitle, checkMetaAchievements: () => checkAchievements(null, true) });
 window.__save = save; // デバッグ用
 
-if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), stageId: DEBUG.stage, heat: DEBUG.heat });
+if (DEBUG.autostart) startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), artifact: params.get('art'), stageId: DEBUG.stage, heat: DEBUG.heat });
 else UI.showTitle();
 
 // オフライン用 サービスワーカー
