@@ -156,7 +156,7 @@ export const WEAPONS = {
       { dmg: 40, t: 'ダメージ +40' },
       { amount: 1, dmg: 30, t: 'オーブ +1 / ダメージ +30' },
     ],
-    evo: { mul: 0.65, with: 'nephrite', name: 'エターナル・ボンド', desc: '二重の軌道が途切れることなく回り続ける' },
+    evo: { mul: 0.65, with: 'nephrite', lbSkip: ['cd', 'dur'], name: 'エターナル・ボンド', desc: '二重の軌道が途切れることなく回り続ける' },
   },
   garnet: {
     gem: 'garnet', name: 'アムール・ハート',
@@ -173,7 +173,7 @@ export const WEAPONS = {
       { dmg: 70, t: 'ダメージ +70' },
       { amount: 1, t: '投擲数 +1' },
     ],
-    evo: { mul: 1.07, with: 'milkyquartz', name: 'アムール・テンペスト', desc: '周囲にハートが降り注ぐ。吸収量アップ' },
+    evo: { mul: 1.07, with: 'milkyquartz', lbSkip: ['cd', 'speed'], name: 'アムール・テンペスト', desc: '周囲にハートが降り注ぐ。吸収量アップ' },
   },
   labradorite: {
     gem: 'labradorite', name: 'ヒドゥン・ボルト',
@@ -207,7 +207,7 @@ export const WEAPONS = {
       { duration: 0.5, area: 0.2, t: '照射時間・射程アップ' },
       { dmg: 40, t: 'ダメージ +40' },
     ],
-    evo: { mul: 0.52, with: 'coral', name: 'ミラクル・スペクトラム', desc: '常時照射。奇跡の発生率が大幅アップ' },
+    evo: { mul: 0.52, with: 'coral', lbSkip: ['cd', 'dur'], name: 'ミラクル・スペクトラム', desc: '常時照射。奇跡の発生率が大幅アップ' },
   },
   amber: {
     gem: 'amber', name: 'ゴールド・レイン',
@@ -258,7 +258,7 @@ export const WEAPONS = {
       { dmg: 45, t: 'ダメージ +45' },
       { amount: 2, t: '破片 +2' },
     ],
-    evo: { mul: 0.27, with: 'topaz', name: 'スターダスト・カリスマ', desc: '螺旋状に破片を連射。全弾クリティカル' },
+    evo: { mul: 0.27, with: 'topaz', lbSkip: ['cd', 'amount'], name: 'スターダスト・カリスマ', desc: '螺旋状に破片を連射。全弾クリティカル' },
   },
   emerald: {
     gem: 'emerald', name: 'ハーモニー・フィールド',
@@ -292,7 +292,7 @@ export const WEAPONS = {
       { duration: 0.4, t: '放射時間アップ' },
       { dmg: 10, area: 0.2, t: 'ダメージ +10 / 射程アップ' },
     ],
-    evo: { mul: 0.73, with: 'peridot', name: 'パッション・インフェルノ', desc: '前方へ絶え間なく噴き出す業火。射程が伸び、炎の先は燃え続ける' },
+    evo: { mul: 0.73, with: 'peridot', lbSkip: ['cd', 'dur'], name: 'パッション・インフェルノ', desc: '前方へ絶え間なく噴き出す業火。射程が伸び、炎の先は燃え続ける' },
   },
   kyanite: {
     gem: 'kyanite', name: 'ディサイシブ・ランス',
@@ -401,6 +401,7 @@ export const WEAPON_IDS = Object.keys(WEAPONS);
 export const WEAPON_MAX = 8;
 // リミットブレイク：Lv8（進化済みを含む）の武器を、レベルアップのたびに少しずつ強化する
 // need：その武器が持っている性能だけを候補にする。max：1 つの武器で強化できる回数の上限
+// 進化後に使わなくなる性能は、WEAPONS の evo.lbSkip で候補から外す
 export const LIMIT_BREAK = [
   { k: 'dmg', v: 0.06, t: 'ダメージ +6%', w: 5 },
   { k: 'cd', v: 0.03, t: 'クールダウン短縮 3%', w: 3 },
@@ -456,10 +457,10 @@ export const CHARACTERS = {
   rhodochrosite: { weapon: 'rhodochrosite', perk: '攻撃力 +15% / 最大HP -10', stats: { might: 0.15, maxHp: -10 }, unlock: '1回のプレイで5回フィーバー' },
   kyanite: { weapon: 'kyanite', perk: '弾速 +20%', stats: { speed: 0.2 }, unlock: '1回のプレイでボスを2体撃破' },
   aquamarine: { weapon: 'aquamarine', perk: '持続 +15% / アーマー +1', stats: { duration: 0.15, armor: 1 }, unlock: 'HEAT 1以上でクリア' },
-  tourmaline: { weapon: 'tourmaline', perk: '移動速度 +8% / 幸運 +10%', stats: { moveSpeed: 0.08, luck: 0.1 }, unlock: '水晶洞窟をクリア' },
-  alexandrite: { weapon: 'alexandrite', perk: '経験値 +15%', stats: { growth: 0.15 }, unlock: '灼熱鉱脈をクリア' },
-  moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +10% / 回収範囲 +20%', stats: { area: 0.1, magnet: 0.2 }, unlock: '凍晶氷原をクリア' },
-  obsidian: { weapon: 'obsidian', perk: '攻撃力 +12% / アーマー +1', stats: { might: 0.12, armor: 1 }, unlock: '虚空聖堂をクリア' },
+  tourmaline: { weapon: 'tourmaline', perk: '移動速度 +8% / 幸運 +10%', stats: { moveSpeed: 0.08, luck: 0.1 }, unlock: 'STAGE 2 の最終ボスを倒す' },
+  alexandrite: { weapon: 'alexandrite', perk: '経験値 +15%', stats: { growth: 0.15 }, unlock: 'STAGE 3 の最終ボスを倒す' },
+  moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +10% / 回収範囲 +20%', stats: { area: 0.1, magnet: 0.2 }, unlock: 'STAGE 4 の最終ボスを倒す' },
+  obsidian: { weapon: 'obsidian', perk: '攻撃力 +12% / アーマー +1', stats: { might: 0.12, armor: 1 }, unlock: 'STAGE 5 の最終ボスを倒す' },
 };
 export const CHAR_IDS = Object.keys(CHARACTERS);
 
@@ -541,7 +542,7 @@ export const ENEMIES = {
   monolith: { name: 'ニャルラトホテプ', hp: 330000, speed: 40, dmg: 42, r: 66, xp: 2000, boss: true, ai: 'monolith', desc: '黒き石板の姿をとった這い寄る混沌。燃える三裂の目で宇宙を焼く。7:00に出現。' },
   piper: { name: '外なる奏者', hp: 120000, speed: 60, dmg: 30, r: 30, xp: 800, boss: true, ai: 'piper', desc: '眠れる王を取り巻き、狂った笛を吹き続ける奏者たち。HP を共有する。' },
   azathoth: { name: 'アザトース', hp: 200000, speed: 42, dmg: 44, r: 70, xp: 3000, boss: true, ai: 'azathoth', desc: '宇宙の中心で惰眠を貪る盲目白痴の王。奏者たちを倒すと目覚める。7:00に出現。' },
-  thief: { name: 'ジュエルシーフ', hp: 2600, speed: 128, dmg: 0, r: 15, xp: 6, ai: 'thief', sprite: 'ghost', tint: '#d8a93a', desc: '原石を抱えて逃げ回る盗賊。7:00以降に現れ、しばらくすると姿を消す。倒すと原石と宝箱を落とす。' },
+  thief: { name: 'ジュエルシーフ', hp: 2600, speed: 128, dmg: 0, r: 15, xp: 6, ai: 'thief', sprite: 'ghost', tint: '#d8a93a', desc: '原石を抱えて逃げ回る盗賊。5:00ごろから現れ、しばらくすると姿を消す。倒すと原石と宝箱を落とす。' },
   crystal: { name: 'ライトクリスタル', hp: 1, speed: 0, dmg: 0, r: 16, xp: 0, prop: true, color: '#ffffff', desc: '破壊するとアイテムを落とす。' },
 };
 
@@ -600,13 +601,13 @@ export const ACHIEVEMENTS = [
   { id: 'lv10', name: 'Lv.10', t: 'レベル10到達', coins: 50, check: (r) => r.level >= 10 },
   { id: 'lv30', name: 'Lv.30', t: 'レベル30到達', coins: 200, unlock: 'emerald', check: (r) => r.level >= 30 },
   { id: 'lv50', name: 'Lv.50', t: 'レベル50到達', coins: 600, check: (r) => r.level >= 50 },
-  { id: 'time3', name: 'サバイバー I', t: '3分間生存', coins: 80, check: (r) => r.time >= 180 },
-  { id: 'time5', name: 'サバイバー II', t: '5分間生存', coins: 200, unlock: 'angelite', check: (r) => r.time >= 300 },
+  { id: 'time3', name: 'サバイバー I', t: '3分間生存', coins: 80, check: (r) => (r.runT ?? r.time) >= 180 },
+  { id: 'time5', name: 'サバイバー II', t: '5分間生存', coins: 200, unlock: 'angelite', check: (r) => (r.runT ?? r.time) >= 300 },
   { id: 'clear', name: 'ブリリアンス', t: '黒曜の荒野をクリア', coins: 2000, unlock: 'diamond', check: (r) => r.cleared && r.stageId === 'wastes' },
-  { id: 'clear2', name: 'プリズム・ブレイカー', t: '水晶洞窟をクリア', coins: 2500, check: (r) => r.cleared && r.stageId === 'cavern' },
-  { id: 'clear3', name: 'マグマ・ダイバー', t: '灼熱鉱脈をクリア', coins: 3000, check: (r) => r.cleared && r.stageId === 'magma' },
-  { id: 'clear4', name: 'アブソリュート・ゼロ', t: '凍晶氷原をクリア', coins: 3500, check: (r) => r.cleared && r.stageId === 'tundra' },
-  { id: 'clear5', name: 'ヴォイド・ウォーカー', t: '虚空聖堂をクリア', coins: 8000, check: (r) => r.cleared && r.stageId === 'void' },
+  { id: 'clear2', name: 'プリズム・ブレイカー', t: 'STAGE 2 の最終ボスを倒す', coins: 2500, check: (r) => r.cleared && r.stageId === 'cavern' },
+  { id: 'clear3', name: 'マグマ・ダイバー', t: 'STAGE 3 の最終ボスを倒す', coins: 3000, check: (r) => r.cleared && r.stageId === 'magma' },
+  { id: 'clear4', name: 'アブソリュート・ゼロ', t: 'STAGE 4 の最終ボスを倒す', coins: 3500, check: (r) => r.cleared && r.stageId === 'tundra' },
+  { id: 'clear5', name: 'ヴォイド・ウォーカー', t: 'STAGE 5 の最終ボスを倒す', coins: 8000, check: (r) => r.cleared && r.stageId === 'void' },
   // 第2章の大ボス撃破
   { id: 'clear6', name: 'アビサル・レクイエム', t: 'STAGE 6 の最終ボスを倒す', coins: 10000, check: (r) => r.cleared && r.stageId === 'deep' },
   { id: 'clear7', name: 'ドリーム・ブレイカー', t: 'STAGE 7 の最終ボスを倒す', coins: 12000, check: (r) => r.cleared && r.stageId === 'rlyeh' },
@@ -617,9 +618,9 @@ export const ACHIEVEMENTS = [
   { id: 'heat1', name: 'ヒートアップ', t: 'HEAT 1以上でクリア', coins: 500, unlock: 'aquamarine', check: (r) => r.cleared && r.heat >= 1 },
   { id: 'heat3', name: 'オーバーヒート', t: 'HEAT 3以上でクリア', coins: 2000, check: (r) => r.cleared && r.heat >= 3 },
   { id: 'heat5', name: 'メルトダウン', t: 'HEAT 5でクリア', coins: 6000, check: (r) => r.cleared && r.heat >= 5 },
-  { id: 'heat5void', name: '極光', t: '虚空聖堂を HEAT 5 でクリア', coins: 15000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'void' },
+  { id: 'heat5void', name: '極光', t: 'STAGE 5 を HEAT 5 でクリア', coins: 15000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'void' },
   { id: 'charm100', name: 'チャーマー', t: '1回のプレイで100体を魅了', coins: 400, check: (r) => r.charmed >= 100 },
-  { id: 'endless20', name: 'エンドレス・ナイト', t: 'エンドレスで20分生存', coins: 3000, check: (r) => r.endless && r.time >= 1200 },
+  { id: 'endless20', name: 'エンドレス・ナイト', t: 'エンドレスで20分生存', coins: 3000, check: (r) => r.endless && (r.runT ?? r.time) >= 1200 },
   { id: 'evo', name: 'エヴォリューション', t: '武器を進化させる', coins: 200, check: (r) => r.evolved >= 1 },
   { id: 'evo3', name: 'トリプル・エヴォ', t: '1回のプレイで3つ進化', coins: 800, check: (r) => r.evolved >= 3 },
   { id: 'fever', name: 'FEVER', t: 'フィーバーを発動', coins: 50, check: (r) => r.fevers >= 1 },
@@ -646,10 +647,10 @@ export const ACHIEVEMENTS = [
   { id: 'boss3', name: 'ボス・ラッシュ', t: '1回のプレイでボスを3体撃破', coins: 800, check: (r) => r.bosses >= 3 },
   { id: 'arts3', name: 'トレジャー・ハンター', t: '1回のプレイで秘宝を3つ集める', coins: 800, check: (r) => (r.arts || []).length >= 3 },
   { id: 'onegem', name: 'ワン・ジュエル', t: '武器1つだけでステージをクリア', coins: 3000, check: (r) => r.cleared && r.weaponCount <= 1 },
-  { id: 'scratch', name: 'かすり傷', t: '受けたダメージ100以下でステージをクリア', coins: 3000, check: (r) => r.cleared && (r.dmgTaken || 0) <= 100 },
+  { id: 'scratch', name: 'かすり傷', t: '受けたダメージ100以下でステージをクリア', coins: 3000, check: (r) => r.cleared && (r.hurt || 0) <= 100 },
   { id: 'hyperclear', name: 'ハイパー・ドライブ', t: 'HYPER でステージをクリア', coins: 1000, check: (r) => r.cleared && r.hyper },
   { id: 'hurryclear', name: 'タイム・アタッカー', t: 'HURRY でステージをクリア', coins: 800, check: (r) => r.cleared && r.hurry },
-  { id: 'endless40', name: 'エターナル', t: 'エンドレスで40分生存', coins: 8000, check: (r) => r.endless && r.time >= 2400 },
+  { id: 'endless40', name: 'エターナル', t: 'エンドレスで40分生存', coins: 8000, check: (r) => r.endless && (r.runT ?? r.time) >= 2400 },
   { id: 'heat5azath', name: 'アウター・ゴッド', t: 'STAGE 11 を HEAT 5 でクリア', coins: 30000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'azathoth' },
   // 研磨工房（meta: ラン以外のタイミングでも判定する）
   { id: 'polish1', meta: true, name: 'ファースト・カット', t: '原石を研磨する', coins: 50, check: (r, s) => s.stats.polished >= 1 },

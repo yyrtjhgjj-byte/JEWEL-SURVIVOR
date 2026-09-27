@@ -6,7 +6,7 @@ import { save } from './save.js';
 import { COLLECTION_IDS, ABUNDANCE, GRADES } from './atelier.js';
 import { weightedPick } from './util.js';
 
-// 予想落札価格：15,000 × 珍しさ（産出量 5→1 で 1.0〜2.6）× 品質（SS 1.8）×（カラット ÷ 7）^1.6
+// 予想落札価格：20,000 × 珍しさ（産出量 5→1 で 1.0〜2.6）× 品質（SS 1.8）×（カラット ÷ 7）^1.6
 const RARITY = [0, 2.6, 2.0, 1.6, 1.3, 1.0];
 export function lotEstimate(lot) {
   return Math.round((20000 * RARITY[ABUNDANCE[lot.gem] || 3] * (lot.grade >= 4 ? 1.8 : 1) * Math.pow(lot.ct / 7, 1.6)) / 100) * 100;

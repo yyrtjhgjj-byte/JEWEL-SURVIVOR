@@ -822,11 +822,14 @@ function setupBackup(node) {
     const login = { ...save.login }; // ログインボーナスを二重に受け取れないよう、今の受け取り状況は引き継ぐ
     importSave(data);
     save.login = login;
+    // 古い版のバックアップでも、起動時と同じ移行処理を通す（工房の支払い記録などが欠けたまま保存されないように）
+    const refund = app.migrateSave ? app.migrateSave() : 0;
     persist();
     audio.applyVolume();
     audio.levelUp();
     showTitle();
     banner('LOADED', 'item', 'バックアップを読み込みました');
+    if (refund) setTimeout(() => toast('裏工房の入れ替えに伴い返金', `+${refund.toLocaleString()} コイン`, 'BACKROOM'), 900);
   };
 }
 

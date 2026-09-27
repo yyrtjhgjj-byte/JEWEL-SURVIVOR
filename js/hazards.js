@@ -229,6 +229,8 @@ export class Hazards {
       }
       if (this.boostT > 0 && p.moving && Math.random() < 0.4) g.fx.add(p.x + rand(-8, 8), p.y + rand(-8, 8), 0, -40, 0.6, 5, '#bfe8ff', 'dot');
     } else if (this.kind === 'lava') {
+      // 時間停止中は、溶岩のダメージも噴火の予告も止める（止まっている間に予告がたまって、解除直後にまとめて噴火しないように）
+      if (g.timeStopT > 0) return;
       this.lavaT -= dt;
       const list = this.around(p.x, p.y, this._c || (this._c = []));
       let inLava = false;
@@ -281,6 +283,7 @@ export class Hazards {
         }
       }
     } else if (this.kind === 'darkness') {
+      if (g.timeStopT > 0) return; // 時間停止中は裂け目も止まる（敵が湧かない）
       this.riftT -= dt;
       if (this.riftT <= 0) {
         this.riftT = g.progress() > 360 ? 18 : 25;
