@@ -132,6 +132,31 @@ export const AI = {
     }
   },
 
+  // ------------------------------------------------ 深海（第2章）
+  drift(g, e, dt, dist, mv) {
+    const w = Math.sin(g.time * 2.2 + e.phase) * 0.8;
+    const mx = mv.mx, my = mv.my;
+    mv.mx = mx - my * w;
+    mv.my = my + mx * w;
+  },
+  eel(g, e, dt, dist, mv) {
+    const w = Math.sin(g.time * 6 + e.phase) * 0.8;
+    const mx = mv.mx, my = mv.my;
+    mv.mx = mx - my * w;
+    mv.my = my + mx * w;
+  },
+  crab(g, e, dt, dist, mv) {
+    // 横歩き（進む向きに少し横のずれを足す）
+    const s = Math.sin(g.time * 1.3 + e.phase) > 0 ? 0.6 : -0.6;
+    const mx = mv.mx;
+    mv.mx += -mv.my * s;
+    mv.my += mx * s;
+  },
+  deepone(g, e, dt, dist, mv) {
+    // 近づくと一気に距離を詰める
+    if (dist < 160 && dist > 50) mv.spd *= 1.35;
+  },
+
   // ================================================= ボス
   prism(g, e, dt, dist, mv) {
     const enr = e.hp < e.maxHp * 0.5;
@@ -237,6 +262,50 @@ export const AI = {
       e.y = p.y + Math.sin(a) * 210;
       g.fx.ring(e.x, e.y, 10, 80, 0.4, '#bfefff', 6);
       audio.whoosh();
+    }
+  },
+
+  // ダゴン：隙間のある津波の輪／水柱・眷属・突進を順番に
+  dagon(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.dgT === undefined) { e.dgT = 2; e.dg2 = 4; e.dgPat = 0; }
+    mv.spd *= 0.8;
+    e.dgT -= dt * (enraged ? 1.3 : 1);
+    e.dg2 -= dt;
+    if (e.dgT <= 0) {
+      e.dgT = 2.6;
+      const n = 26, a0 = rand(TAU);
+      for (let w = 0; w < (enraged ? 2 : 1); w++) {
+        for (let i = 2; i < n - 1; i++) shoot(g, e, a0 + (i / n) * TAU + w * (TAU / n / 2), 110 + w * 28, 8, { color: '#3fa8ff' });
+      }
+      g.fx.ring(e.x, e.y, e.r, e.r * 2.2, 0.4, '#3fa8ff', 6);
+    }
+    if (e.dg2 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.dg2 = enraged ? 4 : 5.5;
+      e.dgPat = (e.dgPat + 1) % 3;
+      if (e.dgPat === 0) {
+        // 水柱：自機の位置と周りに予告 → 噴き上がる
+        const pts = [[p.x + p.dirX * (p.moving ? 50 : 0), p.y + p.dirY * (p.moving ? 50 : 0)]];
+        for (let i = 0; i < (enraged ? 6 : 4); i++) pts.push([p.x + rand(-170, 170), p.y + rand(-170, 170)]);
+        for (const [x, y] of pts) {
+          warn(g, x, y, 50, 1.2, '#3fa8ff', (g2) => {
+            g2.fx.burst(x, y, '#9fdcff', 16, 240, 0.6, 12);
+            g2.fx.ring(x, y, 8, 55, 0.35, '#3fa8ff', 6);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 50 + g2.player.r) g2.hurtPlayer(e.dmg);
+          }, e);
+        }
+        audio.whoosh();
+      } else if (e.dgPat === 1) {
+        // 眷属：深きものどもを呼ぶ
+        const R = g.viewR * 0.75;
+        for (let i = 0; i < (enraged ? 5 : 3); i++) {
+          const a = rand(TAU);
+          g.spawnEnemy('deepone', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R);
+        }
+      } else {
+        startDash(e, p, 0.8);
+      }
     }
   },
 

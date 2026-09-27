@@ -346,6 +346,24 @@ const Em = [52, 55, 59], D = [50, 54, 57], Dm = [50, 53, 57], Bb = [46, 50, 53],
 const Cm = [48, 51, 55], Ab = [44, 48, 51], Eb = [51, 55, 58];
 
 const TRACKS = {
+  // 第2章：深海
+  deep: {
+    bpm: 100,
+    chords: [Dm, Bb, F, C, Dm, Bb, C, A],
+    bass: [0, null, null, null, 7, null, null, null, 12, null, null, null, 7, null, null, null],
+    arp: 2,
+    melody: [
+      [74, null, 77, null, 81, null, 77, null],
+      [82, null, 81, null, 77, null, 74, null],
+      [77, null, 81, null, 84, null, 81, null],
+      [79, null, 76, null, 72, null, 76, null],
+      [74, null, 77, 81, 86, null, 84, 81],
+      [82, null, 81, 77, 74, null, 77, null],
+      [79, null, 81, null, 84, null, 79, null],
+      [81, null, null, null, 73, null, 76, null],
+    ],
+    drums: true, kick: [0, 10], snare: [8], hat: [4, 12],
+  },
   title: {
     bpm: 92,
     chords: [Am, F, C, G],

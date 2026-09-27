@@ -718,6 +718,415 @@ const ENEMY_DRAW = {
     ctx.quadraticCurveTo(r * 0.4, -r * 1.0, 0, -r * 0.75);
     ctx.fill();
   },
+  // ================================================ 第2章：深海
+  jelly(ctx, r, col) {
+    // 触手
+    ctx.strokeStyle = mix(col, '#ffffff', 0.35);
+    ctx.lineWidth = r * 0.11;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+      const x = -r * 0.6 + i * r * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(x, r * 0.2);
+      ctx.quadraticCurveTo(x + r * 0.25, r * 0.6, x, r * 0.95);
+      ctx.quadraticCurveTo(x - r * 0.2, r * 1.2, x + r * 0.05, r * 1.4);
+      ctx.stroke();
+    }
+    // かさ
+    ctx.globalAlpha = 0.93;
+    ctx.beginPath();
+    ctx.moveTo(-r, r * 0.25);
+    ctx.bezierCurveTo(-r * 1.05, -r * 0.95, r * 1.05, -r * 0.95, r, r * 0.25);
+    for (let i = 0; i < 5; i++) {
+      const x0 = r - (i * 2 * r) / 5;
+      ctx.quadraticCurveTo(x0 - r * 0.2, r * 0.48, x0 - r * 0.4, r * 0.25);
+    }
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.09;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    shine(ctx, r);
+    eyes(ctx, 0, -r * 0.12, r * 0.3, { color: '#5ff0ff', angry: false });
+  },
+  eel(ctx, r, col) {
+    // 頭が上、体はうねりながら下へ
+    const segs = 8;
+    for (let i = segs; i >= 1; i--) {
+      const t = i / segs;
+      const x = Math.sin(t * 5.2) * r * 0.45;
+      const y = -r * 0.35 + t * r * 1.75;
+      const rr = r * 0.5 * (1 - t * 0.7);
+      ctx.beginPath();
+      ctx.arc(x, y, rr, 0, TAU);
+      ctx.fillStyle = mix(col, '#000000', 0.15 + t * 0.25);
+      ctx.fill();
+    }
+    // 背びれ
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.05);
+    ctx.quadraticCurveTo(r * 0.5, -r * 0.9, r * 0.45, -r * 0.3);
+    ctx.lineTo(r * 0.2, -r * 0.4);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#7fffe0', 0.35);
+    ctx.fill();
+    // 頭
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.4, r * 0.6, r * 0.65, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.7, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.09;
+    ctx.stroke();
+    // 口
+    ctx.strokeStyle = 'rgba(10,20,30,0.8)';
+    ctx.lineWidth = r * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, -r * 0.05);
+    ctx.quadraticCurveTo(0, r * 0.08, r * 0.3, -r * 0.05);
+    ctx.stroke();
+    eyes(ctx, 0, -r * 0.45, r * 0.24, { color: '#b8ff5f', gap: 1.1 });
+  },
+  angler(ctx, r, col, f) {
+    // ちょうちん
+    const lit = f === 1;
+    ctx.strokeStyle = mix(col, '#ffffff', 0.25);
+    ctx.lineWidth = r * 0.09;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.8);
+    ctx.quadraticCurveTo(r * 0.2, -r * 1.4, r * 0.75, -r * 1.12);
+    ctx.stroke();
+    ctx.save();
+    ctx.shadowColor = '#fff27a';
+    ctx.shadowBlur = r * (lit ? 1.2 : 0.6);
+    ctx.fillStyle = lit ? '#ffffff' : '#fff27a';
+    ctx.beginPath();
+    ctx.arc(r * 0.75, -r * 1.08, r * (lit ? 0.24 : 0.2), 0, TAU);
+    ctx.fill();
+    ctx.restore();
+    // ひれ
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.8, r * 0.1);
+      ctx.lineTo(s * r * 1.35, -r * 0.2);
+      ctx.lineTo(s * r * 1.25, r * 0.45);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#000000', 0.2);
+      ctx.fill();
+    }
+    // からだ
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.95, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    // 口と牙
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.7, r * 0.15);
+    ctx.quadraticCurveTo(0, r * 0.95, r * 0.7, r * 0.15);
+    ctx.quadraticCurveTo(0, r * 0.45, -r * 0.7, r * 0.15);
+    ctx.fillStyle = '#12060e';
+    ctx.fill();
+    ctx.fillStyle = '#f2f2ff';
+    for (let i = 0; i < 5; i++) {
+      const x = -r * 0.5 + i * r * 0.25;
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.07, r * 0.3);
+      ctx.lineTo(x, r * 0.5);
+      ctx.lineTo(x + r * 0.07, r * 0.3);
+      ctx.fill();
+    }
+    shine(ctx, r);
+    eyes(ctx, 0, -r * 0.3, r * 0.22, { color: '#fff27a' });
+  },
+  squid(ctx, r, col, f) {
+    // 足
+    ctx.strokeStyle = mix(col, '#000000', 0.1);
+    ctx.lineWidth = r * 0.16;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 6; i++) {
+      const x = -r * 0.55 + i * r * 0.22;
+      const w = (i % 2 ? 1 : -1) * r * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(x, r * 0.35);
+      ctx.quadraticCurveTo(x + w, r * 0.9, x - w * 0.5, r * 1.35);
+      ctx.stroke();
+    }
+    // えんぺら
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.3, -r * 1.05);
+      ctx.lineTo(s * r * 1.0, -r * 0.8);
+      ctx.lineTo(s * r * 0.5, -r * 0.35);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#ffffff', 0.15);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.06;
+      ctx.stroke();
+    }
+    // 胴
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.4);
+    ctx.quadraticCurveTo(r * 0.8, -r * 0.6, r * 0.65, r * 0.45);
+    ctx.quadraticCurveTo(0, r * 0.65, -r * 0.65, r * 0.45);
+    ctx.quadraticCurveTo(-r * 0.8, -r * 0.6, 0, -r * 1.4);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    shine(ctx, r * 0.9);
+    eyes(ctx, 0, r * 0.05, r * 0.28, { color: f === 1 ? '#ff3d6a' : '#ffd23d', gap: 1.0 });
+  },
+  crab(ctx, r, col) {
+    // あし
+    ctx.strokeStyle = mix(col, '#000000', 0.3);
+    ctx.lineWidth = r * 0.1;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.6, r * (0.1 + i * 0.2));
+      ctx.lineTo(s * r * 1.15, r * (0.2 + i * 0.25));
+      ctx.lineTo(s * r * 1.3, r * (0.6 + i * 0.2));
+      ctx.stroke();
+    }
+    // はさみ
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(s * r * 1.05, -r * 0.65, r * 0.42, 0, TAU);
+      ctx.fillStyle = bodyGrad(ctx, r * 0.5, col);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.07;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(s * r * 1.05, -r * 0.65);
+      ctx.lineTo(s * r * 1.35, -r * 1.05);
+      ctx.lineTo(s * r * 0.85, -r * 1.02);
+      ctx.closePath();
+      ctx.fillStyle = '#0b0610';
+      ctx.fill();
+    }
+    // こうら
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.95, r * 0.7, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = r * 0.05;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.5, r * 0.15);
+    ctx.quadraticCurveTo(0, r * 0.4, r * 0.5, r * 0.15);
+    ctx.stroke();
+    shine(ctx, r);
+    // 目（柄の先）
+    for (const s of [-1, 1]) {
+      ctx.strokeStyle = mix(col, '#000000', 0.3);
+      ctx.lineWidth = r * 0.08;
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.25, -r * 0.55);
+      ctx.lineTo(s * r * 0.3, -r * 0.9);
+      ctx.stroke();
+    }
+    eyes(ctx, 0, -r * 0.92, r * 0.2, { color: '#ff8a3d', angry: false, gap: 1.5 });
+  },
+  deepone(ctx, r, col) {
+    // 背びれ
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.2, -r * 1.35);
+    ctx.lineTo(r * 0.1, -r * 1.05);
+    ctx.lineTo(r * 0.35, -r * 1.3);
+    ctx.lineTo(r * 0.45, -r * 0.85);
+    ctx.lineTo(-r * 0.45, -r * 0.85);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#7fffc0', 0.3);
+    ctx.fill();
+    // 肩と腕
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.1, r * 0.9);
+    ctx.quadraticCurveTo(-r * 1.1, -r * 0.1, -r * 0.5, -r * 0.2);
+    ctx.lineTo(r * 0.5, -r * 0.2);
+    ctx.quadraticCurveTo(r * 1.1, -r * 0.1, r * 1.1, r * 0.9);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#000000', 0.2);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // うろこ
+    ctx.strokeStyle = 'rgba(160,255,220,0.25)';
+    ctx.lineWidth = r * 0.04;
+    for (let j = 0; j < 2; j++) for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.arc(i * r * 0.32, r * (0.25 + j * 0.3), r * 0.16, 0, Math.PI);
+      ctx.stroke();
+    }
+    // 頭
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.45, r * 0.62, r * 0.55, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.7, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    // えら
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = r * 0.05;
+    for (const s of [-1, 1]) for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * (0.42 + i * 0.08), -r * 0.35);
+      ctx.lineTo(s * r * (0.38 + i * 0.08), -r * 0.15);
+      ctx.stroke();
+    }
+    // 口
+    ctx.strokeStyle = '#0b0610';
+    ctx.lineWidth = r * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, -r * 0.18);
+    ctx.lineTo(r * 0.3, -r * 0.18);
+    ctx.stroke();
+    eyes(ctx, 0, -r * 0.5, r * 0.26, { color: '#b8ff5f', angry: false, gap: 1.05 });
+  },
+  motherjelly(ctx, r, col) {
+    ENEMY_DRAW.jelly(ctx, r, col);
+    // 中で光る器官
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * TAU + 0.4;
+      const x = Math.cos(a) * r * 0.42, y = -r * 0.35 + Math.sin(a) * r * 0.18;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 0.22);
+      g.addColorStop(0, 'rgba(255,170,240,0.5)');
+      g.addColorStop(1, 'rgba(255,120,220,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.22, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+    // かんむり（宝石）
+    ctx.save();
+    ctx.translate(0, -r * 0.78);
+    drawGem(ctx, r * 0.12, GEMS.obsidian);
+    ctx.restore();
+  },
+  serpent(ctx, r, col) {
+    // とぐろ
+    for (let i = 0; i < 3; i++) {
+      const y = r * (0.75 - i * 0.28), w = r * (1.05 - i * 0.2);
+      ctx.beginPath();
+      ctx.ellipse(0, y, w, r * 0.26, 0, 0, TAU);
+      ctx.fillStyle = mix(col, '#000000', 0.1 + i * 0.1);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.05;
+      ctx.stroke();
+    }
+    // 首
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.25, r * 0.2);
+    ctx.quadraticCurveTo(-r * 0.45, -r * 0.5, 0, -r * 0.75);
+    ctx.quadraticCurveTo(r * 0.45, -r * 0.5, r * 0.25, r * 0.2);
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+    // ひれの冠
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.25, -r * 1.0);
+      ctx.lineTo(s * r * 0.95, -r * 1.35);
+      ctx.lineTo(s * r * 0.75, -r * 0.95);
+      ctx.lineTo(s * r * 1.05, -r * 0.75);
+      ctx.lineTo(s * r * 0.4, -r * 0.7);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#5fffe0', 0.35);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.04;
+      ctx.stroke();
+    }
+    // 頭
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.95, r * 0.5, r * 0.42, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    eyes(ctx, 0, -r * 1.0, r * 0.18, { color: '#ff3d6a' });
+  },
+  dagon(ctx, r, col) {
+    // 背びれの冠
+    for (let i = -3; i <= 3; i++) {
+      const x = i * r * 0.2;
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.1, -r * 0.8);
+      ctx.lineTo(x + i * r * 0.05, -r * (1.35 - Math.abs(i) * 0.1));
+      ctx.lineTo(x + r * 0.1, -r * 0.8);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#5fffe0', 0.3);
+      ctx.fill();
+    }
+    // 肩と体
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.3, r * 1.05);
+    ctx.quadraticCurveTo(-r * 1.35, -r * 0.2, -r * 0.6, -r * 0.35);
+    ctx.lineTo(r * 0.6, -r * 0.35);
+    ctx.quadraticCurveTo(r * 1.35, -r * 0.2, r * 1.3, r * 1.05);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 1.2, mix(col, '#000000', 0.15));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    // うろこ
+    ctx.strokeStyle = 'rgba(140,255,220,0.22)';
+    ctx.lineWidth = r * 0.03;
+    for (let j = 0; j < 3; j++) for (let i = -3; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.arc(i * r * 0.3 + (j % 2) * r * 0.15, r * (0.1 + j * 0.28), r * 0.14, 0, Math.PI);
+      ctx.stroke();
+    }
+    // 胸の宝石
+    ctx.save();
+    ctx.translate(0, r * 0.35);
+    drawGem(ctx, r * 0.16, GEMS.obsidian);
+    ctx.restore();
+    // 頭
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.5, r * 0.62, r * 0.5, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.7, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    // 大きな口
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.42, -r * 0.3);
+    ctx.quadraticCurveTo(0, -r * 0.05, r * 0.42, -r * 0.3);
+    ctx.quadraticCurveTo(0, -r * 0.18, -r * 0.42, -r * 0.3);
+    ctx.fillStyle = '#0b0610';
+    ctx.fill();
+    // ひげ
+    ctx.strokeStyle = mix(col, '#5fffe0', 0.3);
+    ctx.lineWidth = r * 0.05;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.4, -r * 0.3);
+      ctx.quadraticCurveTo(s * r * 0.75, -r * 0.1, s * r * 0.6, r * 0.2);
+      ctx.stroke();
+    }
+    eyes(ctx, 0, -r * 0.6, r * 0.2, { color: '#5fffe0', gap: 1.3 });
+  },
   boss1(ctx, r, col) {
     ENEMY_DRAW.slime(ctx, r, col);
     // おうかん
@@ -1196,6 +1605,8 @@ const ENEMY_COLORS = {
   slime: '#7a64a8', bat: '#5a4a80', ghost: '#9c90c8', toge: '#6a3a70', golem: '#7a6a60', knight: '#3c3456',
   boss1: '#6a48a0', boss2: '#35235a', boss3: '#1a0d2a',
   spitter: '#3a5a7a', splitter: '#3a7a5a', charger: '#6a4a3a', phantom: '#2a1a4a',
+  jelly: '#7f88e8', eel: '#2f7a7a', angler: '#4a4a78', squid: '#b0588a', crab: '#b8543a', deepone: '#2f7a62',
+  motherjelly: '#b070d8', serpent: '#1f6a8a', dagon: '#1f5a6a',
 };
 
 // ------------------------------------------------------------------ プレイヤー

@@ -487,6 +487,13 @@ export const ENEMIES = {
   bomber: { name: 'マグマ・ボム', hp: 130, speed: 78, dmg: 6, r: 13, xp: 2, ai: 'bomber', desc: '近づくと点火して爆発する。点火したら即離脱。' },
   wisp: { name: 'フロスト・ウィスプ', hp: 170, speed: 66, dmg: 6, r: 13, xp: 2, ai: 'wisp', desc: '触れると体が凍えて足が鈍る。' },
   phantom: { name: 'ヴォイド・ファントム', hp: 280, speed: 52, dmg: 10, r: 15, xp: 3, ai: 'phantom', desc: '闇に溶け、背後へ瞬間移動してくる。' },
+  // ---- 第2章：深海
+  jelly: { name: 'ディープ・ジェリー', hp: 90, speed: 44, dmg: 6, r: 14, xp: 1, ai: 'drift', desc: 'ふわふわと漂いながら近づいてくるクラゲ。' },
+  eel: { name: 'アビス・イール', hp: 55, speed: 92, dmg: 6, r: 12, xp: 1, ai: 'eel', desc: '体をくねらせて素早く泳ぐウナギ。群れで押し寄せる。' },
+  angler: { name: 'ランタン・アングラー', hp: 180, speed: 42, dmg: 7, r: 15, xp: 2, ai: 'spitter', desc: '提灯の光を撃ってくる。近づいて倒せ。' },
+  squid: { name: 'ダート・スクイッド', hp: 420, speed: 50, dmg: 14, r: 17, xp: 4, ai: 'charger', desc: '一瞬溜めてから一直線に突進してくる。赤い線から逃げろ。' },
+  crab: { name: 'アイアン・クラブ', hp: 850, speed: 34, dmg: 14, r: 23, xp: 6, ai: 'crab', desc: '分厚い甲羅で守りを固めた大ガニ。とにかく硬い。' },
+  deepone: { name: 'ディープ・ワン', hp: 1300, speed: 56, dmg: 16, r: 20, xp: 8, ai: 'deepone', desc: '海の底から這い上がってきた魚人。深きものども。' },
   // ---- ステージ別の中ボス
   boss1_cavern: { name: 'クリスタル・キング', hp: 14000, speed: 50, dmg: 20, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#2f7fb0', desc: '水晶洞窟の粘体王。2:00に出現。' },
   boss2_cavern: { name: 'ジェム・ドラゴン', hp: 20000, speed: 62, dmg: 26, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'boss2', tint: '#1f4f8a', desc: '宝石を喰らって育った竜。4:00に出現。' },
@@ -495,6 +502,8 @@ export const ENEMIES = {
   boss1_tundra: { name: 'グレイシャー・キング', hp: 14000, speed: 48, dmg: 22, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#7fa8d0', desc: '氷河を背負う粘体王。2:00に出現。' },
   boss3_tundra: { name: 'スノウ・クイーン', hp: 28000, speed: 56, dmg: 28, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#3a5a8a', desc: '氷原を統べる女王。4:00に出現。' },
   boss1_void: { name: 'ヴォイド・キング', hp: 12500, speed: 52, dmg: 24, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#3a1a5a', desc: '虚空の粘体王。2:00に出現。' },
+  boss1_deep: { name: 'マザー・ジェリー', hp: 18000, speed: 48, dmg: 22, r: 50, xp: 200, boss: true, ai: 'boss1', sprite: 'motherjelly', desc: '深海のクラゲの母。2:00に出現。全方位弾と子クラゲの召喚。' },
+  boss2_deep: { name: 'シー・サーペント', hp: 37000, speed: 64, dmg: 28, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'serpent', desc: '深海を巡る大海蛇。4:00に出現。螺旋弾と突進。' },
   boss3_void: { name: 'クイーン・シャドウ', hp: 55000, speed: 58, dmg: 30, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#2a0a3a', desc: '女王の残影。虚空聖堂の6:00に出現。' },
   // ---- 最終ボス
   prism: { name: 'プリズム・コロッサス', hp: 210000, speed: 40, dmg: 30, r: 62, xp: 2000, boss: true, ai: 'prism', desc: '水晶洞窟の主。回転するレーザーで空間を切り裂く。7:00に出現。' },
@@ -502,6 +511,7 @@ export const ENEMIES = {
   wormseg: { name: 'マグマ・ワーム（胴）', hp: 1, speed: 0, dmg: 22, r: 26, xp: 0, segment: true, sprite: 'wormseg', desc: '' },
   lich: { name: 'フロスト・リッチ', hp: 270000, speed: 45, dmg: 30, r: 50, xp: 2000, boss: true, ai: 'lich', desc: '氷原に眠っていた魔導士。氷柱と冷気で逃げ場を奪う。7:00に出現。' },
   emperor: { name: 'ヴォイド・エンペラー', hp: 170000, speed: 50, dmg: 34, r: 66, xp: 4000, boss: true, ai: 'emperor', desc: 'ダスクを生み出した虚空の皇帝。3つの形態を持つ。8:00に出現。' },
+  dagon: { name: 'ダゴン', hp: 210000, speed: 48, dmg: 34, r: 64, xp: 2000, boss: true, ai: 'dagon', desc: '深きものどもが崇める海の父。津波の弾幕と水柱で逃げ場を奪う。7:00に出現。' },
   thief: { name: 'ジュエルシーフ', hp: 2600, speed: 128, dmg: 0, r: 15, xp: 6, ai: 'thief', sprite: 'ghost', tint: '#d8a93a', desc: '原石を抱えて逃げ回る盗賊。7:00以降に現れ、しばらくすると姿を消す。倒すと原石と宝箱を落とす。' },
   crystal: { name: 'ライトクリスタル', hp: 1, speed: 0, dmg: 0, r: 16, xp: 0, prop: true, color: '#ffffff', desc: '破壊するとアイテムを落とす。' },
 };

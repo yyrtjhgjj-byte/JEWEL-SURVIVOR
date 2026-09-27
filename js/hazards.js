@@ -1,5 +1,5 @@
 // =====================================================================
-//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇
+//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口
 // =====================================================================
 import { TAU, rand } from './util.js';
 import { pillarSprite, softSprite, starSprite } from './render.js';
@@ -34,6 +34,7 @@ export class Hazards {
     this.riftT = 30;
     this.rifts = [];
     this.lavaT = 0;
+    this.boostT = 0; // 泡の噴出口：入ると少しの間だけ速く泳げる
   }
 
   // ---------------------------------------------------------- 地形（チャンク単位）
@@ -47,6 +48,8 @@ export class Hazards {
     if (this.kind === 'pillars') {
       const n = r() < 0.25 ? 0 : r() < 0.6 ? 1 : 2;
       for (let i = 0; i < n; i++) c.push({ x: ox + 40 + r() * (CHUNK - 80), y: oy + 40 + r() * (CHUNK - 80), r: 22 + r() * 22, seed: r() });
+    } else if (this.kind === 'bubbles') {
+      if (r() < 0.55) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 30 + r() * 10, seed: r() * TAU });
     } else if (this.kind === 'lava') {
       if (r() < 0.6) c.push({ x: ox + 70 + r() * (CHUNK - 140), y: oy + 70 + r() * (CHUNK - 140), r: 42 + r() * 36, seed: r() * TAU });
     }
@@ -120,6 +123,7 @@ export class Hazards {
 
   // 移動速度への補正
   speedMul() {
+    if (this.kind === 'bubbles' && this.boostT > 0) return 1.35;
     return this.kind === 'blizzard' && this.storm ? 0.72 : 1;
   }
 
@@ -133,6 +137,14 @@ export class Hazards {
       for (const e of g.enemies) if (e.alive && !e.prop && !e.boss && !e.segment && g.inView(e, 120)) this.collide(e, e.r * 0.8);
       // 敵弾は柱で止まる
       for (const b of g.ebullets) if (this.blocks(b.x, b.y)) { b.life = 0; g.fx.burst(b.x, b.y, '#8ff0ff', 3, 80, 0.25, 6); }
+    } else if (this.kind === 'bubbles') {
+      this.boostT -= dt;
+      for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
+        if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 > o.r * o.r) continue;
+        if (this.boostT <= 0) { g.fx.burst(p.x, p.y, '#bfe8ff', 10, 160, 0.5, 8); audio.pickup(); }
+        this.boostT = 1.6;
+      }
+      if (this.boostT > 0 && p.moving && Math.random() < 0.4) g.fx.add(p.x + rand(-8, 8), p.y + rand(-8, 8), 0, -40, 0.6, 5, '#bfe8ff', 'dot');
     } else if (this.kind === 'lava') {
       this.lavaT -= dt;
       const list = this.around(p.x, p.y, this._c || (this._c = []));
@@ -207,6 +219,24 @@ export class Hazards {
   // ---------------------------------------------------------- 描画（地面）
   drawGround(ctx) {
     const g = this.g, p = g.player;
+    if (this.kind === 'bubbles') {
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
+        const grd = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+        grd.addColorStop(0, 'rgba(120,210,255,0.35)');
+        grd.addColorStop(0.7, 'rgba(40,120,200,0.18)');
+        grd.addColorStop(1, 'rgba(40,120,200,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(150,220,255,0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(o.x, o.y, o.r * 0.45, o.r * 0.22, 0, 0, TAU);
+        ctx.stroke();
+      }
+      return;
+    }
     if (this.kind === 'lava') {
       const list = this.inView(p.x, p.y, this._v || (this._v = []));
       for (const o of list) {
@@ -257,6 +287,25 @@ export class Hazards {
 
   // 柱など（敵と同じ高さ）
   drawObjects(ctx) {
+    if (this.kind === 'bubbles') {
+      // 噴出口から立ちのぼる泡
+      const p = this.g.player;
+      ctx.strokeStyle = 'rgba(190,235,255,0.6)';
+      ctx.lineWidth = 1.2;
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
+        for (let i = 0; i < 6; i++) {
+          const k = ((this.t * 0.7 + i / 6 + o.seed) % 1);
+          const x = o.x + Math.sin(o.seed * 5 + i * 2.1 + this.t * 2) * o.r * 0.45;
+          const y = o.y - k * 70;
+          ctx.globalAlpha = 1 - k;
+          ctx.beginPath();
+          ctx.arc(x, y, 2 + (i % 3) * 1.5, 0, TAU);
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
     if (this.kind !== 'pillars') return;
     const p = this.g.player;
     const list = this.inView(p.x, p.y, this._v || (this._v = []));
