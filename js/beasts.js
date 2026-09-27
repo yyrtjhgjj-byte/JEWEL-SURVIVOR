@@ -135,10 +135,15 @@ export function raiseBeast(id) {
 // 全体のボーナス（game.js の computeStats から使う）
 export function beastStats() {
   const s = {};
+  let n = 0;
   for (const id of BEAST_IDS) {
     const v = beastValue(id);
-    if (v) s[BEASTS[id].stat] = (s[BEASTS[id].stat] || 0) + v;
+    if (!v) continue;
+    s[BEASTS[id].stat] = (s[BEASTS[id].stat] || 0) + v;
+    n++;
   }
+  // 召喚した種類の数だけ与ダメージ +1%
+  if (n) s.dmgUp = (s.dmgUp || 0) + 0.01 * n;
   return s;
 }
 
