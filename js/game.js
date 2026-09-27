@@ -82,9 +82,8 @@ const BREAK_GROW = 1.5;
 
 const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000];
 
-// さいしょは すぐ レベルアップ → だんだん ゆっくり
-// 必要経験値（初期カーブの 1.75 × 1.8 倍）
-const xpFor = (l) => Math.round(1.25 * 1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 4 + Math.max(0, l - 30) * 6 + Math.max(0, l - 60) * 10));
+// 必要経験値。Lv15（2:00 ごろ）までの序盤はそのままに、そのあとの伸びを大きくしてある（1 レベルごとの増分が Lv15・30・60 を境に増える）
+const xpFor = (l) => Math.round(1.25 * 1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 8 + Math.max(0, l - 30) * 10 + Math.max(0, l - 60) * 10));
 
 export class Game {
   constructor(canvas, hooks, opts = {}) {
