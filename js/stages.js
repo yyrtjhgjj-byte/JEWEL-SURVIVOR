@@ -144,6 +144,21 @@ export const STAGES = [
     events: makeEvents({ e: ['phantom', 'charger', 'splitter', 'golem', 'knight'], sw: 'phantom', r: ['phantom', 'spitter', 'bomber'], b: ['boss1_void', 'boss2', 'boss3_void', 'emperor'], bm: [1, 0.59] }), // bm：ボスの HP の倍率（ほかのステージと共通のボス用）
     finalBoss: 'emperor',
   },
+  // ---------------------------------------------------------------- 第2章
+  {
+    id: 'deep', no: 6, chapter: 2, name: 'ドキドキ！？深海探索ツアー！', en: 'DEEP SEA TOUR', time: 600,
+    desc: '光の届かない海の底へご招待。泡の噴き出す場所に入ると、しばらく速く泳げる。',
+    hazard: 'bubbles', hazardText: '泡の噴出口（入ると加速）',
+    hp: 1.4, dmg: 1.45, reward: 6000, bgm: 'deep',
+    pal: { bg: '#02060c', grid: '60,140,220', mark: '90,190,255', dust: '160,220,255', glow: 'rgba(20,90,180,0.28)', accent: '#3fa8ff' },
+    tint: null,
+    waves: makeWaves({
+      0: ['jelly', 'eel'], 1: ['jelly', 'eel', 'angler'], 2: ['angler', 'squid', 'crab', 'jelly'],
+      3: ['crab', 'squid', 'angler', 'eel'], 4: ['deepone', 'crab', 'squid', 'angler', 'eel'], b: ['eel', 'jelly'],
+    }),
+    events: makeEvents({ e: ['angler', 'squid', 'crab', 'crab', 'deepone'], sw: 'eel', r: ['jelly', 'angler', 'crab'], b: ['boss1_deep', 'boss2_deep', 'dagon'] }),
+    finalBoss: 'dagon',
+  },
 ];
 
 // 12分ステージの 540秒前後はボス戦なので軽めに
