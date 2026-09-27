@@ -80,7 +80,8 @@ async function runOne(browser, spec) {
           const dmg = g.totalDmg - S.lastDmg; S.lastDmg = g.totalDmg;
           const near = g.enemies.filter((e) => e.alive && !e.prop && !e.segment && (e.x - g.player.x) ** 2 + (e.y - g.player.y) ** 2 < 200 * 200).length;
           S.tl.push({ t: Math.round(g.time), lv: g.level, dps: Math.round(dmg / 15), xpd: Math.round(S.xpDrop), est: Math.round(g.estPower()), tm: +(g.trashMul || 1).toFixed(2), hp: Math.round(g.player.hp), near, en: g.enemies.filter((e) => e.alive && !e.prop).length,
-            w: g.weapons.map((w) => w.id + (w.evolved ? 'E' : w.level)).join(','), p: g.passives.map((p) => p.id + p.level).join(',') });
+            w: g.weapons.map((w) => w.id + (w.evolved ? 'E' : w.level)).join(','), p: g.passives.map((p) => p.id + p.level).join(','),
+            ar: +g.stats.area.toFixed(2), war: +Math.max(0, ...g.weapons.map((w) => w.s.area)).toFixed(2), lk: +g.stats.luck.toFixed(2) });
         }
         if (g.time > end + 60) break;
       }

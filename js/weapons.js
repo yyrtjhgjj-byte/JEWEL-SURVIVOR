@@ -1,7 +1,7 @@
 // =====================================================================
 //  ぶきの うごき
 // =====================================================================
-import { WEAPONS } from './data.js';
+import { WEAPONS, AREA_CAP } from './data.js';
 import { TAU, rand, randi, chance, ease } from './util.js';
 import { gemSprite, starSprite, softSprite, itemSprite, moonSprite, sparkle } from './render.js';
 import { audio } from './audio.js';
@@ -20,7 +20,8 @@ export function weaponStats(g, w) {
     cd: Math.max(0.08, s.cd * P.cooldown * (1 - (lb.cd || 0))),
     amount: (s.amount || 0) + P.amount + (lb.amount || 0) + (g.hasArt && g.hasArt('crown') && w.id === g.startWeapon ? 3 : 0), // 秘宝「職人の王冠」
     speed: (s.speed || 1) * P.speed * (1 + (lb.speed || 0)),
-    area: (s.area || 1) * P.area * (1 + (lb.area || 0)),
+    // 全体の攻撃範囲とリミットブレイクを掛けた値にも上限をかける（武器ごとのレベルアップの範囲は別）
+    area: (s.area || 1) * Math.min(AREA_CAP, P.area * (1 + (lb.area || 0))),
     pierce: s.pierce || 0,
     duration: (s.duration || 0) * P.duration * (1 + (lb.dur || 0)),
     life: (s.life || 1) * P.duration * (1 + (lb.dur || 0)),

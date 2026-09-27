@@ -2,7 +2,7 @@
 //  ゲーム本体
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, BACK_SHOP, LIMIT_BREAK,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, AREA_CAP, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, BACK_SHOP, LIMIT_BREAK,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
@@ -74,6 +74,11 @@ function TINT(type, tint) {
   const m = mix(BASE_COL[type] || '#6b5a8e', tint, 0.55).match(/\d+/g).map(Number);
   return (tintCache[k] = '#' + m.map((v) => v.toString(16).padStart(2, '0')).join(''));
 }
+
+// ボスの HP の全体倍率（data.js の hp に掛ける）と、ブレイクに必要な量（最大 HP に対する割合、ブレイクのたびに掛ける倍率）
+const BOSS_HP = 1.2;
+const BREAK_NEED = 0.42;
+const BREAK_GROW = 1.5;
 
 const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000];
 
@@ -221,7 +226,7 @@ export class Game {
       s.maxHp *= 1 + 0.2 * n;
       s.armor += n;
       s.might += 0.1 * n;
-      s.area += 0.1 * n;
+      s.area += 0.07 * n;
       s.speed += 0.1 * n;
       s.duration += 0.1 * n;
     }
@@ -230,10 +235,10 @@ export class Game {
     // ヒート・HYPER のコインの倍率もラン中に掛ける（HUD のコインとリザルトの獲得コインが一致するように）
     s.greed *= (1 + (0.3 + s.heatCoin) * this.heat) * (this.hyper ? 1.5 : 1); // ヒート 1 段階ごとに +30%（裏工房のヒートの報酬で上乗せ）
     recalcElements(this);
-    // 上限を超えた分は攻撃力（ラン中の枠）に変える。攻撃範囲の上限 3 倍は、描画が重くなって古い iPhone で落ちるのを防ぐため
+    // 上限を超えた分は攻撃力（ラン中の枠）に変える。攻撃範囲の上限（AREA_CAP）は、範囲のインフレと、描画が重くなって古い iPhone で落ちるのを防ぐため
     let over = 0;
     if (s.cooldown < 0.35) { over += 0.35 - s.cooldown; s.cooldown = 0.35; }
-    if (s.area > 3) { over += (s.area - 3) * 0.2; s.area = 3; }
+    if (s.area > AREA_CAP) { over += (s.area - AREA_CAP) * 0.2; s.area = AREA_CAP; }
     if (s.guard > 0.6) { over += s.guard - 0.6; s.guard = 0.6; }
     if (s.crit > 1) { over += s.crit - 1; s.crit = 1; }
     s.overMight = over;
@@ -646,7 +651,7 @@ export class Game {
     const elite = !!o.elite;
     // ボスの HP は段階ごとの基本値（data.js）× ステージ × ヒート（自機のレベルが 20 を超えた分だけ 1%/Lv 硬くなる）。
     // 雑魚は時間の伸び（hpScale）× 自機の強さ（trashMul。大群イベント・エリート・シーフは連動させない）、エリートは雑魚の 2 倍
-    const mul = d.boss ? (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp
+    const mul = d.boss ? BOSS_HP * (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp
       : d.prop ? 1 : this.hpScale() * (elite ? 2 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1);
     // 敵の攻撃力（dmg）：雑魚・エリート 2 倍、ボス 1.5 倍（弾・レーザーもこれをもとにする）
     const e = {
@@ -1205,13 +1210,13 @@ export class Game {
     const p = this.player;
     const d = Math.max(0, Math.hypot(e.x - p.x, e.y - p.y) - e.r);
     const f = d <= 70 ? 2 : d >= 320 ? 0.4 : 2 - ((d - 70) / 250) * 1.6;
-    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * 0.34 * (e.breakNeed || 1))) * f * earthBreak(this) * (1 + this.stats.breakUp);
+    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * BREAK_NEED * (e.breakNeed || 1))) * f * earthBreak(this) * (1 + this.stats.breakUp);
     e.breakNear = f;
     if (e.breakG >= 1) this.bossBreak(e);
   }
   bossBreak(e) {
     e.breakG = 0;
-    e.breakNeed = (e.breakNeed || 1) * 1.4; // 次のブレイクは少し遠くなる
+    e.breakNeed = (e.breakNeed || 1) * BREAK_GROW; // 次のブレイクは少し遠くなる
     e.breakT = 4;
     e.dash = 0;
     e.windup = 0;
@@ -1694,7 +1699,8 @@ export class Game {
     }
     const lb = w.lb || {};
     const has = (n) => [].concat(n).some((k) => def.base[k] !== undefined);
-    const skip = w.evolved ? def.evo.lbSkip || [] : [];
+    const skip = w.evolved ? [...(def.evo.lbSkip || [])] : [];
+    if (this.stats.area * (1 + (lb.area || 0)) >= AREA_CAP) skip.push('area'); // 攻撃範囲が上限に届いていれば出さない
     const opts = LIMIT_BREAK.filter((o) => (!o.need || has(o.need)) && (!o.max || (lb[o.k] || 0) < o.max) && !skip.includes(o.k));
     if (!opts.length) return null;
     const o = weightedPick(opts, (x) => x.w);

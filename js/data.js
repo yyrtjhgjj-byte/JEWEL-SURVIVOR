@@ -399,13 +399,15 @@ export const WEAPONS = {
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
 export const WEAPON_MAX = 8;
+// 攻撃範囲の上限（キャラ・工房・チャーム・秘宝などの合計と、武器ごとのリミットブレイクを掛けた値）。超えた分は攻撃力に変える（game.js の computeStats）
+export const AREA_CAP = 2;
 // リミットブレイク：Lv8（進化済みを含む）の武器を、レベルアップのたびに少しずつ強化する
 // need：その武器が持っている性能だけを候補にする。max：1 つの武器で強化できる回数の上限
 // 進化後に使わなくなる性能は、WEAPONS の evo.lbSkip で候補から外す
 export const LIMIT_BREAK = [
   { k: 'dmg', v: 0.06, t: 'ダメージ +6%', w: 5 },
   { k: 'cd', v: 0.03, t: 'クールダウン短縮 3%', w: 3 },
-  { k: 'area', v: 0.05, t: '攻撃範囲 +5%', w: 3, need: 'area' },
+  { k: 'area', v: 0.035, t: '攻撃範囲 +3.5%', w: 3, need: 'area' },
   { k: 'speed', v: 0.06, t: '弾速 +6%', w: 2, need: 'speed' },
   { k: 'dur', v: 0.06, t: '持続 +6%', w: 2, need: ['duration', 'life'] },
   { k: 'amount', v: 1, t: '弾数 +1', w: 1, need: 'amount', max: 2 },
@@ -418,8 +420,8 @@ export const PASSIVES = {
   topaz: { gem: 'topaz', name: 'トパーズ', max: 5, per: { might: 0.1 }, t: '攻撃力 +10%' },
   jasper: { gem: 'jasper', name: 'ジャスパー', max: 5, per: { maxHp: 20 }, t: '最大HP +20' },
   nephrite: { gem: 'nephrite', name: 'ネフライト', max: 1, per: { amount: 1 }, t: '弾数 +1' },
-  milkyquartz: { gem: 'milkyquartz', name: 'ミルキークオーツ', max: 5, per: { area: 0.1 }, t: '攻撃範囲 +10%' },
-  coral: { gem: 'coral', name: 'サンゴ', max: 5, per: { luck: 0.15, crit: 0.01 }, t: '幸運 +15% / クリティカル率 +1%' },
+  milkyquartz: { gem: 'milkyquartz', name: 'ミルキークオーツ', max: 5, per: { area: 0.07 }, t: '攻撃範囲 +7%' },
+  coral: { gem: 'coral', name: 'サンゴ', max: 5, per: { luck: 0.12, crit: 0.01 }, t: '幸運 +12% / クリティカル率 +1%' },
   iolite: { gem: 'iolite', name: 'アイオライト', max: 5, per: { cooldown: -0.08 }, t: 'クールダウン短縮 8%' },
   prase: { gem: 'prase', name: 'クリソプレーズ', max: 5, per: { growth: 0.1 }, t: '経験値 +10%' },
   granite: { gem: 'granite', name: 'グラナイト', max: 5, per: { armor: 1.5 }, t: 'アーマー +1.5' },
@@ -451,15 +453,15 @@ export const CHARACTERS = {
   labradorite: { weapon: 'labradorite', perk: 'クリティカル率 +5%', stats: { crit: 0.05 }, unlock: '1回のプレイで1000体撃破' },
   amber: { weapon: 'amber', perk: 'コイン +30%', stats: { greed: 0.3 }, unlock: '1回のプレイでコイン500枚獲得' },
   angelite: { weapon: 'angelite', perk: 'HP自然回復 +0.4', stats: { regen: 0.4 }, unlock: '5分間生存' },
-  diamond: { weapon: 'diamond', perk: '攻撃範囲 +10% / クリティカル率 +3%', stats: { area: 0.1, crit: 0.03 }, unlock: 'ステージクリア' },
-  opal: { weapon: 'opal', perk: '幸運 +25%', stats: { luck: 0.25 }, unlock: '宝石を14種類コレクション（研磨工房）' },
-  emerald: { weapon: 'emerald', perk: '経験値 +10% / 幸運 +10%', stats: { growth: 0.1, luck: 0.1 }, unlock: 'レベル30到達' },
+  diamond: { weapon: 'diamond', perk: '攻撃範囲 +7% / クリティカル率 +3%', stats: { area: 0.07, crit: 0.03 }, unlock: 'ステージクリア' },
+  opal: { weapon: 'opal', perk: '幸運 +20%', stats: { luck: 0.2 }, unlock: '宝石を14種類コレクション（研磨工房）' },
+  emerald: { weapon: 'emerald', perk: '経験値 +10% / 幸運 +8%', stats: { growth: 0.1, luck: 0.08 }, unlock: 'レベル30到達' },
   rhodochrosite: { weapon: 'rhodochrosite', perk: '攻撃力 +15% / 最大HP -10', stats: { might: 0.15, maxHp: -10 }, unlock: '1回のプレイで5回フィーバー' },
   kyanite: { weapon: 'kyanite', perk: '弾速 +20%', stats: { speed: 0.2 }, unlock: '1回のプレイでボスを2体撃破' },
   aquamarine: { weapon: 'aquamarine', perk: '持続 +15% / アーマー +1', stats: { duration: 0.15, armor: 1 }, unlock: 'HEAT 1以上でクリア' },
-  tourmaline: { weapon: 'tourmaline', perk: '移動速度 +8% / 幸運 +10%', stats: { moveSpeed: 0.08, luck: 0.1 }, unlock: 'STAGE 2 の最終ボスを倒す' },
+  tourmaline: { weapon: 'tourmaline', perk: '移動速度 +8% / 幸運 +8%', stats: { moveSpeed: 0.08, luck: 0.08 }, unlock: 'STAGE 2 の最終ボスを倒す' },
   alexandrite: { weapon: 'alexandrite', perk: '経験値 +15%', stats: { growth: 0.15 }, unlock: 'STAGE 3 の最終ボスを倒す' },
-  moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +10% / 回収範囲 +20%', stats: { area: 0.1, magnet: 0.2 }, unlock: 'STAGE 4 の最終ボスを倒す' },
+  moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +7% / 回収範囲 +20%', stats: { area: 0.07, magnet: 0.2 }, unlock: 'STAGE 4 の最終ボスを倒す' },
   obsidian: { weapon: 'obsidian', perk: '攻撃力 +12% / アーマー +1', stats: { might: 0.12, armor: 1 }, unlock: 'STAGE 5 の最終ボスを倒す' },
 };
 export const CHAR_IDS = Object.keys(CHARACTERS);
@@ -555,12 +557,12 @@ export const SHOP = [
   { id: 'armor', name: 'アーマー', gem: 'granite', max: 3, base: 250, per: { armor: 1 }, t: '被ダメージ -1' },
   { id: 'regen', name: '自然回復', gem: 'coal', max: 5, base: 150, per: { regen: 0.1 }, t: 'HP回復 +0.1/秒' },
   { id: 'cooldown', name: 'クールダウン', gem: 'iolite', max: 3, base: 400, per: { cooldown: -0.03 }, t: 'クールダウン短縮 3%' },
-  { id: 'area', name: '攻撃範囲', gem: 'milkyquartz', max: 3, base: 300, per: { area: 0.05 }, t: '攻撃範囲 +5%' },
+  { id: 'area', name: '攻撃範囲', gem: 'milkyquartz', max: 3, base: 300, per: { area: 0.035 }, t: '攻撃範囲 +3.5%' },
   { id: 'speed', name: '弾速', gem: 'kyanite', max: 3, base: 150, per: { speed: 0.05 }, t: '弾速 +5%' },
   { id: 'duration', name: '持続', gem: 'aquamarine', max: 3, base: 200, per: { duration: 0.07 }, t: '効果時間 +7%' },
   { id: 'moveSpeed', name: '移動速度', gem: 'peridot', max: 3, base: 200, per: { moveSpeed: 0.04 }, t: '移動速度 +4%' },
   { id: 'magnet', name: '回収範囲', gem: 'redberyl', max: 3, base: 150, per: { magnet: 0.15 }, t: '回収範囲 +15%' },
-  { id: 'luck', name: '幸運', gem: 'coral', max: 3, base: 300, per: { luck: 0.08 }, t: '幸運 +8%' },
+  { id: 'luck', name: '幸運', gem: 'coral', max: 3, base: 300, per: { luck: 0.06 }, t: '幸運 +6%' },
   { id: 'growth', name: '成長', gem: 'prase', max: 5, base: 250, per: { growth: 0.04 }, t: '経験値 +4%' },
   { id: 'greed', name: '強欲', gem: 'titanite', max: 5, base: 150, per: { greed: 0.1 }, t: '獲得コイン +10%' },
   { id: 'crit', name: 'クリティカル', gem: 'diamond', max: 5, base: 250, per: { crit: 0.02 }, t: 'クリティカル率 +2%' },
