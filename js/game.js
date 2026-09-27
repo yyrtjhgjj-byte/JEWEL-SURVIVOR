@@ -1535,7 +1535,7 @@ export class Game {
     const p = this.player;
     switch (pk.kind) {
       case 'xp': {
-        const v = pk.value * this.stats.growth * (this.feverT > 0 ? 2 : 1);
+        const v = pk.value * this.stats.growth * (this.feverT > 0 ? 2 : 1) * this.hazards.xpMul();
         this.gainXp(v);
         audio.pickup();
         if (pk.value >= 20) this.fx.burst(p.x, p.y, '#ff9ec7', 6, 120, 0.4, 8);
