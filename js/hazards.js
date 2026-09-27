@@ -1,5 +1,5 @@
 // =====================================================================
-//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門 / お茶会の席 / 黒い星の夜
+//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門 / お茶会の席 / 黒い星の夜 / 流れ星
 // =====================================================================
 import { TAU, rand } from './util.js';
 import { pillarSprite, softSprite, starSprite } from './render.js';
@@ -38,6 +38,8 @@ export class Hazards {
     this.portalCd = 0; // 歪んだ門：続けて跳ばないように
     this.stars = false; // 黒い星の夜：昇っている間は経験値 ×1.5
     this.starsT = 30;
+    this.meteorT = 12; // 流れ星：通り道に経験値を落とす
+    this.meteors = [];
   }
 
   // ---------------------------------------------------------- 地形（チャンク単位）
@@ -149,6 +151,26 @@ export class Hazards {
       for (const e of g.enemies) if (e.alive && !e.prop && !e.boss && !e.segment && g.inView(e, 120)) this.collide(e, e.r * 0.8);
       // 敵弾は柱で止まる
       for (const b of g.ebullets) if (this.blocks(b.x, b.y)) { b.life = 0; g.fx.burst(b.x, b.y, '#8ff0ff', 3, 80, 0.25, 6); }
+    } else if (this.kind === 'meteor') {
+      this.meteorT -= dt;
+      if (this.meteorT <= 0) {
+        this.meteorT = rand(14, 20);
+        // 画面の外から自機の近くを横切る
+        const a = rand(TAU), off = rand(-90, 90);
+        const nx = -Math.sin(a), ny = Math.cos(a);
+        const R = g.viewR + 80;
+        this.meteors.push({ x: p.x - Math.cos(a) * R + nx * off, y: p.y - Math.sin(a) * R + ny * off, vx: Math.cos(a) * 520, vy: Math.sin(a) * 520, t: 0, drop: 0 });
+        audio.whoosh();
+      }
+      for (const m of this.meteors) {
+        m.t += dt;
+        m.x += m.vx * dt;
+        m.y += m.vy * dt;
+        m.drop -= dt;
+        if (m.drop <= 0 && g.inView(m, 40)) { m.drop = 0.06; g.dropXp(m.x + rand(-10, 10), m.y + rand(-10, 10), 3); }
+        if (Math.random() < 0.8) g.fx.add(m.x, m.y, -m.vx * 0.1, -m.vy * 0.1, 0.5, 5, '#fff2c0', 'dot');
+      }
+      this.meteors = this.meteors.filter((m) => m.t < 2.2);
     } else if (this.kind === 'blackstars') {
       this.starsT -= dt;
       if (this.starsT <= 0) {
@@ -404,6 +426,27 @@ export class Hazards {
 
   // 柱など（敵と同じ高さ）
   drawObjects(ctx) {
+    if (this.kind === 'meteor') {
+      for (const m of this.meteors) {
+        const L = 90, d = Math.hypot(m.vx, m.vy);
+        const tx = m.x - (m.vx / d) * L, ty = m.y - (m.vy / d) * L;
+        const grd = ctx.createLinearGradient(tx, ty, m.x, m.y);
+        grd.addColorStop(0, 'rgba(255,240,190,0)');
+        grd.addColorStop(1, 'rgba(255,240,190,0.9)');
+        ctx.strokeStyle = grd;
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(m.x, m.y);
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 5, 0, TAU);
+        ctx.fill();
+      }
+      return;
+    }
     if (this.kind === 'bubbles') {
       // 噴出口から立ちのぼる泡
       const p = this.g.player;

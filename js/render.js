@@ -1460,6 +1460,146 @@ const ENEMY_DRAW = {
     ENEMY_DRAW.yellowsign(ctx, r * 0.28, '#ffd24a', 0);
     ctx.restore();
   },
+  // ================================================ 第2章：宇宙
+  hal(ctx, r, col, f) {
+    // H.A.L.ドローン：赤い単眼の機械
+    ctx.strokeStyle = mix(col, '#ffffff', 0.3);
+    ctx.lineWidth = r * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.8);
+    ctx.lineTo(0, -r * 1.3);
+    ctx.stroke();
+    ctx.fillStyle = '#ff3d3d';
+    ctx.beginPath();
+    ctx.arc(0, -r * 1.33, r * 0.09, 0, TAU);
+    ctx.fill();
+    for (const s of [-1, 1]) {
+      ctx.fillStyle = mix(col, '#000000', 0.3);
+      ctx.fillRect(s * r * 0.95 - r * 0.2, -r * 0.15, r * 0.4, r * 0.3);
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.85, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // レンズ
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.5, 0, TAU);
+    ctx.fillStyle = '#0b0610';
+    ctx.fill();
+    ctx.save();
+    const lit = f === 1;
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.42);
+    g.addColorStop(0, '#fff2a0');
+    g.addColorStop(0.25, lit ? '#ff5a3d' : '#ff2d2d');
+    g.addColorStop(1, 'rgba(120,0,0,0.9)');
+    ctx.shadowColor = '#ff2d2d';
+    ctx.shadowBlur = r * (lit ? 0.9 : 0.5);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.4, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  },
+  migo(ctx, r, col) {
+    // ミ＝ゴ：膜の翼を持つ甲殻の菌類。頭は渦巻く楕円
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.3, -r * 0.2);
+      ctx.quadraticCurveTo(s * r * 1.5, -r * 1.2, s * r * 1.45, r * 0.1);
+      ctx.quadraticCurveTo(s * r * 0.9, -r * 0.1, s * r * 0.35, r * 0.2);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(210,170,230,0.45)';
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.05;
+      ctx.stroke();
+    }
+    ctx.strokeStyle = mix(col, '#000000', 0.25);
+    ctx.lineWidth = r * 0.09;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.3, r * (0.2 + i * 0.2));
+      ctx.lineTo(s * r * 0.8, r * (0.45 + i * 0.25));
+      ctx.lineTo(s * r * 0.75, r * (0.85 + i * 0.2));
+      ctx.stroke();
+    }
+    // 胴（甲殻の節）
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.ellipse(0, r * (0.1 + i * 0.3), r * (0.42 - i * 0.08), r * 0.18, 0, 0, TAU);
+      ctx.fillStyle = mix(col, '#000000', i * 0.12);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.04;
+      ctx.stroke();
+    }
+    // 頭（渦巻き）
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.45, r * 0.42, r * 0.5, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, mix(col, '#ff9ad2', 0.3));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(80,20,60,0.6)';
+    ctx.lineWidth = r * 0.05;
+    ctx.beginPath();
+    for (let i = 0; i < 18; i++) {
+      const a = i * 0.7, rr = r * 0.03 + i * r * 0.018;
+      ctx.lineTo(Math.cos(a) * rr, -r * 0.45 + Math.sin(a) * rr * 1.1);
+    }
+    ctx.stroke();
+    // 触角
+    for (const s of [-1, 1]) tentacle(ctx, s * r * 0.2, -r * 0.9, s * r * 0.55, -r * 1.3, s * r * 0.1, r * 0.06, mix(col, '#ff9ad2', 0.4));
+  },
+  monolith(ctx, r, col) {
+    // 黒き石板（ニャルラトホテプ）：燃える三裂の目
+    ctx.save();
+    ctx.shadowColor = '#b45cff';
+    ctx.shadowBlur = r * 0.35;
+    ctx.fillStyle = '#05030a';
+    ctx.fillRect(-r * 0.55, -r * 1.3, r * 1.1, r * 2.5);
+    ctx.restore();
+    const g = ctx.createLinearGradient(-r * 0.55, 0, r * 0.55, 0);
+    g.addColorStop(0, 'rgba(180,92,255,0.25)');
+    g.addColorStop(0.5, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(180,92,255,0.12)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-r * 0.55, -r * 1.3, r * 1.1, r * 2.5);
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.strokeRect(-r * 0.55, -r * 1.3, r * 1.1, r * 2.5);
+    // 三裂の目
+    ctx.save();
+    ctx.translate(0, -r * 0.35);
+    ctx.shadowColor = '#ff3d3d';
+    ctx.shadowBlur = r * 0.6;
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * TAU - Math.PI / 2;
+      ctx.fillStyle = i ? '#ff5a2d' : '#ffb84a';
+      ctx.beginPath();
+      ctx.ellipse(Math.cos(a) * r * 0.16, Math.sin(a) * r * 0.16, r * 0.17, r * 0.1, a, 0, TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#fff2a0';
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.07, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+    // 石板の刻み
+    ctx.strokeStyle = 'rgba(180,92,255,0.35)';
+    ctx.lineWidth = r * 0.02;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.35, r * (0.25 + i * 0.22));
+      ctx.lineTo(r * 0.35, r * (0.25 + i * 0.22));
+      ctx.stroke();
+    }
+  },
   // ================================================ 第2章：深海
   jelly(ctx, r, col) {
     // 触手
@@ -2353,6 +2493,7 @@ const ENEMY_COLORS = {
   starspawn: '#3f8a6a', mindeye: '#6a4a8a', shoggoth: '#1f3a32', nightgaunt: '#2a2a3a', cthulhu: '#2f7a5a',
   teapot: '#c8b8d8', servant: '#7a8a7a', lady: '#8a94c8', kelpie: '#3a5a6a', glaaki: '#6a6a8a',
   yellowsign: '#e0b030', masked: '#5a2a4a', kingyellow: '#d8b030',
+  hal: '#8a8aa0', migo: '#b0708a', monolith: '#05030a',
 };
 
 // ------------------------------------------------------------------ プレイヤー

@@ -451,6 +451,47 @@ export const AI = {
     }
   },
 
+  // ニャルラトホテプ（黒き石板）：回転レーザー／瞬間移動・H.A.L.の召喚・十字の弾幕を順番に
+  monolith(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.moT === undefined) { e.moT = 3; e.mo2 = 4.5; e.moPat = 0; }
+    mv.spd *= 0.6;
+    e.moT -= dt;
+    e.mo2 -= dt;
+    if (e.moT <= 0) {
+      e.moT = enraged ? 6 : 7.5;
+      const n = enraged ? 3 : 2, off = rand(TAU), dir = chance(0.5) ? 1 : -1;
+      for (let i = 0; i < n; i++) laser(g, e, off + (i / n) * TAU, { va: dir * (enraged ? 0.6 : 0.45), tele: 1.2, dur: 2.6, color: '#ff5a2d', mul: 0.6 });
+      audio.warning();
+    }
+    if (e.mo2 <= 0) {
+      e.mo2 = enraged ? 4 : 5.2;
+      e.moPat = (e.moPat + 1) % 3;
+      if (e.moPat === 0) {
+        // 瞬間移動：消えて自機の近くに現れ、弾の輪を放つ
+        g.fx.burst(e.x, e.y, '#b45cff', 20, 220, 0.6, 14);
+        const a = rand(TAU);
+        e.x = p.x + Math.cos(a) * 230;
+        e.y = p.y + Math.sin(a) * 230;
+        g.fx.ring(e.x, e.y, 10, e.r * 2.5, 0.5, '#b45cff', 8);
+        const n = enraged ? 22 : 16, off = rand(TAU);
+        for (let i = 0; i < n; i++) shoot(g, e, off + (i / n) * TAU, 120, 8, { color: '#b45cff' });
+        audio.whoosh();
+      } else if (e.moPat === 1) {
+        const R = g.viewR * 0.75;
+        for (let i = 0; i < (enraged ? 4 : 3); i++) { const a = rand(TAU); g.spawnEnemy('hal', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      } else {
+        // 十字（斜めを交互）の 3 段の弾
+        const base = e.moCross = !e.moCross ? Math.PI / 4 : 0;
+        for (let k = 0; k < 8; k++) {
+          if (!enraged && k % 2) continue;
+          for (let s = 0; s < 3; s++) shoot(g, e, base + (k / 8) * TAU, 110 + s * 40, 8, { color: '#ff5a2d' });
+        }
+      }
+    }
+  },
+
   emperor(g, e, dt, dist, mv) {
     const p = g.player;
     const ph = e.hp > e.maxHp * 0.66 ? 1 : e.hp > e.maxHp * 0.33 ? 2 : 3;
