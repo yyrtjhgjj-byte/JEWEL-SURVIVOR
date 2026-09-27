@@ -62,7 +62,7 @@ export const AI = {
     if (e.shotT <= 0 && dist < 340) {
       e.shotT = 2.8;
       e.charging = false;
-      shoot(g, e, Math.atan2(p.y - e.y, p.x - e.x), 165, 7, { color: '#5fe0ff' });
+      shoot(g, e, Math.atan2(p.y - e.y, p.x - e.x), 165, 7, { color: ENEMIES[e.type].shotColor || '#5fe0ff' });
     } else if (e.shotT <= 0) { e.shotT = 1; e.charging = false; }
   },
 
@@ -361,6 +361,47 @@ export const AI = {
         const a0 = Math.atan2(p.y - e.y, p.x - e.x);
         for (let i = -3; i <= 3; i++) shoot(g, e, a0 + i * 0.16, 170, 9, { color: '#3fe08a' });
         audio.whoosh();
+      }
+    }
+  },
+
+  // グラーキ：狙いの棘（3 方向の扇）／棘の雨・従者・湖のうねりを順番に
+  glaaki(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.glT === undefined) { e.glT = 2; e.gl2 = 4; e.glPat = 0; }
+    mv.spd *= 0.7;
+    e.glT -= dt * (enraged ? 1.3 : 1);
+    e.gl2 -= dt;
+    if (e.glT <= 0) {
+      e.glT = 2.4;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      for (const off of [-0.5, 0, 0.5]) for (let i = -2; i <= 2; i++) shoot(g, e, a0 + off + i * 0.06, 185, 7, { color: '#d8e0ff', mul: 0.55 });
+    }
+    if (e.gl2 <= 0) {
+      e.gl2 = enraged ? 4.2 : 5.5;
+      e.glPat = (e.glPat + 1) % 3;
+      if (e.glPat === 0) {
+        // 棘の雨
+        for (let i = 0; i < (enraged ? 12 : 8); i++) {
+          const x = p.x + rand(-200, 200), y = p.y + rand(-200, 200);
+          warn(g, x, y, 30, 1.0 + i * 0.05, '#d8e0ff', (g2) => {
+            g2.fx.burst(x, y, '#d8e0ff', 8, 180, 0.4, 8);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 30 + g2.player.r) g2.hurtPlayer(e.dmg * 0.8);
+          }, e);
+        }
+      } else if (e.glPat === 1) {
+        const R = g.viewR * 0.75;
+        for (let i = 0; i < (enraged ? 4 : 3); i++) {
+          const a = rand(TAU);
+          g.spawnEnemy('servant', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R);
+        }
+      } else {
+        // 湖のうねり：速さの違う 2 重の輪
+        const off = rand(TAU);
+        for (let i = 0; i < 26; i++) shoot(g, e, off + (i / 26) * TAU, 90, 9, { color: '#8fb8ff' });
+        for (let i = 0; i < 22; i++) shoot(g, e, off + ((i + 0.5) / 22) * TAU, 130, 8, { color: '#8fb8ff' });
+        g.fx.ring(e.x, e.y, e.r, e.r * 2.4, 0.5, '#8fb8ff', 8);
       }
     }
   },

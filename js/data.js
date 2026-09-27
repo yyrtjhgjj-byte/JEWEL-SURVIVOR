@@ -497,11 +497,13 @@ export const ENEMIES = {
   // ---- 第2章：深海
   jelly: { name: 'ディープ・ジェリー', hp: 90, speed: 44, dmg: 6, r: 14, xp: 1, ai: 'drift', desc: 'ふわふわと漂いながら近づいてくるクラゲ。' },
   eel: { name: 'アビス・イール', hp: 55, speed: 92, dmg: 6, r: 12, xp: 1, ai: 'eel', desc: '体をくねらせて素早く泳ぐウナギ。群れで押し寄せる。' },
-  angler: { name: 'ランタン・アングラー', hp: 180, speed: 42, dmg: 7, r: 15, xp: 2, ai: 'spitter', desc: '提灯の光を撃ってくる。近づいて倒せ。' },
+  angler: { name: 'ランタン・アングラー', hp: 180, speed: 42, dmg: 7, r: 15, xp: 2, ai: 'spitter', shotColor: '#fff27a', desc: '提灯の光を撃ってくる。近づいて倒せ。' },
   squid: { name: 'ダート・スクイッド', hp: 420, speed: 50, dmg: 14, r: 17, xp: 4, ai: 'charger', desc: '一瞬溜めてから一直線に突進してくる。赤い線から逃げろ。' },
   crab: { name: 'アイアン・クラブ', hp: 850, speed: 34, dmg: 14, r: 23, xp: 6, ai: 'crab', desc: '分厚い甲羅で守りを固めた大ガニ。とにかく硬い。' },
+  teapot: { name: 'ティーポット・ミミック', hp: 200, speed: 42, dmg: 7, r: 15, xp: 2, ai: 'spitter', shotColor: '#ffb84a', desc: 'お茶会に紛れた人食いポット。熱いお茶を撃ってくる。' },
+  servant: { name: 'グラーキの従者', hp: 950, speed: 38, dmg: 14, r: 18, xp: 6, ai: 'drift', desc: '湖の主の棘に貫かれた屍。よろめきながら迫る。' },
   starspawn: { name: 'スター・スポーン', hp: 1400, speed: 50, dmg: 16, r: 20, xp: 8, ai: 'deepone', desc: '大いなる者の落とし子。近づくと一気に距離を詰めてくる。' },
-  mindeye: { name: 'マインド・アイ', hp: 190, speed: 42, dmg: 7, r: 15, xp: 2, ai: 'spitter', desc: '心を覗く目。距離を取って狂気の弾を撃ってくる。' },
+  mindeye: { name: 'マインド・アイ', hp: 190, speed: 42, dmg: 7, r: 15, xp: 2, ai: 'spitter', shotColor: '#c78bff', desc: '心を覗く目。距離を取って狂気の弾を撃ってくる。' },
   deepone: { name: 'ディープ・ワン', hp: 1300, speed: 56, dmg: 16, r: 20, xp: 8, ai: 'deepone', desc: '海の底から這い上がってきた魚人。深きものども。' },
   // ---- ステージ別の中ボス
   boss1_cavern: { name: 'クリスタル・キング', hp: 14000, speed: 50, dmg: 20, r: 48, xp: 200, boss: true, ai: 'boss1', sprite: 'boss1', tint: '#2f7fb0', desc: '水晶洞窟の粘体王。2:00に出現。' },
@@ -515,6 +517,8 @@ export const ENEMIES = {
   boss2_deep: { name: 'シー・サーペント', hp: 37000, speed: 64, dmg: 28, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'serpent', desc: '深海を巡る大海蛇。4:00に出現。螺旋弾と突進。' },
   boss1_rlyeh: { name: 'ショゴス', hp: 19000, speed: 46, dmg: 22, r: 52, xp: 200, boss: true, ai: 'boss1', sprite: 'shoggoth', desc: '無数の目を持つ黒い粘体。2:00に出現。全方位弾と子の召喚。' },
   boss2_rlyeh: { name: 'ナイトゴーント', hp: 38000, speed: 66, dmg: 28, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'nightgaunt', desc: '顔のない夜の飛行者。4:00に出現。螺旋弾と突進。' },
+  boss1_lake: { name: 'ハリの貴婦人', hp: 20000, speed: 46, dmg: 22, r: 50, xp: 200, boss: true, ai: 'boss1', sprite: 'lady', desc: '湖畔のお茶会を開くヴェールの亡霊。2:00に出現。全方位弾と子の召喚。' },
+  boss2_lake: { name: 'ケルピー', hp: 40000, speed: 68, dmg: 28, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'kelpie', desc: '人を湖に引きずり込む水馬。4:00に出現。螺旋弾と突進。' },
   boss3_void: { name: 'クイーン・シャドウ', hp: 55000, speed: 58, dmg: 30, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#2a0a3a', desc: '女王の残影。虚空聖堂の6:00に出現。' },
   // ---- 最終ボス
   prism: { name: 'プリズム・コロッサス', hp: 210000, speed: 40, dmg: 30, r: 62, xp: 2000, boss: true, ai: 'prism', desc: '水晶洞窟の主。回転するレーザーで空間を切り裂く。7:00に出現。' },
@@ -524,6 +528,7 @@ export const ENEMIES = {
   emperor: { name: 'ヴォイド・エンペラー', hp: 170000, speed: 50, dmg: 34, r: 66, xp: 4000, boss: true, ai: 'emperor', desc: 'ダスクを生み出した虚空の皇帝。3つの形態を持つ。8:00に出現。' },
   dagon: { name: 'ダゴン', hp: 210000, speed: 48, dmg: 34, r: 64, xp: 2000, boss: true, ai: 'dagon', desc: '深きものどもが崇める海の父。津波の弾幕と水柱で逃げ場を奪う。7:00に出現。' },
   cthulhu: { name: 'クトゥルフ', hp: 230000, speed: 44, dmg: 36, r: 66, xp: 2000, boss: true, ai: 'cthulhu', desc: '沈んだ都で夢見る大いなる者。触手の薙ぎ払いと狂気の波。7:00に出現。' },
+  glaaki: { name: 'グラーキ', hp: 250000, speed: 40, dmg: 38, r: 64, xp: 2000, boss: true, ai: 'glaaki', desc: '湖の底に棲む棘の主。棘の雨と従者で湖畔を覆う。7:00に出現。' },
   thief: { name: 'ジュエルシーフ', hp: 2600, speed: 128, dmg: 0, r: 15, xp: 6, ai: 'thief', sprite: 'ghost', tint: '#d8a93a', desc: '原石を抱えて逃げ回る盗賊。7:00以降に現れ、しばらくすると姿を消す。倒すと原石と宝箱を落とす。' },
   crystal: { name: 'ライトクリスタル', hp: 1, speed: 0, dmg: 0, r: 16, xp: 0, prop: true, color: '#ffffff', desc: '破壊するとアイテムを落とす。' },
 };
