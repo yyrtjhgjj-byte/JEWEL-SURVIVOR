@@ -347,6 +347,24 @@ const Cm = [48, 51, 55], Ab = [44, 48, 51], Eb = [51, 55, 58];
 const B = [47, 51, 54];
 
 const TRACKS = {
+  // 第2章：宇宙
+  space: {
+    bpm: 88,
+    chords: [C, G, Am, Em, F, C, Dm, G],
+    bass: [0, null, null, null, null, null, null, null, 7, null, null, null, 12, null, null, null],
+    arp: 1,
+    melody: [
+      [72, null, null, null, 79, null, null, null],
+      [84, null, null, null, 83, null, 79, null],
+      [81, null, null, null, 76, null, 72, null],
+      [79, null, null, null, 71, null, 74, null],
+      [77, null, 81, null, 84, null, 89, null],
+      [88, null, 84, null, 79, null, 76, null],
+      [77, null, 74, null, 81, null, 77, null],
+      [79, null, null, null, 83, null, 86, null],
+    ],
+    drums: true, kick: [0], snare: [8], hat: [4, 12],
+  },
   // 第2章：カルコサ
   carcosa: {
     bpm: 104,

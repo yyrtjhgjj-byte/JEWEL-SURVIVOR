@@ -201,6 +201,20 @@ export const STAGES = [
     events: makeEvents({ e: ['eyes', 'yellowsign', 'masked', 'crawler', 'cultist'], sw: 'byakhee', r: ['spawn', 'eyes', 'masked'], b: ['boss1_carcosa', 'boss2_carcosa', 'kingyellow'] }),
     finalBoss: 'kingyellow',
   },
+  {
+    id: 'space', no: 10, chapter: 2, name: '2026年宇宙の旅', en: 'A SPACE ODYSSEY', time: 600,
+    desc: '星々の彼方、黒い石板が待つ宇宙の果てへ。ときどき流れ星が横切り、通り道に経験値を落としていく。',
+    hazard: 'meteor', hazardText: '流れ星（通り道に経験値）',
+    hp: 2.2, dmg: 1.85, reward: 10000, bgm: 'space',
+    pal: { bg: '#05050c', grid: '150,170,255', mark: '190,205,255', dust: '230,235,255', glow: 'rgba(100,110,220,0.22)', accent: '#8fa8ff' },
+    tint: '#7a9ab8',
+    waves: makeWaves({
+      0: ['spawn', 'byakhee'], 1: ['spawn', 'byakhee', 'hal'], 2: ['eyes', 'thorn', 'hal', 'migo'],
+      3: ['crawler', 'migo', 'thorn', 'hal'], 4: ['cultist', 'crawler', 'migo', 'hal', 'byakhee'], b: ['byakhee', 'spawn'],
+    }),
+    events: makeEvents({ e: ['eyes', 'hal', 'migo', 'crawler', 'cultist'], sw: 'byakhee', r: ['spawn', 'eyes', 'migo'], b: ['boss1_space', 'boss2_space', 'monolith'] }),
+    finalBoss: 'monolith',
+  },
 ];
 
 // 12分ステージの 540秒前後はボス戦なので軽めに
