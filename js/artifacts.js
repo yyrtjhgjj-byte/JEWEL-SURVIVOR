@@ -10,7 +10,7 @@ export const ARTIFACTS = [
   { id: 'lodestone', no: 'I', name: 'ロードストーン', en: 'LODESTONE', gem: 'granite', ach: 'coll5',
     desc: '偶数分ごとに、画面中のアイテム・経験値・原石をすべて足元へ引き寄せる' },
   { id: 'pendant', no: 'II', name: '護石のペンダント', en: 'GUARDIAN PENDANT', gem: 'turquoise', ach: 'clear2',
-    desc: '復活 +1。復活すると 最大HP +20%、アーマー +1、攻撃力・攻撃範囲・弾速・持続 +10%' },
+    desc: '復活 +1。復活すると 最大HP +20%、アーマー +1、攻撃力・弾速・持続 +10%、攻撃範囲 +7%' },
   { id: 'grail', no: 'III', name: '癒しの聖杯', en: 'HOLY GRAIL', gem: 'angelite', ach: 'heal300',
     desc: 'あらゆる回復量が 2 倍。回復すると、回復量に応じた衝撃波を周囲に放つ' },
   { id: 'box', no: 'IV', name: '空の宝石箱', en: 'EMPTY CASKET', gem: 'amber', ach: 'solo',
@@ -28,7 +28,7 @@ export const ARTIFACTS = [
   { id: 'musicbox', no: 'X', name: '流星のオルゴール', en: 'STARFALL MUSIC BOX', gem: 'opal', ach: 'lv50',
     desc: 'レベルアップのたびに、回復・磁石・時計・爆弾などのアイテムが空から降ってくる' },
   { id: 'prism', no: 'XI', name: '分光プリズム', en: 'SPECTRAL PRISM', gem: 'labradorite', ach: 'evo3',
-    desc: '攻撃範囲が 10 秒周期で −50% 〜 +200% の間を波のように変動する' },
+    desc: '攻撃範囲が 10 秒周期で −50% 〜 +200% の間を波のように変動する（上限を超えた分は攻撃力に変わる）' },
 ];
 export const ARTIFACT_BY_ID = Object.fromEntries(ARTIFACTS.map((a) => [a.id, a]));
 export const ARTIFACT_MAX = 3; // 1 ランで持てる数

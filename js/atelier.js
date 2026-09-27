@@ -37,11 +37,11 @@ export const COLLECTION_IDS = Object.keys(GEMS);
 // 宝石ごとの練度 1 あたりのボーナス（ジュエルパワーに沿った能力）
 export const MASTERY_BONUS = {
   ruby: { might: 0.006 }, sapphire: { magnet: 0.02 }, garnet: { regen: 0.02 }, labradorite: { crit: 0.002 },
-  opal: { luck: 0.02 }, amber: { greed: 0.02 }, angelite: { maxHp: 2 }, diamond: { area: 0.005 },
+  opal: { luck: 0.016 }, amber: { greed: 0.02 }, angelite: { maxHp: 2 }, diamond: { area: 0.0033 },
   emerald: { growth: 0.01 }, rhodochrosite: { might: 0.005 }, kyanite: { speed: 0.01 }, aquamarine: { duration: 0.01 },
-  alexandrite: { growth: 0.01 }, tourmaline: { moveSpeed: 0.005 }, moonstone: { luck: 0.02 },
-  topaz: { might: 0.005 }, jasper: { maxHp: 2 }, nephrite: { area: 0.004 }, milkyquartz: { area: 0.004 },
-  coral: { luck: 0.02 }, iolite: { cooldown: -0.004 }, prase: { growth: 0.01 }, granite: { guard: 0.003 },
+  alexandrite: { growth: 0.01 }, tourmaline: { moveSpeed: 0.005 }, moonstone: { luck: 0.016 },
+  topaz: { might: 0.005 }, jasper: { maxHp: 2 }, nephrite: { area: 0.0027 }, milkyquartz: { area: 0.0027 },
+  coral: { luck: 0.016 }, iolite: { cooldown: -0.004 }, prase: { growth: 0.01 }, granite: { guard: 0.003 },
   coal: { regen: 0.02 }, titanite: { greed: 0.02 }, redberyl: { magnet: 0.02 }, turquoise: { guard: 0.003 }, citrine: { coinDrop: 0.001 },
   peridot: { moveSpeed: 0.005 }, obsidian: { might: 0.006 },
 };
