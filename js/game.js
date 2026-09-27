@@ -65,7 +65,8 @@ class Grid {
 }
 
 // ステージの色に 敵を染める
-const BASE_COL = { slime: '#7a64a8', bat: '#5a4a80', ghost: '#9c90c8', toge: '#6a3a70', golem: '#7a6a60', knight: '#3c3456' };
+const BASE_COL = { slime: '#7a64a8', bat: '#5a4a80', ghost: '#9c90c8', toge: '#6a3a70', golem: '#7a6a60', knight: '#3c3456',
+  spawn: '#5a5a70', byakhee: '#4a4a62', eyes: '#4e4c66', thorn: '#5a3a5a', crawler: '#7a5a5a', cultist: '#2a2438' };
 const tintCache = {};
 function TINT(type, tint) {
   const k = type + tint;
@@ -650,7 +651,7 @@ export class Game {
       speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * this.stageDmg * (d.boss ? 1.5 : 2), xp: d.xp,
       vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop, segment: !!d.segment,
       frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
-      ai: d.ai || type, spr: d.sprite || type,
+      ai: d.ai || type, spr: d.sprite || type, weave: d.weave,
       tint: d.tint || (this.stage.tint && !d.boss && !d.prop && !d.segment && !d.ai ? TINT(type, this.stage.tint) : null),
     };
     this.enemies.push(e);
@@ -756,6 +757,10 @@ export class Game {
           const mx = mv.mx; mv.mx += -mv.my * w; mv.my += mx * w;
         } else if (e.type === 'ghost') {
           const w = Math.sin(this.time * 2.5 + e.phase) * 0.9;
+          const mx = mv.mx; mv.mx += -mv.my * w; mv.my += mx * w;
+        } else if (e.weave) {
+          // ふらつきながら寄ってくる（data.js の weave：[速さ, 振れ幅]）
+          const w = Math.sin(this.time * e.weave[0] + e.phase) * e.weave[1];
           const mx = mv.mx; mv.mx += -mv.my * w; mv.my += mx * w;
         }
         if (e.boss && e.breakT > 0) { e.breakT -= dt; mv.spd = 0; } // ブレイク中は動かず攻撃もしない
@@ -2116,7 +2121,7 @@ export class Game {
     // てき
     for (const e of this.enemies) {
       if (!e.alive || !this.inView(e, e.r * 2)) continue;
-      const fr = e.type === 'bat' ? Math.floor(this.time * 9 + e.anim) % 2 : (e.charging || e.fuse !== undefined) ? 1 : 0;
+      const fr = e.type === 'bat' || e.type === 'byakhee' ? Math.floor(this.time * 9 + e.anim) % 2 : (e.charging || e.fuse !== undefined) ? 1 : 0;
       const spr = enemySprite(e.spr, Math.round(e.r), fr, e.flash > 0, e.tint);
       if (e.fade > 0) ctx.globalAlpha = Math.abs(e.fade - 0.25) * 3.5;
       const sq = Math.sin(this.time * 9 + e.anim) * 0.06;

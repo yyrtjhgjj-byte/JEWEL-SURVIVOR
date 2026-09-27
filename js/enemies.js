@@ -309,6 +309,62 @@ export const AI = {
     }
   },
 
+  // クトゥルフ：触手の薙ぎ払い（一列の予告）／狂気の波・落とし子・翼の突風を順番に
+  cthulhu(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.ctT === undefined) { e.ctT = 2.5; e.ct2 = 4.5; e.ctPat = 0; }
+    mv.spd *= 0.75;
+    e.ctT -= dt * (enraged ? 1.3 : 1);
+    e.ct2 -= dt;
+    if (e.gustT > 0) {
+      // 翼の突風：自機を押し返す
+      e.gustT -= dt;
+      const d = Math.hypot(p.x - e.x, p.y - e.y) || 1;
+      p.x += ((p.x - e.x) / d) * 90 * dt;
+      p.y += ((p.y - e.y) / d) * 90 * dt;
+      if (Math.random() < 0.5) g.fx.add(p.x + rand(-60, 60), p.y + rand(-60, 60), (p.x - e.x) / d * 220, (p.y - e.y) / d * 220, 0.4, 5, '#9fffd0', 'dot');
+    }
+    if (e.ctT <= 0) {
+      e.ctT = 3;
+      // 触手：ボスから自機へ向かって順に叩きつける
+      const a = Math.atan2(p.y - e.y, p.x - e.x) + rand(-0.15, 0.15);
+      const n = enraged ? 7 : 5;
+      for (let i = 1; i <= n; i++) {
+        const x = e.x + Math.cos(a) * (e.r + i * 55), y = e.y + Math.sin(a) * (e.r + i * 55);
+        warn(g, x, y, 34, 0.7 + i * 0.12, '#3fe08a', (g2) => {
+          g2.fx.burst(x, y, '#3fe08a', 10, 200, 0.5, 10);
+          if (Math.hypot(g2.player.x - x, g2.player.y - y) < 34 + g2.player.r) g2.hurtPlayer(e.dmg * 0.9);
+        }, e);
+      }
+    }
+    if (e.ct2 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.ct2 = enraged ? 4.2 : 5.5;
+      e.ctPat = (e.ctPat + 1) % 3;
+      if (e.ctPat === 0) {
+        // 狂気の波：回転の向きが違う 2 重の輪
+        const n = 20, off = rand(TAU);
+        for (let i = 0; i < n; i++) {
+          shoot(g, e, off + (i / n) * TAU, 115, 8, { color: '#c78bff' });
+          if (enraged) shoot(g, e, off + ((i + 0.5) / n) * TAU, 85, 8, { color: '#3fe08a' });
+        }
+        g.fx.ring(e.x, e.y, e.r, e.r * 2.4, 0.5, '#c78bff', 8);
+      } else if (e.ctPat === 1) {
+        const R = g.viewR * 0.75;
+        for (let i = 0; i < (enraged ? 3 : 2); i++) {
+          const a = rand(TAU);
+          g.spawnEnemy('starspawn', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R);
+        }
+      } else {
+        e.gustT = 1.6;
+        g.hooks.banner('GUST', 'warning', '翼の突風');
+        const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+        for (let i = -3; i <= 3; i++) shoot(g, e, a0 + i * 0.16, 170, 9, { color: '#3fe08a' });
+        audio.whoosh();
+      }
+    }
+  },
+
   emperor(g, e, dt, dist, mv) {
     const p = g.player;
     const ph = e.hp > e.maxHp * 0.66 ? 1 : e.hp > e.maxHp * 0.33 ? 2 : 3;

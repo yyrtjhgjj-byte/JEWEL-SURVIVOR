@@ -159,6 +159,20 @@ export const STAGES = [
     events: makeEvents({ e: ['angler', 'squid', 'crab', 'crab', 'deepone'], sw: 'eel', r: ['jelly', 'angler', 'crab'], b: ['boss1_deep', 'boss2_deep', 'dagon'] }),
     finalBoss: 'dagon',
   },
+  {
+    id: 'rlyeh', no: 7, chapter: 2, name: 'ワクワク！？ルルイエ探検ツアー！', en: "R'LYEH EXPEDITION", time: 600,
+    desc: '海の底から浮かび上がった、角度の狂った石の都。歪んだ門に入ると、その先へ跳ばされる。',
+    hazard: 'portals', hazardText: '歪んだ門（入ると先へ跳ぶ）',
+    hp: 1.6, dmg: 1.55, reward: 7000, bgm: 'rlyeh',
+    pal: { bg: '#030805', grid: '80,220,150', mark: '120,255,180', dust: '160,255,200', glow: 'rgba(30,160,90,0.26)', accent: '#3fe08a' },
+    tint: '#3a8a6a',
+    waves: makeWaves({
+      0: ['spawn', 'byakhee'], 1: ['spawn', 'byakhee', 'eyes'], 2: ['eyes', 'thorn', 'mindeye', 'byakhee'],
+      3: ['crawler', 'thorn', 'mindeye', 'eyes'], 4: ['cultist', 'crawler', 'starspawn', 'thorn', 'byakhee'], b: ['byakhee', 'spawn'],
+    }),
+    events: makeEvents({ e: ['eyes', 'mindeye', 'thorn', 'crawler', 'starspawn'], sw: 'byakhee', r: ['spawn', 'eyes', 'thorn'], b: ['boss1_rlyeh', 'boss2_rlyeh', 'cthulhu'] }),
+    finalBoss: 'cthulhu',
+  },
 ];
 
 // 12分ステージの 540秒前後はボス戦なので軽めに
