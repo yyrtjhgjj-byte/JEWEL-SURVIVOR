@@ -96,6 +96,38 @@ class AudioEngine {
     o.stop(t + dur + 0.02);
   }
 
+  // フルート風：やわらかい正弦波＋倍音、遅れてかかるビブラート、吹き始めの息の音
+  flute(freq, dur, { vol = 0.08, when = 0, bus } = {}) {
+    if (!this.ready) return;
+    const c = this.ctx;
+    const t = c.currentTime + when;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    const o2 = c.createOscillator();
+    o2.type = 'triangle';
+    o2.frequency.setValueAtTime(freq * 2, t);
+    const g2 = c.createGain();
+    g2.gain.value = 0.12;
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 5.2;
+    const lg = c.createGain();
+    lg.gain.setValueAtTime(0, t);
+    lg.gain.linearRampToValueAtTime(freq * 0.012, t + Math.min(0.3, dur * 0.6));
+    lfo.connect(lg);
+    lg.connect(o.frequency);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.07);
+    g.gain.setValueAtTime(vol, t + dur * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g);
+    o2.connect(g2).connect(g);
+    g.connect(bus || this.sfxBus);
+    for (const x of [o, o2, lfo]) { x.start(t); x.stop(t + dur + 0.05); }
+    this.noise(Math.min(0.12, dur), { vol: vol * 0.45, freq: freq * 1.6, q: 1.5, when, bus });
+  }
+
   noise(dur, { vol = 0.2, when = 0, freq = 2000, q = 1, type = 'bandpass', slide = 0, bus } = {}) {
     if (!this.ready) return;
     const c = this.ctx;
@@ -326,7 +358,8 @@ class AudioEngine {
     if (s16 % 2 === 0 && tr.melody) {
       const mel = tr.melody[bar];
       const n = mel && mel[s16 / 2];
-      if (n) {
+      if (n && tr.flute) this.flute(mtof(n), tr.noteLen || 0.4, { when, bus: b, vol: 0.09 });
+      else if (n) {
         this.tone(mtof(n), 0.22, { type: 'sawtooth', vol: 0.035, when, bus: b, detune: 6 });
         this.tone(mtof(n), 0.24, { type: 'sine', vol: 0.06, when, bus: b });
       }
@@ -347,6 +380,43 @@ const Cm = [48, 51, 55], Ab = [44, 48, 51], Eb = [51, 55, 58];
 const B = [47, 51, 54];
 
 const TRACKS = {
+  // 第2章の最後：奏者のフルート（ラン開始から、奏者を倒すまで）
+  pipers: {
+    bpm: 80,
+    flute: true, noteLen: 0.55,
+    chords: [Dm, Dm, Bb, A, Dm, Dm, Bb, A],
+    bass: [0, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, null],
+    melody: [
+      [74, null, 75, null, 74, null, 70, null],
+      [74, null, 75, null, 77, null, 75, 74],
+      [70, null, 69, null, 70, null, 74, null],
+      [73, null, 74, null, 76, null, 73, null],
+      [81, null, 82, null, 81, null, 77, null],
+      [81, null, 82, null, 84, null, 82, 81],
+      [77, null, 75, null, 74, null, 70, null],
+      [73, null, null, null, 69, null, null, null],
+    ],
+    drums: true, kick: [0, 3, 8, 11], snare: [], hat: [],
+  },
+  // 第2章の最後：目覚めたアザトース
+  azathoth: {
+    bpm: 168,
+    flute: true, noteLen: 0.16,
+    chords: [Dm, Eb, Dm, Ab, Dm, Eb, Bb, A],
+    bass: [0, null, 0, 12, 0, null, 0, 13, 0, null, 0, 12, 0, 1, 0, 13],
+    arp: 1,
+    melody: [
+      [86, 87, 86, 82, 81, 82, 86, 89],
+      [87, 86, 82, 79, 82, 87, 91, 87],
+      [86, 89, 93, 89, 86, 82, 81, 82],
+      [80, 84, 87, 92, 87, 84, 80, 75],
+      [86, 87, 86, 82, 81, 82, 86, 89],
+      [87, 86, 82, 79, 82, 87, 91, 94],
+      [94, 93, 89, 86, 82, 86, 89, 93],
+      [85, 88, 91, 88, 85, 81, 76, 73],
+    ],
+    drums: true, kick: [0, 4, 8, 10, 12], snare: [4, 12], hat: [2, 6, 10, 14],
+  },
   // 第2章：宇宙
   space: {
     bpm: 88,

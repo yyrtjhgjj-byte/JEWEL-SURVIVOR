@@ -506,6 +506,7 @@ export const ENEMIES = {
   masked: { name: '仮面の貴族', hp: 520, speed: 54, dmg: 15, r: 18, xp: 4, ai: 'charger', desc: '青白い仮面をつけたカルコサの廷臣。溜めてから一直線に突進してくる。' },
   hal: { name: 'H.A.L.ドローン', hp: 220, speed: 40, dmg: 7, r: 15, xp: 2, ai: 'spitter', shotColor: '#ff3d3d', desc: '赤い単眼の自律機械。距離を取って光線弾を撃ってくる。' },
   migo: { name: 'ミ＝ゴ', hp: 560, speed: 56, dmg: 15, r: 18, xp: 4, ai: 'charger', desc: 'ユゴスから来た翼のある菌類。溜めてから一直線に突進してくる。' },
+  flutist: { name: '下位の奏者', hp: 230, speed: 40, dmg: 7, r: 15, xp: 2, ai: 'spitter', shotColor: '#9fffe0', desc: '宇宙の中心で笛を吹き続ける影の群れの一人。音の弾を撃ってくる。' },
   starspawn: { name: 'スター・スポーン', hp: 1400, speed: 50, dmg: 16, r: 20, xp: 8, ai: 'deepone', desc: '大いなる者の落とし子。近づくと一気に距離を詰めてくる。' },
   mindeye: { name: 'マインド・アイ', hp: 190, speed: 42, dmg: 7, r: 15, xp: 2, ai: 'spitter', shotColor: '#c78bff', desc: '心を覗く目。距離を取って狂気の弾を撃ってくる。' },
   deepone: { name: 'ディープ・ワン', hp: 1300, speed: 56, dmg: 16, r: 20, xp: 8, ai: 'deepone', desc: '海の底から這い上がってきた魚人。深きものども。' },
@@ -527,6 +528,8 @@ export const ENEMIES = {
   boss2_carcosa: { name: 'バイアクヘー・ロード', hp: 42000, speed: 70, dmg: 30, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'byakhee', tint: '#8a7a3a', desc: '黄衣の王に仕える巨大な羽の異形。4:00に出現。螺旋弾と突進。' },
   boss1_space: { name: 'H.A.L.コア', hp: 22000, speed: 44, dmg: 26, r: 50, xp: 200, boss: true, ai: 'boss1', sprite: 'hal', desc: '船を乗っ取った思考機械の中枢。2:00に出現。全方位弾と子の召喚。' },
   boss2_space: { name: 'ミ＝ゴ・クイーン', hp: 44000, speed: 70, dmg: 32, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'migo', tint: '#c85a9a', desc: 'ユゴスの群れを率いる女王。4:00に出現。螺旋弾と突進。' },
+  boss1_azath: { name: 'アウター・ショゴス', hp: 23000, speed: 46, dmg: 28, r: 52, xp: 200, boss: true, ai: 'boss1', sprite: 'shoggoth', tint: '#5a2a9a', desc: '宇宙の果てを這う原形質。2:00に出現。全方位弾と子の召喚。' },
+  boss2_azath: { name: 'ヨグ＝ソトースの泡', hp: 38000, speed: 70, dmg: 34, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'eyes', tint: '#b890ff', desc: '門にして鍵である者の、虹色の泡の欠片。4:00に出現。螺旋弾と突進。' },
   boss3_void: { name: 'クイーン・シャドウ', hp: 55000, speed: 58, dmg: 30, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#2a0a3a', desc: '女王の残影。虚空聖堂の6:00に出現。' },
   // ---- 最終ボス
   prism: { name: 'プリズム・コロッサス', hp: 210000, speed: 40, dmg: 30, r: 62, xp: 2000, boss: true, ai: 'prism', desc: '水晶洞窟の主。回転するレーザーで空間を切り裂く。7:00に出現。' },
@@ -539,6 +542,8 @@ export const ENEMIES = {
   glaaki: { name: 'グラーキ', hp: 250000, speed: 40, dmg: 38, r: 64, xp: 2000, boss: true, ai: 'glaaki', desc: '湖の底に棲む棘の主。棘の雨と従者で湖畔を覆う。7:00に出現。' },
   kingyellow: { name: '黄衣の王', hp: 260000, speed: 44, dmg: 40, r: 66, xp: 2000, boss: true, ai: 'kingyellow', desc: 'ぼろぼろの黄衣と青白い仮面の王。黄の印と黒い星で都を狂気に染める。7:00に出現。' },
   monolith: { name: 'ニャルラトホテプ', hp: 330000, speed: 40, dmg: 42, r: 66, xp: 2000, boss: true, ai: 'monolith', desc: '黒き石板の姿をとった這い寄る混沌。燃える三裂の目で宇宙を焼く。7:00に出現。' },
+  piper: { name: '外なる奏者', hp: 120000, speed: 60, dmg: 30, r: 30, xp: 800, boss: true, ai: 'piper', desc: '眠れる王を取り巻き、狂った笛を吹き続ける奏者たち。HP を共有する。' },
+  azathoth: { name: 'アザトース', hp: 200000, speed: 42, dmg: 44, r: 70, xp: 3000, boss: true, ai: 'azathoth', desc: '宇宙の中心で惰眠を貪る盲目白痴の王。奏者たちを倒すと目覚める。7:00に出現。' },
   thief: { name: 'ジュエルシーフ', hp: 2600, speed: 128, dmg: 0, r: 15, xp: 6, ai: 'thief', sprite: 'ghost', tint: '#d8a93a', desc: '原石を抱えて逃げ回る盗賊。7:00以降に現れ、しばらくすると姿を消す。倒すと原石と宝箱を落とす。' },
   crystal: { name: 'ライトクリスタル', hp: 1, speed: 0, dmg: 0, r: 16, xp: 0, prop: true, color: '#ffffff', desc: '破壊するとアイテムを落とす。' },
 };

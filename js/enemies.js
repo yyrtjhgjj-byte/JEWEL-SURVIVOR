@@ -492,6 +492,137 @@ export const AI = {
     }
   },
 
+  // 外なる奏者：眠るアザトースの周りを回り、音の弾を撃つ。HP は代表の 1 体（lead）が持つ（damage() の shareTo）
+  piper(g, e, dt, dist, mv) {
+    const p = g.player;
+    const az = e.azOwner;
+    if (!az || !az.alive) { e.alive = false; return; }
+    const lead = e.shareTo || e;
+    const n = lead.pipeN || 5;
+    const enraged = lead.hp < lead.maxHp * 0.5;
+    // 周回
+    const a = g.time * (enraged ? 0.6 : 0.45) + (e.orbI / n) * TAU;
+    const R = az.r + 110;
+    mv.mx = az.x + Math.cos(a) * R - e.x;
+    mv.my = az.y + Math.sin(a) * R - e.y;
+    mv.spd = Math.min(Math.hypot(mv.mx, mv.my) / Math.max(dt, 0.001), 420);
+    // それぞれが順番に、自機を狙った 3 方向の音
+    e.ptT = (e.ptT ?? 1.2 + e.orbI * 0.65) - dt;
+    e.charging = e.ptT < 0.35;
+    if (e.ptT <= 0) {
+      e.ptT = enraged ? 2.6 : 3.3;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      for (let i = -1; i <= 1; i++) shoot(g, e, a0 + i * 0.22, 140, 7, { color: '#9fffe0', mul: 0.5 });
+    }
+    // 代表が合図：全員で音の輪
+    if (e === lead) {
+      lead.ringT = (lead.ringT ?? 6) - dt;
+      if (lead.ringT <= 0) {
+        lead.ringT = enraged ? 5 : 7;
+        for (const o of az.pipers || []) {
+          if (!o.alive) continue;
+          const off = rand(TAU);
+          for (let i = 0; i < 8; i++) shoot(g, o, off + (i / 8) * TAU, 105, 7, { color: '#c78bff', mul: 0.5 });
+          g.fx.ring(o.x, o.y, 6, 50, 0.4, '#9fffe0', 5);
+        }
+        audio.warning();
+      }
+    }
+  },
+
+  // アザトース：第一形態は中心で眠るだけ（無敵・動かない・接触なし）。奏者を倒すと目覚める
+  azathoth(g, e, dt, dist, mv) {
+    const p = g.player;
+    if (!e.azInit) {
+      e.azInit = true;
+      e.asleep = true;
+      e.invulnT = 1e9;
+      const n = 5;
+      e.pipers = [];
+      for (let i = 0; i < n; i++) {
+        const o = g.spawnEnemy('piper', e.x, e.y);
+        o.azOwner = e;
+        o.orbI = i;
+        if (i) { o.shareTo = e.pipers[0]; o.hp = o.maxHp = 1e12; }
+        e.pipers.push(o);
+      }
+      e.pipers[0].pipeN = n;
+      g.boss = e.pipers[0];
+      g.hooks.bossBar(g.boss);
+      g.hooks.banner('THE OUTER PIPERS', 'boss', '眠れる王を取り巻く奏者を倒せ');
+    }
+    if (!e.azWoke) {
+      mv.spd = 0;
+      e.invulnT = 1e9;
+      if (Math.random() < 0.15) g.fx.add(e.x + rand(-e.r, e.r), e.y - e.r * 0.8, 0, -25, 1.2, 8, '#c78bff', 'dot');
+      if (!e.pipers[0].alive) {
+        // 目覚め：残りの奏者も消え、曲が変わる
+        e.azWoke = true;
+        e.asleep = false;
+        e.invulnT = 0;
+        e.charging = true;
+        for (const o of e.pipers) o.alive = false;
+        g.boss = e;
+        g.hooks.bossBar(e);
+        g.hooks.banner('AZATHOTH AWAKENS', 'boss', '盲目白痴の王が目覚めた');
+        g.fx.shake(22);
+        g.fx.screenFlash(0.8, '#ff5fd2');
+        g.fx.ring(e.x, e.y, 20, g.viewR, 0.9, '#ff5fd2', 14);
+        audio.playBgm('azathoth');
+        e.azT = 2; e.az2 = 3.5; e.azPat = 0;
+      }
+      return;
+    }
+    // ---- 第二形態
+    const enraged = e.hp < e.maxHp * 0.5;
+    e.charging = true;
+    mv.spd *= 0.7;
+    e.azT -= dt * (enraged ? 1.35 : 1);
+    e.az2 -= dt;
+    if (e.azT <= 0) {
+      // 混沌の弾：ばらばらの向きと速さ
+      e.azT = 2;
+      for (let i = 0; i < (enraged ? 30 : 22); i++) shoot(g, e, rand(TAU), rand(90, 190), 7, { color: chance(0.5) ? '#ff5fd2' : '#7f5fff', mul: 0.55 });
+    }
+    if (e.az2 <= 0) {
+      e.az2 = enraged ? 4 : 5.2;
+      e.azPat = (e.azPat + 1) % 3;
+      if (e.azPat === 0) {
+        // 創造の泡：予告の円がはじけて、小さな弾の輪になる
+        for (let i = 0; i < (enraged ? 7 : 5); i++) {
+          const x = p.x + rand(-190, 190), y = p.y + rand(-190, 190);
+          warn(g, x, y, 40, 1.3, '#ff5fd2', (g2) => {
+            g2.fx.burst(x, y, '#ff9ad2', 12, 200, 0.5, 10);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 40 + g2.player.r) g2.hurtPlayer(e.dmg * 0.8);
+            const off = rand(TAU);
+            for (let k = 0; k < 6; k++) g2.ebullets.push({ x, y, vx: Math.cos(off + (k / 6) * TAU) * 110, vy: Math.sin(off + (k / 6) * TAU) * 110, r: 6, dmg: e.dmg * 0.4, life: 4, color: '#ff9ad2' });
+          }, e);
+        }
+      } else if (e.azPat === 1) {
+        // 奏者の残響：下位の奏者と異形の群れ
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < (enraged ? 4 : 3); i++) { const a = rand(TAU); g.spawnEnemy('flutist', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU; g.spawnEnemy('spawn', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      } else {
+        // 引き寄せ＋弾の輪
+        e.pullT = 3;
+        g.hooks.banner('GRAVITY', 'warning', '中心へ引き寄せられる');
+      }
+    }
+    if (e.pullT > 0) {
+      e.pullT -= dt;
+      const d = Math.hypot(e.x - p.x, e.y - p.y) || 1;
+      p.x += ((e.x - p.x) / d) * 65 * dt;
+      p.y += ((e.y - p.y) / d) * 65 * dt;
+      e.ringT = (e.ringT || 0) - dt;
+      if (e.ringT <= 0) {
+        e.ringT = 1;
+        const off = rand(TAU);
+        for (let i = 0; i < 16; i++) shoot(g, e, off + (i / 16) * TAU, 105, 8, { color: '#7f5fff' });
+      }
+    }
+  },
+
   emperor(g, e, dt, dist, mv) {
     const p = g.player;
     const ph = e.hp > e.maxHp * 0.66 ? 1 : e.hp > e.maxHp * 0.33 ? 2 : 3;

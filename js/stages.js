@@ -215,6 +215,20 @@ export const STAGES = [
     events: makeEvents({ e: ['eyes', 'hal', 'migo', 'crawler', 'cultist'], sw: 'byakhee', r: ['spawn', 'eyes', 'migo'], b: ['boss1_space', 'boss2_space', 'monolith'] }),
     finalBoss: 'monolith',
   },
+  {
+    id: 'azathoth', no: 11, chapter: 2, name: '宇宙の中心で惰眠を貪るけもの', en: 'THE BLIND IDIOT GOD', time: 600,
+    desc: '狂った笛の音が響く宇宙の中心。漂う混沌の泡に触れると、何かが出てくる。',
+    hazard: 'chaos', hazardText: '混沌の泡（触れるとアイテム）',
+    hp: 2.4, dmg: 1.95, reward: 15000, bgm: 'pipers', keepBgm: true,
+    pal: { bg: '#07040c', grid: '190,130,255', mark: '220,170,255', dust: '240,210,255', glow: 'rgba(160,80,240,0.24)', accent: '#c78bff' },
+    tint: '#8a5ac8',
+    waves: makeWaves({
+      0: ['spawn', 'byakhee'], 1: ['spawn', 'byakhee', 'flutist'], 2: ['eyes', 'thorn', 'flutist', 'byakhee'],
+      3: ['crawler', 'thorn', 'flutist', 'eyes'], 4: ['cultist', 'crawler', 'flutist', 'thorn', 'byakhee'], b: ['byakhee', 'spawn'],
+    }),
+    events: makeEvents({ e: ['eyes', 'flutist', 'thorn', 'crawler', 'cultist'], sw: 'byakhee', r: ['spawn', 'eyes', 'thorn'], b: ['boss1_azath', 'boss2_azath', 'azathoth'] }),
+    finalBoss: 'azathoth',
+  },
 ];
 
 // 12分ステージの 540秒前後はボス戦なので軽めに

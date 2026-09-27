@@ -1600,6 +1600,106 @@ const ENEMY_DRAW = {
       ctx.stroke();
     }
   },
+  // ================================================ 第2章：宇宙の中心
+  piper(ctx, r, col, f) {
+    // 奏者：顔のない細長い影がフルートを吹く
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.7, r * 1.1);
+    ctx.quadraticCurveTo(-r * 0.55, -r * 0.2, -r * 0.3, -r * 0.7);
+    ctx.quadraticCurveTo(0, -r * 1.3, r * 0.3, -r * 0.7);
+    ctx.quadraticCurveTo(r * 0.55, -r * 0.2, r * 0.7, r * 1.1);
+    for (let i = 0; i < 4; i++) {
+      const x0 = r * 0.7 - (i * 1.4 * r) / 4;
+      ctx.quadraticCurveTo(x0 - r * 0.17, r * 0.8, x0 - r * 0.35, r * 1.1);
+    }
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    // 顔のない頭
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.55, r * 0.26, r * 0.3, 0, 0, TAU);
+    ctx.fillStyle = '#05030a';
+    ctx.fill();
+    // フルート
+    ctx.save();
+    ctx.translate(0, -r * 0.3);
+    ctx.rotate(-0.5);
+    ctx.fillStyle = '#d8c8a0';
+    ctx.fillRect(-r * 0.1, -r * 0.06, r * 1.2, r * 0.12);
+    ctx.fillStyle = '#3a2a1a';
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.arc(r * (0.25 + i * 0.22), 0, r * 0.03, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+    // 音の輪
+    ctx.strokeStyle = f === 1 ? 'rgba(160,255,220,0.9)' : 'rgba(160,255,220,0.45)';
+    ctx.lineWidth = r * 0.05;
+    ctx.beginPath();
+    ctx.arc(r * 1.0, -r * 0.95, r * 0.2, 0, TAU);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(r * 1.2, -r * 1.2, r * 0.12, 0, TAU);
+    ctx.stroke();
+    eyes(ctx, 0, -r * 0.55, r * 0.12, { color: '#9fffe0', angry: false, gap: 1.0 });
+  },
+  flutist(ctx, r, col, f) {
+    // 下位の奏者（遠距離）
+    ENEMY_DRAW.piper(ctx, r, col, f);
+  },
+  azathoth(ctx, r, col, f) {
+    // アザトース：泡立つ混沌の塊。f=0 眠り（目を閉じる）、f=1 目覚め（無数の目が開く）
+    const awake = f === 1;
+    // 触手
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * TAU + 0.2;
+      tentacle(ctx, Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.6, Math.cos(a + 0.4) * r * 1.5, Math.sin(a + 0.4) * r * 1.4, r * 0.3, r * 0.12, mix(col, awake ? '#ff5fd2' : '#000000', 0.35));
+    }
+    // 泡の塊
+    const blobs = [[0, 0, 0.95], [-0.55, -0.35, 0.5], [0.55, -0.4, 0.48], [-0.6, 0.35, 0.45], [0.6, 0.4, 0.46], [0, -0.7, 0.42], [0, 0.72, 0.4]];
+    for (const [x, y, rr] of blobs) {
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, rr * r, 0, TAU);
+      ctx.fillStyle = bodyGrad(ctx, rr * r, col);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.03;
+      ctx.stroke();
+    }
+    // 宇宙の色のにじみ
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [x, y, c] of [[-0.3, -0.2, '#6a3aff'], [0.35, 0.25, '#ff3d9a'], [0, 0.4, '#3fe0ff']]) {
+      const g = ctx.createRadialGradient(x * r, y * r, 0, x * r, y * r, r * 0.6);
+      g.addColorStop(0, rgba(c, awake ? 0.45 : 0.22));
+      g.addColorStop(1, rgba(c, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, r * 0.6, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+    // 目
+    const eyesAt = [[0, -0.05, 0.28], [-0.55, -0.35, 0.16], [0.55, -0.4, 0.15], [-0.6, 0.35, 0.13], [0.6, 0.4, 0.14], [0, -0.7, 0.12], [0, 0.72, 0.12], [-0.3, 0.35, 0.09], [0.3, -0.45, 0.09]];
+    for (const [x, y, s] of eyesAt) {
+      if (awake) oneEye(ctx, x * r, y * r, s * r, '#ff3d9a');
+      else {
+        ctx.strokeStyle = 'rgba(20,0,30,0.8)';
+        ctx.lineWidth = r * 0.03;
+        ctx.beginPath();
+        ctx.arc(x * r, y * r - s * r * 0.3, s * r, 0.35, Math.PI - 0.35);
+        ctx.stroke();
+      }
+    }
+    ctx.save();
+    ctx.translate(0, r * 0.25);
+    drawGem(ctx, r * 0.1, GEMS.obsidian);
+    ctx.restore();
+  },
   // ================================================ 第2章：深海
   jelly(ctx, r, col) {
     // 触手
@@ -2494,6 +2594,7 @@ const ENEMY_COLORS = {
   teapot: '#c8b8d8', servant: '#7a8a7a', lady: '#8a94c8', kelpie: '#3a5a6a', glaaki: '#6a6a8a',
   yellowsign: '#e0b030', masked: '#5a2a4a', kingyellow: '#d8b030',
   hal: '#8a8aa0', migo: '#b0708a', monolith: '#05030a',
+  piper: '#3a2a5a', flutist: '#4a3a6a', azathoth: '#2a1a4a',
 };
 
 // ------------------------------------------------------------------ プレイヤー
