@@ -82,7 +82,7 @@ export const STAGES = [
     desc: 'ダスクの侵攻が始まった最前線。すべてはここから。',
     hazard: null, hazardText: 'ギミックなし',
     hp: 1.0, dmg: 1.0, reward: 1000, bgm: 'stage',
-    pal: { bg: '#07070d', grid: '160,140,255', mark: '200,180,255', dust: '210,200,255', glow: 'rgba(110,60,200,0.28)', accent: '#b45cff' },
+    pal: { bg: '#100c1c', grid: '160,140,255', mark: '200,180,255', dust: '210,200,255', glow: 'rgba(110,60,200,0.28)', accent: '#b45cff' },
     tint: null,
     waves: WAVES_WASTES,
     events: makeEvents({ e: ['slime', 'ghost', 'toge', 'golem', 'knight'], sw: 'bat', r: ['slime', 'ghost', 'toge'], b: ['boss1', 'boss2', 'boss3'] }),
@@ -93,7 +93,7 @@ export const STAGES = [
     desc: '巨大な水晶柱が乱立する地下洞窟。柱は通り抜けられない。狙撃してくる敵に注意。',
     hazard: 'pillars', hazardText: '水晶柱（通行不可）',
     hp: 1.0, dmg: 1.1, reward: 1500, bgm: 'cavern', unlockChar: 'tourmaline',
-    pal: { bg: '#050a10', grid: '90,200,255', mark: '140,230,255', dust: '180,240,255', glow: 'rgba(40,140,220,0.26)', accent: '#3fc8ff' },
+    pal: { bg: '#0a1622', grid: '90,200,255', mark: '140,230,255', dust: '180,240,255', glow: 'rgba(40,140,220,0.26)', accent: '#3fc8ff' },
     tint: '#3a8fb8',
     waves: makeWaves({
       0: ['slime', 'bat', 'spitter'], 1: ['bat', 'spitter', 'splitter', 'ghost'], 2: ['splitter', 'spitter', 'toge', 'ghost'],
@@ -107,7 +107,7 @@ export const STAGES = [
     desc: '溶岩が噴き出す鉱脈の底。溶岩だまりは踏むとダメージ、足元が光ったら噴火の合図。',
     hazard: 'lava', hazardText: '溶岩だまり・噴火',
     hp: 1.2, dmg: 1.2, reward: 2000, bgm: 'magma', unlockChar: 'alexandrite',
-    pal: { bg: '#0d0605', grid: '255,120,60', mark: '255,160,90', dust: '255,190,140', glow: 'rgba(220,70,20,0.26)', accent: '#ff6a3d' },
+    pal: { bg: '#1c0c08', grid: '255,120,60', mark: '255,160,90', dust: '255,190,140', glow: 'rgba(220,70,20,0.26)', accent: '#ff6a3d' },
     tint: '#b8502a',
     waves: makeWaves({
       0: ['slime', 'bomber'], 1: ['bomber', 'bat', 'charger'], 2: ['charger', 'bomber', 'toge', 'ghost'],
@@ -121,7 +121,7 @@ export const STAGES = [
     desc: '凍てついた白銀の平原。定期的に吹雪が吹き荒れ、視界と足が奪われる。',
     hazard: 'blizzard', hazardText: '吹雪（減速・視界不良）',
     hp: 1.0, dmg: 1.3, reward: 2500, bgm: 'tundra', unlockChar: 'moonstone',
-    pal: { bg: '#070a0f', grid: '200,230,255', mark: '220,240,255', dust: '235,245,255', glow: 'rgba(150,200,255,0.22)', accent: '#bfe6ff' },
+    pal: { bg: '#101824', grid: '200,230,255', mark: '220,240,255', dust: '235,245,255', glow: 'rgba(150,200,255,0.22)', accent: '#bfe6ff' },
     tint: '#6f8fb8',
     waves: makeWaves({
       0: ['slime', 'wisp'], 1: ['wisp', 'bat', 'splitter'], 2: ['wisp', 'charger', 'splitter', 'ghost'],
@@ -164,7 +164,7 @@ export const STAGES = [
     desc: '海の底から浮かび上がった、角度の狂った石の都。歪んだ門に入ると、その先へ跳ばされる。',
     hazard: 'portals', hazardText: '歪んだ門（入ると先へ跳ぶ）',
     hp: 1.6, dmg: 1.55, reward: 7000, bgm: 'rlyeh',
-    pal: { bg: '#030805', grid: '80,220,150', mark: '120,255,180', dust: '160,255,200', glow: 'rgba(30,160,90,0.26)', accent: '#3fe08a' },
+    pal: { bg: '#08140f', grid: '80,220,150', mark: '120,255,180', dust: '160,255,200', glow: 'rgba(30,160,90,0.26)', accent: '#3fe08a' },
     tint: '#3a8a6a',
     waves: makeWaves({
       0: ['spawn', 'byakhee'], 1: ['spawn', 'byakhee', 'eyes'], 2: ['eyes', 'thorn', 'mindeye', 'byakhee'],
