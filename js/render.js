@@ -1695,10 +1695,6 @@ const ENEMY_DRAW = {
         ctx.stroke();
       }
     }
-    ctx.save();
-    ctx.translate(0, r * 0.25);
-    drawGem(ctx, r * 0.1, GEMS.obsidian);
-    ctx.restore();
   },
   // ================================================ 第2章：深海
   jelly(ctx, r, col) {
