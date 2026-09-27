@@ -473,6 +473,7 @@ function beastDetail(id) {
   $('#bup', ov).onclick = () => {
     if (!raiseBeast(id)) return;
     persist();
+    metaAch();
     haptic();
     lv ? audio.levelUp() : audio.bigWin();
     ov.remove();
@@ -587,7 +588,7 @@ function startBidding(lot) {
     const won = st.leader === 'you';
     audio.bigWin(); haptic();
     let r = null;
-    if (won) { save.coins -= st.price; r = awardLot(lot); lot.state = 'won'; lot.paid = st.price; }
+    if (won) { save.coins -= st.price; r = awardLot(lot); lot.state = 'won'; lot.paid = st.price; save.stats.auctionWins = (save.stats.auctionWins || 0) + 1; }
     else lot.state = 'lost';
     persist();
     metaAch();
