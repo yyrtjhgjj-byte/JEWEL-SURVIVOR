@@ -1,5 +1,5 @@
 // =====================================================================
-//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門 / お茶会の席
+//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門 / お茶会の席 / 黒い星の夜
 // =====================================================================
 import { TAU, rand } from './util.js';
 import { pillarSprite, softSprite, starSprite } from './render.js';
@@ -36,6 +36,8 @@ export class Hazards {
     this.lavaT = 0;
     this.boostT = 0; // 泡の噴出口：入ると少しの間だけ速く泳げる
     this.portalCd = 0; // 歪んだ門：続けて跳ばないように
+    this.stars = false; // 黒い星の夜：昇っている間は経験値 ×1.5
+    this.starsT = 30;
   }
 
   // ---------------------------------------------------------- 地形（チャンク単位）
@@ -126,6 +128,11 @@ export class Hazards {
     return best;
   }
 
+  // 経験値への補正
+  xpMul() {
+    return this.kind === 'blackstars' && this.stars ? 1.5 : 1;
+  }
+
   // 移動速度への補正
   speedMul() {
     if (this.kind === 'bubbles' && this.boostT > 0) return 1.35;
@@ -142,6 +149,13 @@ export class Hazards {
       for (const e of g.enemies) if (e.alive && !e.prop && !e.boss && !e.segment && g.inView(e, 120)) this.collide(e, e.r * 0.8);
       // 敵弾は柱で止まる
       for (const b of g.ebullets) if (this.blocks(b.x, b.y)) { b.life = 0; g.fx.burst(b.x, b.y, '#8ff0ff', 3, 80, 0.25, 6); }
+    } else if (this.kind === 'blackstars') {
+      this.starsT -= dt;
+      if (this.starsT <= 0) {
+        this.stars = !this.stars;
+        this.starsT = this.stars ? 12 : 30;
+        if (this.stars) g.hooks.banner('BLACK STARS', 'item', '黒い星が昇る — 経験値 ×1.5');
+      }
     } else if (this.kind === 'teatime') {
       // お茶会の席：近く（半径 60）にいる間、毎秒 2.5 回復
       this.resting = false;
@@ -455,6 +469,36 @@ export class Hazards {
 
   // 画面座標
   drawScreen(ctx, CW, CH, dpr) {
+    if (this.kind === 'blackstars') {
+      // 黒い星が昇っている間：画面の上に黒い星、全体をうっすら暗く
+      const k = this.stars ? Math.min(1, (12 - this.starsT) / 1.5, this.starsT / 1.5) : 0;
+      if (k <= 0.01) return;
+      ctx.save();
+      ctx.fillStyle = `rgba(20,8,30,${0.18 * k})`;
+      ctx.fillRect(0, 0, CW, CH);
+      const S = Math.min(CW, CH) * 0.035;
+      for (let i = 0; i < 7; i++) {
+        const x = CW * (0.1 + i * 0.13) + Math.sin(i * 7.3) * CW * 0.03, y = CH * (0.06 + (i % 3) * 0.035);
+        const s = S * (0.7 + (i % 3) * 0.25) * (1 + Math.sin(this.t * 2 + i) * 0.08);
+        ctx.globalAlpha = k;
+        ctx.shadowColor = '#c78bff';
+        ctx.shadowBlur = s * 1.2;
+        ctx.fillStyle = '#07030c';
+        ctx.beginPath();
+        for (let j = 0; j < 10; j++) {
+          const a = (j / 10) * TAU - Math.PI / 2, rr = j % 2 ? s * 0.42 : s;
+          ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(199,139,255,0.8)';
+        ctx.lineWidth = Math.max(1, s * 0.08);
+        ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
     if (this.kind !== 'blizzard') return;
     const g = this.g;
     const k = this.storm ? Math.min(1, (14 - this.stormT) / 1.5, this.stormT / 1.5) : 0;

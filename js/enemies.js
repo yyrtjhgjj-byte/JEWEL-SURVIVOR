@@ -406,6 +406,51 @@ export const AI = {
     }
   },
 
+  // 黄衣の王：黄衣の翻り（狙いの扇）／黄の印の爆発・眷属・黒い星の雨を順番に
+  kingyellow(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.kyT === undefined) { e.kyT = 2; e.ky2 = 4; e.kyPat = 0; }
+    mv.spd *= 0.75;
+    e.kyT -= dt * (enraged ? 1.3 : 1);
+    e.ky2 -= dt;
+    if (e.kyT <= 0) {
+      e.kyT = 2.2;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      const n = enraged ? 9 : 7;
+      for (let i = 0; i < n; i++) shoot(g, e, a0 + (i - (n - 1) / 2) * 0.17, 175, 8, { color: '#ffd24a' });
+    }
+    if (e.ky2 <= 0) {
+      e.ky2 = enraged ? 4.2 : 5.5;
+      e.kyPat = (e.kyPat + 1) % 3;
+      if (e.kyPat === 0) {
+        // 黄の印：大きな予告 → 爆発
+        for (let i = 0; i < (enraged ? 4 : 3); i++) {
+          const a = rand(TAU), d = i ? rand(90, 200) : 0;
+          const x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
+          warn(g, x, y, 70, 1.6, '#ffd24a', (g2) => {
+            g2.fx.ring(x, y, 10, 75, 0.4, '#ffd24a', 8);
+            g2.fx.burst(x, y, '#ffe38a', 14, 220, 0.5, 10);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 70 + g2.player.r) g2.hurtPlayer(e.dmg);
+          }, e);
+        }
+      } else if (e.kyPat === 1) {
+        // 眷属：仮面の貴族とバイアクヘーの輪
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < 2; i++) { const a = rand(TAU); g.spawnEnemy('masked', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; g.spawnEnemy('byakhee', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      } else {
+        // 黒い星の雨：画面の上から降ってくる
+        const n = enraged ? 18 : 13;
+        for (let i = 0; i < n; i++) {
+          const x = p.x + (i / (n - 1) - 0.5) * g.viewW * 0.95 + rand(-12, 12);
+          g.ebullets.push({ x, y: p.y - g.viewH * 0.55 - rand(0, 120), vx: 0, vy: 150, r: 8, dmg: e.dmg * 0.6, life: 7, color: '#2a1a3a' });
+        }
+        g.hooks.banner('STARFALL', 'warning', '黒い星が降る');
+      }
+    }
+  },
+
   emperor(g, e, dt, dist, mv) {
     const p = g.player;
     const ph = e.hp > e.maxHp * 0.66 ? 1 : e.hp > e.maxHp * 0.33 ? 2 : 3;

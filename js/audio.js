@@ -347,6 +347,24 @@ const Cm = [48, 51, 55], Ab = [44, 48, 51], Eb = [51, 55, 58];
 const B = [47, 51, 54];
 
 const TRACKS = {
+  // 第2章：カルコサ
+  carcosa: {
+    bpm: 104,
+    chords: [Am, F, Dm, E, Am, F, E, E],
+    bass: [0, null, null, 0, 7, null, null, null, 0, null, null, 0, 7, null, 5, null],
+    arp: 2,
+    melody: [
+      [81, null, 84, null, 88, null, 84, 81],
+      [77, null, 81, null, 84, null, 81, null],
+      [77, null, 74, null, 81, null, 77, 74],
+      [76, null, 80, null, 83, null, 80, 76],
+      [81, null, 84, 88, 93, null, 91, 88],
+      [89, null, 88, 84, 81, null, 84, null],
+      [83, null, 80, null, 76, null, 80, 83],
+      [81, null, null, null, 80, null, 76, null],
+    ],
+    drums: true, kick: [0, 8, 11], snare: [4, 12], hat: [2, 6, 10, 14],
+  },
   // 第2章：湖畔のお茶会
   lake: {
     bpm: 96,

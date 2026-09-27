@@ -1332,6 +1332,134 @@ const ENEMY_DRAW = {
     drawGem(ctx, r * 0.12, GEMS.obsidian);
     ctx.restore();
   },
+  // ================================================ 第2章：カルコサ
+  yellowsign(ctx, r, col, f) {
+    // 黄の印：浮かぶ印章（三つ巴の鉤）
+    ctx.save();
+    ctx.shadowColor = '#ffd24a';
+    ctx.shadowBlur = r * (f === 1 ? 0.9 : 0.5);
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.85, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.85, 0, TAU);
+    ctx.stroke();
+    ctx.strokeStyle = '#1a1206';
+    ctx.lineWidth = r * 0.14;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * TAU - Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(Math.cos(a) * r * 0.6, Math.sin(a) * r * 0.6, Math.cos(a + 1.1) * r * 0.62, Math.sin(a + 1.1) * r * 0.62);
+      ctx.stroke();
+    }
+    oneEye(ctx, 0, 0, r * 0.2, f === 1 ? '#ff3d3d' : '#ffd23d');
+  },
+  masked(ctx, r, col) {
+    // 仮面の貴族
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.9, r * 1.0);
+    ctx.lineTo(-r * 0.55, -r * 0.1);
+    ctx.lineTo(r * 0.55, -r * 0.1);
+    ctx.lineTo(r * 0.9, r * 1.0);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // ひだ襟
+    for (let i = -3; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.ellipse(i * r * 0.14, -r * 0.1, r * 0.1, r * 0.14, 0, 0, TAU);
+      ctx.fillStyle = '#f4f0e6';
+      ctx.fill();
+    }
+    // 仮面
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.6, r * 0.42, r * 0.48, 0, 0, TAU);
+    ctx.fillStyle = '#ece6d6';
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    ctx.fillStyle = '#0b0610';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.17, -r * 0.66, r * 0.1, r * 0.06, s * 0.3, 0, TAU);
+      ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(40,20,20,0.6)';
+    ctx.lineWidth = r * 0.04;
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.42, r * 0.12, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+    // 羽飾り
+    ctx.beginPath();
+    ctx.moveTo(r * 0.2, -r * 1.0);
+    ctx.quadraticCurveTo(r * 0.7, -r * 1.5, r * 0.95, -r * 1.1);
+    ctx.quadraticCurveTo(r * 0.55, -r * 1.1, r * 0.25, -r * 0.9);
+    ctx.fillStyle = '#ffd24a';
+    ctx.fill();
+  },
+  kingyellow(ctx, r, col) {
+    // 黄衣の王：ぼろぼろの黄色い外套と、青白い仮面
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.5, -r * 0.6);
+    ctx.quadraticCurveTo(-r * 1.4, -r * 0.2, -r * 1.35, r * 1.05);
+    for (let i = 0; i < 7; i++) {
+      const x0 = -r * 1.35 + (i * 2.7 * r) / 7;
+      ctx.lineTo(x0 + r * 0.19, r * (0.7 + (i % 2) * 0.25));
+      ctx.lineTo(x0 + (2.7 * r) / 7, r * 1.05);
+    }
+    ctx.quadraticCurveTo(r * 1.4, -r * 0.2, r * 0.5, -r * 0.6);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 1.3, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 外套の裂け目
+    ctx.strokeStyle = 'rgba(60,40,0,0.45)';
+    ctx.lineWidth = r * 0.03;
+    for (const x of [-0.6, -0.2, 0.25, 0.65]) {
+      ctx.beginPath();
+      ctx.moveTo(x * r, 0);
+      ctx.lineTo(x * r * 1.1, r * 0.8);
+      ctx.stroke();
+    }
+    // 頭巾
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.55, -r * 0.4);
+    ctx.quadraticCurveTo(-r * 0.6, -r * 1.35, 0, -r * 1.45);
+    ctx.quadraticCurveTo(r * 0.6, -r * 1.35, r * 0.55, -r * 0.4);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#000000', 0.2);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.stroke();
+    // 青白い仮面
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.82, r * 0.3, r * 0.36, 0, 0, TAU);
+    ctx.fillStyle = '#e8e4f0';
+    ctx.fill();
+    ctx.fillStyle = '#0b0610';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.12, -r * 0.88, r * 0.06, r * 0.035, 0, 0, TAU);
+      ctx.fill();
+    }
+    // 胸の黄の印
+    ctx.save();
+    ctx.translate(0, r * 0.05);
+    ENEMY_DRAW.yellowsign(ctx, r * 0.28, '#ffd24a', 0);
+    ctx.restore();
+  },
   // ================================================ 第2章：深海
   jelly(ctx, r, col) {
     // 触手
@@ -2224,6 +2352,7 @@ const ENEMY_COLORS = {
   spawn: '#5a5a70', byakhee: '#4a4a62', eyes: '#4e4c66', thorn: '#5a3a5a', crawler: '#7a5a5a', cultist: '#2a2438',
   starspawn: '#3f8a6a', mindeye: '#6a4a8a', shoggoth: '#1f3a32', nightgaunt: '#2a2a3a', cthulhu: '#2f7a5a',
   teapot: '#c8b8d8', servant: '#7a8a7a', lady: '#8a94c8', kelpie: '#3a5a6a', glaaki: '#6a6a8a',
+  yellowsign: '#e0b030', masked: '#5a2a4a', kingyellow: '#d8b030',
 };
 
 // ------------------------------------------------------------------ プレイヤー

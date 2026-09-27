@@ -174,7 +174,7 @@ export const STAGES = [
     finalBoss: 'cthulhu',
   },
   {
-    id: 'lake', no: 8, chapter: 2, name: '湖畔のほとりでお茶しましょ？', en: 'TEA BY LAKE HALI', time: 600,
+    id: 'lake', no: 8, chapter: 2, name: 'ハリ湖のほとりでお茶しましょ？', en: 'TEA BY LAKE HALI', time: 600,
     desc: '霧の立ちこめる黄昏の湖畔で、優雅なお茶会を。お茶会の席の近くにいると、少しずつ体力が戻る。',
     hazard: 'teatime', hazardText: 'お茶会の席（近くにいると回復）',
     hp: 1.8, dmg: 1.65, reward: 8000, bgm: 'lake',
@@ -186,6 +186,20 @@ export const STAGES = [
     }),
     events: makeEvents({ e: ['eyes', 'teapot', 'servant', 'crawler', 'cultist'], sw: 'byakhee', r: ['spawn', 'eyes', 'servant'], b: ['boss1_lake', 'boss2_lake', 'glaaki'] }),
     finalBoss: 'glaaki',
+  },
+  {
+    id: 'carcosa', no: 9, chapter: 2, name: 'ぶらりカルコサ巡りの旅', en: 'CARCOSA STROLL', time: 600,
+    desc: '双子の太陽が沈む黄昏の都。黒い星が昇っている間は、経験値が多く手に入る。',
+    hazard: 'blackstars', hazardText: '黒い星の夜（経験値 ×1.5）',
+    hp: 2.0, dmg: 1.75, reward: 9000, bgm: 'carcosa',
+    pal: { bg: '#16120a', grid: '230,200,110', mark: '255,220,130', dust: '255,230,170', glow: 'rgba(200,160,40,0.22)', accent: '#ffd24a' },
+    tint: '#a08a3a',
+    waves: makeWaves({
+      0: ['spawn', 'byakhee'], 1: ['spawn', 'byakhee', 'yellowsign'], 2: ['eyes', 'thorn', 'yellowsign', 'masked'],
+      3: ['crawler', 'masked', 'thorn', 'yellowsign'], 4: ['cultist', 'crawler', 'masked', 'thorn', 'byakhee'], b: ['byakhee', 'spawn'],
+    }),
+    events: makeEvents({ e: ['eyes', 'yellowsign', 'masked', 'crawler', 'cultist'], sw: 'byakhee', r: ['spawn', 'eyes', 'masked'], b: ['boss1_carcosa', 'boss2_carcosa', 'kingyellow'] }),
+    finalBoss: 'kingyellow',
   },
 ];
 

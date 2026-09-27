@@ -502,6 +502,8 @@ export const ENEMIES = {
   crab: { name: 'アイアン・クラブ', hp: 850, speed: 34, dmg: 14, r: 23, xp: 6, ai: 'crab', desc: '分厚い甲羅で守りを固めた大ガニ。とにかく硬い。' },
   teapot: { name: 'ティーポット・ミミック', hp: 200, speed: 42, dmg: 7, r: 15, xp: 2, ai: 'spitter', shotColor: '#ffb84a', desc: 'お茶会に紛れた人食いポット。熱いお茶を撃ってくる。' },
   servant: { name: 'グラーキの従者', hp: 950, speed: 38, dmg: 14, r: 18, xp: 6, ai: 'drift', desc: '湖の主の棘に貫かれた屍。よろめきながら迫る。' },
+  yellowsign: { name: '黄の印', hp: 210, speed: 40, dmg: 7, r: 15, xp: 2, ai: 'spitter', shotColor: '#ffd24a', desc: '宙に浮かぶ忌まわしい印章。見た者を狂わせる光を撃ってくる。' },
+  masked: { name: '仮面の貴族', hp: 520, speed: 54, dmg: 15, r: 18, xp: 4, ai: 'charger', desc: '青白い仮面をつけたカルコサの廷臣。溜めてから一直線に突進してくる。' },
   starspawn: { name: 'スター・スポーン', hp: 1400, speed: 50, dmg: 16, r: 20, xp: 8, ai: 'deepone', desc: '大いなる者の落とし子。近づくと一気に距離を詰めてくる。' },
   mindeye: { name: 'マインド・アイ', hp: 190, speed: 42, dmg: 7, r: 15, xp: 2, ai: 'spitter', shotColor: '#c78bff', desc: '心を覗く目。距離を取って狂気の弾を撃ってくる。' },
   deepone: { name: 'ディープ・ワン', hp: 1300, speed: 56, dmg: 16, r: 20, xp: 8, ai: 'deepone', desc: '海の底から這い上がってきた魚人。深きものども。' },
@@ -519,6 +521,8 @@ export const ENEMIES = {
   boss2_rlyeh: { name: 'ナイトゴーント', hp: 38000, speed: 66, dmg: 28, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'nightgaunt', desc: '顔のない夜の飛行者。4:00に出現。螺旋弾と突進。' },
   boss1_lake: { name: 'ハリの貴婦人', hp: 20000, speed: 46, dmg: 22, r: 50, xp: 200, boss: true, ai: 'boss1', sprite: 'lady', desc: '湖畔のお茶会を開くヴェールの亡霊。2:00に出現。全方位弾と子の召喚。' },
   boss2_lake: { name: 'ケルピー', hp: 40000, speed: 68, dmg: 28, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'kelpie', desc: '人を湖に引きずり込む水馬。4:00に出現。螺旋弾と突進。' },
+  boss1_carcosa: { name: 'カシルダ', hp: 21000, speed: 46, dmg: 24, r: 50, xp: 200, boss: true, ai: 'boss1', sprite: 'lady', tint: '#c8a84a', desc: 'カルコサの王妃。滅びの歌を歌う。2:00に出現。全方位弾と子の召喚。' },
+  boss2_carcosa: { name: 'バイアクヘー・ロード', hp: 42000, speed: 70, dmg: 30, r: 52, xp: 500, boss: true, ai: 'boss2', sprite: 'byakhee', tint: '#8a7a3a', desc: '黄衣の王に仕える巨大な羽の異形。4:00に出現。螺旋弾と突進。' },
   boss3_void: { name: 'クイーン・シャドウ', hp: 55000, speed: 58, dmg: 30, r: 58, xp: 800, boss: true, ai: 'boss3', sprite: 'boss3', tint: '#2a0a3a', desc: '女王の残影。虚空聖堂の6:00に出現。' },
   // ---- 最終ボス
   prism: { name: 'プリズム・コロッサス', hp: 210000, speed: 40, dmg: 30, r: 62, xp: 2000, boss: true, ai: 'prism', desc: '水晶洞窟の主。回転するレーザーで空間を切り裂く。7:00に出現。' },
@@ -529,6 +533,7 @@ export const ENEMIES = {
   dagon: { name: 'ダゴン', hp: 210000, speed: 48, dmg: 34, r: 64, xp: 2000, boss: true, ai: 'dagon', desc: '深きものどもが崇める海の父。津波の弾幕と水柱で逃げ場を奪う。7:00に出現。' },
   cthulhu: { name: 'クトゥルフ', hp: 230000, speed: 44, dmg: 36, r: 66, xp: 2000, boss: true, ai: 'cthulhu', desc: '沈んだ都で夢見る大いなる者。触手の薙ぎ払いと狂気の波。7:00に出現。' },
   glaaki: { name: 'グラーキ', hp: 250000, speed: 40, dmg: 38, r: 64, xp: 2000, boss: true, ai: 'glaaki', desc: '湖の底に棲む棘の主。棘の雨と従者で湖畔を覆う。7:00に出現。' },
+  kingyellow: { name: '黄衣の王', hp: 260000, speed: 44, dmg: 40, r: 66, xp: 2000, boss: true, ai: 'kingyellow', desc: 'ぼろぼろの黄衣と青白い仮面の王。黄の印と黒い星で都を狂気に染める。7:00に出現。' },
   thief: { name: 'ジュエルシーフ', hp: 2600, speed: 128, dmg: 0, r: 15, xp: 6, ai: 'thief', sprite: 'ghost', tint: '#d8a93a', desc: '原石を抱えて逃げ回る盗賊。7:00以降に現れ、しばらくすると姿を消す。倒すと原石と宝箱を落とす。' },
   crystal: { name: 'ライトクリスタル', hp: 1, speed: 0, dmg: 0, r: 16, xp: 0, prop: true, color: '#ffffff', desc: '破壊するとアイテムを落とす。' },
 };
