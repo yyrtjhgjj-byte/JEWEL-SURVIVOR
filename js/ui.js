@@ -1308,6 +1308,7 @@ export function pauseMenu(g, onResume, onQuit) {
           ${g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 64)}"><b>${p.level}</b></div>`).join('')}
         </div>
         ${elemSummary(g)}
+        ${g.stats.overMight > 0.005 ? `<div class="hint">上限超過 → 攻撃力 +${Math.round(g.stats.overMight * 100)}%</div>` : ''}
         <div class="hint">${fmtTime(g.time)} ／ ${fmt(g.kills)} KILLS ／ ${fmt(g.coins)} COINS</div>
       </div>
       <button class="btn big primary" id="resume">RESUME</button>
