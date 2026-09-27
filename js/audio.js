@@ -344,8 +344,27 @@ class AudioEngine {
 const C = [60, 64, 67], G = [55, 59, 62], Am = [57, 60, 64], F = [53, 57, 60], E = [52, 56, 59];
 const Em = [52, 55, 59], D = [50, 54, 57], Dm = [50, 53, 57], Bb = [46, 50, 53], A = [45, 49, 52];
 const Cm = [48, 51, 55], Ab = [44, 48, 51], Eb = [51, 55, 58];
+const B = [47, 51, 54];
 
 const TRACKS = {
+  // 第2章：ルルイエ
+  rlyeh: {
+    bpm: 112,
+    chords: [Em, C, Am, B, Em, C, D, B],
+    bass: [0, null, 0, null, 7, null, null, 6, 0, null, 0, null, 7, null, 12, null],
+    arp: 2,
+    melody: [
+      [76, null, 79, null, 83, null, 82, 79],
+      [79, null, 76, null, 72, null, 76, null],
+      [81, null, 84, null, 81, null, 76, null],
+      [78, null, 75, null, 71, null, 75, 78],
+      [76, null, 79, 83, 88, null, 86, 83],
+      [84, null, 83, 79, 76, null, 79, null],
+      [81, null, 78, null, 74, null, 78, 81],
+      [83, null, null, null, 75, null, 71, null],
+    ],
+    drums: true, kick: [0, 6, 8], snare: [4, 12], hat: [2, 10, 14],
+  },
   // 第2章：深海
   deep: {
     bpm: 100,

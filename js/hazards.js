@@ -1,5 +1,5 @@
 // =====================================================================
-//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口
+//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門
 // =====================================================================
 import { TAU, rand } from './util.js';
 import { pillarSprite, softSprite, starSprite } from './render.js';
@@ -35,6 +35,7 @@ export class Hazards {
     this.rifts = [];
     this.lavaT = 0;
     this.boostT = 0; // 泡の噴出口：入ると少しの間だけ速く泳げる
+    this.portalCd = 0; // 歪んだ門：続けて跳ばないように
   }
 
   // ---------------------------------------------------------- 地形（チャンク単位）
@@ -48,6 +49,8 @@ export class Hazards {
     if (this.kind === 'pillars') {
       const n = r() < 0.25 ? 0 : r() < 0.6 ? 1 : 2;
       for (let i = 0; i < n; i++) c.push({ x: ox + 40 + r() * (CHUNK - 80), y: oy + 40 + r() * (CHUNK - 80), r: 22 + r() * 22, seed: r() });
+    } else if (this.kind === 'portals') {
+      if (r() < 0.4) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 26, seed: r() * TAU });
     } else if (this.kind === 'bubbles') {
       if (r() < 0.55) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 30 + r() * 10, seed: r() * TAU });
     } else if (this.kind === 'lava') {
@@ -137,6 +140,25 @@ export class Hazards {
       for (const e of g.enemies) if (e.alive && !e.prop && !e.boss && !e.segment && g.inView(e, 120)) this.collide(e, e.r * 0.8);
       // 敵弾は柱で止まる
       for (const b of g.ebullets) if (this.blocks(b.x, b.y)) { b.life = 0; g.fx.burst(b.x, b.y, '#8ff0ff', 3, 80, 0.25, 6); }
+    } else if (this.kind === 'portals') {
+      this.portalCd -= dt;
+      if (this.portalCd <= 0) {
+        for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
+          if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 > o.r * o.r) continue;
+          // 進んでいる向き（止まっていれば門の中心から外向き）へ 260 跳ぶ。着地の直後は少しだけ無敵
+          let dx = p.moving ? p.dirX : p.x - o.x, dy = p.moving ? p.dirY : p.y - o.y;
+          if (Math.hypot(dx, dy) < 0.01) { const a = rand(TAU); dx = Math.cos(a); dy = Math.sin(a); }
+          const d = Math.hypot(dx, dy);
+          g.fx.burst(p.x, p.y, '#3fe08a', 14, 200, 0.5, 10);
+          p.x = o.x + (dx / d) * 260;
+          p.y = o.y + (dy / d) * 260;
+          p.iT = Math.max(p.iT, 0.6);
+          g.fx.ring(p.x, p.y, 6, 60, 0.4, '#3fe08a', 6);
+          audio.whoosh();
+          this.portalCd = 1.5;
+          break;
+        }
+      }
     } else if (this.kind === 'bubbles') {
       this.boostT -= dt;
       for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
@@ -219,6 +241,28 @@ export class Hazards {
   // ---------------------------------------------------------- 描画（地面）
   drawGround(ctx) {
     const g = this.g, p = g.player;
+    if (this.kind === 'portals') {
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
+        const grd = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+        grd.addColorStop(0, 'rgba(10,30,20,0.9)');
+        grd.addColorStop(0.75, 'rgba(40,200,120,0.3)');
+        grd.addColorStop(1, 'rgba(40,200,120,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, TAU);
+        ctx.fill();
+        // ねじれた縁（回る）
+        ctx.strokeStyle = 'rgba(120,255,180,0.7)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 3; i++) {
+          const a = this.t * 1.5 + o.seed + (i / 3) * TAU;
+          ctx.beginPath();
+          ctx.arc(o.x, o.y, o.r * 0.85, a, a + 1.2);
+          ctx.stroke();
+        }
+      }
+      return;
+    }
     if (this.kind === 'bubbles') {
       for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
         const grd = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);

@@ -555,6 +555,36 @@ function shine(ctx, r) {
   ctx.fill();
 }
 
+// 異形の単眼（白目＋光る瞳）
+function oneEye(ctx, x, y, s, color = '#b8ff5f') {
+  ctx.save();
+  ctx.fillStyle = '#f4f0e6';
+  ctx.beginPath();
+  ctx.arc(x, y, s, 0, TAU);
+  ctx.fill();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = s * 1.2;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, s * 0.55, 0, TAU);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#0b0610';
+  ctx.beginPath();
+  ctx.ellipse(x, y, s * 0.18, s * 0.45, 0, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+}
+function tentacle(ctx, x0, y0, x1, y1, bend, w, col) {
+  ctx.strokeStyle = col;
+  ctx.lineWidth = w;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.quadraticCurveTo((x0 + x1) / 2 + bend, (y0 + y1) / 2, x1, y1);
+  ctx.stroke();
+}
+
 const ENEMY_DRAW = {
   slime(ctx, r, col, f) {
     ctx.beginPath();
@@ -717,6 +747,329 @@ const ENEMY_DRAW = {
     ctx.quadraticCurveTo(r * 0.6, -r * 1.4, r * 0.9, -r * 1.0);
     ctx.quadraticCurveTo(r * 0.4, -r * 1.0, 0, -r * 0.75);
     ctx.fill();
+  },
+  // ================================================ 第2章：使い回す異形（ステージの tint で色が変わる）
+  spawn(ctx, r, col) {
+    // 触手の粘体（スライムの役）
+    for (let i = 0; i < 5; i++) tentacle(ctx, -r * 0.7 + i * r * 0.35, r * 0.4, -r * 0.8 + i * r * 0.4, r * 1.15, (i % 2 ? 1 : -1) * r * 0.25, r * 0.16, mix(col, '#000000', 0.25));
+    ctx.beginPath();
+    ctx.moveTo(-r, r * 0.55);
+    ctx.bezierCurveTo(-r * 1.15, -r * 0.5, -r * 0.4, -r * 1.05, r * 0.1, -r * 0.95);
+    ctx.bezierCurveTo(r * 0.8, -r * 0.9, r * 1.15, -r * 0.2, r, r * 0.55);
+    ctx.quadraticCurveTo(0, r * 0.85, -r, r * 0.55);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.09;
+    ctx.stroke();
+    shine(ctx, r);
+    oneEye(ctx, -r * 0.3, -r * 0.2, r * 0.26);
+    oneEye(ctx, r * 0.35, -r * 0.35, r * 0.18);
+    oneEye(ctx, r * 0.2, r * 0.2, r * 0.14);
+  },
+  byakhee(ctx, r, col, f) {
+    // 羽の異形（コウモリの役）
+    const up = f === 1;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.3, -r * 0.1);
+      ctx.lineTo(s * r * 1.55, up ? -r * 1.0 : -r * 0.2);
+      ctx.lineTo(s * r * 1.05, up ? -r * 0.35 : r * 0.35);
+      ctx.lineTo(s * r * 1.25, up ? -r * 0.05 : r * 0.6);
+      ctx.lineTo(s * r * 0.35, r * 0.35);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#000000', 0.3);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.08;
+      ctx.stroke();
+    }
+    for (let i = 0; i < 4; i++) tentacle(ctx, -r * 0.2 + i * r * 0.13, r * 0.3, -r * 0.4 + i * r * 0.27, r * 1.05, (i % 2 ? 1 : -1) * r * 0.2, r * 0.08, mix(col, '#000000', 0.2));
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.45, r * 0.6, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    oneEye(ctx, 0, -r * 0.1, r * 0.28, '#ffd23d');
+  },
+  eyes(ctx, r, col) {
+    // 目玉の群体（レイスの役）
+    for (let i = 0; i < 4; i++) tentacle(ctx, -r * 0.4 + i * r * 0.27, r * 0.3, -r * 0.5 + i * r * 0.33, r * 1.2, (i % 2 ? 1 : -1) * r * 0.3, r * 0.1, mix(col, '#000000', 0.2));
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.8, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.globalAlpha = 0.9;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    oneEye(ctx, 0, -r * 0.05, r * 0.36, '#5ff0ff');
+    oneEye(ctx, -r * 0.55, -r * 0.45, r * 0.22, '#5ff0ff');
+    oneEye(ctx, r * 0.55, -r * 0.4, r * 0.24, '#5ff0ff');
+    oneEye(ctx, -r * 0.45, r * 0.4, r * 0.17, '#5ff0ff');
+    oneEye(ctx, r * 0.5, r * 0.35, r * 0.19, '#5ff0ff');
+  },
+  thorn(ctx, r, col) {
+    // 棘の多肢球（ソーンコアの役）
+    const n = 9;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + 0.2;
+      tentacle(ctx, Math.cos(a) * r * 0.6, Math.sin(a) * r * 0.6, Math.cos(a + 0.35) * r * 1.3, Math.sin(a + 0.35) * r * 1.3, r * 0.15, r * 0.14, mix(col, '#ff2d6a', 0.2));
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.78, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.8, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    // 口
+    ctx.beginPath();
+    ctx.arc(0, r * 0.1, r * 0.32, 0, TAU);
+    ctx.fillStyle = '#12060e';
+    ctx.fill();
+    ctx.fillStyle = '#f2f2ff';
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * r * 0.32, r * 0.1 + Math.sin(a) * r * 0.32);
+      ctx.lineTo(Math.cos(a) * r * 0.16, r * 0.1 + Math.sin(a) * r * 0.16);
+      ctx.lineTo(Math.cos(a + 0.3) * r * 0.32, r * 0.1 + Math.sin(a + 0.3) * r * 0.32);
+      ctx.fill();
+    }
+    oneEye(ctx, 0, -r * 0.45, r * 0.18, '#ff3d6a');
+  },
+  crawler(ctx, r, col) {
+    // 這いずる肉塊（ゴーレムの役）
+    ctx.strokeStyle = mix(col, '#000000', 0.35);
+    ctx.lineWidth = r * 0.12;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.5, r * (-0.2 + i * 0.25));
+      ctx.lineTo(s * r * 1.15, r * (-0.45 + i * 0.3));
+      ctx.lineTo(s * r * 1.35, r * (0.0 + i * 0.3));
+      ctx.stroke();
+    }
+    const pts = [[-0.95, 0.1], [-0.8, -0.6], [-0.3, -0.95], [0.3, -0.9], [0.85, -0.55], [1.0, 0.15], [0.7, 0.75], [0, 0.9], [-0.7, 0.75]];
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * r, y * r) : ctx.moveTo(x * r, y * r)));
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // こぶ
+    ctx.fillStyle = mix(col, '#ffffff', 0.15);
+    for (const [x, y, rr] of [[-0.45, -0.45, 0.22], [0.35, -0.55, 0.18], [0.55, 0.2, 0.15]]) {
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, rr * r, 0, TAU);
+      ctx.fill();
+    }
+    // 口
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.45, r * 0.25);
+    ctx.quadraticCurveTo(0, r * 0.7, r * 0.45, r * 0.25);
+    ctx.closePath();
+    ctx.fillStyle = '#12060e';
+    ctx.fill();
+    ctx.fillStyle = '#f2f2ff';
+    for (let i = 0; i < 4; i++) {
+      const x = -r * 0.3 + i * r * 0.2;
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.06, r * 0.28);
+      ctx.lineTo(x, r * 0.42);
+      ctx.lineTo(x + r * 0.06, r * 0.28);
+      ctx.fill();
+    }
+    oneEye(ctx, -r * 0.1, -r * 0.2, r * 0.2, '#ff8a3d');
+  },
+  cultist(ctx, r, col) {
+    // 黒衣の信徒（ダスクナイトの役）
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.95, r * 0.95);
+    ctx.quadraticCurveTo(-r * 0.75, -r * 0.2, -r * 0.45, -r * 0.55);
+    ctx.quadraticCurveTo(0, -r * 1.35, r * 0.45, -r * 0.55);
+    ctx.quadraticCurveTo(r * 0.75, -r * 0.2, r * 0.95, r * 0.95);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, -r, 0, r);
+    g.addColorStop(0, mix(col, '#ffffff', 0.15));
+    g.addColorStop(1, mix(col, '#000000', 0.45));
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    // 頭巾の中の闇
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.35, r * 0.34, r * 0.3, 0, 0, TAU);
+    ctx.fillStyle = '#05030a';
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.35, r * 0.2, { color: '#b8ff5f', gap: 0.9 });
+    // 袖から出る触手
+    for (const s of [-1, 1]) tentacle(ctx, s * r * 0.6, r * 0.35, s * r * 1.2, r * 0.85, s * r * 0.3, r * 0.1, mix(col, '#7fffc0', 0.3));
+    ctx.save();
+    ctx.translate(0, r * 0.25);
+    drawGem(ctx, r * 0.12, GEMS.obsidian);
+    ctx.restore();
+  },
+  // ================================================ 第2章：ルルイエ
+  starspawn(ctx, r, col) {
+    // 落とし子：蛸の頭＋顔の触手＋小さな翼
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.4, -r * 0.2);
+      ctx.lineTo(s * r * 1.4, -r * 0.9);
+      ctx.lineTo(s * r * 1.15, -r * 0.2);
+      ctx.lineTo(s * r * 1.35, r * 0.15);
+      ctx.lineTo(s * r * 0.5, r * 0.2);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#000000', 0.35);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.06;
+      ctx.stroke();
+    }
+    for (let i = 0; i < 5; i++) tentacle(ctx, -r * 0.35 + i * r * 0.18, r * 0.1, -r * 0.5 + i * r * 0.25, r * 1.2, (i % 2 ? 1 : -1) * r * 0.2, r * 0.12, mix(col, '#000000', 0.15));
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.35, r * 0.62, r * 0.72, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.8, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    shine(ctx, r * 0.7);
+    eyes(ctx, 0, -r * 0.2, r * 0.22, { color: '#ffd23d', gap: 1.1 });
+  },
+  mindeye(ctx, r, col, f) {
+    // 心を覗く目（遠距離）
+    ctx.save();
+    ctx.strokeStyle = f === 1 ? 'rgba(220,140,255,0.9)' : 'rgba(200,140,255,0.45)';
+    ctx.lineWidth = r * 0.08;
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r * (1.05 + i * 0.25), 0, TAU);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.95, r * 0.6, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    oneEye(ctx, 0, 0, r * 0.45, f === 1 ? '#ff5fd2' : '#c78bff');
+  },
+  shoggoth(ctx, r, col) {
+    ENEMY_DRAW.spawn(ctx, r, col);
+    oneEye(ctx, -r * 0.7, -r * 0.55, r * 0.12);
+    oneEye(ctx, r * 0.7, -r * 0.1, r * 0.13);
+    oneEye(ctx, -r * 0.1, -r * 0.7, r * 0.11);
+    oneEye(ctx, -r * 0.65, r * 0.2, r * 0.1);
+    ctx.save();
+    ctx.translate(0, -r * 0.95);
+    drawGem(ctx, r * 0.1, GEMS.obsidian);
+    ctx.restore();
+  },
+  nightgaunt(ctx, r, col) {
+    // 顔のない夜の飛行者
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.35, -r * 0.35);
+      ctx.quadraticCurveTo(s * r * 1.2, -r * 1.4, s * r * 1.6, -r * 0.5);
+      ctx.lineTo(s * r * 1.25, -r * 0.35);
+      ctx.lineTo(s * r * 1.4, r * 0.05);
+      ctx.lineTo(s * r * 1.0, -r * 0.05);
+      ctx.lineTo(s * r * 1.05, r * 0.35);
+      ctx.lineTo(s * r * 0.45, r * 0.2);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#000000', 0.3);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.05;
+      ctx.stroke();
+    }
+    // しっぽ
+    tentacle(ctx, 0, r * 0.6, r * 0.6, r * 1.3, -r * 0.5, r * 0.1, mix(col, '#000000', 0.2));
+    // 胴
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.45, -r * 0.3);
+    ctx.lineTo(r * 0.45, -r * 0.3);
+    ctx.lineTo(r * 0.3, r * 0.75);
+    ctx.lineTo(-r * 0.3, r * 0.75);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 0.8, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    // 顔のない頭と角
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.15, -r * 0.8);
+      ctx.quadraticCurveTo(s * r * 0.6, -r * 1.1, s * r * 0.5, -r * 1.45);
+      ctx.quadraticCurveTo(s * r * 0.35, -r * 1.1, s * r * 0.05, -r * 0.85);
+      ctx.fillStyle = '#d8d0e8';
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.6, r * 0.3, r * 0.36, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.4, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.stroke();
+  },
+  cthulhu(ctx, r, col) {
+    // 大いなる夢見る者：大きな翼＋蛸の頭＋顔の触手
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.5, -r * 0.3);
+      ctx.quadraticCurveTo(s * r * 1.1, -r * 1.55, s * r * 1.65, -r * 1.1);
+      ctx.lineTo(s * r * 1.35, -r * 0.7);
+      ctx.lineTo(s * r * 1.6, -r * 0.35);
+      ctx.lineTo(s * r * 1.2, -r * 0.3);
+      ctx.lineTo(s * r * 1.35, r * 0.1);
+      ctx.lineTo(s * r * 0.6, r * 0.15);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#000000', 0.4);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.04;
+      ctx.stroke();
+    }
+    // 体
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.8, r * 1.1);
+    ctx.quadraticCurveTo(-r * 0.9, r * 0.1, -r * 0.4, -r * 0.1);
+    ctx.lineTo(r * 0.4, -r * 0.1);
+    ctx.quadraticCurveTo(r * 0.9, r * 0.1, r * 0.8, r * 1.1);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, mix(col, '#000000', 0.2));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 顔の触手
+    for (let i = 0; i < 7; i++) tentacle(ctx, -r * 0.4 + i * r * 0.13, -r * 0.2, -r * 0.55 + i * r * 0.18, r * 0.75, (i % 2 ? 1 : -1) * r * 0.18, r * 0.09, mix(col, '#7fffc0', 0.15));
+    // 頭
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.65, r * 0.55, r * 0.6, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.7, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    shine(ctx, r * 0.6);
+    ctx.save();
+    ctx.translate(0, -r * 1.12);
+    drawGem(ctx, r * 0.1, GEMS.obsidian);
+    ctx.restore();
+    eyes(ctx, 0, -r * 0.55, r * 0.18, { color: '#ffd23d', gap: 1.2 });
   },
   // ================================================ 第2章：深海
   jelly(ctx, r, col) {
@@ -1607,6 +1960,8 @@ const ENEMY_COLORS = {
   spitter: '#3a5a7a', splitter: '#3a7a5a', charger: '#6a4a3a', phantom: '#2a1a4a',
   jelly: '#7f88e8', eel: '#2f7a7a', angler: '#4a4a78', squid: '#b0588a', crab: '#b8543a', deepone: '#2f7a62',
   motherjelly: '#b070d8', serpent: '#1f6a8a', dagon: '#1f5a6a',
+  spawn: '#5a5a70', byakhee: '#4a4a62', eyes: '#4e4c66', thorn: '#5a3a5a', crawler: '#7a5a5a', cultist: '#2a2438',
+  starspawn: '#3f8a6a', mindeye: '#6a4a8a', shoggoth: '#1f3a32', nightgaunt: '#2a2a3a', cthulhu: '#2f7a5a',
 };
 
 // ------------------------------------------------------------------ プレイヤー
