@@ -59,7 +59,7 @@ js/ui.js         全画面（タイトル〜リザルト、HUD、バナー）
 js/atelier.js / js/atelier-ui.js   研磨工房のロジックと画面
 js/artifacts.js  秘宝の定義と解放判定
 js/rank.js       ユーザーレベル
-js/auction.js / js/beasts.js   オークション・宝石の百獣（研磨工房）
+js/auction.js / js/beasts.js   オークション・百獣（研磨工房）
 js/howto.js      遊び方の本文。仕様や数値を変えたらここも直す
 js/gem-facts.js  実在の宝石の情報（研磨コレクションの詳細）
 js/save.js       localStorage（キー jewel-survivor-save-v1）、バックアップ
@@ -169,7 +169,7 @@ tools/test/      Playwright のテスト（§6）
 - 研磨工房（数値は atelier.js）：原石はエリート・ボス・シーフ・採掘から。研磨で出る宝石は `save.nextGem` に先に決めておき、重みは実際の産出量に緩く準拠（`ABUNDANCE`）。
   コレクション 29 種（`save.jewels`）。練度に応じた永続ボーナス（`MASTERY_BONUS`）に最大カラットの倍率が掛かる。GEM DATA（gem-facts.js）は実際の宝石学の情報だけ。
 - 宝石の所持数（`save.jewels[id].have`）：研磨・落札で +1。研磨数 n とは別（n は練度に使うので減らさない）。所持数ができる前のセーブは n を引き継いだ。
-- 宝石の百獣（beasts.js、コレクションの中のタブ）：宝石 10 個で動物の彫刻を召喚（`save.beasts`、効果 base）、以降 10 個ごとに強化（+step、上限なし）。base はクリティカル率 +10% と同じくらいの価値（工房の強化量を目安に大まかに）、step は base の 1/10。召喚した種類数 × 与ダメージ +1%（`dmgUp`、damage() で掛ける）。
+- 百獣（beasts.js、コレクションの中のタブ）：宝石 10 個で動物の彫刻を召喚（`save.beasts`、効果 base）、以降 10 個ごとに強化（+step、上限なし）。base はクリティカル率 +10% と同じくらいの価値（工房の強化量を目安に大まかに）、step は base の 1/10。召喚した種類数 × 与ダメージ +1%（`dmgUp`、damage() で掛ける）。
   コレクションの所持数の肩は 100 以上で「99+」（ほかの場所は実数）。
   ルビー ニホンウサギ 攻撃力 15%／サファイア キャバリア 経験値 20%／ガーネット ペルシャ 最大HP 25%（`hpMul`）／ラブラドライト ポーラベア クリティカル威力 40%／エンジェライト アルパカ 回復量 30%（`healUp`、heal() で掛ける）／ペリドット パピヨン 移動速度 10%／ダイヤモンド マンチカン クリティカル率 10%。
   絵は `shape`（楕円と多角形）を宝石の色のローポリで塗る（目は描かない）。同じ色で重なって見えない耳の縁などは `lines` で線を引く。動物を足すときは BEASTS に 1 項目足す。
@@ -213,7 +213,7 @@ tools/test/      Playwright のテスト（§6）
 ## 5. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、未コミットの新規ファイルは `git status` で確認してから進める。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v72`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v73`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh

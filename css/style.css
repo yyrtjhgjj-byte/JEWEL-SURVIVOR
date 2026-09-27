@@ -822,7 +822,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .auc-bids .btn { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; font-size: 16px; }
 .auc-bids .btn .sub { font-size: 11px; opacity: 0.85; margin-top: 2px; }
 
-/* 宝石の所持数・宝石の百獣 */
+/* 宝石の所持数・百獣 */
 .coll-cell .chave { position: absolute; top: 5px; left: 6px; font-family: var(--font); font-size: 10.5px; font-weight: 700; color: var(--muted); line-height: 1; }
 .tabs.sub { width: fit-content; margin: 0 auto 10px; }
 .tabs.sub .tab { padding: 6px 14px; font-size: 12.5px; }

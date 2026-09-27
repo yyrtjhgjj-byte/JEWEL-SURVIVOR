@@ -35,7 +35,7 @@ function defaults() {
     auction: null, // オークションの出品（auction.js）
     nextGem: {}, // 次に磨く原石の中身（等級ごと。atelier.js の nextGem）
     jewels: {}, // コレクション { gemId: { n: 研磨数, best: 最高品質, ct: 最大カラット, have: 所持数 } }
-    beasts: {}, // 宝石の百獣 { gemId: レベル }（beasts.js）
+    beasts: {}, // 百獣 { gemId: レベル }（beasts.js）
   };
 }
 
