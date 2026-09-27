@@ -203,7 +203,7 @@ tools/test/      Playwright のテスト（§6）
 
 ### 宝石を追加するときに更新する場所
 
-1. data.js の `GEMS`（jp・en・word・kana・color/light/dark・lore）と gem-art.js の `GEM_CUT`（その宝石で実際に一般的なカット。不透明な石はカボション）
+1. data.js の `GEMS`（jp・en・word・kana・color/light/dark・lore）と gem-art.js の `GEM_CUT`（基本はその宝石で実際に一般的なカット。見た目の好みが優先で、オブシディアンはユーザーの指定でトリリアント）
 2. チャームなら `PASSIVES`、武器なら `WEAPONS`・weapons.js の LOGIC・`CHARACTERS`
 3. elements.js の `GEM_ELEMENT`
 4. atelier.js の `MASTERY_BONUS` と `ABUNDANCE`
@@ -216,7 +216,7 @@ tools/test/      Playwright のテスト（§6）
 ## 5. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、未コミットの新規ファイルは `git status` で確認してから進める。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v75`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v76`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
