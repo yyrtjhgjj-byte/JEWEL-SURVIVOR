@@ -1,5 +1,5 @@
 // =====================================================================
-//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門
+//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門 / お茶会の席
 // =====================================================================
 import { TAU, rand } from './util.js';
 import { pillarSprite, softSprite, starSprite } from './render.js';
@@ -49,6 +49,8 @@ export class Hazards {
     if (this.kind === 'pillars') {
       const n = r() < 0.25 ? 0 : r() < 0.6 ? 1 : 2;
       for (let i = 0; i < n; i++) c.push({ x: ox + 40 + r() * (CHUNK - 80), y: oy + 40 + r() * (CHUNK - 80), r: 22 + r() * 22, seed: r() });
+    } else if (this.kind === 'teatime') {
+      if (r() < 0.3) c.push({ x: ox + 70 + r() * (CHUNK - 140), y: oy + 70 + r() * (CHUNK - 140), r: 60, seed: r() * TAU });
     } else if (this.kind === 'portals') {
       if (r() < 0.4) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 26, seed: r() * TAU });
     } else if (this.kind === 'bubbles') {
@@ -140,6 +142,16 @@ export class Hazards {
       for (const e of g.enemies) if (e.alive && !e.prop && !e.boss && !e.segment && g.inView(e, 120)) this.collide(e, e.r * 0.8);
       // 敵弾は柱で止まる
       for (const b of g.ebullets) if (this.blocks(b.x, b.y)) { b.life = 0; g.fx.burst(b.x, b.y, '#8ff0ff', 3, 80, 0.25, 6); }
+    } else if (this.kind === 'teatime') {
+      // お茶会の席：近く（半径 60）にいる間、毎秒 2.5 回復
+      this.resting = false;
+      for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
+        if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 > o.r * o.r) continue;
+        this.resting = true;
+        g.heal(2.5 * dt, true);
+        if (Math.random() < 0.1) g.fx.add(p.x + rand(-10, 10), p.y - 10, 0, -30, 0.8, 5, '#ffe9c0', 'star');
+        break;
+      }
     } else if (this.kind === 'portals') {
       this.portalCd -= dt;
       if (this.portalCd <= 0) {
@@ -241,6 +253,53 @@ export class Hazards {
   // ---------------------------------------------------------- 描画（地面）
   drawGround(ctx) {
     const g = this.g, p = g.player;
+    if (this.kind === 'teatime') {
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
+        // 回復の範囲（うすい円）
+        ctx.strokeStyle = 'rgba(255,233,192,0.18)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 8]);
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // テーブル
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.ellipse(o.x, o.y + 12, 26, 8, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = '#f4f0e6';
+        ctx.beginPath();
+        ctx.ellipse(o.x, o.y, 24, 12, 0, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = '#e8c860';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // カップとポット
+        ctx.fillStyle = '#c8b8d8';
+        ctx.beginPath();
+        ctx.ellipse(o.x - 9, o.y - 4, 5, 3, 0, 0, TAU);
+        ctx.ellipse(o.x + 10, o.y + 2, 5, 3, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = '#e8c860';
+        ctx.beginPath();
+        ctx.arc(o.x + 2, o.y - 7, 5, 0, TAU);
+        ctx.fill();
+        // 湯気
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i < 2; i++) {
+          const k = (this.t * 0.6 + i * 0.5 + o.seed) % 1;
+          ctx.globalAlpha = 1 - k;
+          ctx.beginPath();
+          ctx.moveTo(o.x + 2 + i * 3, o.y - 12 - k * 16);
+          ctx.quadraticCurveTo(o.x + 6 + i * 3, o.y - 18 - k * 16, o.x + 2 + i * 3, o.y - 24 - k * 16);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+      return;
+    }
     if (this.kind === 'portals') {
       for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
         const grd = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);

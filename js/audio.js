@@ -347,6 +347,24 @@ const Cm = [48, 51, 55], Ab = [44, 48, 51], Eb = [51, 55, 58];
 const B = [47, 51, 54];
 
 const TRACKS = {
+  // 第2章：湖畔のお茶会
+  lake: {
+    bpm: 96,
+    chords: [F, Dm, Bb, C, F, Am, Bb, C],
+    bass: [0, null, null, null, 7, null, 12, null, 0, null, null, null, 7, null, 12, null],
+    arp: 2,
+    melody: [
+      [77, null, 81, null, 84, null, 81, 77],
+      [74, null, 77, null, 81, null, 77, null],
+      [74, null, 77, null, 82, null, 81, 77],
+      [79, null, 76, null, 72, null, 76, 79],
+      [81, null, 84, 81, 89, null, 88, 84],
+      [84, null, 81, null, 76, null, 81, null],
+      [82, null, 81, 77, 74, null, 77, 79],
+      [81, null, null, null, 79, null, 76, null],
+    ],
+    drums: true, kick: [0, 8], snare: [], hat: [4, 12],
+  },
   // 第2章：ルルイエ
   rlyeh: {
     bpm: 112,

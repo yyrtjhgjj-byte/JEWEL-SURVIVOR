@@ -1071,6 +1071,267 @@ const ENEMY_DRAW = {
     ctx.restore();
     eyes(ctx, 0, -r * 0.55, r * 0.18, { color: '#ffd23d', gap: 1.2 });
   },
+  // ================================================ 第2章：湖畔
+  teapot(ctx, r, col, f) {
+    // ティーポット・ミミック
+    // 注ぎ口
+    ctx.beginPath();
+    ctx.moveTo(r * 0.7, 0);
+    ctx.quadraticCurveTo(r * 1.3, -r * 0.1, r * 1.45, -r * 0.7);
+    ctx.lineTo(r * 1.2, -r * 0.7);
+    ctx.quadraticCurveTo(r * 1.05, -r * 0.2, r * 0.7, r * 0.3);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#ffffff', 0.2);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // 取っ手
+    ctx.strokeStyle = mix(col, '#ffffff', 0.2);
+    ctx.lineWidth = r * 0.16;
+    ctx.beginPath();
+    ctx.arc(-r * 0.95, 0, r * 0.38, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.stroke();
+    // 胴
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.05, r * 0.9, r * 0.75, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // 金の帯
+    ctx.strokeStyle = '#e8c860';
+    ctx.lineWidth = r * 0.08;
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.35, r * 0.82, r * 0.18, 0, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+    // ふた（開くと牙）
+    const open = f === 1;
+    ctx.save();
+    ctx.translate(0, -r * 0.62);
+    if (open) ctx.rotate(-0.35);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.55, r * 0.18, 0, Math.PI, 0);
+    ctx.fillStyle = mix(col, '#ffffff', 0.25);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.22, r * 0.1, 0, TAU);
+    ctx.fillStyle = '#e8c860';
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#12060e';
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.55, r * 0.42, r * 0.12, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#f2f2ff';
+    for (let i = 0; i < 5; i++) {
+      const x = -r * 0.32 + i * r * 0.16;
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.05, -r * 0.52);
+      ctx.lineTo(x, -r * 0.42);
+      ctx.lineTo(x + r * 0.05, -r * 0.52);
+      ctx.fill();
+    }
+    shine(ctx, r);
+    eyes(ctx, 0, -r * 0.05, r * 0.22, { color: '#ffb84a' });
+  },
+  servant(ctx, r, col) {
+    // グラーキの従者：棘に貫かれた屍
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.8, r * 1.0);
+    ctx.lineTo(-r * 0.65, -r * 0.2);
+    ctx.lineTo(r * 0.65, -r * 0.2);
+    ctx.lineTo(r * 0.8, r * 1.0);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#000000', 0.25);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // だらりと下がった腕
+    for (const s of [-1, 1]) tentacle(ctx, s * r * 0.6, -r * 0.1, s * r * 0.95, r * 0.75, s * r * 0.1, r * 0.16, mix(col, '#ffffff', 0.1));
+    // 頭
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.55, r * 0.48, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.stroke();
+    // 胸を貫く棘
+    ctx.strokeStyle = '#d8e0ff';
+    ctx.lineWidth = r * 0.1;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, r * 0.6);
+    ctx.lineTo(r * 0.55, -r * 0.1);
+    ctx.stroke();
+    ctx.fillStyle = '#5a0a1a';
+    ctx.beginPath();
+    ctx.arc(r * 0.1, r * 0.25, r * 0.12, 0, TAU);
+    ctx.fill();
+    // うつろな目
+    ctx.fillStyle = '#0b0610';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.18, -r * 0.6, r * 0.1, r * 0.13, 0, 0, TAU);
+      ctx.fill();
+    }
+    ctx.save();
+    ctx.shadowColor = '#c8f0ff';
+    ctx.shadowBlur = r * 0.3;
+    ctx.fillStyle = '#c8f0ff';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(s * r * 0.18, -r * 0.6, r * 0.04, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  },
+  lady(ctx, r, col) {
+    // 湖の貴婦人：ヴェールの亡霊
+    ctx.globalAlpha = 0.93;
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.1, r * 1.1);
+    ctx.quadraticCurveTo(-r * 0.9, -r * 0.3, -r * 0.45, -r * 0.7);
+    ctx.quadraticCurveTo(0, -r * 1.25, r * 0.45, -r * 0.7);
+    ctx.quadraticCurveTo(r * 0.9, -r * 0.3, r * 1.1, r * 1.1);
+    for (let i = 0; i < 5; i++) {
+      const x0 = r * 1.1 - (i * 2.2 * r) / 5;
+      ctx.quadraticCurveTo(x0 - r * 0.22, r * 0.8, x0 - r * 0.44, r * 1.1);
+    }
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 1.1, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    // ヴェールの縁
+    ctx.strokeStyle = 'rgba(240,240,255,0.5)';
+    ctx.lineWidth = r * 0.03;
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.35, r * 0.55, Math.PI * 1.05, Math.PI * 1.95);
+    ctx.stroke();
+    // 顔の影
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.35, r * 0.3, r * 0.36, 0, 0, TAU);
+    ctx.fillStyle = 'rgba(10,8,20,0.8)';
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.35, r * 0.14, { color: '#c8f0ff', angry: false, gap: 1.0 });
+    // ティーカップ
+    ctx.save();
+    ctx.translate(r * 0.55, r * 0.3);
+    ctx.fillStyle = '#f4f0e6';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.2, -r * 0.1);
+    ctx.lineTo(r * 0.2, -r * 0.1);
+    ctx.quadraticCurveTo(r * 0.18, r * 0.12, 0, r * 0.14);
+    ctx.quadraticCurveTo(-r * 0.18, r * 0.12, -r * 0.2, -r * 0.1);
+    ctx.fill();
+    ctx.fillStyle = '#e8c860';
+    ctx.fillRect(-r * 0.2, -r * 0.1, r * 0.4, r * 0.03);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(0, -r * 0.95);
+    drawGem(ctx, r * 0.09, GEMS.obsidian);
+    ctx.restore();
+  },
+  kelpie(ctx, r, col) {
+    // ケルピー：湖の水馬（首から上）
+    // たてがみ（海藻）
+    for (let i = 0; i < 6; i++) tentacle(ctx, -r * 0.15, -r * 0.9 + i * r * 0.28, -r * 0.95 - (i % 2) * r * 0.2, -r * 0.6 + i * r * 0.32, -r * 0.2, r * 0.13, mix(col, '#3fe08a', 0.4));
+    // 首
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.55, r * 1.1);
+    ctx.quadraticCurveTo(-r * 0.5, -r * 0.3, -r * 0.1, -r * 0.95);
+    ctx.lineTo(r * 0.45, -r * 0.7);
+    ctx.quadraticCurveTo(r * 0.2, r * 0.1, r * 0.6, r * 1.1);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 頭
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.2, -r * 1.05);
+    ctx.quadraticCurveTo(r * 0.3, -r * 1.35, r * 0.6, -r * 1.0);
+    ctx.lineTo(r * 1.3, -r * 0.55);
+    ctx.quadraticCurveTo(r * 1.4, -r * 0.25, r * 1.05, -r * 0.25);
+    ctx.lineTo(r * 0.35, -r * 0.45);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 0.8, col);
+    ctx.fill();
+    ctx.stroke();
+    // 耳
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.05, -r * 1.1);
+    ctx.lineTo(-r * 0.1, -r * 1.45);
+    ctx.lineTo(r * 0.2, -r * 1.2);
+    ctx.fillStyle = col;
+    ctx.fill();
+    // 鼻の穴と目
+    ctx.fillStyle = '#0b0610';
+    ctx.beginPath();
+    ctx.arc(r * 1.15, -r * 0.42, r * 0.05, 0, TAU);
+    ctx.fill();
+    ctx.save();
+    ctx.shadowColor = '#5fffe0';
+    ctx.shadowBlur = r * 0.2;
+    ctx.fillStyle = '#5fffe0';
+    ctx.beginPath();
+    ctx.ellipse(r * 0.45, -r * 0.85, r * 0.1, r * 0.06, -0.4, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  },
+  glaaki(ctx, r, col) {
+    // グラーキ：棘だらけのナメクジのような湖の主。柄の先に 3 つの目
+    // 棘
+    ctx.strokeStyle = '#d8e0ff';
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 16; i++) {
+      const a = Math.PI + (i / 15) * Math.PI;
+      const x0 = Math.cos(a) * r * 0.95, y0 = Math.sin(a) * r * 0.65 + r * 0.1;
+      ctx.lineWidth = r * 0.04;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x0 * 1.35, y0 * 1.45 - r * 0.1);
+      ctx.stroke();
+    }
+    // 胴
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.1, r * 1.0, r * 0.72, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 1.1, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    shine(ctx, r);
+    // 厚い唇の口
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.45, r * 0.4, r * 0.16, 0, 0, TAU);
+    ctx.fillStyle = mix(col, '#ff5a8a', 0.4);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.45, r * 0.3, r * 0.07, 0, 0, TAU);
+    ctx.fillStyle = '#12060e';
+    ctx.fill();
+    // 目の柄
+    for (const [x, h] of [[-0.45, 0.95], [0, 1.2], [0.45, 0.95]]) {
+      ctx.strokeStyle = mix(col, '#000000', 0.2);
+      ctx.lineWidth = r * 0.1;
+      ctx.beginPath();
+      ctx.moveTo(x * r, -r * 0.3);
+      ctx.lineTo(x * r * 1.1, -r * h);
+      ctx.stroke();
+      oneEye(ctx, x * r * 1.1, -r * h, r * 0.16, '#ffd23d');
+    }
+    ctx.save();
+    ctx.translate(0, r * 0.05);
+    drawGem(ctx, r * 0.12, GEMS.obsidian);
+    ctx.restore();
+  },
   // ================================================ 第2章：深海
   jelly(ctx, r, col) {
     // 触手
@@ -1962,6 +2223,7 @@ const ENEMY_COLORS = {
   motherjelly: '#b070d8', serpent: '#1f6a8a', dagon: '#1f5a6a',
   spawn: '#5a5a70', byakhee: '#4a4a62', eyes: '#4e4c66', thorn: '#5a3a5a', crawler: '#7a5a5a', cultist: '#2a2438',
   starspawn: '#3f8a6a', mindeye: '#6a4a8a', shoggoth: '#1f3a32', nightgaunt: '#2a2a3a', cthulhu: '#2f7a5a',
+  teapot: '#c8b8d8', servant: '#7a8a7a', lady: '#8a94c8', kelpie: '#3a5a6a', glaaki: '#6a6a8a',
 };
 
 // ------------------------------------------------------------------ プレイヤー

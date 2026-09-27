@@ -173,6 +173,20 @@ export const STAGES = [
     events: makeEvents({ e: ['eyes', 'mindeye', 'thorn', 'crawler', 'starspawn'], sw: 'byakhee', r: ['spawn', 'eyes', 'thorn'], b: ['boss1_rlyeh', 'boss2_rlyeh', 'cthulhu'] }),
     finalBoss: 'cthulhu',
   },
+  {
+    id: 'lake', no: 8, chapter: 2, name: '湖畔のほとりでお茶しましょ？', en: 'TEA BY LAKE HALI', time: 600,
+    desc: '霧の立ちこめる黄昏の湖畔で、優雅なお茶会を。お茶会の席の近くにいると、少しずつ体力が戻る。',
+    hazard: 'teatime', hazardText: 'お茶会の席（近くにいると回復）',
+    hp: 1.8, dmg: 1.65, reward: 8000, bgm: 'lake',
+    pal: { bg: '#0e1219', grid: '170,190,230', mark: '200,215,255', dust: '220,225,255', glow: 'rgba(120,140,200,0.22)', accent: '#a9b8ff' },
+    tint: '#6a7aa8',
+    waves: makeWaves({
+      0: ['spawn', 'byakhee'], 1: ['spawn', 'eyes', 'teapot'], 2: ['eyes', 'thorn', 'teapot', 'byakhee'],
+      3: ['crawler', 'servant', 'thorn', 'teapot'], 4: ['cultist', 'servant', 'crawler', 'thorn', 'byakhee'], b: ['byakhee', 'spawn'],
+    }),
+    events: makeEvents({ e: ['eyes', 'teapot', 'servant', 'crawler', 'cultist'], sw: 'byakhee', r: ['spawn', 'eyes', 'servant'], b: ['boss1_lake', 'boss2_lake', 'glaaki'] }),
+    finalBoss: 'glaaki',
+  },
 ];
 
 // 12分ステージの 540秒前後はボス戦なので軽めに
