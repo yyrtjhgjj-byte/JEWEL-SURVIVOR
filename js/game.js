@@ -122,6 +122,8 @@ export class Game {
     this.passives = [];
     this.input = { x: 0, y: 0 };
     this.time = opts.startTime || 0;
+    this.runT = this.time; // HURRY の倍速を含まない生存時間（生存時間の実績に使う）
+    this.hurt = 0; // 受けたダメージの合計（アーマーなどで減らした後。実績「かすり傷」）
     this.state = 'play';
     this.modalQueue = [];
     this.roughGot = { shard: 0, rough: 0, large: 0, mystic: 0 }; // 拾った原石
@@ -180,7 +182,7 @@ export class Game {
     this.artMax = ARTIFACT_MAX + (this.stats.art2 ? 1 : 0);
     if (this.stats.art2 && opts.artifact2 && ARTIFACT_BY_ID[opts.artifact2]) this.addArtifact(opts.artifact2, true);
     // 裏工房「初期強化」：開始時のレベルアップ
-    for (let i = 0; i < this.stats.startLv; i++) { this.level++; this.modalQueue.push({ type: 'level' }); }
+    for (let i = 0; i < this.stats.startLv; i++) { this.level++; this.pendingLevels++; this.modalQueue.push({ type: 'level' }); }
     this.xpNext = xpFor(this.level);
     if (opts.build) this.debugBuild(opts.build);
     this.resize();
@@ -371,6 +373,7 @@ export class Game {
 
   update(dt) {
     this.time += dt * (this.hurry ? 2 : 1);
+    this.runT += dt;
     const p = this.player;
     // スローモーション
     if (this.slowT > 0) {
@@ -1444,6 +1447,7 @@ export class Game {
     if (this.bot) { const k = o.src || 'other'; (this.dmgTaken = this.dmgTaken || {})[k] = (this.dmgTaken[k] || 0) + dmg; }
     dmg = Math.max(1, Math.round((dmg - this.stats.armor) * (1 - Math.min(0.6, this.stats.guard || 0)) * earthGuard(this)));
     p.hp -= dmg;
+    this.hurt += dmg;
     if (!o.ignoreIT) p.iT = 0.45;
     p.hurtT = 0.3;
     this.fx.text(p.x, p.y - 22, '-' + dmg, { size: o.silent ? 13 : 17, color: '#ff4d6d', life: 0.6 });
@@ -1614,6 +1618,8 @@ export class Game {
     if (!fromRevive) this.hooks.banner('JEWEL FLASH', 'item', '画面内の敵を一掃');
     for (const e of this.enemies) {
       if (!e.alive || e.prop) continue;
+      // HP を共有する奏者は代表の 1 体だけに当てる（代表以外は最大 HP が仮の値なので、割合ダメージが代表に全部渡ってしまう）
+      if (e.shareTo) continue;
       if (Math.abs(e.x - p.x) > this.viewW / 2 + 40 || Math.abs(e.y - p.y) > this.viewH / 2 + 40) continue;
       if (e.boss) this.damage(e, e.maxHp * 0.05, { wid: null });
       else this.damage(e, e.hp + 1, { wid: null, silent: true });
@@ -1688,7 +1694,8 @@ export class Game {
     }
     const lb = w.lb || {};
     const has = (n) => [].concat(n).some((k) => def.base[k] !== undefined);
-    const opts = LIMIT_BREAK.filter((o) => (!o.need || has(o.need)) && (!o.max || (lb[o.k] || 0) < o.max));
+    const skip = w.evolved ? def.evo.lbSkip || [] : [];
+    const opts = LIMIT_BREAK.filter((o) => (!o.need || has(o.need)) && (!o.max || (lb[o.k] || 0) < o.max) && !skip.includes(o.k));
     if (!opts.length) return null;
     const o = weightedPick(opts, (x) => x.w);
     return { type: 'lb', id: w.id, stat: LIMIT_BREAK.indexOf(o) };
@@ -1696,6 +1703,7 @@ export class Game {
 
   applyChoice(c) {
     let evolved = null;
+    if (this.curModal) this.curModal.applied = true; // 途中保存で、反映済みのレベルアップ・宝箱をもう一度開かないように
     if (c.type === 'wnew') this.addWeapon(c.id);
     else if (c.type === 'wup') {
       const w = this.getWeapon(c.id);
@@ -1811,7 +1819,8 @@ export class Game {
   // 雑魚・弾・アイテムは保存せず、装備・レベル・時間・生きているボスなどだけを戻す
   snapshot() {
     const p = this.player;
-    const modals = [...(this.state === 'modal' && this.curModal ? [this.curModal] : []), ...this.modalQueue];
+    // 開いている画面は、中身をまだ反映していないときだけ残す（宝箱の結果画面や進化演出の途中で落ちても二重にもらえないように）
+    const modals = [...(this.state === 'modal' && this.curModal && !this.curModal.applied ? [this.curModal] : []), ...this.modalQueue];
     return {
       v: 1, time: this.time, level: this.level, xp: this.xp, kills: this.kills, coins: this.coins, totalDmg: this.totalDmg,
       dmgBy: { ...this.dmgBy }, killsByType: { ...this.killsByType }, maxCombo: this.maxCombo,
@@ -1822,12 +1831,13 @@ export class Game {
       roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
       hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
+      endlessBoss: this.endlessBoss || null, cleared: this.cleared, runT: this.runT, hurt: this.hurt,
       bossList: this.enemies.filter((e) => e.alive && e.boss && e.ai !== 'piper').map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1, woke: !!e.azWoke })),
     };
   }
   restore(s) {
     const S = ['level', 'xp', 'kills', 'coins', 'totalDmg', 'maxCombo', 'feverGauge', 'feverNeed', 'fevers', 'evolvedCount', 'bosses', 'miracles', 'revBuff', 'rerolls', 'skips', 'banishes',
-      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext'];
+      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext', 'endlessBoss', 'runT', 'hurt'];
     this.weapons = [];
     for (const x of s.weapons) {
       const w = this.addWeapon(x.id);
@@ -1837,6 +1847,7 @@ export class Game {
     for (const id of s.arts) this.addArtifact(id, true);
     for (const k of S) if (s[k] !== undefined) this[k] = s[k];
     this.revives = s.revives;
+    this.cleared = !!s.cleared; // ENDLESS で最終ボスを倒した後の再開
     this.xpNext = xpFor(this.level);
     this.dmgBy = { ...this.dmgBy, ...s.dmgBy };
     this.killsByType = { ...s.killsByType };
@@ -1850,7 +1861,8 @@ export class Game {
       const a = -Math.PI / 2 + rand(-0.5, 0.5);
       const e = this.spawnEnemy(b.type, p.x + Math.cos(a) * this.viewR * 0.8, p.y + Math.sin(a) * this.viewR * 0.8);
       e.maxHp = b.maxHp; e.hp = b.hp; e.artChest = b.artChest; e.breakNeed = b.breakNeed; e.atkT = 2; e.atk2 = 5;
-      if (b.woke) { e.azWoke = true; e.azInit = true; e.charging = true; } // アザトースは目覚めた後から（奏者は眠りの間だけ、作り直す）
+      // アザトースは目覚めた後から（奏者は眠りの間だけ、作り直す）。攻撃のタイマーも目覚めたときと同じ値にする
+      if (b.woke) { e.azWoke = true; e.azInit = true; e.charging = true; e.azT = 2; e.az2 = 3.5; e.azPat = 0; }
       this.boss = e;
     }
     if (this.boss) {
@@ -1860,6 +1872,7 @@ export class Game {
     }
     this.modalQueue = []; // 開始時の初期強化の分は、保存したモーダルに含まれている
     for (const m of s.modals || []) this.modalQueue.push(m);
+    this.pendingLevels = this.modalQueue.filter((m) => m.type === 'level').length; // レベルアップ画面の「LV n」の表示用
   }
 
   pause() {
@@ -1881,7 +1894,7 @@ export class Game {
       passives: this.passives.map((p) => ({ id: p.id, level: p.level })),
       timeline: this.timeline, bossLog: this.bossLog,
       charId: this.charId, killsByType: { ...this.killsByType }, endless: this.endless,
-      stageId: this.stage.id, heat: this.heat, charmed: this.charmed || 0, dmgTaken: this.dmgTaken,
+      stageId: this.stage.id, heat: this.heat, charmed: this.charmed || 0, dmgTaken: this.dmgTaken, hurt: Math.round(this.hurt), runT: this.runT,
     };
   }
 
