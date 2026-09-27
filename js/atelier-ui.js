@@ -338,7 +338,7 @@ function reveal(res, score) {
 function subTabs(box, cur) {
   const t = el(`<div class="tabs sub">
     <button class="tab ${cur === 'collection' ? 'on' : ''}" data-t="collection">宝石</button>
-    <button class="tab ${cur === 'beasts' ? 'on' : ''}" data-t="beasts">宝石の百獣</button>
+    <button class="tab ${cur === 'beasts' ? 'on' : ''}" data-t="beasts">百獣</button>
   </div>`);
   t.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showAtelier(b.dataset.t); }));
   box.appendChild(t);
@@ -428,7 +428,7 @@ function gemDetail(id) {
 }
 
 
-// ---------------------------------------------------------------- 宝石の百獣
+// ---------------------------------------------------------------- 百獣
 function renderBeasts(box) {
   box.innerHTML = '';
   subTabs(box, 'beasts');

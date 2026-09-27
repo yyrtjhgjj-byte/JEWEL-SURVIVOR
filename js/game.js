@@ -200,7 +200,7 @@ export class Game {
     }
     s.might += 0.05 * (save.awaken[this.charId] || 0);
     add(collectionStats()); // 研磨コレクションの練度ボーナス
-    add(beastStats()); // 宝石の百獣
+    add(beastStats()); // 百獣
     // 攻撃力はラン外（キャラ・工房・覚醒・練度・百獣）とラン中（チャーム・秘宝・上限超過）を別枠で掛け合わせる
     const mightOut = s.might;
     s.might = 1;
@@ -212,7 +212,7 @@ export class Game {
       s.might += 0.2 * empty;
       s.cooldown -= 0.08 * empty;
     }
-    s.maxHp *= 1 + s.hpMul; // 宝石の百獣（ペルシャ）
+    s.maxHp *= 1 + s.hpMul; // 百獣（ペルシャ）
     if (this.revBuff) {
       const n = this.revBuff;
       s.maxHp *= 1 + 0.2 * n;
@@ -1121,7 +1121,7 @@ export class Game {
     }
     let dmg = amount;
     if (this.feverT > 0) dmg *= 1.5;
-    dmg *= 1 + this.stats.dmgUp; // 宝石の百獣の種類数
+    dmg *= 1 + this.stats.dmgUp; // 百獣の種類数
     if (e.breakT > 0) dmg *= 2; // ブレイク中のボスは被ダメージ 2 倍
     const ev = elementVs(this, e);
     dmg *= ev.mul;
@@ -1417,7 +1417,7 @@ export class Game {
       this.healCap += v;
     }
     if (this.artSet.has('grail')) v *= 2; // 秘宝「癒しの聖杯」
-    v *= 1 + this.stats.healUp; // 宝石の百獣（アルパカ）
+    v *= 1 + this.stats.healUp; // 百獣（アルパカ）
     const before = p.hp;
     p.hp = Math.min(p.maxHp, p.hp + v);
     this.healShow += p.hp - before;
