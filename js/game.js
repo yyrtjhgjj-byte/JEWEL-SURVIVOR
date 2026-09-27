@@ -201,6 +201,9 @@ export class Game {
     s.might += 0.05 * (save.awaken[this.charId] || 0);
     add(collectionStats()); // 研磨コレクションの練度ボーナス
     add(beastStats()); // 宝石の百獣
+    // 攻撃力はラン外（キャラ・工房・覚醒・練度・百獣）とラン中（チャーム・秘宝・上限超過）を別枠で掛け合わせる
+    const mightOut = s.might;
+    s.might = 1;
     // チャームは秘宝の倍率（ペンダントの最大HP・プリズムの範囲）より先に足す（チャームの分にも倍率が掛かるように）
     for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
     // 秘宝
@@ -224,9 +227,14 @@ export class Game {
     // ヒート・HYPER のコインの倍率もラン中に掛ける（HUD のコインとリザルトの獲得コインが一致するように）
     s.greed *= (1 + (0.3 + s.heatCoin) * this.heat) * (this.hyper ? 1.5 : 1); // ヒート 1 段階ごとに +30%（裏工房のヒートの報酬で上乗せ）
     recalcElements(this);
-    s.cooldown = Math.max(0.35, s.cooldown);
-    // 攻撃範囲は 3 倍まで（分光プリズムなどで範囲が極端に大きくなると、描画が重くなって古い iPhone で落ちる）
-    s.area = Math.min(3, s.area);
+    // 上限を超えた分は攻撃力（ラン中の枠）に変える。攻撃範囲の上限 3 倍は、描画が重くなって古い iPhone で落ちるのを防ぐため
+    let over = 0;
+    if (s.cooldown < 0.35) { over += 0.35 - s.cooldown; s.cooldown = 0.35; }
+    if (s.area > 3) { over += (s.area - 3) * 0.2; s.area = 3; }
+    if (s.guard > 0.6) { over += s.guard - 0.6; s.guard = 0.6; }
+    if (s.crit > 1) { over += s.crit - 1; s.crit = 1; }
+    s.overMight = over;
+    s.might = mightOut * (s.might + over);
     const oldMax = this.stats ? this.stats.maxHp : s.maxHp;
     this.stats = s;
     const p = this.player;
