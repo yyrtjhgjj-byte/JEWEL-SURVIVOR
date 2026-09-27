@@ -209,6 +209,7 @@ export class Game {
       s.might += 0.2 * empty;
       s.cooldown -= 0.08 * empty;
     }
+    s.maxHp *= 1 + s.hpMul; // 宝石の百獣（ペルシャ）
     if (this.revBuff) {
       const n = this.revBuff;
       s.maxHp *= 1 + 0.2 * n;
@@ -1407,6 +1408,7 @@ export class Game {
       this.healCap += v;
     }
     if (this.artSet.has('grail')) v *= 2; // 秘宝「癒しの聖杯」
+    v *= 1 + this.stats.healUp; // 宝石の百獣（アルパカ）
     const before = p.hp;
     p.hp = Math.min(p.maxHp, p.hp + v);
     this.healShow += p.hp - before;

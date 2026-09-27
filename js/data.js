@@ -422,7 +422,7 @@ export const MAX_CHARMS = 6;
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
-  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, startLv: 0, choice: 0, art2: 0, chestPlus: 0, bossChest: 0, heatCoin: 0, roughUp: 0, feverUp: 0, breakUp: 0, lbUp: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
+  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, startLv: 0, choice: 0, art2: 0, chestPlus: 0, bossChest: 0, heatCoin: 0, roughUp: 0, feverUp: 0, breakUp: 0, lbUp: 0, hpMul: 0, healUp: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
 };
 
 // ---------------------------------------------------------------------
