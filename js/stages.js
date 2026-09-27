@@ -134,7 +134,7 @@ export const STAGES = [
     id: 'void', no: 5, chapter: 1, name: '虚空聖堂', en: 'VOID SANCTUM', time: 720,
     desc: 'ダスクの本拠地。光は届かず、見えるのは自分の周囲だけ。歴代の強敵が待ち受ける。',
     hazard: 'darkness', hazardText: '暗闇（視界縮小）・虚空の裂け目',
-    hp: 1.0, dmg: 1.35, reward: 5000, bgm: 'void',
+    hp: 1.0, dmg: 1.35, reward: 5000, bgm: 'void', unlockChar: 'obsidian',
     pal: { bg: '#040308', grid: '200,90,255', mark: '230,140,255', dust: '220,170,255', glow: 'rgba(150,40,220,0.3)', accent: '#e05cff' },
     tint: '#4a2a6a',
     waves: makeWaves({

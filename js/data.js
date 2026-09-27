@@ -114,8 +114,9 @@ export const GEMS = {
   citrine: { jp: 'シトリン', en: 'CITRINE', word: '商売繁盛', kana: 'しょうばいはんじょう', color: '#f2a41e', light: '#ffe6a0', dark: '#8a4a00', cut: 'emerald',
     lore: '商売繁盛の黄水晶。倒した敵から、次々と富がこぼれ落ちる。' },
 
-  // 敵ボスのジュエル
-  obsidian: { jp: 'オブシディアン', en: 'OBSIDIAN', word: '闇', kana: 'やみ', color: '#3a2350', light: '#9b6fd0', dark: '#0d0414', cut: 'round' },
+  // 敵のスプライトにも使う（color は暗いので、自機の光や画面の縁取りは glow を使う）
+  obsidian: { jp: 'オブシディアン', en: 'OBSIDIAN', word: '不屈', kana: 'ふくつ', color: '#3a2350', light: '#9b6fd0', dark: '#0d0414', glow: '#a77be0', cut: 'round',
+    lore: '溶岩が一瞬で凍りついた黒曜の刃。深い闇の中でも、決して折れない。' },
 };
 
 // ---------------------------------------------------------------------
@@ -381,6 +382,23 @@ export const WEAPONS = {
     ],
     evo: { mul: 2.18, with: 'milkyquartz', name: 'フルムーン・グレイス', desc: '満月が周囲を巡り、魅了された敵は解除時に爆ぜる' },
   },
+  obsidian: {
+    gem: 'obsidian', name: 'ヴォルカニック・エッジ',
+    dmgMul: 2.86, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: 0.1, // 低レベル時の補正（Lv1 で ×1.1、Lv8 で ×1）
+    desc: '黒曜の刃で間近の敵を薙ぎ払う。一撃は重いが、会心は出にくい',
+    base: { dmg: 160, cd: 1.6, amount: 1, area: 1 },
+    levels: [
+      { dmg: 50, t: 'ダメージ +50' },
+      { area: 0.15, t: '範囲アップ' },
+      { amount: 1, t: '斬撃 +1' },
+      { dmg: 60, cd: -0.2, t: 'ダメージ +60 / クールダウン短縮' },
+      { area: 0.15, t: '範囲アップ' },
+      { dmg: 80, t: 'ダメージ +80' },
+      { amount: 1, t: '斬撃 +1' },
+    ],
+    evo: { mul: 1.4, with: 'granite', name: 'アンブレイカブル・エッジ', desc: '全周を薙ぎ払い、斬った跡に闇の裂け目を残す' },
+  },
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
 export const WEAPON_MAX = 8;
@@ -444,6 +462,7 @@ export const CHARACTERS = {
   tourmaline: { weapon: 'tourmaline', perk: '移動速度 +8% / 幸運 +10%', stats: { moveSpeed: 0.08, luck: 0.1 }, unlock: '水晶洞窟をクリア' },
   alexandrite: { weapon: 'alexandrite', perk: '経験値 +15%', stats: { growth: 0.15 }, unlock: '灼熱鉱脈をクリア' },
   moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +10% / 回収範囲 +20%', stats: { area: 0.1, magnet: 0.2 }, unlock: '凍晶氷原をクリア' },
+  obsidian: { weapon: 'obsidian', perk: '攻撃力 +12% / アーマー +1', stats: { might: 0.12, armor: 1 }, unlock: '虚空聖堂をクリア' },
 };
 export const CHAR_IDS = Object.keys(CHARACTERS);
 
@@ -571,7 +590,7 @@ export const ACHIEVEMENTS = [
   { id: 'polish100', meta: true, name: '研磨職人', t: '原石を100個研磨する', coins: 1000, check: (r, s) => s.stats.polished >= 100 },
   { id: 'polishSS', meta: true, name: 'パーフェクト・カット', t: 'SS品質の宝石を研磨する', coins: 500, check: (r, s) => s.stats.polishSS >= 1 },
   { id: 'coll14', meta: true, name: 'コレクター', t: '宝石を14種類コレクションする', coins: 400, unlock: 'opal', check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 14 },
-  { id: 'coll28', meta: true, name: 'ジュエル・マスター', t: '宝石を全種類コレクションする', coins: 3000, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= Object.keys(GEMS).length - 1 }, // obsidian（敵）を除く全種
+  { id: 'coll28', meta: true, name: 'ジュエル・マスター', t: '宝石を全種類コレクションする', coins: 3000, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= Object.keys(GEMS).length },
   { id: 'coll5', meta: true, name: 'ジュエル・ビギナー', t: '宝石を5種類コレクションする', coins: 150, check: (r, s) => Object.values(s.jewels).filter((j) => j.n).length >= 5 },
   { id: 'awaken3', meta: true, name: '覚醒者', t: 'いずれかのジュエルを覚醒 ★3 にする', coins: 500, check: (r, s) => Object.values(s.awaken).some((v) => v >= 3) },
   { id: 'heal300', name: 'リジェネレーター', t: '1回のプレイで HP を合計300回復', coins: 300, check: (r) => r.healed >= 300 },

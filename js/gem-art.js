@@ -12,7 +12,7 @@ export const GEM_CUT = {
   emerald: 'step', aquamarine: 'step', citrine: 'step', peridot: 'step',
   iolite: 'pear',
   kyanite: 'baguette', tourmaline: 'baguette',
-  titanite: 'trillion',
+  titanite: 'trillion', obsidian: 'trillion',
   opal: 'cabOval', amber: 'cabOval', angelite: 'cab', turquoise: 'cabOval', coral: 'cab',
   moonstone: 'cabOval', labradorite: 'cabOval', nephrite: 'cab', prase: 'cab', jasper: 'cabOval', rhodochrosite: 'cab',
   milkyquartz: 'crystal', granite: 'tumble', coal: 'lump',

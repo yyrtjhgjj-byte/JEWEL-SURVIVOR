@@ -31,8 +31,8 @@ export function gradeFromScore(score) {
   return g;
 }
 
-// コレクション対象（武器の宝石 15 ＋ チャームの宝石 13）
-export const COLLECTION_IDS = Object.keys(GEMS).filter((id) => id !== 'obsidian');
+// コレクション対象（武器の宝石 16 ＋ チャームの宝石 14）
+export const COLLECTION_IDS = Object.keys(GEMS);
 
 // 宝石ごとの練度 1 あたりのボーナス（ジュエルパワーに沿った能力）
 export const MASTERY_BONUS = {
@@ -43,7 +43,7 @@ export const MASTERY_BONUS = {
   topaz: { might: 0.005 }, jasper: { maxHp: 2 }, nephrite: { area: 0.004 }, milkyquartz: { area: 0.004 },
   coral: { luck: 0.02 }, iolite: { cooldown: -0.004 }, prase: { growth: 0.01 }, granite: { guard: 0.003 },
   coal: { regen: 0.02 }, titanite: { greed: 0.02 }, redberyl: { magnet: 0.02 }, turquoise: { guard: 0.003 }, citrine: { coinDrop: 0.001 },
-  peridot: { moveSpeed: 0.005 },
+  peridot: { moveSpeed: 0.005 }, obsidian: { might: 0.006 },
 };
 const STAT_LABEL = {
   might: ['攻撃力', '%'], magnet: ['回収範囲', '%'], regen: ['HP自然回復', '/秒'], crit: ['クリティカル率', '%'], critDmg: ['クリティカル威力', '%'],
@@ -100,6 +100,7 @@ export const ABUNDANCE = {
   tourmaline: 3, peridot: 3, aquamarine: 3, iolite: 3, kyanite: 3, turquoise: 3, angelite: 3, prase: 3, opal: 3,
   sapphire: 2, ruby: 2, emerald: 2, diamond: 2, coral: 2, rhodochrosite: 2, titanite: 2,
   alexandrite: 1, redberyl: 1,
+  obsidian: 4,
 };
 const ABUNDANCE_W = [0, 1, 2.5, 4.5, 7, 10];
 function gemWeight(id, tier) {
