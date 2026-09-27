@@ -1125,7 +1125,8 @@ export class Game {
     if (e.breakT > 0) dmg *= 2; // ブレイク中のボスは被ダメージ 2 倍
     const ev = elementVs(this, e);
     dmg *= ev.mul;
-    const crit = o.forceCrit || (!o.dot && chance(this.stats.crit + ev.crit));
+    // オブシディアンの攻撃はクリティカル率 -10%（一撃が重い代わり）
+    const crit = o.forceCrit || (!o.dot && chance(this.stats.crit + ev.crit - (o.wid === 'obsidian' ? 0.1 : 0)));
     if (crit) dmg *= 2.5 * (1 + (this.stats.critDmg || 0)); // クリティカルは 2.5 倍（critDmg で上乗せ）
     dmg *= rand(0.92, 1.08);
     dmg = Math.max(1, Math.round(dmg));
@@ -2059,6 +2060,7 @@ export class Game {
       if (w.id === 'sapphire') LOGIC.sapphire.draw(this, w, w.s, ctx);
       else if (w.id === 'opal') LOGIC.opal.draw(this, w, w.s, ctx);
       else if (w.id === 'moonstone') LOGIC.moonstone.draw(this, w, w.s, ctx);
+      else if (w.id === 'obsidian') LOGIC.obsidian.draw(this, w, w.s, ctx);
     }
 
     // たま

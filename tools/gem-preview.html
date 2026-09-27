@@ -21,7 +21,7 @@ h2{font-size:14px;letter-spacing:.1em;color:#aaa;margin:16px 12px 4px}
 import { drawCutGem, GEM_CUT, CUT_NAMES } from '../js/gem-art.js';
 import { drawGem } from '../js/render.js';
 import { GEMS } from '../js/data.js';
-const ids = Object.keys(GEMS).filter((k) => k !== 'obsidian').sort((a, b) => Object.keys(CUT_NAMES).indexOf(GEM_CUT[a]) - Object.keys(CUT_NAMES).indexOf(GEM_CUT[b]));
+const ids = Object.keys(GEMS).sort((a, b) => Object.keys(CUT_NAMES).indexOf(GEM_CUT[a]) - Object.keys(CUT_NAMES).indexOf(GEM_CUT[b]));
 const cv = (size, fn) => { const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d'); x.translate(size / 2, size / 2); fn(x); return c; };
 for (const id of ids) {
   const g = GEMS[id];

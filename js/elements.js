@@ -25,7 +25,7 @@ export const GEM_ELEMENT = {
   emerald: 'grass', nephrite: 'grass', prase: 'grass', peridot: 'grass',
   labradorite: 'thunder', tourmaline: 'thunder', amber: 'thunder', citrine: 'thunder',
   opal: 'light', angelite: 'light', diamond: 'light', topaz: 'light', titanite: 'light',
-  moonstone: 'dark', garnet: 'dark', alexandrite: 'dark',
+  moonstone: 'dark', garnet: 'dark', alexandrite: 'dark', obsidian: 'dark',
   granite: 'earth', jasper: 'earth', turquoise: 'earth',
 };
 

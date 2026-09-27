@@ -104,7 +104,7 @@ export function haptic() {
 }
 
 // ------------------------------------------------------------------ 共通パーツ
-function gemColor(id) { return GEMS[id].rainbow ? '#e6d4ff' : GEMS[id].color; }
+function gemColor(id) { return GEMS[id].rainbow ? '#e6d4ff' : GEMS[id].glow || GEMS[id].color; }
 function wordTag(gemId) {
   const c = gemColor(gemId);
   return `<span class="word-tag" style="color:${c};border-color:${c}66;background:${c}14">${GEMS[gemId].word}</span>${elemTag(gemId)}`;

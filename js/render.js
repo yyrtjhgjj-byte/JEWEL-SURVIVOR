@@ -1217,7 +1217,7 @@ function silhouette(ctx, r) {
 
 export function drawPlayer(ctx, p, time, gemId) {
   const g = GEMS[gemId] || GEMS.ruby;
-  const glow = g.rainbow ? '#d9c4ff' : g.color;
+  const glow = g.rainbow ? '#d9c4ff' : g.glow || g.color;
   const r = 15;
   const bob = Math.sin(time * 6) * (p.moving ? 2 : 1.2);
   const hurt = p.hurtT > 0 && Math.floor(time * 30) % 2 === 0;

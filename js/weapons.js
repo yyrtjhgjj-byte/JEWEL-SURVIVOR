@@ -766,6 +766,71 @@ const ALEX_GREEN = { color: '#1fb58a', light: '#b8ffe0', dark: '#0a5a3a', cut: '
 const ALEX_RED = { color: '#e0306a', light: '#ffb3c8', dark: '#5a1030', cut: 'oval' };
 
 // 地面エリア（エメラルド・ほのおの あと）の え
+// ------------------------------------------------------------- オブシディアン
+// 間近の敵を扇状に薙ぎ払う（進化後は全周＋斬った跡に闇の裂け目）
+const OBS_ARC = 1.25; // 扇の半分の角度
+LOGIC.obsidian = {
+  update(g, w, s, dt) {
+    runBurst(w, dt);
+    if (w.slashes) { for (const sl of w.slashes) sl.t += dt; w.slashes = w.slashes.filter((sl) => sl.t < 0.22); }
+    w.t -= dt;
+    if (w.t > 0) return;
+    w.t = s.cd;
+    const evo = w.evolved;
+    const p = g.player;
+    const R = 92 * s.area * (evo ? 1.25 : 1);
+    burst(w, s.amount, 0.13, (i) => {
+      // 近い敵から順に狙う（敵が 1 体なら同じ敵を何度も斬る）。振る向きは交互
+      const a = aimAt(g, p.x, p.y, i);
+      (w.slashes || (w.slashes = [])).push({ a, t: 0, R, full: evo, dir: i % 2 ? -1 : 1 });
+      g.grid.query(p.x, p.y, R + 40, Q);
+      for (const e of Q) {
+        if (!e.alive) continue;
+        const dx = e.x - p.x, dy = e.y - p.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (d > R + e.r) continue;
+        if (!evo) {
+          let da = Math.atan2(dy, dx) - a;
+          da = Math.atan2(Math.sin(da), Math.cos(da));
+          if (Math.abs(da) > OBS_ARC + e.r / d) continue;
+        }
+        g.damage(e, s.dmg, { wid: 'obsidian', kx: dx / d, ky: dy / d, kb: 30 * s.knock });
+        if (evo && !e.prop && chance(0.35)) {
+          g.addArea({ x: e.x, y: e.y, r: 26 * s.area, life: 1.2, tick: 0.3, dmg: s.dmg * 0.18, wid: 'obsidian', kind: 'rift', seed: rand(TAU) });
+        }
+      }
+      audio.whoosh();
+    });
+  },
+  draw(g, w, s, ctx) {
+    if (!w.slashes || !w.slashes.length) return;
+    const p = g.player;
+    for (const sl of w.slashes) {
+      const k = sl.t / 0.22;
+      const half = sl.full ? Math.PI : OBS_ARC;
+      const sweep = Math.min(1, k * 2.2);
+      const a0 = sl.a - half * sl.dir, a1 = a0 + 2 * half * sweep * sl.dir;
+      const lo = Math.min(a0, a1), hi = Math.max(a0, a1);
+      ctx.globalAlpha = 1 - k * 0.8;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, sl.R * 0.98, lo, hi);
+      ctx.arc(p.x, p.y, sl.R * 0.55, hi, lo, true);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(40,14,70,0.4)';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#a77be0';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, sl.R, lo, hi);
+      ctx.stroke();
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = '#f2e8ff';
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  },
+};
+
 export function drawArea(ctx, a, time) {
   const t = a.life / a.max;
   const fadeIn = Math.min(1, (a.max - a.life) / 0.15);
@@ -788,6 +853,19 @@ export function drawArea(ctx, a, time) {
       const x = a.x + Math.cos(ang) * d, y = a.y + Math.sin(ang) * d;
       drawClover(ctx, x, y, 5 + (i % 3), a.clover && i % 4 === 0, time + i);
     }
+  } else if (a.kind === 'rift') {
+    // オブシディアン（進化後）の闇の裂け目
+    ctx.globalAlpha = alpha * 0.85;
+    ctx.save();
+    ctx.translate(a.x, a.y);
+    ctx.rotate(a.seed);
+    ctx.fillStyle = 'rgba(20,4,36,0.9)';
+    ctx.strokeStyle = '#a77be0';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-a.r, 0); ctx.lineTo(-a.r * 0.2, -a.r * 0.28); ctx.lineTo(a.r, 0); ctx.lineTo(a.r * 0.2, a.r * 0.28); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
   } else if (a.kind === 'fire') {
     ctx.globalAlpha = alpha * 0.28;
     ctx.globalCompositeOperation = 'lighter';
