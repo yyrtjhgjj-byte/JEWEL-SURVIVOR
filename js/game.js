@@ -632,7 +632,7 @@ export class Game {
       e.atk2 = 5;
       this.hooks.bossBar(e);
       this.hooks.banner(ENEMIES[ev.enemy].name, 'boss', ev.enemy === this.stage.finalBoss ? 'FINAL BOSS' : 'BOSS');
-      audio.playBgm(ev.enemy === this.stage.finalBoss ? 'final' : 'boss');
+      if (!this.stage.keepBgm) audio.playBgm(ev.enemy === this.stage.finalBoss ? 'final' : 'boss'); // keepBgm：ボス戦でも曲を変えない（最後のステージ）
       this.fx.shake(12);
       save.seen.enemies[ev.enemy] = true;
     }
@@ -797,7 +797,7 @@ export class Game {
         }
       }
       // プレイヤーに あたる
-      if (!stop && dist < e.r + p.r - 2 && !(e.fade > 0) && e.dmg > 0 && !(e.breakT > 0)) {
+      if (!stop && dist < e.r + p.r - 2 && !(e.fade > 0) && e.dmg > 0 && !(e.breakT > 0) && !e.asleep) {
         this.hurtPlayer(e.dmg * touchMul(this, e), { src: 'touch:' + e.type });
         if (e.ai === 'wisp') { p.slowT = 1.6; p.slowMul = 0.6; }
       }
@@ -821,6 +821,7 @@ export class Game {
 
   bossAI(e, dt, dist, mv) {
     const p = this.player;
+    if (e.ai === 'piper') { AI.piper(this, e, dt, dist, mv); return; } // 奏者はアザトースの周りを回るだけ
     // にげても ワープで おいかけてくる
     if (dist > this.viewR * 0.95 && !(e.dash > 0)) {
       e.warpT = (e.warpT || 0) + dt;
@@ -1110,6 +1111,12 @@ export class Game {
   damage(e, amount, o = {}) {
     if (!e.alive) return 0;
     const p = this.player;
+    if (e.shareTo) {
+      // HP を共有する敵（アザトースの奏者）：ダメージは代表の 1 体へ
+      e.flash = 0.08;
+      if (!e.shareTo.alive) return 0;
+      e = e.shareTo;
+    }
     if (e.segment) {
       // 胴体へのダメージは頭へ
       e.flash = 0.08;
@@ -1291,7 +1298,7 @@ export class Game {
     this.bosses++;
     (this.bossLog = this.bossLog || []).push(e.type + '@' + Math.round(this.time));
     // 別のボスがまだ生きていれば、そちらを表示対象にする
-    const other = this.enemies.find((o) => o.alive && o.boss && o !== e && !o.segment) || null;
+    const other = this.enemies.find((o) => o.alive && o.boss && o !== e && !o.segment && !o.shareTo) || null;
     if (this.boss === e || !this.boss || !this.boss.alive) {
       this.boss = other;
       this.hooks.bossBar(other);
@@ -1815,7 +1822,7 @@ export class Game {
       roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
       hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
-      bossList: this.enemies.filter((e) => e.alive && e.boss).map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1 })),
+      bossList: this.enemies.filter((e) => e.alive && e.boss && e.ai !== 'piper').map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1, woke: !!e.azWoke })),
     };
   }
   restore(s) {
@@ -1843,11 +1850,13 @@ export class Game {
       const a = -Math.PI / 2 + rand(-0.5, 0.5);
       const e = this.spawnEnemy(b.type, p.x + Math.cos(a) * this.viewR * 0.8, p.y + Math.sin(a) * this.viewR * 0.8);
       e.maxHp = b.maxHp; e.hp = b.hp; e.artChest = b.artChest; e.breakNeed = b.breakNeed; e.atkT = 2; e.atk2 = 5;
+      if (b.woke) { e.azWoke = true; e.azInit = true; e.charging = true; } // アザトースは目覚めた後から（奏者は眠りの間だけ、作り直す）
       this.boss = e;
     }
     if (this.boss) {
       this.hooks.bossBar(this.boss);
-      audio.playBgm(this.boss.type === this.stage.finalBoss ? 'final' : 'boss');
+      if (this.stage.keepBgm) audio.playBgm(this.boss.azWoke ? 'azathoth' : this.stage.bgm);
+      else audio.playBgm(this.boss.type === this.stage.finalBoss ? 'final' : 'boss');
     }
     this.modalQueue = []; // 開始時の初期強化の分は、保存したモーダルに含まれている
     for (const m of s.modals || []) this.modalQueue.push(m);
