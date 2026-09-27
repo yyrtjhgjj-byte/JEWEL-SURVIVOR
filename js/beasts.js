@@ -4,11 +4,11 @@ import { GEMS } from './data.js';
 
 export const BEAST_COST = 10;
 
-// base：召喚したときの効果、step：強化 1 回ごとに伸びる量
+// base：召喚したときの効果（クリティカル率 +10% と同じくらいの価値）、step：強化 1 回ごとに伸びる量（base の 1/10）
 // shape：100×100 の座標で、台座（y 86〜）の上に立つ形。['e', 中心x, 中心y, 半径x, 半径y, 傾き°] ／ ['p', x1, y1, x2, y2, …]
 export const BEASTS = {
   ruby: {
-    name: 'ニホンウサギ', stat: 'might', base: 0.1, step: 0.01, spark: [[63, 40, 3], [34, 60, 2.2]],
+    name: 'ニホンウサギ', stat: 'might', base: 0.15, step: 0.015, spark: [[63, 40, 3], [34, 60, 2.2]],
     shape: [
       ['e', 44, 68, 23, 17, 0],
       ['e', 36, 74, 17, 12, 0],
@@ -22,7 +22,7 @@ export const BEASTS = {
     ],
   },
   sapphire: {
-    name: 'キャバリア', stat: 'growth', base: 0.1, step: 0.01, spark: [[58, 33, 3], [42, 66, 2.2]],
+    name: 'キャバリア', stat: 'growth', base: 0.2, step: 0.02, spark: [[58, 33, 3], [42, 66, 2.2]],
     shape: [
       ['p', 34, 86, 32, 66, 40, 52, 56, 50, 62, 62, 64, 86],
       ['e', 38, 76, 12, 11, 0],
@@ -36,7 +36,7 @@ export const BEASTS = {
     lines: [[56, 31, 59, 56, 50, 59, 45, 48]],
   },
   garnet: {
-    name: 'ペルシャ', stat: 'hpMul', base: 0.1, step: 0.01, spark: [[55, 38, 3], [40, 64, 2.2]],
+    name: 'ペルシャ', stat: 'hpMul', base: 0.25, step: 0.025, spark: [[55, 38, 3], [40, 64, 2.2]],
     shape: [
       ['e', 46, 70, 20, 16, 0],
       ['e', 58, 64, 11, 14, 0],
@@ -49,7 +49,7 @@ export const BEASTS = {
     ],
   },
   labradorite: {
-    name: 'ポーラベア', stat: 'critDmg', base: 0.1, step: 0.01, spark: [[76, 49, 2.6], [40, 52, 2.4]],
+    name: 'ポーラベア', stat: 'critDmg', base: 0.4, step: 0.04, spark: [[76, 49, 2.6], [40, 52, 2.4]],
     shape: [
       ['e', 46, 58, 26, 15, 0],
       ['e', 26, 57, 10, 12, 0],
@@ -63,7 +63,7 @@ export const BEASTS = {
     ],
   },
   angelite: {
-    name: 'アルパカ', stat: 'healUp', base: 0.1, step: 0.01, spark: [[63, 18, 2.6], [38, 50, 2.4]],
+    name: 'アルパカ', stat: 'healUp', base: 0.3, step: 0.03, spark: [[63, 18, 2.6], [38, 50, 2.4]],
     shape: [
       ['e', 42, 54, 20, 12, 0],
       ['p', 55, 54, 57, 24, 68, 22, 67, 54],
