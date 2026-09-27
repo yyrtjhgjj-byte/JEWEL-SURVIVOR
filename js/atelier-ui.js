@@ -362,7 +362,7 @@ function renderCollection(box) {
     const cell = el(`<button class="coll-cell ${has ? '' : 'none'}" style="--c:${gemColor(id)}">
       <img src="${gemIcon(id, 80)}">
       ${has ? `<span class="cq">${gradeBadge(rec.best)}<span class="cmv">${m}</span></span>` : ''}
-      ${rec && rec.have ? `<span class="chave">×${rec.have}</span>` : ''}
+      ${rec && rec.have ? `<span class="chave">×${rec.have >= 100 ? '99+' : rec.have}</span>` : ''}
       <span class="cm ${name.length >= 9 ? 'xlong' : name.length >= 7 ? 'long' : ''}">${name}</span>
     </button>`);
     cell.onclick = () => { audio.tap(); gemDetail(id); };

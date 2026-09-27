@@ -1113,6 +1113,7 @@ export class Game {
     }
     let dmg = amount;
     if (this.feverT > 0) dmg *= 1.5;
+    dmg *= 1 + this.stats.dmgUp; // 宝石の百獣の種類数
     if (e.breakT > 0) dmg *= 2; // ブレイク中のボスは被ダメージ 2 倍
     const ev = elementVs(this, e);
     dmg *= ev.mul;

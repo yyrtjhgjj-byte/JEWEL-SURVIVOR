@@ -50,7 +50,7 @@ const STAT_LABEL = {
   luck: ['幸運', '%'], greed: ['獲得コイン', '%'], maxHp: ['最大HP', ''], area: ['攻撃範囲', '%'],
   growth: ['経験値', '%'], speed: ['弾速', '%'], duration: ['持続', '%'], moveSpeed: ['移動速度', '%'],
   cooldown: ['クールダウン短縮', '%'], guard: ['被ダメージ軽減', '%'], coinDrop: ['コインのドロップ率', '%'],
-  hpMul: ['最大HP', '%'], healUp: ['回復量', '%'],
+  hpMul: ['最大HP', '%'], healUp: ['回復量', '%'], dmgUp: ['与ダメージ', '%'],
 };
 export function statText(k, v) {
   const [label, unit] = STAT_LABEL[k] || [k, ''];
