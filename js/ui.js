@@ -11,7 +11,7 @@ import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter } from 
 import { fmt, fmtTime, pick } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState } from './rank.js';
-import { HOWTO } from './howto.js';
+import { HOWTO, HOWTO_INTRO } from './howto.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
@@ -174,14 +174,28 @@ function showRank() {
 }
 
 // ------------------------------------------------------------------ 遊び方
+// 最初は基本のまとめ。一番下の「もっと詳しく」で項目ごとの説明へ
 function showHowTo() {
+  const node = el(`
+    <div class="screen howto-screen">
+      ${topbar('HOW TO PLAY', '遊び方', '<div style="width:44px"></div>')}
+      <div class="howto-list">
+        <div class="panel howto-intro">${HOWTO_INTRO.map((s) => `<div class="hi-row"><b>${s.t}</b><p>${s.b}</p></div>`).join('')}</div>
+        <button class="btn" id="more">もっと詳しく</button>
+      </div>
+    </div>`);
+  show(node);
+  $('#back', node).onclick = () => { audio.tap(); showTitle(); };
+  $('#more', node).onclick = () => { audio.tap(); showHowToDetail(); };
+}
+function showHowToDetail() {
   const node = el(`
     <div class="screen howto-screen">
       ${topbar('HOW TO PLAY', '遊び方', '<div style="width:44px"></div>')}
       <div class="howto-list">${HOWTO.map((s) => `<details class="panel howto"><summary>${s.t}</summary><div class="howto-body">${s.b}</div></details>`).join('')}</div>
     </div>`);
   show(node);
-  $('#back', node).onclick = () => { audio.tap(); showTitle(); };
+  $('#back', node).onclick = () => { audio.tap(); showHowTo(); };
   node.querySelectorAll('summary').forEach((s) => s.addEventListener('click', () => audio.tap()));
 }
 

@@ -76,7 +76,9 @@ function TINT(type, tint) {
 }
 
 // ボスの HP の全体倍率（data.js の hp に掛ける）と、ブレイクに必要な量（最大 HP に対する割合、ブレイクのたびに掛ける倍率）
-const BOSS_HP = 1.2;
+const BOSS_HP = 1.8;
+// ボスが生きている間の雑魚の同時出現数と出現ペースの倍率（ボス戦に集中できるように）
+const BOSS_TRASH = 0.5;
 const BREAK_NEED = 0.42;
 const BREAK_GROW = 1.5;
 
@@ -540,8 +542,8 @@ export class Game {
       max = Math.min(300, 220 * k);
       rate = 12 * k * this.heatM.spawn;
     }
-    // ボス戦の間は雑魚の同時出現数と出現ペースを少し絞る（ボスに集中できるように）
-    if (this.boss && this.boss.alive) { max = Math.round(max * 0.65); rate *= 0.65; }
+    // ボス戦の間は雑魚の同時出現数と出現ペースを絞る（ボスに集中できるように）
+    if (this.boss && this.boss.alive) { max = Math.round(max * BOSS_TRASH); rate *= BOSS_TRASH; }
     let alive = 0;
     for (const e of this.enemies) if (e.alive && !e.prop) alive++;
     this.spawnAcc += rate * dt;
