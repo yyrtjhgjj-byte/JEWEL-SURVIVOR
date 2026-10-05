@@ -813,11 +813,17 @@ LOGIC.obsidian = {
       const a0 = sl.a - half * sl.dir, a1 = a0 + 2 * half * sweep * sl.dir;
       const lo = Math.min(a0, a1), hi = Math.max(a0, a1);
       ctx.globalAlpha = 1 - k * 0.8;
+      // 斬撃の範囲：外周がいちばん濃く、内側へ向かって透明に溶けるグラデーション
+      const grd = ctx.createRadialGradient(p.x, p.y, sl.R * 0.3, p.x, p.y, sl.R);
+      grd.addColorStop(0, 'rgba(90,40,150,0)');
+      grd.addColorStop(0.55, 'rgba(110,60,180,0.12)');
+      grd.addColorStop(0.85, 'rgba(150,100,220,0.32)');
+      grd.addColorStop(1, 'rgba(195,155,255,0.5)');
       ctx.beginPath();
-      ctx.arc(p.x, p.y, sl.R * 0.98, lo, hi);
-      ctx.arc(p.x, p.y, sl.R * 0.55, hi, lo, true);
+      ctx.arc(p.x, p.y, sl.R, lo, hi);
+      ctx.arc(p.x, p.y, sl.R * 0.3, hi, lo, true);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(40,14,70,0.4)';
+      ctx.fillStyle = grd;
       ctx.fill();
       ctx.lineWidth = 3;
       ctx.strokeStyle = '#a77be0';
