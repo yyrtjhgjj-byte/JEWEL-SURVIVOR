@@ -311,6 +311,8 @@ class AudioEngine {
 
   // ------------------------------------------------------------------ BGM
   playBgm(name) {
+    // 一度流れた曲は、ジュークボックスで聴けるようにする
+    if (TRACKS[name]) (save.seen.bgm || (save.seen.bgm = {}))[name] = true;
     if (!this.ready) { this.pendingTrack = name; return; }
     if (this.bgmTrack && this.bgmTrack.name === name) return;
     this.stopBgm();
