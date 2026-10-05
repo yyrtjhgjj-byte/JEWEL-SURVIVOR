@@ -16,6 +16,7 @@ import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
 import { showAtelier } from './atelier-ui.js';
+import { showJukebox } from './jukebox.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 function el(html) {
@@ -209,7 +210,10 @@ export function showTitle() {
           <button class="btn" id="t-gacha">MINING<span class="sub">採掘</span></button>
           <button class="btn" id="t-zukan">ARCHIVE<span class="sub">図鑑・実績</span></button>
         </div>
-        <button class="btn howto-btn" id="t-howto">HOW TO PLAY<span class="sub">遊び方</span></button>
+        <div class="title-row mini">
+          <button class="btn" id="t-howto">HOW TO PLAY<span class="sub">遊び方</span></button>
+          <button class="btn" id="t-juke">JUKEBOX<span class="sub">BGM</span></button>
+        </div>
       </div>
     </div>`);
   show(node);
@@ -217,6 +221,7 @@ export function showTitle() {
   tap('#t-play', showCharSelect);
   tap('#t-rank', showRank);
   tap('#t-howto', showHowTo);
+  tap('#t-juke', showJukebox);
   tap('#t-shop', showShop);
   tap('#t-gacha', showGacha);
   tap('#t-zukan', () => showZukan('gems'));
@@ -330,7 +335,7 @@ const backLv = (id) => ((save.upgrades2Off || {})[id] ? 0 : (save.upgrades2 || {
 
 // ================================================================== ステージ選択
 function stageRec(id) { return save.stages[id] || {}; }
-function stageUnlocked(st) {
+export function stageUnlocked(st) {
   return st.no === 1 || !!stageRec(STAGES[st.no - 2].id).cleared;
 }
 export function showStageSelect() {

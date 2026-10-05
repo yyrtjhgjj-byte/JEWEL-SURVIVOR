@@ -67,6 +67,7 @@
 | js/ui.js | 全画面（タイトル〜リザルト、HUD、バナー） |
 | js/atelier.js / atelier-ui.js / auction.js / beasts.js | 研磨工房（研磨・コレクション・オークション・百獣） |
 | js/artifacts.js / rank.js | 秘宝、ユーザーレベル |
+| js/jukebox.js | ジュークボックス（BGM を聴く画面。タイトルの JUKEBOX） |
 | js/howto.js | 遊び方の本文。仕様や数値を変えたらここも直す |
 | js/gem-facts.js | 実在の宝石の情報（研磨コレクションの詳細画面） |
 | js/save.js | localStorage（キー `jewel-survivor-save-v1`）とバックアップ |
@@ -146,6 +147,7 @@
 - 研磨工房（atelier.js）：原石を研磨して宝石のコレクションに。練度に応じた永続ボーナス。次に出る宝石は `save.nextGem` に先に決めておく（研磨の途中で落ちても変わらない）。研磨のコインは完了時に払う。所持数 `have`（百獣で消費）と研磨数 `n`（練度に使い、減らさない）は別。GEM DATA（gem-facts.js）は実際の宝石学の情報だけ。
 - 百獣（beasts.js）：同じ宝石 10 個で動物の彫刻を召喚・強化。動物の名前・実績名（『ルビー』など二重鉤括弧ごと）はユーザーの指定。絵は `shape` を宝石の色のローポリで塗る（目は描かない）。
 - オークション（auction.js）：ランを終えるたびに出品が入れ替わる。負けるか、入札後に降りると次のランまで参加できない。
+- ジュークボックス（jukebox.js）：ステージの曲はそのステージを解放すると、ボス戦などの曲は一度流れると聴ける（audio.playBgm が `save.seen.bgm` に記録）。未解放の曲はステージ名を出さない。BGM を足したら `trackList()` にも足す。
 - ユーザーレベル（rank.js）、ログインボーナス（ui.js の `LOGIN_REWARDS`）、実績（data.js。ラン中の記録で判定するものと、`meta` でセーブから判定するもの）。
 
 ## 5. 実装上の注意（壊しやすいところ）
@@ -197,7 +199,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v90`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v91`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
