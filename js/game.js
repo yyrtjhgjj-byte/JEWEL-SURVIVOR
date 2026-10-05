@@ -76,7 +76,7 @@ function TINT(type, tint) {
 }
 
 // ボスの HP の全体倍率（data.js の hp に掛ける）と、ブレイクに必要な量（最大 HP に対する割合、ブレイクのたびに掛ける倍率）
-const BOSS_HP = 1.8;
+const BOSS_HP = 2.7;
 // ボスが生きている間の雑魚の同時出現数と出現ペースの倍率（ボス戦に集中できるように）
 const BOSS_TRASH = 0.5;
 const BREAK_NEED = 0.42;
