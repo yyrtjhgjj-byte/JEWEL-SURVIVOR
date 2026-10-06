@@ -11,7 +11,7 @@ import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter } from 
 import { fmt, fmtTime, pick } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState } from './rank.js';
-import { HOWTO, HOWTO_INTRO } from './howto.js';
+import { HOWTO, HOWTO_INTRO, RARITY_ORDER } from './howto.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
@@ -1092,9 +1092,10 @@ export function levelUp(g, done) {
   haptic();
   const node = el(`
     <div class="screen dim lvl-screen">
-      <div class="rays"></div>
+      <div class="rays-clip"><div class="rays"></div></div>
       <div class="big-title prism-text">LEVEL UP</div>
       <div class="sub-title"><b>LV ${g.level - g.pendingLevels}</b>　強化を1つ選択</div>
+      <div class="lvl-order">良い順 ${RARITY_ORDER}</div>
       <div class="cards" id="cards"></div>
       <div class="lvl-actions"><button class="btn small" id="reroll"></button><button class="btn small" id="skip"></button><button class="btn small" id="banish"></button></div>
       <div class="banish-hint">除外する候補をタップ（このランでは二度と出なくなります）</div>
