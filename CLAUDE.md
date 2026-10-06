@@ -38,7 +38,8 @@
 - ぼかし（backdrop-filter）は `.screen.dim` だけ。リザルト画面に使うと iPhone でスクロール先が描画されない。
 - 折り返し：名前・見出し・短い説明だけ `text-wrap: balance`、長い説明文は普通に折り返す。名前は `word-break: keep-all` で、ui.js の addWbr が「・」の後に `<wbr>` を入れる。
 - 高さ上限つきのスクロールパネル（.gem-detail / .exch / .at-sum）の子は `flex-shrink: 0`。
-- 品質・レア度の色：SS/UR 虹 ／ S/SSR 金 ／ A/SR 紫 ／ B/R 青 ／ C/N 緑（レベルアップのカードだけ N は白）。
+- 品質・レア度の色：SS/UR 虹 ／ S/SSR 金 ／ A/SR 紫 ／ B/R 青 ／ C/N 緑（レベルアップのカードだけ N は白）。良い順の並びは howto.js の `RARITY_ORDER` で、遊び方の両方のページとレベルアップ画面に出している（色を変えたらここも直す）。
+- 大きい背景の光（.rays）を入れるスクロールする画面は `.rays-clip` で包む（そのままだとスクロールの範囲が光の分だけ広がる）。レベルアップ画面の中央寄せは前後の余白 auto で行う（justify-content: center だと、はみ出したときに上側に届かない）。
 - コイン報酬のアイコンは coinIcon（金貨 3 枚重ね）。
 
 **音**
@@ -199,7 +200,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v93`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v94`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
