@@ -298,7 +298,8 @@ function recoverPendingRun() {
   };
   if (res.resume && (!res.cleared || res.endless) && STAGE_BY_ID[res.stageId]) {
     UI.resumePrompt(res, () => {
-      delete save.pendingRun;
+      // 中断の記録はここでは消さない（再開した直後に落ちたり再読み込みされたりしても、もう一度再開できるように）。
+      // 再開したランの途中保存で上書きされ、ランが終われば settleRun で消える
       startGame(res.charId, { stageId: res.stageId, heat: res.heat || 0, endless: !!res.endless, hyper: !!res.hyper, hurry: !!res.hurry, resume: res.resume });
     }, () => { settle(); UI.refreshCoinPill(); });
   } else settle();
@@ -403,7 +404,15 @@ if (DEBUG.autostart) {
 }
 
 // オフライン用 サービスワーカー
-// 新しい版が入ったら自動で再読み込み（プレイ中・リザルト中ならタイトルに戻ったときに）
+// 新しい版が入ったら自動で再読み込みする。ただし、何も開いていないタイトル画面にいるときだけ
+// （再開の確認・研磨・オークションなどの途中で読み込み直すと、操作が失われる。特に再開の確認中は、
+// 押した直後に読み込み直しが重なるとランが失われていた）
+function safeToReload() {
+  if (game || save.pendingRun) return false;
+  const s = document.getElementById('screens');
+  return s.children.length === 1 && s.firstElementChild.classList.contains('title-screen');
+}
+setInterval(() => { if (reloadPending && safeToReload()) location.reload(); }, 1500);
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
@@ -412,7 +421,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
   }).catch(() => {});
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController) return; // 初回インストール時は不要
-    if (game) reloadPending = true;
-    else location.reload();
+    if (safeToReload()) location.reload();
+    else reloadPending = true;
   });
 }
