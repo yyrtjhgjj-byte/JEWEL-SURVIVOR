@@ -520,6 +520,7 @@ export function showShop(back = false) {
         persist();
         audio.levelUp();
         haptic();
+        getApp().checkMetaAchievements && getApp().checkMetaAchievements();
         render();
         refreshCoinPill();
         const nr = list.children[ITEMS.indexOf(it)];
@@ -1023,7 +1024,7 @@ function choiceInfo(g, c) {
     }
     if (c.type === 'lb') {
       const w = g.getWeapon(c.id);
-      return { icon: gemIcon(def.gem, 96), name: w.evolved ? def.evo.name : def.name, lv: `LIMIT BREAK ${(w.lbN || 0) + 1}`, desc: LIMIT_BREAK[c.stat].t, word, rar: 'SR', tags: '' };
+      return { icon: gemIcon(def.gem, 96), name: w.evolved ? def.evo.name : def.name, lv: `LIMIT BREAK ${(w.lbN || 0) + 1}`, desc: LIMIT_BREAK[c.stat].t, word, rar: 'R', tags: '' };
     }
     if (c.type === 'evo') {
       return { icon: gemIcon(def.gem, 96), name: def.evo.name, lv: 'EVOLUTION', desc: def.evo.desc, word: `${def.name} ＋ ${GEMS[def.evo.with].jp}`, rar: 'UR', tags: save.seen.evos[c.id] ? '' : T_NEW };
@@ -1042,7 +1043,7 @@ function choiceInfo(g, c) {
     const word = `ジュエルパワー「${gem.word}」`;
     if (c.type === 'pnew') {
       const evoTags = evoTagsForCharm(g, c.id, false);
-      return { icon: gemIcon(P.gem, 96), name: P.name, lv: 'NEW', desc: P.t, word, rar: evoTags ? 'SR' : 'R', tags: (save.seen.passives[c.id] ? '' : T_NEW) + evoTags };
+      return { icon: gemIcon(P.gem, 96), name: P.name, lv: 'NEW', desc: P.t, word, rar: evoTags ? 'UR' : 'R', tags: (save.seen.passives[c.id] ? '' : T_NEW) + evoTags };
     }
     const p = g.getPassive(c.id);
     const next = Math.min(P.max, p.level + (c.double ? 2 : 1));

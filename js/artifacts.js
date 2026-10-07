@@ -25,7 +25,7 @@ export const ARTIFACTS = [
     desc: '初期武器の弾数 +3' },
   { id: 'hope', no: 'IX', name: '呪われた宝石', en: 'HOPE DIAMOND', gem: 'sapphire', ach: 'clear3',
     desc: '1 分ごとにエリートが追加で出現する。エリートは撃破で宝箱を落とす' },
-  { id: 'musicbox', no: 'X', name: '流星のオルゴール', en: 'STARFALL MUSIC BOX', gem: 'opal', ach: 'lv50',
+  { id: 'musicbox', no: 'X', name: '流星のオルゴール', en: 'STARFALL MUSIC BOX', gem: 'opal', ach: 'lv15',
     desc: 'レベルアップのたびに、回復・磁石・時計・爆弾などのアイテムが空から降ってくる' },
   { id: 'prism', no: 'XI', name: '分光プリズム', en: 'SPECTRAL PRISM', gem: 'labradorite', ach: 'evo3',
     desc: '攻撃範囲が 10 秒周期で −50% 〜 +200% の間を波のように変動する（上限を超えた分は攻撃力に変わる）' },
