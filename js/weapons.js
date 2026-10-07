@@ -708,21 +708,18 @@ export const LOGIC = {
       const p = g.player;
       const evo = w.evolved;
       if (evo) {
-        // 周回する満月
+        // 周回する満月（1 つ。威力と魅了の確率は以前の 2 つ分）
         w.ang = (w.ang || 0) + dt * 2.2;
         const R = 105 * s.area;
         const Q2 = this._q || (this._q = []);
-        for (let k = 0; k < 2; k++) {
-          const a = w.ang + k * Math.PI;
-          const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
-          g.grid.query(x, y, 50, Q2);
-          for (const e of Q2) {
-            if (!e.alive || (e.x - x) ** 2 + (e.y - y) ** 2 > (22 * s.area + e.r) ** 2) continue;
-            if ((e.hitT.moon || 0) > g.time) continue;
-            e.hitT.moon = g.time + 0.4;
-            g.damage(e, s.dmg * 0.5, { wid: 'moonstone', kb: 60 });
-            if (e.alive && !e.boss && !e.segment && e.ai !== 'thief' && !e.charmT && chance(s.charm * 1.2)) this.charm(g, e, 4, true);
-          }
+        const x = p.x + Math.cos(w.ang) * R, y = p.y + Math.sin(w.ang) * R;
+        g.grid.query(x, y, 50, Q2);
+        for (const e of Q2) {
+          if (!e.alive || (e.x - x) ** 2 + (e.y - y) ** 2 > (22 * s.area + e.r) ** 2) continue;
+          if ((e.hitT.moon || 0) > g.time) continue;
+          e.hitT.moon = g.time + 0.4;
+          g.damage(e, s.dmg, { wid: 'moonstone', kb: 60 });
+          if (e.alive && !e.boss && !e.segment && e.ai !== 'thief' && !e.charmT && chance(s.charm * 2.4)) this.charm(g, e, 4, true);
         }
       }
       w.t -= dt;
@@ -753,12 +750,10 @@ export const LOGIC = {
       const p = g.player;
       const R = 105 * s.area;
       const spr = moonSprite(34, true);
-      for (let k = 0; k < 2; k++) {
-        const a = (w.ang || 0) + k * Math.PI;
-        const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
-        const L = spr.logical * s.area;
-        ctx.drawImage(spr, x - L / 2, y - L / 2, L, L);
-      }
+      const a = w.ang || 0;
+      const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
+      const L = spr.logical * s.area;
+      ctx.drawImage(spr, x - L / 2, y - L / 2, L, L);
     },
   },
 };

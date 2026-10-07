@@ -380,6 +380,12 @@ function migrateSave() {
     save.shopPaid.back = 0;
     persist();
   }
+  // 流星のオルゴールの解放を Lv.50 から Lv.15 の実績に移した：Lv.30 以上の実績があれば Lv.15 も達成済みにする
+  if (!save.achievements.lv15 && (save.achievements.lv30 || save.achievements.lv50)) {
+    save.achievements.lv15 = true;
+    save.coins += ACHIEVEMENTS.find((a) => a.id === 'lv15').coins;
+    persist();
+  }
   // 解放条件を実績に移したキャラ：すでにその実績を持っていれば解放しておく
   for (const a of ACHIEVEMENTS) {
     if (a.unlock && save.achievements[a.id] && !save.unlocked[a.unlock]) {

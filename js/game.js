@@ -1830,7 +1830,7 @@ export class Game {
     const modals = [...(this.state === 'modal' && this.curModal && !this.curModal.applied ? [this.curModal] : []), ...this.modalQueue];
     return {
       v: 1, time: this.time, level: this.level, xp: this.xp, kills: this.kills, coins: this.coins, totalDmg: this.totalDmg,
-      dmgBy: { ...this.dmgBy }, killsByType: { ...this.killsByType }, maxCombo: this.maxCombo,
+      dmgBy: { ...this.dmgBy }, killsByType: { ...this.killsByType }, maxCombo: this.maxCombo, combo: this.comboT > 0 ? this.combo : 0,
       feverGauge: this.feverGauge, feverNeed: this.feverNeed, fevers: this.fevers, evolvedCount: this.evolvedCount, bosses: this.bosses, miracles: this.miracles,
       weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved, lb: w.lb, lbN: w.lbN })),
       passives: this.passives.map((x) => ({ id: x.id, level: x.level })),
@@ -1860,6 +1860,8 @@ export class Game {
     this.killsByType = { ...s.killsByType };
     this.roughGot = { ...this.roughGot, ...s.roughGot };
     this.banished = new Set(s.banished);
+    // コンボ：再開した直後は雑魚がいないので、つなぎの猶予を長めにとる
+    if (s.combo > 0) { this.combo = s.combo; this.comboT = 6; }
     this.computeStats();
     this.player.hp = Math.max(1, Math.min(this.player.maxHp, s.hp));
     this.player.iT = 2;
