@@ -790,7 +790,7 @@ export function showZukan(tab = 'gems', ch = 1) {
       const icon = enemyIcon(e.sprite || id, Math.min(e.r, 40), e.tint);
       zl.appendChild(el(`<div class="zitem ${seen ? '' : 'unk'}">
         <img src="${icon}">
-        <div><div class="zname">${seen ? e.name : '???'} ${e.boss ? '<span class="rarbadge r-SSR">BOSS</span>' : ''}</div>
+        <div><div class="zname">${seen ? e.name : '???'}${seen && e.kana ? `<span class="en">${e.kana}</span>` : ''} ${e.boss ? '<span class="rarbadge r-SSR">BOSS</span>' : ''}</div>
           <div class="ztext">${seen ? e.desc : '未遭遇'}</div>
           <div class="ztext muted">撃破数 <b style="color:#fff">${fmt(save.kills[id] || 0)}</b></div>
         </div></div>`));

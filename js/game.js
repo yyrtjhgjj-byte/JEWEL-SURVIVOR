@@ -7,7 +7,7 @@ import {
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
-import { AI, onEnemyKilled, thiefTick } from './enemies.js';
+import { AI, onEnemyKilled, thiefTick, spillEaten } from './enemies.js';
 import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
 import { beastStats } from './beasts.js';
@@ -67,7 +67,8 @@ class Grid {
 
 // ステージの色に 敵を染める
 const BASE_COL = { slime: '#7a64a8', bat: '#5a4a80', ghost: '#9c90c8', toge: '#6a3a70', golem: '#7a6a60', knight: '#3c3456',
-  spawn: '#5a5a70', byakhee: '#4a4a62', eyes: '#4e4c66', thorn: '#5a3a5a', crawler: '#7a5a5a', cultist: '#2a2438' };
+  spawn: '#5a5a70', byakhee: '#4a4a62', eyes: '#4e4c66', thorn: '#5a3a5a', crawler: '#7a5a5a', cultist: '#2a2438',
+  moryo: '#5a2a32', kochou: '#5a4a38', chimi: '#4a6a5a', kyubi: '#b8783a', kui: '#3a5a7a', keiten: '#6a5040' };
 const tintCache = {};
 function TINT(type, tint) {
   const k = type + tint;
@@ -75,6 +76,9 @@ function TINT(type, tint) {
   const m = mix(BASE_COL[type] || '#6b5a8e', tint, 0.55).match(/\d+/g).map(Number);
   return (tintCache[k] = '#' + m.map((v) => v.toString(16).padStart(2, '0')).join(''));
 }
+
+// 羽ばたく敵（絵のコマを交互に切り替える）
+const FLAP = new Set(['bat', 'byakhee', 'kochou']);
 
 // ボスの HP の全体倍率（data.js の hp に掛ける）と、ブレイクに必要な量（最大 HP に対する割合、ブレイクのたびに掛ける倍率）
 const BOSS_HP = 2.7;
@@ -650,10 +654,15 @@ export class Game {
       e.atk2 = 5;
       this.hooks.bossBar(e);
       this.hooks.banner(ENEMIES[ev.enemy].name, 'boss', ev.enemy === this.stage.finalBoss ? 'FINAL BOSS' : 'BOSS');
-      if (!this.stage.keepBgm) audio.playBgm(ev.enemy === this.stage.finalBoss ? 'final' : 'boss'); // keepBgm：ボス戦でも曲を変えない（最後のステージ）
+      if (!this.stage.keepBgm) audio.playBgm(this.bossBgm(ev.enemy)); // keepBgm：ボス戦でも曲を変えない（第2章の最後のステージ）
       this.fx.shake(12);
       save.seen.enemies[ev.enemy] = true;
     }
+  }
+
+  // ボス戦の曲（ステージの finalBgm があれば最終ボスはその曲。第3章は四凶の曲）
+  bossBgm(type) {
+    return type === this.stage.finalBoss ? this.stage.finalBgm || 'final' : 'boss';
   }
 
   spawnEnemy(type, x, y, o = {}) {
@@ -1152,6 +1161,7 @@ export class Game {
     if (this.feverT > 0) dmg *= 1.5;
     dmg *= 1 + this.stats.dmgUp; // 百獣の種類数
     if (e.breakT > 0) dmg *= 2; // ブレイク中のボスは被ダメージ 2 倍
+    dmg *= this.hazards.dmgMul(); // 舞の輪（渾沌のステージ）
     const ev = elementVs(this, e);
     dmg *= ev.mul;
     // オブシディアンの攻撃はクリティカル率 -10%（一撃が重い代わり）
@@ -1232,6 +1242,10 @@ export class Game {
     e.charging = false;
     e.pullT = 0; // 引き寄せ（皇帝・アザトース）
     e.gustT = 0; // 翼の突風（クトゥルフ）
+    e.northT = 0; // 北風（窮奇）
+    e.breathT = 0; // 吸って吐く息（渾沌）
+    if (e.devourT > 0) { e.devourT = 0; e.charging = false; } // 吸い込み（饕餮）
+    spillEaten(this, e); // 饕餮は食べたものを吐き出す
     this.lasers = this.lasers.filter((L) => L.owner !== e);
     this.warns = this.warns.filter((w) => w.owner !== e);
     this.fx.ring(e.x, e.y, e.r, e.r * 3, 0.5, '#ffe39a', 10);
@@ -1330,7 +1344,8 @@ export class Game {
     this.slowT = 1.2;
     audio.bossDie();
     setTimeout(() => audio.bigWin(), 400);
-    this.hooks.banner('BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
+    // 渾沌は七つ目の穴（口）が開いて死ぬ
+    this.hooks.banner(e.ai === 'konton' ? '七日ニシテ渾沌死ス' : 'BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     this.dropPickup('bigchest', e.x, e.y);
     if (e.artChest && this.arts.length < this.artMax && this.artifactChoices().length) this.modalQueue.push({ type: 'artifact' });
     this.dropPickup('rough', e.x, e.y, upgradeTier(bossDrop(e.type === this.stage.finalBoss, this.heat), this.stage.no, this.heat, this.stats.roughUp));
@@ -1920,7 +1935,7 @@ export class Game {
     if (this.boss) {
       this.hooks.bossBar(this.boss);
       if (this.stage.keepBgm) audio.playBgm(this.boss.azWoke ? 'azathoth' : this.stage.bgm);
-      else audio.playBgm(this.boss.type === this.stage.finalBoss ? 'final' : 'boss');
+      else audio.playBgm(this.bossBgm(this.boss.type));
     }
     this.modalQueue = []; // 開始時の初期強化の分は、保存したモーダルに含まれている
     for (const m of s.modals || []) this.modalQueue.push(m);
@@ -2195,7 +2210,8 @@ export class Game {
     // てき
     for (const e of this.enemies) {
       if (!e.alive || !this.inView(e, e.r * 2)) continue;
-      const fr = e.type === 'bat' || e.type === 'byakhee' ? Math.floor(this.time * 9 + e.anim) % 2 : (e.charging || e.fuse !== undefined) ? 1 : 0;
+      // 絵のコマ：羽ばたく敵は交互、渾沌は開いた穴の数（sprFrame）、ほかは攻撃の構えで 1
+      const fr = e.sprFrame !== undefined ? e.sprFrame : FLAP.has(e.type) ? Math.floor(this.time * 9 + e.anim) % 2 : (e.charging || e.fuse !== undefined) ? 1 : 0;
       const spr = enemySprite(e.spr, Math.round(e.r), fr, e.flash > 0, e.tint);
       if (e.fade > 0) ctx.globalAlpha = Math.abs(e.fade - 0.25) * 3.5;
       const sq = Math.sin(this.time * 9 + e.anim) * 0.06;

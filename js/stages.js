@@ -229,6 +229,63 @@ export const STAGES = [
     events: makeEvents({ e: ['eyes', 'flutist', 'thorn', 'crawler', 'cultist'], sw: 'byakhee', r: ['spawn', 'eyes', 'thorn'], b: ['boss1_azath', 'boss2_azath', 'azathoth'] }),
     finalBoss: 'azathoth',
   },
+  // ---------------------------------------------------------------- 第3章（四凶。ステージ名は漢文の書き下し、英語名の欄は白文）
+  {
+    id: 'yushu', no: 12, chapter: 3, name: '人ヲ食ラフコト首ヨリ始ム', en: '食人從首始', time: 600,
+    desc: '北の果て、幽州。北風に乗ってつむじ風が吹き抜け、経験値を巻き上げて集める。触れると風に押されて速く走れる。',
+    hazard: 'whirl', hazardText: 'つむじ風（経験値を集める・触れると加速）',
+    hp: 2.6, dmg: 2.05, reward: 16000, bgm: 'yushu', finalBgm: 'shikyou',
+    pal: { bg: '#080b12', grid: '120,160,220', mark: '160,200,255', dust: '200,225,255', glow: 'rgba(60,110,200,0.24)', accent: '#7fb8ff' },
+    tint: '#4a5a8a',
+    waves: makeWaves({
+      0: ['moryo', 'kochou'], 1: ['moryo', 'kochou', 'hippou'], 2: ['chimi', 'kyubi', 'hippou', 'kochou'],
+      3: ['kui', 'yokko', 'kyubi', 'hippou'], 4: ['keiten', 'kui', 'yokko', 'kyubi', 'kochou'], b: ['kochou', 'moryo'],
+    }),
+    events: makeEvents({ e: ['chimi', 'hippou', 'yokko', 'kui', 'keiten'], sw: 'kochou', r: ['moryo', 'chimi', 'kyubi'], b: ['kyuei', 'taifu', 'kyuki'] }),
+    finalBoss: 'kyuki',
+  },
+  {
+    id: 'uzan', no: 13, chapter: 3, name: '浩浩トシテ天ニ滔ル', en: '浩浩滔天', time: 600,
+    desc: '東の果て、羽山。洪水があふれ、大地を濁流が横切る。流れに入ると、自分も敵も押し流される。',
+    hazard: 'flood', hazardText: '濁流（入ると流される）',
+    hp: 2.8, dmg: 2.15, reward: 18000, bgm: 'uzan', finalBgm: 'shikyou',
+    pal: { bg: '#06100e', grid: '80,200,170', mark: '120,230,200', dust: '170,240,220', glow: 'rgba(30,150,120,0.24)', accent: '#3fd8b0' },
+    tint: '#3a8a7a',
+    waves: makeWaves({
+      0: ['moryo', 'kochou'], 1: ['moryo', 'kochou', 'bunyo'], 2: ['chimi', 'kyubi', 'bunyo', 'kochou'],
+      3: ['kui', 'tsuchi', 'kyubi', 'bunyo'], 4: ['keiten', 'kui', 'tsuchi', 'kyubi', 'kochou'], b: ['kochou', 'moryo'],
+    }),
+    events: makeEvents({ e: ['chimi', 'bunyo', 'tsuchi', 'kui', 'keiten'], sw: 'kochou', r: ['moryo', 'chimi', 'tsuchi'], b: ['fuki', 'shuda', 'tokotsu'] }),
+    finalBoss: 'tokotsu',
+  },
+  {
+    id: 'sanki', no: 14, chapter: 3, name: '首有リテ身無シ', en: '有首無身', time: 600,
+    desc: '西の果て、三危山。あちこちに置かれた饕餮の鼎が、近くの経験値を吸い込む。鼎に触れると、1.5 倍にして吐き出す。',
+    hazard: 'cauldron', hazardText: '饕餮の鼎（経験値を吸い込む。触れると 1.5 倍で吐き出す）',
+    hp: 3.0, dmg: 2.25, reward: 20000, bgm: 'sanki', finalBgm: 'shikyou',
+    pal: { bg: '#100d08', grid: '220,190,130', mark: '240,215,160', dust: '250,235,200', glow: 'rgba(190,150,70,0.22)', accent: '#e8c070' },
+    tint: '#9a8a6a',
+    waves: makeWaves({
+      0: ['moryo', 'kochou'], 1: ['moryo', 'kochou', 'seicho'], 2: ['chimi', 'kyubi', 'seicho', 'kochou'],
+      3: ['kui', 'houkyou', 'kyubi', 'seicho'], 4: ['keiten', 'kui', 'houkyou', 'kyubi', 'kochou'], b: ['kochou', 'moryo'],
+    }),
+    events: makeEvents({ e: ['chimi', 'seicho', 'houkyou', 'kui', 'keiten'], sw: 'kochou', r: ['moryo', 'chimi', 'seicho'], b: ['atsuyu', 'sakushi', 'totetsu'] }),
+    finalBoss: 'totetsu',
+  },
+  {
+    id: 'chuou', no: 15, chapter: 3, name: '七日ニシテ渾沌死ス', en: '七日而渾沌死', time: 600,
+    desc: '天地の分かれる前の、中央の地。歌と舞が満ち、光る舞の輪の中にいる間は、与えるダメージが上がる。',
+    hazard: 'dance', hazardText: '舞の輪（中にいると与ダメージ ×1.3）',
+    hp: 3.2, dmg: 2.35, reward: 25000, bgm: 'chuou', finalBgm: 'shikyou',
+    pal: { bg: '#120a05', grid: '255,160,80', mark: '255,190,110', dust: '255,215,160', glow: 'rgba(230,110,30,0.24)', accent: '#ffa040' },
+    tint: '#c8803a',
+    waves: makeWaves({
+      0: ['moryo', 'kochou'], 1: ['moryo', 'kochou', 'maiko'], 2: ['chimi', 'kyubi', 'maiko', 'kochou'],
+      3: ['kui', 'nomi', 'kyubi', 'maiko'], 4: ['keiten', 'kui', 'nomi', 'kyubi', 'kochou'], b: ['kochou', 'moryo'],
+    }),
+    events: makeEvents({ e: ['chimi', 'maiko', 'nomi', 'kui', 'keiten'], sw: 'kochou', r: ['moryo', 'chimi', 'maiko'], b: ['shuku', 'kotsu', 'konton'] }),
+    finalBoss: 'konton',
+  },
 ];
 
 // 12分ステージの 540秒前後はボス戦なので軽めに

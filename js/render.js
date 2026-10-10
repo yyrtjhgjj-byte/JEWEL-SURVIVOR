@@ -602,6 +602,162 @@ function tentacle(ctx, x0, y0, x1, y1, bend, w, col) {
   ctx.stroke();
 }
 
+// ------------------------------------------------------------------ 第3章の絵の部品
+// 羽ばたく翼（s=左右、根元→先端。後ろの縁に n 枚の羽の切れ込み）
+function featherWing(ctx, s, rx, ry, tx, ty, bx, by, n, fill, w) {
+  ctx.beginPath();
+  ctx.moveTo(s * rx, ry);
+  ctx.lineTo(s * tx, ty);
+  for (let i = 1; i <= n; i++) {
+    const k0 = (i - 0.5) / n, k1 = i / n;
+    const mx = tx + (bx - tx) * k0, my = ty + (by - ty) * k0;
+    const qx = tx + (bx - tx) * k1, qy = ty + (by - ty) * k1;
+    ctx.lineTo(s * mx, my + w);
+    ctx.lineTo(s * qx, qy);
+  }
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = RIM;
+  ctx.lineWidth = w * 0.3;
+  ctx.stroke();
+}
+// 下向きの牙
+function fang(ctx, x, y, w, h, up = false) {
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, y);
+  ctx.quadraticCurveTo(x - w * 0.1, y + (up ? -h : h) * 0.6, x, y + (up ? -h : h));
+  ctx.quadraticCurveTo(x + w * 0.1, y + (up ? -h : h) * 0.6, x + w / 2, y);
+  ctx.closePath();
+  ctx.fillStyle = '#f6f0e2';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(60,40,30,0.7)';
+  ctx.lineWidth = w * 0.12;
+  ctx.stroke();
+}
+// 渦巻き（雲雷文）
+function spiral(ctx, x, y, R, turns, dir = 1) {
+  ctx.beginPath();
+  const n = 40 * turns;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const a = dir * t * turns * TAU;
+    const rr = R * (1 - t * 0.85);
+    const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.stroke();
+}
+// 光のにじみ（スプライトに 1 度だけ描く）
+function glowBlob(ctx, x, y, R, color, a) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y, 0, x, y, R);
+  g.addColorStop(0, rgba(color, a));
+  g.addColorStop(1, rgba(color, 0));
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, R, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+}
+// 儵と忽（南海の帝・北海の帝）：冕冠の玉すだれで顔が隠れた帝。tool は 'chisel'（鑿）か 'mallet'（槌）
+function seaEmperor(ctx, r, col, tool, eyeCol) {
+  // 袖と衣
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(s * r * 0.35, -r * 0.35);
+    ctx.quadraticCurveTo(s * r * 1.25, -r * 0.2, s * r * 1.3, r * 0.55);
+    ctx.lineTo(s * r * 0.8, r * 0.75);
+    ctx.quadraticCurveTo(s * r * 0.75, r * 0.2, s * r * 0.4, r * 0.05);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, mix(col, '#000000', 0.15));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.42, -r * 0.4);
+  ctx.quadraticCurveTo(-r * 0.75, r * 0.5, -r * 0.85, r * 1.2);
+  ctx.lineTo(r * 0.85, r * 1.2);
+  ctx.quadraticCurveTo(r * 0.75, r * 0.5, r * 0.42, -r * 0.4);
+  ctx.closePath();
+  ctx.fillStyle = bodyGrad(ctx, r * 1.1, col);
+  ctx.fill();
+  ctx.strokeStyle = RIM;
+  ctx.lineWidth = r * 0.04;
+  ctx.stroke();
+  // 衿と帯
+  ctx.strokeStyle = '#f0d58a';
+  ctx.lineWidth = r * 0.06;
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.3, -r * 0.38);
+  ctx.lineTo(0, r * 0.15);
+  ctx.lineTo(r * 0.3, -r * 0.38);
+  ctx.stroke();
+  ctx.fillStyle = '#f0d58a';
+  ctx.fillRect(-r * 0.6, r * 0.32, r * 1.2, r * 0.12);
+  // 顔
+  ctx.beginPath();
+  ctx.ellipse(0, -r * 0.62, r * 0.32, r * 0.36, 0, 0, TAU);
+  ctx.fillStyle = mix(col, '#000000', 0.55);
+  ctx.fill();
+  eyes(ctx, 0, -r * 0.62, r * 0.17, { color: eyeCol, gap: 0.95 });
+  // 冕冠（平らな冠と、前後に垂れる玉すだれ）
+  ctx.fillStyle = '#1a1420';
+  ctx.fillRect(-r * 0.62, -r * 1.12, r * 1.24, r * 0.12);
+  ctx.strokeStyle = '#f0d58a';
+  ctx.lineWidth = r * 0.03;
+  ctx.strokeRect(-r * 0.62, -r * 1.12, r * 1.24, r * 0.12);
+  ctx.fillStyle = mix(col, '#f0d58a', 0.4);
+  ctx.fillRect(-r * 0.2, -r * 1.0, r * 0.4, r * 0.18);
+  for (let i = 0; i < 7; i++) {
+    const x = -r * 0.54 + i * r * 0.18;
+    ctx.strokeStyle = 'rgba(240,213,138,0.7)';
+    ctx.lineWidth = r * 0.015;
+    ctx.beginPath();
+    ctx.moveTo(x, -r * 1.0);
+    ctx.lineTo(x, -r * 0.45);
+    ctx.stroke();
+    for (let k = 0; k < 4; k++) {
+      ctx.beginPath();
+      ctx.arc(x, -r * 0.92 + k * r * 0.14, r * 0.035, 0, TAU);
+      ctx.fillStyle = k % 2 ? '#f6f0e2' : eyeCol;
+      ctx.fill();
+    }
+  }
+  // 道具
+  ctx.save();
+  ctx.translate(r * 1.05, r * 0.25);
+  ctx.rotate(0.5);
+  if (tool === 'chisel') {
+    ctx.fillStyle = '#8a5a3a';
+    ctx.fillRect(-r * 0.08, -r * 0.75, r * 0.16, r * 0.45);
+    ctx.fillStyle = '#c8ccd8';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.07, -r * 0.3);
+    ctx.lineTo(r * 0.07, -r * 0.3);
+    ctx.lineTo(r * 0.05, r * 0.35);
+    ctx.lineTo(-r * 0.05, r * 0.35);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.fillStyle = '#8a5a3a';
+    ctx.fillRect(-r * 0.05, -r * 0.3, r * 0.1, r * 0.75);
+    ctx.fillStyle = '#5a4a3a';
+    ctx.fillRect(-r * 0.25, -r * 0.62, r * 0.5, r * 0.32);
+    ctx.strokeStyle = '#f0d58a';
+    ctx.lineWidth = r * 0.025;
+    ctx.strokeRect(-r * 0.25, -r * 0.62, r * 0.5, r * 0.32);
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.translate(0, -r * 1.25);
+  drawGem(ctx, r * 0.1, tool === 'chisel' ? GEMS.ruby : GEMS.iolite);
+  ctx.restore();
+}
+
 const ENEMY_DRAW = {
   slime(ctx, r, col, f) {
     ctx.beginPath();
@@ -2530,6 +2686,1530 @@ const ENEMY_DRAW = {
     // 冠
     ctx.save(); ctx.translate(0, -r * 0.95); drawGem(ctx, r * 0.22, GEMS.obsidian); ctx.restore();
   },
+  // ================================================ 第3章：四凶（共通の雑魚。ai なしで、ステージの tint で色が変わる）
+  moryo(ctx, r, col) {
+    // 魍魎：三歳の子どものような姿。赤黒い体に長い耳、赤い目（スライムの役）
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.45, -r * 0.55);
+      ctx.quadraticCurveTo(s * r * 1.15, -r * 1.05, s * r * 1.45, -r * 0.95);
+      ctx.quadraticCurveTo(s * r * 1.05, -r * 0.5, s * r * 0.72, -r * 0.12);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#000000', 0.2);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.08;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.75, r * 0.82);
+    ctx.bezierCurveTo(-r * 1.0, r * 0.1, -r * 0.85, -r * 0.95, 0, -r * 0.95);
+    ctx.bezierCurveTo(r * 0.85, -r * 0.95, r * 1.0, r * 0.1, r * 0.75, r * 0.82);
+    ctx.quadraticCurveTo(r * 0.45, r * 0.68, r * 0.25, r * 0.95);
+    ctx.quadraticCurveTo(0, r * 0.75, -r * 0.25, r * 0.95);
+    ctx.quadraticCurveTo(-r * 0.45, r * 0.68, -r * 0.75, r * 0.82);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.09;
+    ctx.stroke();
+    // 髪
+    ctx.strokeStyle = mix(col, '#ffffff', 0.45);
+    ctx.lineWidth = r * 0.11;
+    ctx.lineCap = 'round';
+    for (const [x0, b] of [[-0.3, -0.45], [0, 0.05], [0.3, 0.45]]) {
+      ctx.beginPath();
+      ctx.moveTo(x0 * r, -r * 0.85);
+      ctx.quadraticCurveTo((x0 + b * 0.4) * r, -r * 1.45, (x0 + b) * r, -r * 1.3);
+      ctx.stroke();
+    }
+    shine(ctx, r);
+    eyes(ctx, 0, -r * 0.18, r * 0.32, { color: '#ff3d3d' });
+  },
+  kochou(ctx, r, col, f) {
+    // 蠱雕：角のある鷲。赤子のような声で鳴き、人を食う（コウモリの役）
+    const up = f === 1;
+    for (const s of [-1, 1]) featherWing(ctx, s, r * 0.25, -r * 0.2, r * 1.6, up ? -r * 1.05 : -r * 0.25, r * 0.35, r * 0.35, 4, mix(col, '#000000', 0.3), r * 0.26);
+    // 尾羽
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.2, r * 0.4);
+    ctx.lineTo(-r * 0.32, r * 1.05);
+    ctx.lineTo(0, r * 0.85);
+    ctx.lineTo(r * 0.32, r * 1.05);
+    ctx.lineTo(r * 0.2, r * 0.4);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#000000', 0.35);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.05, r * 0.4, r * 0.55, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    // 頭・角・くちばし
+    ctx.strokeStyle = '#efe6d0';
+    ctx.lineWidth = r * 0.13;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(r * 0.05, -r * 0.72);
+    ctx.quadraticCurveTo(r * 0.05, -r * 1.1, r * 0.3, -r * 1.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.5, r * 0.33, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.35, mix(col, '#ffffff', 0.15));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.12, -r * 0.38);
+    ctx.quadraticCurveTo(0, -r * 0.42, r * 0.12, -r * 0.38);
+    ctx.quadraticCurveTo(r * 0.06, -r * 0.18, -r * 0.02, -r * 0.08);
+    ctx.closePath();
+    ctx.fillStyle = '#ffcf4a';
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.55, r * 0.2, { color: '#ffd23d', gap: 1.1 });
+  },
+  chimi(ctx, r, col) {
+    // 魑魅：山の精。獣の顔が浮かぶ霊（レイスの役）
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.35, -r * 0.62);
+      ctx.quadraticCurveTo(s * r * 0.55, -r * 1.25, s * r * 0.95, -r * 1.3);
+      ctx.quadraticCurveTo(s * r * 0.7, -r * 0.95, s * r * 0.65, -r * 0.45);
+      ctx.closePath();
+      ctx.fillStyle = mix(col, '#ffffff', 0.25);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.06;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.92;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.92, r * 0.1);
+    ctx.bezierCurveTo(-r * 1.05, -r * 1.0, r * 1.05, -r * 1.0, r * 0.92, r * 0.1);
+    ctx.quadraticCurveTo(r * 0.9, r * 0.75, r * 0.6, r * 1.15);
+    ctx.quadraticCurveTo(r * 0.42, r * 0.62, r * 0.18, r * 0.8);
+    ctx.quadraticCurveTo(0, r * 1.3, -r * 0.18, r * 0.8);
+    ctx.quadraticCurveTo(-r * 0.42, r * 0.62, -r * 0.6, r * 1.15);
+    ctx.quadraticCurveTo(-r * 0.9, r * 0.75, -r * 0.92, r * 0.1);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    // 獣の面
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.62, -r * 0.45);
+    ctx.quadraticCurveTo(0, -r * 0.7, r * 0.62, -r * 0.45);
+    ctx.quadraticCurveTo(r * 0.55, r * 0.25, 0, r * 0.4);
+    ctx.quadraticCurveTo(-r * 0.55, r * 0.25, -r * 0.62, -r * 0.45);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.2, r * 0.3, { color: '#7dff9a', gap: 1.0 });
+    ctx.strokeStyle = 'rgba(10,20,10,0.85)';
+    ctx.lineWidth = r * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.32, r * 0.12);
+    ctx.quadraticCurveTo(0, r * 0.28, r * 0.32, r * 0.12);
+    ctx.stroke();
+    fang(ctx, -r * 0.2, r * 0.17, r * 0.13, r * 0.2);
+    fang(ctx, r * 0.2, r * 0.17, r * 0.13, r * 0.2);
+  },
+  kyubi(ctx, r, col) {
+    // 九尾狐：九本の尾を広げた狐。赤子のような声で人を誘う（ソーンコアの役）
+    const tip = '#fff4e0';
+    for (let i = 0; i < 9; i++) {
+      const a = (i - 4) * 0.34;
+      ctx.save();
+      ctx.rotate(a);
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.2);
+      ctx.bezierCurveTo(r * 0.34, -r * 0.6, r * 0.26, -r * 1.3, 0, -r * 1.6);
+      ctx.bezierCurveTo(-r * 0.26, -r * 1.3, -r * 0.34, -r * 0.6, 0, -r * 0.2);
+      const g = ctx.createLinearGradient(0, -r * 0.3, 0, -r * 1.6);
+      g.addColorStop(0, mix(col, '#000000', 0.25));
+      g.addColorStop(0.65, col);
+      g.addColorStop(1, tip);
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.05;
+      ctx.stroke();
+      ctx.restore();
+    }
+    // 耳
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.25, -r * 0.4);
+      ctx.lineTo(s * r * 0.65, -r * 1.0);
+      ctx.lineTo(s * r * 0.72, -r * 0.25);
+      ctx.closePath();
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.06;
+      ctx.stroke();
+    }
+    // 顔
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.78, -r * 0.35);
+    ctx.quadraticCurveTo(0, -r * 0.75, r * 0.78, -r * 0.35);
+    ctx.quadraticCurveTo(r * 0.7, r * 0.3, 0, r * 0.85);
+    ctx.quadraticCurveTo(-r * 0.7, r * 0.3, -r * 0.78, -r * 0.35);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.85, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.35, r * 0.15);
+    ctx.quadraticCurveTo(0, r * 0.05, r * 0.35, r * 0.15);
+    ctx.quadraticCurveTo(r * 0.2, r * 0.6, 0, r * 0.82);
+    ctx.quadraticCurveTo(-r * 0.2, r * 0.6, -r * 0.35, r * 0.15);
+    ctx.fillStyle = tip;
+    ctx.fill();
+    ctx.fillStyle = '#2a1a1a';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.62, r * 0.09, r * 0.06, 0, 0, TAU);
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.1, r * 0.3, { color: '#ff5fb0', gap: 1.0 });
+  },
+  kui(ctx, r, col) {
+    // 夔：一本足の牛。青黒い体に角はなく、日月のように光り、雷の声で吠える（ゴーレムの役）
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.24, r * 0.4);
+    ctx.lineTo(-r * 0.2, r * 1.0);
+    ctx.lineTo(r * 0.2, r * 1.0);
+    ctx.lineTo(r * 0.24, r * 0.4);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#000000', 0.35);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, r * 1.05, r * 0.32, r * 0.13, 0, 0, TAU);
+    ctx.fillStyle = '#16141c';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.05, r * 1.02, r * 0.74, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    // 雷の模様
+    ctx.strokeStyle = '#ffe066';
+    ctx.lineWidth = r * 0.07;
+    ctx.lineJoin = 'round';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.95, -r * 0.2);
+      ctx.lineTo(s * r * 0.7, r * 0.05);
+      ctx.lineTo(s * r * 0.85, r * 0.12);
+      ctx.lineTo(s * r * 0.6, r * 0.45);
+      ctx.stroke();
+    }
+    // 頭（角はない）
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.55, -r * 0.42, r * 0.2, r * 0.1, s * -0.5, 0, TAU);
+      ctx.fillStyle = mix(col, '#000000', 0.2);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.25, r * 0.5, r * 0.42, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.55, mix(col, '#ffffff', 0.1));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.02, r * 0.34, r * 0.2, 0, 0, TAU);
+    ctx.fillStyle = mix(col, '#ffffff', 0.35);
+    ctx.fill();
+    ctx.fillStyle = '#1a1622';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.12, -r * 0.02, r * 0.05, r * 0.07, 0, 0, TAU);
+      ctx.fill();
+    }
+    shine(ctx, r * 0.8);
+    eyes(ctx, 0, -r * 0.38, r * 0.22, { color: '#ffe066', gap: 1.1 });
+  },
+  keiten(ctx, r, col) {
+    // 刑天：首を斬られても、乳を目に、臍を口にして、盾と斧を手に舞い続ける巨人（ナイトの役）
+    // 斧（戚）
+    ctx.strokeStyle = '#7a5434';
+    ctx.lineWidth = r * 0.1;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(r * 0.82, r * 0.75);
+    ctx.lineTo(r * 1.02, -r * 1.05);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(r * 0.98, -r * 0.95);
+    ctx.quadraticCurveTo(r * 1.6, -r * 1.0, r * 1.55, -r * 0.4);
+    ctx.quadraticCurveTo(r * 1.3, -r * 0.6, r * 0.95, -r * 0.55);
+    ctx.closePath();
+    ctx.fillStyle = '#c8ccd8';
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    // 脚
+    ctx.fillStyle = mix(col, '#000000', 0.3);
+    for (const s of [-1, 1]) ctx.fillRect(s * r * 0.3 - r * 0.15, r * 0.6, r * 0.3, r * 0.45);
+    // 胴
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.9, -r * 0.55);
+    ctx.quadraticCurveTo(0, -r * 0.72, r * 0.9, -r * 0.55);
+    ctx.quadraticCurveTo(r * 0.75, r * 0.3, r * 0.55, r * 0.75);
+    ctx.lineTo(-r * 0.55, r * 0.75);
+    ctx.quadraticCurveTo(-r * 0.75, r * 0.3, -r * 0.9, -r * 0.55);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // 首の切り口
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.62, r * 0.25, r * 0.08, 0, 0, TAU);
+    ctx.fillStyle = '#5a1420';
+    ctx.fill();
+    // 腕（左は盾、右は斧）
+    ctx.strokeStyle = mix(col, '#000000', 0.15);
+    ctx.lineWidth = r * 0.24;
+    ctx.beginPath();
+    ctx.moveTo(r * 0.8, -r * 0.45);
+    ctx.lineTo(r * 0.95, r * 0.05);
+    ctx.stroke();
+    // 盾（干）
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.95, r * 0.05, r * 0.42, r * 0.62, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, '#8a6a3a');
+    ctx.fill();
+    ctx.strokeStyle = '#f0d58a';
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-r * 0.95, r * 0.05, r * 0.14, 0, TAU);
+    ctx.fillStyle = '#f0d58a';
+    ctx.fill();
+    // 乳の目と臍の口
+    oneEye(ctx, -r * 0.33, -r * 0.2, r * 0.17, '#ffb03d');
+    oneEye(ctx, r * 0.33, -r * 0.2, r * 0.17, '#ffb03d');
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.32, r * 0.24, r * 0.12, 0, 0, TAU);
+    ctx.fillStyle = '#2a0a10';
+    ctx.fill();
+    ctx.fillStyle = '#f6f0e2';
+    for (let i = -2; i <= 2; i++) ctx.fillRect(i * r * 0.08 - r * 0.025, r * 0.22, r * 0.05, r * 0.08);
+  },
+  // ================================================ 第3章：ステージ専用の雑魚
+  hippou(ctx, r, col, f) {
+    // 畢方：一本足の鶴。青い体に赤い模様、白いくちばし。現れた所では火事が起こる（火の玉を撃つ）
+    ctx.strokeStyle = '#2a2430';
+    ctx.lineWidth = r * 0.09;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(r * 0.05, r * 0.4);
+    ctx.lineTo(r * 0.05, r * 1.15);
+    ctx.lineTo(r * 0.3, r * 1.2);
+    ctx.stroke();
+    // 尾羽
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(r * 0.55, r * 0.15);
+      ctx.quadraticCurveTo(r * 1.1, r * 0.1 + i * r * 0.15, r * 1.35, r * 0.35 + i * r * 0.22);
+      ctx.strokeStyle = i === 1 ? '#ff4a3a' : mix(col, '#000000', 0.3);
+      ctx.lineWidth = r * 0.12;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(r * 0.1, r * 0.1, r * 0.72, r * 0.48, -0.15, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.75, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // 翼の赤い模様
+    ctx.strokeStyle = '#ff4a3a';
+    ctx.lineWidth = r * 0.08;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(r * 0.25, r * 0.05, r * (0.22 + i * 0.12), -0.4, 1.0);
+      ctx.stroke();
+    }
+    // 首と頭
+    ctx.strokeStyle = col;
+    ctx.lineWidth = r * 0.2;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, -r * 0.05);
+    ctx.quadraticCurveTo(-r * 0.25, -r * 0.6, -r * 0.45, -r * 0.82);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-r * 0.45, -r * 0.85, r * 0.24, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.3, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    ctx.fillStyle = '#ff4a3a';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.4, -r * 1.1, r * 0.12, r * 0.07, 0.3, 0, TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.62, -r * 0.92);
+    ctx.lineTo(-r * 1.35, -r * 0.62);
+    ctx.lineTo(-r * 0.6, -r * 0.76);
+    ctx.closePath();
+    ctx.fillStyle = '#f6f0e2';
+    ctx.fill();
+    oneEye(ctx, -r * 0.42, -r * 0.88, r * 0.1, '#ffb03d');
+    if (f === 1) glowBlob(ctx, -r * 1.25, -r * 0.65, r * 0.45, '#ff7a3d', 0.9);
+  },
+  yokko(ctx, r, col) {
+    // 翼虎：窮奇の子。翼のある虎の子（突進）
+    for (const s of [-1, 1]) featherWing(ctx, s, r * 0.4, -r * 0.3, r * 1.55, -r * 0.95, r * 0.6, r * 0.35, 4, mix(col, '#000000', 0.25), r * 0.24);
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(s * r * 0.55, -r * 0.62, r * 0.22, 0, TAU);
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.05;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(s * r * 0.55, -r * 0.62, r * 0.1, 0, TAU);
+      ctx.fillStyle = '#f6f0e2';
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.85, -r * 0.2);
+    ctx.quadraticCurveTo(-r * 0.8, -r * 0.8, 0, -r * 0.8);
+    ctx.quadraticCurveTo(r * 0.8, -r * 0.8, r * 0.85, -r * 0.2);
+    ctx.quadraticCurveTo(r * 0.95, r * 0.45, r * 0.45, r * 0.7);
+    ctx.quadraticCurveTo(0, r * 0.85, -r * 0.45, r * 0.7);
+    ctx.quadraticCurveTo(-r * 0.95, r * 0.45, -r * 0.85, -r * 0.2);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.9, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // 縞
+    ctx.strokeStyle = '#7fe8ff';
+    ctx.lineWidth = r * 0.08;
+    ctx.lineCap = 'round';
+    for (const [x0, y0, x1, y1] of [[-0.15, -0.75, -0.1, -0.5], [0.15, -0.75, 0.1, -0.5], [0, -0.78, 0, -0.55], [-0.85, -0.05, -0.55, 0.0], [0.85, -0.05, 0.55, 0.0], [-0.8, 0.2, -0.55, 0.18], [0.8, 0.2, 0.55, 0.18]]) {
+      ctx.beginPath();
+      ctx.moveTo(x0 * r, y0 * r);
+      ctx.lineTo(x1 * r, y1 * r);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.35, r * 0.42, r * 0.3, 0, 0, TAU);
+    ctx.fillStyle = '#f6f0e2';
+    ctx.fill();
+    ctx.fillStyle = '#ff8aa0';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.12, r * 0.18);
+    ctx.lineTo(r * 0.12, r * 0.18);
+    ctx.lineTo(0, r * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    fang(ctx, -r * 0.14, r * 0.45, r * 0.1, r * 0.18);
+    fang(ctx, r * 0.14, r * 0.45, r * 0.1, r * 0.18);
+    eyes(ctx, 0, -r * 0.2, r * 0.27, { color: '#ffd23d', gap: 1.15 });
+  },
+  bunyo(ctx, r, col, f) {
+    // 文鰩魚：鳥の翼を持つ魚。青い模様に白い頭と赤いくちばし。夜に海の上を飛ぶ（水の弾を撃つ）
+    for (const s of [-1, 1]) featherWing(ctx, s, r * 0.1, -r * 0.1, r * 1.15, -r * 1.2, r * 0.45, r * 0.05, 3, mix(col, '#ffffff', 0.25), r * 0.22);
+    // 尾びれ
+    ctx.beginPath();
+    ctx.moveTo(r * 0.7, r * 0.15);
+    ctx.lineTo(r * 1.4, -r * 0.25);
+    ctx.lineTo(r * 1.2, r * 0.2);
+    ctx.lineTo(r * 1.4, r * 0.6);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#000000', 0.2);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.18, r * 0.9, r * 0.45, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.9, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // 模様（うろこ）
+    ctx.strokeStyle = rgba('#ffffff', 0.35);
+    ctx.lineWidth = r * 0.05;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.arc(-r * 0.05 + i * r * 0.22, r * 0.15, r * 0.14, -1.2, 1.2);
+      ctx.stroke();
+    }
+    // 白い頭と赤いくちばし
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.62, r * 0.12, r * 0.34, r * 0.33, 0, 0, TAU);
+    ctx.fillStyle = '#eef2f8';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.9, r * 0.02);
+    ctx.lineTo(-r * 1.3, r * 0.15);
+    ctx.lineTo(-r * 0.9, r * 0.25);
+    ctx.closePath();
+    ctx.fillStyle = '#ff4a3a';
+    ctx.fill();
+    oneEye(ctx, -r * 0.62, r * 0.05, r * 0.12, '#3fd0ff');
+    if (f === 1) glowBlob(ctx, -r * 1.2, r * 0.15, r * 0.4, '#5fd8ff', 0.9);
+  },
+  tsuchi(ctx, r, col) {
+    // 息壌の土人形：ひとりでに増える土（息壌）から生まれた人形。ゆっくり迫り、とにかくしぶとい
+    ctx.beginPath();
+    const bumps = [[-0.95, 0.85], [-1.05, 0.2], [-0.85, -0.3], [-0.5, -0.45], [0.5, -0.45], [0.85, -0.3], [1.05, 0.2], [0.95, 0.85]];
+    ctx.moveTo(-0.95 * r, 0.85 * r);
+    for (let i = 1; i < bumps.length; i++) {
+      const [x0, y0] = bumps[i - 1], [x1, y1] = bumps[i];
+      ctx.quadraticCurveTo(((x0 + x1) / 2) * r * 1.12, ((y0 + y1) / 2) * r * 1.12, x1 * r, y1 * r);
+    }
+    ctx.quadraticCurveTo(0, r * 1.05, -0.95 * r, 0.85 * r);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // 頭
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.62, r * 0.45, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.5, mix(col, '#ffffff', 0.08));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    // 芽
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.14, -r * 1.12, r * 0.14, r * 0.07, s * -0.6, 0, TAU);
+      ctx.fillStyle = '#7fd06a';
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#5aa04a';
+    ctx.lineWidth = r * 0.04;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.05);
+    ctx.lineTo(0, -r * 1.2);
+    ctx.stroke();
+    // ひび割れ
+    ctx.strokeStyle = '#ffb84a';
+    ctx.lineWidth = r * 0.05;
+    ctx.lineJoin = 'round';
+    for (const pts of [[[-0.5, 0.0], [-0.3, 0.25], [-0.45, 0.5]], [[0.4, -0.1], [0.55, 0.2], [0.35, 0.45], [0.5, 0.7]], [[-0.1, 0.4], [0.05, 0.6]]]) {
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * r, y * r) : ctx.moveTo(x * r, y * r)));
+      ctx.stroke();
+    }
+    eyes(ctx, 0, -r * 0.62, r * 0.22, { color: '#ffb84a', angry: false, gap: 1.0 });
+  },
+  seicho(ctx, r, col, f) {
+    // 三青鳥：三危山に棲む三羽の青い鳥。赤い頭に黒い目（羽の弾を撃つ）
+    const birds = [[0, -0.5, 0.74], [-0.7, 0.38, 0.66], [0.7, 0.38, 0.66]];
+    for (const [bx, by, k] of birds) {
+      ctx.save();
+      ctx.translate(bx * r, by * r);
+      ctx.scale(k, k);
+      for (const s of [-1, 1]) featherWing(ctx, s, r * 0.2, -r * 0.1, r * 1.0, f === 1 ? -r * 0.75 : -r * 0.35, r * 0.25, r * 0.3, 3, mix(col, '#000000', 0.2), r * 0.22);
+      ctx.beginPath();
+      ctx.ellipse(0, r * 0.1, r * 0.42, r * 0.5, 0, 0, TAU);
+      ctx.fillStyle = bodyGrad(ctx, r * 0.5, col);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.08;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, -r * 0.42, r * 0.3, 0, TAU);
+      ctx.fillStyle = bodyGrad(ctx, r * 0.32, '#e8402a');
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.07;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.08, -r * 0.3);
+      ctx.lineTo(r * 0.08, -r * 0.3);
+      ctx.lineTo(0, -r * 0.1);
+      ctx.closePath();
+      ctx.fillStyle = '#ffcf4a';
+      ctx.fill();
+      eyes(ctx, 0, -r * 0.46, r * 0.16, { color: '#1a1020', gap: 1.0, angry: false });
+      ctx.restore();
+    }
+    if (f === 1) glowBlob(ctx, 0, 0, r * 0.7, '#5fb8ff', 0.6);
+  },
+  kanae(ctx, r, col, f) {
+    // 饕餮の鼎（三危山のギミックの絵）：饕餮の文様の青銅の鼎。f=3 はためた経験値で中身が光る
+    ctx.fillStyle = mix(col, '#000000', 0.4);
+    for (const x of [-0.6, 0, 0.6]) {
+      ctx.beginPath();
+      ctx.moveTo((x - 0.12) * r, r * 0.35);
+      ctx.lineTo((x - 0.08) * r, r * 1.1);
+      ctx.lineTo((x + 0.08) * r, r * 1.1);
+      ctx.lineTo((x + 0.12) * r, r * 0.35);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // 耳（取っ手）
+    for (const s of [-1, 1]) {
+      ctx.strokeStyle = mix(col, '#000000', 0.2);
+      ctx.lineWidth = r * 0.12;
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.35, -r * 0.4);
+      ctx.lineTo(s * r * 0.4, -r * 0.95);
+      ctx.lineTo(s * r * 0.7, -r * 0.95);
+      ctx.lineTo(s * r * 0.65, -r * 0.4);
+      ctx.stroke();
+    }
+    // 胴
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.95, -r * 0.4);
+    ctx.lineTo(r * 0.95, -r * 0.4);
+    ctx.quadraticCurveTo(r * 0.95, r * 0.6, 0, r * 0.62);
+    ctx.quadraticCurveTo(-r * 0.95, r * 0.6, -r * 0.95, -r * 0.4);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // 口（中身が光る）
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.4, r * 0.95, r * 0.2, 0, 0, TAU);
+    ctx.fillStyle = mix(col, '#000000', 0.5);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.37, r * 0.75, r * 0.13, 0, 0, TAU);
+    ctx.fillStyle = f === 3 ? '#ffd27a' : '#5a3a20';
+    ctx.fill();
+    if (f === 3) glowBlob(ctx, 0, -r * 0.4, r * 0.7, '#ffb84a', 0.8);
+    // 饕餮の文様
+    ctx.strokeStyle = '#f0d58a';
+    ctx.lineWidth = r * 0.05;
+    for (const s of [-1, 1]) spiral(ctx, s * r * 0.4, r * 0.08, r * 0.2, 1.4, s);
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.18);
+    ctx.lineTo(0, r * 0.4);
+    ctx.stroke();
+    for (const sx of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(sx * r * 0.4, r * 0.08, r * 0.07, 0, TAU);
+      ctx.fillStyle = f === 3 ? '#ffd27a' : '#1a1208';
+      ctx.fill();
+    }
+  },
+  houkyou(ctx, r, col) {
+    // 狍鴞：羊の体に人の顔、目は腋の下にあり、虎の歯と人の手を持つ。饕餮の正体ともいわれる（突進）
+    // 毛のかたまり
+    const puffs = [[0, 0.1, 0.75], [-0.6, -0.2, 0.42], [0.6, -0.2, 0.42], [-0.7, 0.35, 0.4], [0.7, 0.35, 0.4], [-0.3, 0.65, 0.38], [0.3, 0.65, 0.38], [0, -0.55, 0.45]];
+    for (const [x, y, rr] of puffs) {
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, rr * r, 0, TAU);
+      ctx.fillStyle = bodyGrad(ctx, rr * r, col);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.05;
+      ctx.stroke();
+    }
+    // 巻いた角
+    ctx.strokeStyle = '#d8c8a8';
+    ctx.lineWidth = r * 0.1;
+    for (const s of [-1, 1]) spiral(ctx, s * r * 0.62, -r * 0.55, r * 0.26, 1.2, -s);
+    // 人の顔（目はない）
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.15, r * 0.42, r * 0.5, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.5, '#e8c8b0');
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(80,40,30,0.6)';
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, r * 0.02);
+    ctx.quadraticCurveTo(0, r * 0.32, r * 0.3, r * 0.02);
+    ctx.closePath();
+    ctx.fillStyle = '#3a0a14';
+    ctx.fill();
+    for (let i = -2; i <= 2; i++) fang(ctx, i * r * 0.11, r * 0.02, r * 0.09, r * (i % 2 ? 0.1 : 0.16));
+    // 人の手と、腋の下の目
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.95, r * 0.05, r * 0.16, r * 0.12, 0, 0, TAU);
+      ctx.fillStyle = '#e8c8b0';
+      ctx.fill();
+      oneEye(ctx, s * r * 0.62, r * 0.42, r * 0.13, '#ff3d3d');
+    }
+  },
+  maiko(ctx, r, col, f) {
+    // 無面の舞子：渾沌の子。顔のない黄色い袋が、六本の足と四枚の翼で踊る（音の弾を撃つ）
+    ctx.globalAlpha = 0.75;
+    for (const s of [-1, 1]) {
+      for (const [ty, sz] of [[-0.75, 1], [0.0, 0.75]]) {
+        ctx.beginPath();
+        ctx.ellipse(s * r * 0.9, ty * r, r * 0.55 * sz, r * 0.25 * sz, s * (ty < 0 ? -0.5 : 0.3), 0, TAU);
+        ctx.fillStyle = '#ffe9b0';
+        ctx.fill();
+        ctx.strokeStyle = RIM;
+        ctx.lineWidth = r * 0.04;
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#3a2a1a';
+    ctx.lineWidth = r * 0.07;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * (0.3 + i * 0.15), r * 0.55);
+      ctx.lineTo(s * r * (0.55 + i * 0.2), r * 0.85);
+      ctx.lineTo(s * r * (0.45 + i * 0.25), r * 1.15);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.2, -r * 0.85);
+    ctx.quadraticCurveTo(-r * 0.95, -r * 0.4, -r * 0.8, r * 0.3);
+    ctx.quadraticCurveTo(-r * 0.6, r * 0.8, 0, r * 0.8);
+    ctx.quadraticCurveTo(r * 0.6, r * 0.8, r * 0.8, r * 0.3);
+    ctx.quadraticCurveTo(r * 0.95, -r * 0.4, r * 0.2, -r * 0.85);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, -r * 0.9, 0, r * 0.8);
+    g.addColorStop(0, '#fff0a0');
+    g.addColorStop(0.5, col);
+    g.addColorStop(1, '#e8402a');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // 袋の口
+    ctx.strokeStyle = '#c8402a';
+    ctx.lineWidth = r * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.25, -r * 0.85);
+    ctx.quadraticCurveTo(0, -r * 0.72, r * 0.25, -r * 0.85);
+    ctx.stroke();
+    shine(ctx, r * 0.8);
+    glowBlob(ctx, 0, r * 0.1, r * 0.6, '#ff6a2a', f === 1 ? 0.8 : 0.35);
+  },
+  nomi(ctx, r, col) {
+    // 鑿：渾沌に穴を開けた鑿。まっすぐ突っ込んでくる
+    ctx.save();
+    ctx.rotate(-0.55);
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.18, -r * 1.35);
+    ctx.lineTo(r * 0.18, -r * 1.35);
+    ctx.lineTo(r * 0.2, -r * 0.2);
+    ctx.lineTo(-r * 0.2, -r * 0.2);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, '#8a5a3a');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    ctx.fillStyle = '#c8a050';
+    ctx.fillRect(-r * 0.22, -r * 0.3, r * 0.44, r * 0.14);
+    ctx.fillRect(-r * 0.2, -r * 1.2, r * 0.4, r * 0.08);
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.14, -r * 0.16);
+    ctx.lineTo(r * 0.14, -r * 0.16);
+    ctx.lineTo(r * 0.16, r * 1.1);
+    ctx.lineTo(0, r * 1.4);
+    ctx.lineTo(-r * 0.16, r * 1.1);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(-r * 0.16, 0, r * 0.16, 0);
+    g.addColorStop(0, '#7a808e');
+    g.addColorStop(0.5, '#eef2f8');
+    g.addColorStop(1, '#8a90a0');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    oneEye(ctx, 0, -r * 0.75, r * 0.15, '#ff5a3d');
+    ctx.restore();
+  },
+  // ================================================ 第3章：中ボス（羿が退治した六つの害と、渾沌に穴を開けた二柱の帝）
+  kyuei(ctx, r, col) {
+    // 九嬰：水と火を吐く九つの首の怪物
+    const heads = [];
+    for (let i = 0; i < 9; i++) {
+      const a = -Math.PI / 2 + (i - 4) * 0.3;
+      const L = r * (i % 2 ? 1.05 : 1.3);
+      heads.push([Math.cos(a) * L, -r * 0.05 + Math.sin(a) * L, a, i % 2 ? '#3fa8ff' : '#ff6a3d']);
+    }
+    for (const [hx, hy, a, c] of heads) {
+      ctx.strokeStyle = mix(col, c, 0.25);
+      ctx.lineWidth = r * 0.16;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, r * 0.1);
+      ctx.quadraticCurveTo(hx * 0.4 + Math.cos(a + 1.2) * r * 0.2, hy * 0.5, hx, hy);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.45, r * 0.9, r * 0.65, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.9, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#ffffff', 0.18);
+    ctx.lineWidth = r * 0.03;
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.arc(-r * 0.45 + i * r * 0.22, r * 0.5, r * 0.12, 0, Math.PI);
+      ctx.stroke();
+    }
+    for (const [hx, hy, a, c] of heads) {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(a + Math.PI / 2);
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.36);
+      ctx.quadraticCurveTo(r * 0.25, -r * 0.24, r * 0.2, r * 0.1);
+      ctx.lineTo(-r * 0.2, r * 0.1);
+      ctx.quadraticCurveTo(-r * 0.25, -r * 0.24, 0, -r * 0.36);
+      ctx.fillStyle = bodyGrad(ctx, r * 0.25, mix(col, c, 0.45));
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.025;
+      ctx.stroke();
+      eyes(ctx, 0, -r * 0.06, r * 0.09, { color: c, gap: 1.1 });
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.translate(0, r * 0.45);
+    drawGem(ctx, r * 0.12, GEMS.redberyl);
+    ctx.restore();
+  },
+  taifu(ctx, r, col) {
+    // 大風：家々を吹き壊す風を起こす巨大な鳥（風伯）
+    ctx.strokeStyle = rgba('#e8f4ff', 0.55);
+    ctx.lineWidth = r * 0.04;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(0, r * 0.1, r * (0.95 + i * 0.22), Math.PI * (0.15 + i * 0.3), Math.PI * (0.75 + i * 0.3));
+      ctx.stroke();
+    }
+    for (const s of [-1, 1]) {
+      featherWing(ctx, s, r * 0.3, -r * 0.25, r * 1.62, -r * 0.95, r * 0.4, r * 0.4, 6, mix(col, '#000000', 0.25), r * 0.22);
+      featherWing(ctx, s, r * 0.3, -r * 0.2, r * 1.15, -r * 0.6, r * 0.35, r * 0.15, 4, mix(col, '#ffffff', 0.2), r * 0.16);
+    }
+    // 尾羽
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * r * 0.12, r * 0.4);
+      ctx.quadraticCurveTo(i * r * 0.5, r * 1.0, i * r * 0.35, r * 1.5);
+      ctx.quadraticCurveTo(i * r * 0.25, r * 1.05, i * r * 0.08 + r * 0.06, r * 0.4);
+      ctx.fillStyle = i ? mix(col, '#ffffff', 0.25) : '#e8f4ff';
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.1, r * 0.42, r * 0.55, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 冠羽と頭
+    ctx.strokeStyle = '#e8f4ff';
+    ctx.lineWidth = r * 0.05;
+    ctx.lineCap = 'round';
+    for (const a of [-0.5, 0, 0.5]) {
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.65);
+      ctx.quadraticCurveTo(a * r * 0.4, -r * 1.05, a * r * 0.7, -r * 1.2);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.5, r * 0.3, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.35, mix(col, '#ffffff', 0.15));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.035;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.1, -r * 0.42);
+    ctx.lineTo(r * 0.1, -r * 0.42);
+    ctx.quadraticCurveTo(r * 0.05, -r * 0.2, -r * 0.02, -r * 0.12);
+    ctx.closePath();
+    ctx.fillStyle = '#ffcf4a';
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.55, r * 0.16, { color: '#8fe8ff', gap: 1.1 });
+    ctx.save();
+    ctx.translate(0, r * 0.15);
+    drawGem(ctx, r * 0.11, GEMS.aquamarine);
+    ctx.restore();
+  },
+  fuki(ctx, r, col) {
+    // 封豨：桑林を荒らした巨大な猪
+    ctx.fillStyle = mix(col, '#000000', 0.35);
+    ctx.beginPath();
+    for (let i = 0; i <= 12; i++) {
+      const a = Math.PI + (i / 12) * Math.PI;
+      const rr = i % 2 ? r * 1.0 : r * 1.35;
+      ctx.lineTo(Math.cos(a) * rr, -r * 0.1 + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.45, -r * 0.65);
+      ctx.lineTo(s * r * 0.95, -r * 1.05);
+      ctx.lineTo(s * r * 0.85, -r * 0.45);
+      ctx.closePath();
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.03;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.95, -r * 0.3);
+    ctx.quadraticCurveTo(-r * 0.9, -r * 0.85, 0, -r * 0.85);
+    ctx.quadraticCurveTo(r * 0.9, -r * 0.85, r * 0.95, -r * 0.3);
+    ctx.quadraticCurveTo(r * 1.0, r * 0.6, 0, r * 0.95);
+    ctx.quadraticCurveTo(-r * 1.0, r * 0.6, -r * 0.95, -r * 0.3);
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 鼻
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.38, r * 0.42, r * 0.3, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.45, mix(col, '#ff9a8a', 0.35));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.03;
+    ctx.stroke();
+    ctx.fillStyle = '#1a0a0a';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.15, r * 0.38, r * 0.07, r * 0.11, 0, 0, TAU);
+      ctx.fill();
+    }
+    // 牙
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.38, r * 0.55);
+      ctx.quadraticCurveTo(s * r * 0.95, r * 0.6, s * r * 0.85, -r * 0.05);
+      ctx.quadraticCurveTo(s * r * 0.75, r * 0.4, s * r * 0.3, r * 0.42);
+      ctx.closePath();
+      ctx.fillStyle = '#f6f0e2';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(60,40,30,0.7)';
+      ctx.lineWidth = r * 0.025;
+      ctx.stroke();
+    }
+    eyes(ctx, 0, -r * 0.2, r * 0.17, { color: '#ff3d3d', gap: 1.6 });
+    ctx.save();
+    ctx.translate(0, -r * 0.62);
+    drawGem(ctx, r * 0.1, GEMS.jasper);
+    ctx.restore();
+  },
+  shuda(ctx, r, col) {
+    // 修蛇：洞庭の大蛇。象をも呑む
+    for (let i = 2; i >= 0; i--) {
+      ctx.beginPath();
+      ctx.ellipse(0, r * (0.55 - i * 0.18), r * (1.25 - i * 0.25), r * (0.48 - i * 0.08), 0, 0, TAU);
+      ctx.strokeStyle = mix(col, '#000000', 0.15 + i * 0.1);
+      ctx.lineWidth = r * 0.3;
+      ctx.stroke();
+      ctx.strokeStyle = rgba('#ffe08a', 0.35);
+      ctx.lineWidth = r * 0.06;
+      ctx.stroke();
+    }
+    // 首
+    ctx.strokeStyle = col;
+    ctx.lineWidth = r * 0.34;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.2, r * 0.25);
+    ctx.bezierCurveTo(-r * 0.7, -r * 0.2, r * 0.5, -r * 0.35, r * 0.05, -r * 0.75);
+    ctx.stroke();
+    ctx.strokeStyle = '#e8c870';
+    ctx.lineWidth = r * 0.1;
+    ctx.stroke();
+    // 頭
+    ctx.save();
+    ctx.translate(r * 0.05, -r * 0.85);
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.45);
+    ctx.quadraticCurveTo(r * 0.45, -r * 0.3, r * 0.38, r * 0.15);
+    ctx.quadraticCurveTo(0, r * 0.32, -r * 0.38, r * 0.15);
+    ctx.quadraticCurveTo(-r * 0.45, -r * 0.3, 0, -r * 0.45);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.45, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.035;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.22, r * 0.12);
+    ctx.quadraticCurveTo(0, r * 0.38, r * 0.22, r * 0.12);
+    ctx.closePath();
+    ctx.fillStyle = '#3a0a14';
+    ctx.fill();
+    fang(ctx, -r * 0.12, r * 0.13, r * 0.06, r * 0.13);
+    fang(ctx, r * 0.12, r * 0.13, r * 0.06, r * 0.13);
+    ctx.strokeStyle = '#ff4a6a';
+    ctx.lineWidth = r * 0.03;
+    ctx.beginPath();
+    ctx.moveTo(0, r * 0.22);
+    ctx.lineTo(0, r * 0.42);
+    ctx.lineTo(-r * 0.06, r * 0.5);
+    ctx.moveTo(0, r * 0.42);
+    ctx.lineTo(r * 0.06, r * 0.5);
+    ctx.stroke();
+    eyes(ctx, 0, -r * 0.12, r * 0.14, { color: '#ffd23d', gap: 1.3 });
+    ctx.translate(0, -r * 0.3);
+    drawGem(ctx, r * 0.08, GEMS.peridot);
+    ctx.restore();
+  },
+  atsuyu(ctx, r, col) {
+    // 猰貐：竜の頭を持つ人食いの獣
+    // たてがみ（炎）
+    ctx.fillStyle = mix(col, '#ff8a3d', 0.4);
+    ctx.beginPath();
+    for (let i = 0; i <= 14; i++) {
+      const a = Math.PI * 0.9 + (i / 14) * Math.PI * 1.2;
+      const rr = i % 2 ? r * 0.85 : r * 1.3;
+      ctx.lineTo(Math.cos(a) * rr, -r * 0.2 + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+    // 体と爪
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.55, r * 0.95, r * 0.6, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.95, mix(col, '#000000', 0.15));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    for (const s of [-1, 1]) for (let k = 0; k < 3; k++) fang(ctx, s * r * (0.55 + k * 0.12), r * 1.05, r * 0.08, r * 0.16);
+    // 角
+    ctx.strokeStyle = '#efe0b0';
+    ctx.lineWidth = r * 0.09;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.25, -r * 0.7);
+      ctx.quadraticCurveTo(s * r * 0.5, -r * 1.2, s * r * 0.95, -r * 1.25);
+      ctx.moveTo(s * r * 0.48, -r * 1.05);
+      ctx.lineTo(s * r * 0.62, -r * 1.35);
+      ctx.stroke();
+    }
+    // 竜の頭
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.5, -r * 0.6);
+    ctx.quadraticCurveTo(0, -r * 0.85, r * 0.5, -r * 0.6);
+    ctx.quadraticCurveTo(r * 0.62, -r * 0.1, r * 0.4, r * 0.3);
+    ctx.quadraticCurveTo(0, r * 0.45, -r * 0.4, r * 0.3);
+    ctx.quadraticCurveTo(-r * 0.62, -r * 0.1, -r * 0.5, -r * 0.6);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.65, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.035;
+    ctx.stroke();
+    // ひげ
+    ctx.strokeStyle = '#ffe08a';
+    ctx.lineWidth = r * 0.03;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.2, r * 0.15);
+      ctx.bezierCurveTo(s * r * 0.8, r * 0.1, s * r * 0.9, r * 0.5, s * r * 1.3, r * 0.35);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.18, r * 0.3, r * 0.14, 0, 0, TAU);
+    ctx.fillStyle = '#2a0a0a';
+    ctx.fill();
+    for (let i = -2; i <= 2; i++) if (i) fang(ctx, i * r * 0.1, r * 0.08, r * 0.07, r * 0.12);
+    eyes(ctx, 0, -r * 0.35, r * 0.17, { color: '#ffd23d', gap: 1.3 });
+    ctx.save();
+    ctx.translate(0, -r * 0.62);
+    drawGem(ctx, r * 0.09, GEMS.garnet);
+    ctx.restore();
+  },
+  sakushi(ctx, r, col) {
+    // 鑿齒：鑿のような長い歯を持つ巨人。盾を構える
+    // 右腕
+    ctx.strokeStyle = mix(col, '#000000', 0.1);
+    ctx.lineWidth = r * 0.26;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(r * 0.7, -r * 0.25);
+    ctx.quadraticCurveTo(r * 1.15, r * 0.15, r * 1.0, r * 0.6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(r * 1.0, r * 0.65, r * 0.17, 0, TAU);
+    ctx.fillStyle = mix(col, '#ffffff', 0.1);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.0, -r * 0.05);
+    ctx.quadraticCurveTo(-r * 0.95, -r * 0.45, -r * 0.6, -r * 0.45);
+    ctx.lineTo(r * 0.6, -r * 0.45);
+    ctx.quadraticCurveTo(r * 0.95, -r * 0.45, r * 1.0, -r * 0.05);
+    ctx.lineTo(r * 0.65, r * 1.0);
+    ctx.lineTo(-r * 0.65, r * 1.0);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 頭
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.55, r * 0.42, r * 0.4, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.45, mix(col, '#ffffff', 0.08));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.035;
+    ctx.stroke();
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.2, -r * 0.88);
+      ctx.lineTo(s * r * 0.35, -r * 1.25);
+      ctx.lineTo(s * r * 0.4, -r * 0.82);
+      ctx.closePath();
+      ctx.fillStyle = '#efe0b0';
+      ctx.fill();
+    }
+    ctx.fillStyle = mix(col, '#000000', 0.45);
+    ctx.fillRect(-r * 0.38, -r * 0.72, r * 0.76, r * 0.1);
+    eyes(ctx, 0, -r * 0.58, r * 0.14, { color: '#ff7a3d', gap: 1.2 });
+    // 鑿のような歯
+    ctx.fillStyle = '#2a0a10';
+    ctx.fillRect(-r * 0.25, -r * 0.35, r * 0.5, r * 0.1);
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.08, -r * 0.33);
+      ctx.lineTo(s * r * 0.22, -r * 0.33);
+      ctx.lineTo(s * r * 0.2, r * 0.35);
+      ctx.lineTo(s * r * 0.1, r * 0.3);
+      ctx.closePath();
+      ctx.fillStyle = '#f6f0e2';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(60,40,30,0.7)';
+      ctx.lineWidth = r * 0.02;
+      ctx.stroke();
+    }
+    // 盾
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.55, -r * 0.4);
+    ctx.lineTo(-r * 0.75, -r * 0.4);
+    ctx.lineTo(-r * 0.75, r * 0.6);
+    ctx.quadraticCurveTo(-r * 1.15, r * 1.0, -r * 1.55, r * 0.6);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, '#7a6a3a');
+    ctx.fill();
+    ctx.strokeStyle = '#f0d58a';
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    ctx.strokeStyle = '#f0d58a';
+    ctx.lineWidth = r * 0.03;
+    spiral(ctx, -r * 1.15, r * 0.1, r * 0.25, 1.5);
+    ctx.save();
+    ctx.translate(0, r * 0.4);
+    drawGem(ctx, r * 0.1, GEMS.citrine);
+    ctx.restore();
+  },
+  shuku(ctx, r, col) {
+    // 儵：南海の帝。忽とともに、渾沌に一日一つずつ穴を開けた
+    seaEmperor(ctx, r, col, 'chisel', '#ff7a3d');
+  },
+  kotsu(ctx, r, col) {
+    // 忽：北海の帝。儵とともに、渾沌に一日一つずつ穴を開けた
+    seaEmperor(ctx, r, col, 'mallet', '#5fd8ff');
+  },
+  // ================================================ 第3章：最終ボス（四凶）
+  kyuki(ctx, r, col, f) {
+    // 窮奇：北風（広莫風）から生まれた、翼のある虎。針鼠のような毛に覆われ、人を頭から食らう。f=1 は飛びかかる構え
+    const open = f === 1;
+    for (const s of [-1, 1]) {
+      featherWing(ctx, s, r * 0.35, -r * 0.35, r * 1.65, -r * 1.25, r * 0.55, r * 0.45, 6, mix(col, '#000000', 0.35), r * 0.24);
+      featherWing(ctx, s, r * 0.35, -r * 0.3, r * 1.3, -r * 0.85, r * 0.5, r * 0.2, 4, mix(col, '#7fe8ff', 0.2), r * 0.18);
+    }
+    // 針鼠の毛
+    ctx.beginPath();
+    for (let i = 0; i <= 26; i++) {
+      const a = Math.PI * 0.85 + (i / 26) * Math.PI * 1.3;
+      const rr = i % 2 ? r * 0.78 : r * 1.12;
+      ctx.lineTo(Math.cos(a) * rr, -r * 0.15 + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#cfe8ff', 0.25);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.025;
+    ctx.stroke();
+    // 胸と前足
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.62, r * 0.68, r * 0.45, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.7, col);
+    ctx.fill();
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.42, r * 0.98, r * 0.22, r * 0.14, 0, 0, TAU);
+      ctx.fillStyle = mix(col, '#ffffff', 0.15);
+      ctx.fill();
+      for (let k = -1; k <= 1; k++) fang(ctx, s * r * 0.42 + k * r * 0.09, r * 1.05, r * 0.06, r * 0.1);
+    }
+    // 耳
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(s * r * 0.5, -r * 0.62, r * 0.18, 0, TAU);
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.03;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(s * r * 0.5, -r * 0.62, r * 0.08, 0, TAU);
+      ctx.fillStyle = '#f6f0e2';
+      ctx.fill();
+    }
+    // 顔
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.72, -r * 0.2);
+    ctx.quadraticCurveTo(-r * 0.7, -r * 0.72, 0, -r * 0.72);
+    ctx.quadraticCurveTo(r * 0.7, -r * 0.72, r * 0.72, -r * 0.2);
+    ctx.quadraticCurveTo(r * 0.85, r * 0.3, r * 0.42, r * 0.5);
+    ctx.quadraticCurveTo(0, r * 0.62, -r * 0.42, r * 0.5);
+    ctx.quadraticCurveTo(-r * 0.85, r * 0.3, -r * 0.72, -r * 0.2);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.8, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.035;
+    ctx.stroke();
+    // 光る縞
+    ctx.strokeStyle = '#7fe8ff';
+    ctx.lineWidth = r * 0.055;
+    ctx.lineCap = 'round';
+    for (const [x0, y0, x1, y1] of [[-0.2, -0.68, -0.14, -0.48], [0.2, -0.68, 0.14, -0.48], [-0.72, -0.05, -0.45, -0.02], [0.72, -0.05, 0.45, -0.02], [-0.7, 0.15, -0.48, 0.14], [0.7, 0.15, 0.48, 0.14], [-0.62, 0.32, -0.45, 0.28], [0.62, 0.32, 0.45, 0.28]]) {
+      ctx.beginPath();
+      ctx.moveTo(x0 * r, y0 * r);
+      ctx.lineTo(x1 * r, y1 * r);
+      ctx.stroke();
+    }
+    glowBlob(ctx, 0, -r * 0.1, r * 0.7, '#7fe8ff', 0.18);
+    // 口
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.28, r * 0.36, r * 0.22, 0, 0, TAU);
+    ctx.fillStyle = '#f6f0e2';
+    ctx.fill();
+    if (open) {
+      ctx.beginPath();
+      ctx.ellipse(0, r * 0.36, r * 0.26, r * 0.18, 0, 0, TAU);
+      ctx.fillStyle = '#3a0a14';
+      ctx.fill();
+      fang(ctx, -r * 0.14, r * 0.2, r * 0.08, r * 0.2);
+      fang(ctx, r * 0.14, r * 0.2, r * 0.08, r * 0.2);
+      fang(ctx, -r * 0.12, r * 0.52, r * 0.07, r * 0.14, true);
+      fang(ctx, r * 0.12, r * 0.52, r * 0.07, r * 0.14, true);
+    } else {
+      fang(ctx, -r * 0.13, r * 0.32, r * 0.07, r * 0.15);
+      fang(ctx, r * 0.13, r * 0.32, r * 0.07, r * 0.15);
+    }
+    ctx.fillStyle = '#ff8aa0';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.1, r * 0.1);
+    ctx.lineTo(r * 0.1, r * 0.1);
+    ctx.lineTo(0, r * 0.2);
+    ctx.closePath();
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.18, r * (open ? 0.24 : 0.2), { color: '#ffd23d', gap: 1.25 });
+    ctx.save();
+    ctx.translate(0, -r * 0.5);
+    drawGem(ctx, r * 0.1, GEMS.sapphire);
+    ctx.restore();
+  },
+  tokotsu(ctx, r, col) {
+    // 檮杌：虎に似て毛が長く、人の顔に虎の足、猪の牙。尾は一丈八尺。またの名を傲狠・難訓（教えようのない者）
+    // 長い尾
+    ctx.strokeStyle = mix(col, '#000000', 0.2);
+    ctx.lineWidth = r * 0.16;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(r * 0.7, r * 0.7);
+    ctx.bezierCurveTo(r * 1.7, r * 0.6, r * 1.55, -r * 0.9, r * 0.6, -r * 1.25);
+    ctx.quadraticCurveTo(-r * 0.4, -r * 1.55, -r * 1.2, -r * 1.05);
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#d8f0e0', 0.35);
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(-r * 1.25, -r * 1.0, r * 0.22, r * 0.14, -0.6, 0, TAU);
+    ctx.fillStyle = mix(col, '#d8f0e0', 0.3);
+    ctx.fill();
+    // 長い毛の体
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.05, -r * 0.2);
+    ctx.quadraticCurveTo(-r * 1.0, -r * 0.95, 0, -r * 0.95);
+    ctx.quadraticCurveTo(r * 1.0, -r * 0.95, r * 1.05, -r * 0.2);
+    ctx.lineTo(r * 1.05, r * 0.7);
+    for (let i = 0; i <= 10; i++) {
+      const x = r * 1.05 - (i / 10) * r * 2.1;
+      ctx.lineTo(x + r * 0.05, r * (i % 2 ? 0.75 : 1.02));
+    }
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 1.1, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.03;
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#d8f0e0', 0.25);
+    ctx.lineWidth = r * 0.025;
+    for (let i = 0; i < 9; i++) {
+      const x = -r * 0.9 + i * r * 0.225;
+      ctx.beginPath();
+      ctx.moveTo(x, r * 0.1);
+      ctx.quadraticCurveTo(x + r * 0.05, r * 0.5, x - r * 0.02, r * 0.85);
+      ctx.stroke();
+    }
+    // 虎の足
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.55, r * 1.05, r * 0.26, r * 0.15, 0, 0, TAU);
+      ctx.fillStyle = mix(col, '#e8c070', 0.35);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.025;
+      ctx.stroke();
+      for (let k = -1; k <= 1; k++) fang(ctx, s * r * 0.55 + k * r * 0.1, r * 1.12, r * 0.06, r * 0.1);
+    }
+    // 人の顔
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.2, r * 0.48, r * 0.56, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.55, '#e0d4c0');
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(60,40,30,0.6)';
+    ctx.lineWidth = r * 0.03;
+    ctx.stroke();
+    // たてがみ（顔を囲む長い毛）
+    ctx.strokeStyle = mix(col, '#d8f0e0', 0.2);
+    ctx.lineWidth = r * 0.07;
+    for (const s of [-1, 1]) for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * (0.3 + i * 0.05), -r * 0.72 + i * r * 0.05);
+      ctx.quadraticCurveTo(s * r * (0.72 + i * 0.05), -r * 0.2, s * r * (0.48 + i * 0.08), r * (0.35 + i * 0.1));
+      ctx.stroke();
+    }
+    // 眉と口と牙
+    ctx.strokeStyle = '#2a1a14';
+    ctx.lineWidth = r * 0.06;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.05, -r * 0.32);
+      ctx.lineTo(s * r * 0.36, -r * 0.42);
+      ctx.stroke();
+    }
+    eyes(ctx, 0, -r * 0.22, r * 0.15, { color: '#ffcc66', gap: 1.35 });
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.22, r * 0.18);
+    ctx.quadraticCurveTo(0, r * 0.08, r * 0.22, r * 0.18);
+    ctx.strokeStyle = '#2a1a14';
+    ctx.lineWidth = r * 0.045;
+    ctx.stroke();
+    fang(ctx, -r * 0.2, r * 0.18, r * 0.08, r * 0.22, true);
+    fang(ctx, r * 0.2, r * 0.18, r * 0.08, r * 0.22, true);
+    ctx.save();
+    ctx.translate(0, -r * 0.62);
+    drawGem(ctx, r * 0.1, GEMS.nephrite);
+    ctx.restore();
+  },
+  totetsu(ctx, r, col, f) {
+    // 饕餮：首があって体がない。青銅の器に刻まれた貪欲の怪物。f=1 は大きく口を開けて吸い込む
+    const open = f === 1;
+    const gold = '#f0d58a';
+    // 巻いた角
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.3, -r * 0.6);
+      ctx.bezierCurveTo(s * r * 0.4, -r * 1.5, s * r * 1.55, -r * 1.45, s * r * 1.5, -r * 0.7);
+      ctx.bezierCurveTo(s * r * 1.45, -r * 0.35, s * r * 1.05, -r * 0.4, s * r * 1.05, -r * 0.7);
+      ctx.bezierCurveTo(s * r * 1.05, -r * 1.0, s * r * 0.75, -r * 1.05, s * r * 0.62, -r * 0.6);
+      ctx.closePath();
+      const hg = ctx.createLinearGradient(0, -r * 1.4, 0, -r * 0.4);
+      hg.addColorStop(0, mix(col, '#ffffff', 0.3));
+      hg.addColorStop(1, mix(col, '#000000', 0.35));
+      ctx.fillStyle = hg;
+      ctx.fill();
+      ctx.strokeStyle = gold;
+      ctx.lineWidth = r * 0.03;
+      ctx.stroke();
+    }
+    // 顔の板
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.95);
+    ctx.lineTo(r * 0.55, -r * 0.7);
+    ctx.lineTo(r * 1.15, -r * 0.45);
+    ctx.quadraticCurveTo(r * 1.3, r * 0.05, r * 1.05, r * 0.35);
+    ctx.lineTo(r * 0.7, r * 0.55);
+    ctx.quadraticCurveTo(r * 0.5, r * 1.05, 0, r * 1.05);
+    ctx.quadraticCurveTo(-r * 0.5, r * 1.05, -r * 0.7, r * 0.55);
+    ctx.lineTo(-r * 1.05, r * 0.35);
+    ctx.quadraticCurveTo(-r * 1.3, r * 0.05, -r * 1.15, -r * 0.45);
+    ctx.lineTo(-r * 0.55, -r * 0.7);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 1.2, col);
+    ctx.fill();
+    ctx.strokeStyle = gold;
+    ctx.lineWidth = r * 0.035;
+    ctx.stroke();
+    // 雲雷文
+    ctx.strokeStyle = rgba(gold, 0.75);
+    ctx.lineWidth = r * 0.025;
+    for (const s of [-1, 1]) {
+      spiral(ctx, s * r * 0.92, -r * 0.05, r * 0.18, 1.6, s);
+      spiral(ctx, s * r * 0.85, r * 0.32, r * 0.12, 1.4, -s);
+      spiral(ctx, s * r * 0.35, -r * 0.68, r * 0.12, 1.4, s);
+    }
+    // 鼻筋
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.1, -r * 0.85);
+    ctx.lineTo(r * 0.1, -r * 0.85);
+    ctx.lineTo(r * 0.16, r * 0.15);
+    ctx.quadraticCurveTo(r * 0.3, r * 0.22, r * 0.22, r * 0.3);
+    ctx.lineTo(-r * 0.22, r * 0.3);
+    ctx.quadraticCurveTo(-r * 0.3, r * 0.22, -r * 0.16, r * 0.15);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#ffffff', 0.15);
+    ctx.fill();
+    ctx.strokeStyle = gold;
+    ctx.lineWidth = r * 0.025;
+    ctx.stroke();
+    // 目（飛び出た丸い目）
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.48, -r * 0.25, r * 0.26, r * 0.2, s * 0.15, 0, TAU);
+      ctx.fillStyle = '#1a1208';
+      ctx.fill();
+      ctx.strokeStyle = gold;
+      ctx.lineWidth = r * 0.035;
+      ctx.stroke();
+      oneEye(ctx, s * r * 0.48, -r * 0.25, r * 0.15, '#ffb03d');
+    }
+    // 口
+    if (open) {
+      ctx.beginPath();
+      ctx.ellipse(0, r * 0.62, r * 0.55, r * 0.36, 0, 0, TAU);
+      ctx.fillStyle = '#12060a';
+      ctx.fill();
+      ctx.strokeStyle = gold;
+      ctx.lineWidth = r * 0.03;
+      ctx.stroke();
+      glowBlob(ctx, 0, r * 0.66, r * 0.4, '#ff6a2a', 0.55);
+      for (let i = -3; i <= 3; i++) fang(ctx, i * r * 0.14, r * 0.3, r * 0.1, r * (Math.abs(i) === 3 ? 0.3 : 0.16));
+      for (let i = -2; i <= 2; i++) fang(ctx, i * r * 0.16, r * 0.95, r * 0.1, r * 0.16, true);
+    } else {
+      ctx.strokeStyle = '#12060a';
+      ctx.lineWidth = r * 0.06;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.6, r * 0.5);
+      ctx.quadraticCurveTo(0, r * 0.7, r * 0.6, r * 0.5);
+      ctx.stroke();
+      for (let i = -3; i <= 3; i++) fang(ctx, i * r * 0.17, r * 0.52 + Math.abs(i) * r * -0.02, r * 0.1, r * (Math.abs(i) === 3 ? 0.32 : 0.14));
+    }
+    ctx.save();
+    ctx.translate(0, -r * 0.72);
+    drawGem(ctx, r * 0.12, GEMS.diamond);
+    ctx.restore();
+  },
+  konton(ctx, r, col, f) {
+    // 渾沌（帝江）：黄色い袋のような体で、丹のように赤く光る。六本の足と四枚の翼があり、顔はない。歌と舞を知っている。
+    // f は開いた穴（竅）の数（0〜6）。左目・右目・左耳・右耳・左の鼻・右の鼻の順に開き、七つ目で死ぬ
+    ctx.globalAlpha = 0.7;
+    for (const s of [-1, 1]) {
+      for (const [ty, sz, rot] of [[-0.55, 1, -0.45], [0.15, 0.78, 0.25]]) {
+        ctx.beginPath();
+        ctx.ellipse(s * r * 1.0, ty * r, r * 0.62 * sz, r * 0.28 * sz, s * rot, 0, TAU);
+        const g = ctx.createRadialGradient(s * r * 0.6, ty * r, 0, s * r * 1.0, ty * r, r * 0.65 * sz);
+        g.addColorStop(0, '#fff2c0');
+        g.addColorStop(1, '#ff8a3d');
+        ctx.fillStyle = g;
+        ctx.fill();
+        ctx.strokeStyle = RIM;
+        ctx.lineWidth = r * 0.02;
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+    // 六本の足
+    ctx.strokeStyle = '#3a1a0a';
+    ctx.lineWidth = r * 0.06;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * (0.25 + i * 0.2), r * 0.7);
+      ctx.lineTo(s * r * (0.55 + i * 0.25), r * 0.95);
+      ctx.lineTo(s * r * (0.45 + i * 0.3), r * 1.32);
+      ctx.stroke();
+    }
+    // 袋の体
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.22, -r * 0.92);
+    ctx.quadraticCurveTo(-r * 1.0, -r * 0.55, -r * 0.92, r * 0.25);
+    ctx.quadraticCurveTo(-r * 0.75, r * 0.95, 0, r * 0.95);
+    ctx.quadraticCurveTo(r * 0.75, r * 0.95, r * 0.92, r * 0.25);
+    ctx.quadraticCurveTo(r * 1.0, -r * 0.55, r * 0.22, -r * 0.92);
+    ctx.closePath();
+    const g = ctx.createRadialGradient(-r * 0.25, -r * 0.35, r * 0.05, 0, r * 0.1, r * 1.05);
+    g.addColorStop(0, '#fff6c8');
+    g.addColorStop(0.35, col);
+    g.addColorStop(0.8, '#e8502a');
+    g.addColorStop(1, '#8a1a10');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.03;
+    ctx.stroke();
+    glowBlob(ctx, 0, r * 0.35, r * 0.75, '#ff3d1a', 0.35);
+    // 袋の口（結び目）
+    ctx.strokeStyle = '#c8302a';
+    ctx.lineWidth = r * 0.08;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, -r * 0.9);
+    ctx.quadraticCurveTo(0, -r * 0.75, r * 0.3, -r * 0.9);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.12, -r * 0.9);
+    ctx.quadraticCurveTo(-r * 0.3, -r * 1.2, -r * 0.05, -r * 1.25);
+    ctx.moveTo(r * 0.12, -r * 0.9);
+    ctx.quadraticCurveTo(r * 0.3, -r * 1.2, r * 0.05, -r * 1.25);
+    ctx.stroke();
+    shine(ctx, r * 0.8);
+    // 竅（開いた穴）
+    const holes = [[-0.34, -0.2, 0.15, 0.1], [0.34, -0.2, 0.15, 0.1], [-0.82, 0.0, 0.06, 0.13], [0.82, 0.0, 0.06, 0.13], [-0.09, 0.14, 0.05, 0.06], [0.09, 0.14, 0.05, 0.06]];
+    const n = Math.max(0, Math.min(6, f | 0));
+    for (let i = 0; i < n; i++) {
+      const [x, y, w, h] = holes[i];
+      glowBlob(ctx, x * r, y * r, r * Math.max(w, h) * 2.2, '#ff5a1a', 0.7);
+      ctx.beginPath();
+      ctx.ellipse(x * r, y * r, w * r, h * r, 0, 0, TAU);
+      ctx.fillStyle = '#0a0204';
+      ctx.fill();
+      ctx.strokeStyle = '#ffb03d';
+      ctx.lineWidth = r * 0.025;
+      ctx.stroke();
+    }
+    ctx.save();
+    ctx.translate(0, -r * 1.3);
+    drawGem(ctx, r * 0.11, GEMS.topaz);
+    ctx.restore();
+  },
   crystal(ctx, r) {
     const cols = [
       { color: '#ffd6f5', light: '#ffffff', dark: '#d07bb8' },
@@ -2543,6 +4223,12 @@ const ENEMY_DRAW = {
 };
 
 const enemyCache = new Map();
+// ランの始めに敵の絵を捨てる（ステージごとに敵が違うので、遊ぶほど溜まり続けないように。
+// iOS の Safari はキャンバスのメモリの上限が小さい。渾沌は穴の数ごとに大きな絵を作る）
+export function clearEnemySprites() {
+  for (const c of enemyCache.values()) c.width = c.height = 1;
+  enemyCache.clear();
+}
 export function enemySprite(type, r, frame = 0, flash = false, colOverride) {
   const key = type + ':' + r + ':' + frame + ':' + (flash ? 1 : 0) + ':' + (colOverride || '');
   let c = enemyCache.get(key);
@@ -2628,6 +4314,10 @@ const ENEMY_COLORS = {
   yellowsign: '#e0b030', masked: '#5a2a4a', kingyellow: '#d8b030',
   hal: '#8a8aa0', migo: '#b0708a', monolith: '#05030a',
   piper: '#3a2a5a', flutist: '#4a3a6a', azathoth: '#2a1a4a',
+  moryo: '#5a2a32', kochou: '#5a4a38', chimi: '#4a6a5a', kyubi: '#b8783a', kui: '#3a5a7a', keiten: '#6a5040',
+  hippou: '#3a6ab8', yokko: '#3a4a6a', bunyo: '#3a7ab0', tsuchi: '#7a5a3a', kanae: '#4f8a72', seicho: '#3a7ad8', houkyou: '#c8c0b0', maiko: '#f0b030', nomi: '#9aa0b0',
+  kyuei: '#4a3a5a', taifu: '#4a5a7a', fuki: '#5a3a2a', shuda: '#2a4a3a', atsuyu: '#8a2a2a', sakushi: '#6a5a4a', shuku: '#a83a2a', kotsu: '#2a2a5a',
+  kyuki: '#2a3a5a', tokotsu: '#3a4a3a', totetsu: '#3f6a5a', konton: '#f0b030',
 };
 
 // ------------------------------------------------------------------ プレイヤー

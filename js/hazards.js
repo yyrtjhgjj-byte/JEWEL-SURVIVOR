@@ -1,12 +1,15 @@
 // =====================================================================
-//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門 / お茶会の席 / 黒い星の夜 / 流れ星 / 混沌の泡
+//  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門 / お茶会の席 / 黒い星の夜 / 流れ星 / 混沌の泡 /
+//  つむじ風 / 濁流 / 饕餮の鼎 / 舞の輪
 // =====================================================================
 import { TAU, rand } from './util.js';
-import { pillarSprite, softSprite, starSprite } from './render.js';
+import { pillarSprite, softSprite, starSprite, enemySprite } from './render.js';
 import { audio } from './audio.js';
 import { warn } from './enemies.js';
 
 const CHUNK = 360;
+// 濁流：横に流れる帯。RIVER_GAP ごとに幅 RIVER_W、向きは 1 本ごとに逆。自機は FLOW、雑魚は FLOW_E の速さで流される
+const RIVER_GAP = 520, RIVER_W = 120, FLOW = 80, FLOW_E = 60;
 
 // 黒い星の夜の星（ぼかし付き）。毎フレーム shadowBlur で描くと重いので、大きさごとに 1 度だけ描いて使い回す
 const starCache = new Map();
@@ -37,6 +40,23 @@ function blackStar(s) {
   c.half = size / 2;
   starCache.set(key, c);
   return c;
+}
+
+// 饕餮の鼎（ためた経験値があると中身が光る。吐いたあとの休みの間は暗い）。絵は render.js の鼎（f=2 暗い・f=3 光る）
+function drawCauldron(ctx, o, t) {
+  const lit = o.store > 0 && o.cd <= 0;
+  if (lit) {
+    const full = Math.min(1, o.store / 60);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.3 + 0.5 * full + Math.sin(t * 5 + o.seed) * 0.1;
+    const s = o.r * (1.6 + full);
+    ctx.drawImage(softSprite('#ffb84a'), o.x - s, o.y - o.r * 0.4 - s, s * 2, s * 2);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  const spr = enemySprite('kanae', o.r, lit ? 3 : 2);
+  const L = spr.logical;
+  ctx.drawImage(spr, o.x - L / 2, o.y - L / 2, L, L);
 }
 
 // 座標から決まる乱数（同じ場所には毎回同じ地形）
@@ -71,6 +91,10 @@ export class Hazards {
     this.starsT = 30;
     this.meteorT = 12; // 流れ星：通り道に経験値を落とす
     this.meteors = [];
+    this.whirls = []; // つむじ風
+    this.whirlT = 6;
+    this.whirlBoostT = 0;
+    this.dancing = false; // 舞の輪の中にいるか
   }
 
   // ---------------------------------------------------------- 地形（チャンク単位）
@@ -92,6 +116,10 @@ export class Hazards {
       if (r() < 0.4) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 26, seed: r() * TAU });
     } else if (this.kind === 'bubbles') {
       if (r() < 0.55) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 30 + r() * 10, seed: r() * TAU });
+    } else if (this.kind === 'cauldron') {
+      if (r() < 0.35) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 24, seed: r() * TAU, store: 0, cd: 0 });
+    } else if (this.kind === 'dance') {
+      if (r() < 0.32) c.push({ x: ox + 80 + r() * (CHUNK - 160), y: oy + 80 + r() * (CHUNK - 160), r: 72, seed: r() * TAU });
     } else if (this.kind === 'lava') {
       if (r() < 0.6) c.push({ x: ox + 70 + r() * (CHUNK - 140), y: oy + 70 + r() * (CHUNK - 140), r: 42 + r() * 36, seed: r() * TAU });
     }
@@ -168,9 +196,22 @@ export class Hazards {
     return this.kind === 'blackstars' && this.stars ? 1.5 : 1;
   }
 
+  // 与ダメージへの補正（舞の輪）
+  dmgMul() {
+    return this.kind === 'dance' && this.dancing ? 1.3 : 1;
+  }
+
+  // 濁流の向き（帯の中なら ±1、外なら 0）
+  flowAt(y) {
+    const k = Math.floor(y / RIVER_GAP);
+    if (Math.abs(y - (k * RIVER_GAP + RIVER_GAP / 2)) > RIVER_W / 2) return 0;
+    return k & 1 ? -1 : 1;
+  }
+
   // 移動速度への補正
   speedMul() {
     if (this.kind === 'bubbles' && this.boostT > 0) return 1.35;
+    if (this.kind === 'whirl' && this.whirlBoostT > 0) return 1.4;
     return this.kind === 'blizzard' && this.storm ? 0.72 : 1;
   }
 
@@ -289,6 +330,86 @@ export class Hazards {
           });
         }
       }
+    } else if (this.kind === 'whirl') {
+      // つむじ風：北から南へ流れながら、近くの経験値を巻き上げて中心に集める。触れると少しの間だけ速く走れる
+      if (g.timeStopT > 0) return;
+      this.whirlBoostT -= dt;
+      this.whirlT -= dt;
+      if (this.whirlT <= 0) {
+        this.whirlT = rand(9, 13);
+        const a = rand(TAU), d = rand(150, 230);
+        this.whirls.push({ x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d - 60, vx: rand(-25, 25), vy: rand(30, 50), t: 0, T: 14, r: 44 });
+      }
+      for (const w of this.whirls) {
+        w.t += dt;
+        w.x += w.vx * dt;
+        w.y += w.vy * dt;
+        const R = w.r * 2.8;
+        for (const pk of g.pickups) {
+          if (pk.kind !== 'xp' || pk.vac) continue;
+          const dx = w.x - pk.x, dy = w.y - pk.y, d2 = dx * dx + dy * dy;
+          if (d2 > R * R) continue;
+          const d = Math.sqrt(d2) || 1;
+          if (d > 10) { const sp = Math.min(150 * dt, d); pk.x += (dx / d) * sp; pk.y += (dy / d) * sp; } else { pk.x += w.vx * dt; pk.y += w.vy * dt; }
+        }
+        if (w.t < w.T - 0.8 && (p.x - w.x) ** 2 + (p.y - w.y) ** 2 < (w.r + p.r) ** 2) {
+          if (this.whirlBoostT <= 0) { g.fx.ring(p.x, p.y, 6, 50, 0.35, '#bfe8ff', 5); audio.whoosh(); }
+          this.whirlBoostT = 2.2;
+        }
+        if (Math.random() < 0.5 && g.inView(w, 40)) g.fx.add(w.x + rand(-w.r, w.r), w.y + rand(-w.r, w.r) * 0.5, rand(-40, 40), -rand(40, 90), 0.6, 4, '#dff2ff', 'dot');
+      }
+      this.whirls = this.whirls.filter((w) => w.t < w.T);
+      if (this.whirlBoostT > 0 && p.moving && Math.random() < 0.4) g.fx.add(p.x + rand(-8, 8), p.y + rand(-8, 8), -p.dirX * 60, -p.dirY * 60, 0.5, 5, '#bfe8ff', 'dot');
+    } else if (this.kind === 'flood') {
+      // 濁流：帯の中では自機も雑魚も流される（ボスは流されない。時間停止中は雑魚も止まったまま）
+      const f = this.flowAt(p.y);
+      if (f) {
+        p.x += f * FLOW * dt;
+        if (Math.random() < 0.3) g.fx.add(p.x + rand(-10, 10), p.y + rand(-6, 6), f * 60, rand(-20, 20), 0.5, 5, '#bff5e6', 'dot');
+      }
+      if (!(g.timeStopT > 0)) {
+        for (const e of g.enemies) {
+          if (!e.alive || e.boss || e.prop || e.segment) continue;
+          const fe = this.flowAt(e.y);
+          if (fe) e.x += fe * FLOW_E * dt;
+        }
+      }
+    } else if (this.kind === 'cauldron') {
+      // 饕餮の鼎：近くの経験値を吸い込んでためる。触れると 1.5 倍にして吐き出し、しばらく休む
+      const list = this.around(p.x, p.y, this._c || (this._c = []));
+      let ate = false;
+      for (const o of list) {
+        if (o.cd > 0) { o.cd -= dt; continue; }
+        for (const pk of g.pickups) {
+          if (pk.kind !== 'xp' || pk.vac) continue;
+          const dx = o.x - pk.x, dy = o.y - pk.y, d2 = dx * dx + dy * dy;
+          if (d2 > 130 * 130) continue;
+          const d = Math.sqrt(d2) || 1;
+          if (d < 16) { o.store += pk.value; pk.eaten = true; ate = true; continue; }
+          pk.x += (dx / d) * 110 * dt;
+          pk.y += (dy / d) * 110 * dt;
+        }
+        if (o.store > 0 && (p.x - o.x) ** 2 + (p.y - o.y) ** 2 < (o.r + p.r) ** 2) {
+          const v = o.store * 1.5;
+          o.store = 0;
+          o.cd = 6;
+          const n = Math.min(16, Math.max(3, Math.ceil(v / 15)));
+          for (let i = 0; i < n; i++) g.dropPickup('xp', o.x, o.y, Math.max(1, Math.round(v / n)));
+          g.fx.burst(o.x, o.y - 10, '#ffd23d', 18, 240, 0.6, 10);
+          g.fx.ring(o.x, o.y, 6, 50, 0.35, '#e8c070', 5);
+          audio.chestOpen();
+        }
+      }
+      if (ate) g.pickups = g.pickups.filter((pk) => !pk.eaten);
+    } else if (this.kind === 'dance') {
+      // 舞の輪：中にいる間は与ダメージ ×1.3（dmgMul）
+      this.dancing = false;
+      for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
+        if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 > o.r * o.r) continue;
+        this.dancing = true;
+        break;
+      }
+      if (this.dancing && Math.random() < 0.25) g.fx.add(p.x + rand(-12, 12), p.y + rand(-6, 6), 0, -50, 0.7, 5, '#ffd27a', 'star');
     } else if (this.kind === 'blizzard') {
       this.stormT -= dt;
       if (this.stormT <= 0) {
@@ -336,6 +457,66 @@ export class Hazards {
   // ---------------------------------------------------------- 描画（地面）
   drawGround(ctx) {
     const g = this.g, p = g.player;
+    if (this.kind === 'flood') {
+      const x0 = p.x - g.viewW / 2 - 40, W = g.viewW + 80;
+      const k0 = Math.floor((p.y - g.viewH / 2 - RIVER_W) / RIVER_GAP), k1 = Math.floor((p.y + g.viewH / 2 + RIVER_W) / RIVER_GAP);
+      for (let k = k0; k <= k1; k++) {
+        const cy = k * RIVER_GAP + RIVER_GAP / 2, top = cy - RIVER_W / 2;
+        const dir = k & 1 ? -1 : 1;
+        const grd = ctx.createLinearGradient(0, top, 0, top + RIVER_W);
+        grd.addColorStop(0, 'rgba(40,110,90,0.45)');
+        grd.addColorStop(0.5, 'rgba(30,80,70,0.3)');
+        grd.addColorStop(1, 'rgba(40,110,90,0.45)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(x0, top, W, RIVER_W);
+        ctx.strokeStyle = 'rgba(160,240,215,0.45)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x0, top);
+        ctx.lineTo(x0 + W, top);
+        ctx.moveTo(x0, top + RIVER_W);
+        ctx.lineTo(x0 + W, top + RIVER_W);
+        ctx.stroke();
+        // 流れの筋
+        ctx.strokeStyle = 'rgba(200,255,240,0.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < 18; i++) {
+          const ly = top + 14 + ((i * 37) % (RIVER_W - 28));
+          const span = 220 + (i % 5) * 40;
+          const off = (((i * 131 + this.t * dir * FLOW * 1.4) % span) + span) % span;
+          for (let x = Math.floor(x0 / span) * span + off; x < x0 + W; x += span) {
+            ctx.moveTo(x, ly);
+            ctx.lineTo(x + dir * 26, ly);
+          }
+        }
+        ctx.stroke();
+      }
+    }
+    if (this.kind === 'dance') {
+      const beat = 1 - ((this.t * 140) / 60) % 1;
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
+        const inside = this.dancing && (p.x - o.x) ** 2 + (p.y - o.y) ** 2 <= o.r * o.r;
+        ctx.globalAlpha = inside ? 0.45 : 0.22;
+        ctx.drawImage(softSprite('#ffa040'), o.x - o.r, o.y - o.r, o.r * 2, o.r * 2);
+        ctx.globalAlpha = 0.35 + 0.4 * beat;
+        ctx.strokeStyle = '#ffc070';
+        ctx.lineWidth = 2 + beat * 2;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r * (0.96 + 0.04 * beat), 0, TAU);
+        ctx.stroke();
+        // 回る足あとの印
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = '#ffe0a0';
+        for (let i = 0; i < 8; i++) {
+          const a = this.t * 0.9 + o.seed + (i / 8) * TAU;
+          ctx.beginPath();
+          ctx.arc(o.x + Math.cos(a) * o.r * 0.78, o.y + Math.sin(a) * o.r * 0.78, 3, 0, TAU);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
     if (this.kind === 'teatime') {
       for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
         // 回復の範囲（うすい円）
@@ -473,6 +654,32 @@ export class Hazards {
 
   // 柱など（敵と同じ高さ）
   drawObjects(ctx) {
+    if (this.kind === 'whirl') {
+      const g = this.g;
+      ctx.save();
+      ctx.lineCap = 'round';
+      for (const w of this.whirls) {
+        if (!g.inView(w, w.r * 2)) continue;
+        const k = Math.min(1, w.t / 0.6) * Math.min(1, (w.T - w.t) / 0.8);
+        for (let i = 0; i < 4; i++) {
+          const rr = w.r * (1 - i * 0.2);
+          const a = this.t * (4 + i * 1.5) + i * 1.3;
+          ctx.globalAlpha = (0.6 - i * 0.08) * k;
+          ctx.strokeStyle = i % 2 ? '#bfe8ff' : '#ffffff';
+          ctx.lineWidth = 3 - i * 0.4;
+          ctx.beginPath();
+          ctx.ellipse(w.x, w.y - i * 9, rr, rr * 0.42, 0, a, a + 3.8);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+      return;
+    }
+    if (this.kind === 'cauldron') {
+      const p = this.g.player;
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) drawCauldron(ctx, o, this.t);
+      return;
+    }
     if (this.kind === 'chaos') {
       const p = this.g.player;
       for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
