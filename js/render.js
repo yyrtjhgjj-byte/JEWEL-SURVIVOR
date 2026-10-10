@@ -2,7 +2,7 @@
 //  絵：ぜんぶ コードで かく（画像ファイル不要）
 // =====================================================================
 import { GEMS } from './data.js';
-import { TAU, mix, rgba, hexToRgb } from './util.js';
+import { TAU, mix, rgba } from './util.js';
 import { drawArtifact } from './artifact-art.js';
 import { drawShopIcon } from './shop-art.js';
 import { drawCutGem } from './gem-art.js';
@@ -2879,5 +2879,3 @@ export function moonSprite(size, full) {
   return c;
 }
 
-export function hexA(hex, a) { return rgba(hex, a); }
-export { hexToRgb };

@@ -3,7 +3,7 @@
 // =====================================================================
 import { WEAPONS, AREA_CAP } from './data.js';
 import { TAU, rand, randi, chance, ease } from './util.js';
-import { gemSprite, starSprite, softSprite, itemSprite, moonSprite, sparkle } from './render.js';
+import { gemSprite, starSprite, softSprite, itemSprite, moonSprite } from './render.js';
 import { audio } from './audio.js';
 
 export function weaponStats(g, w) {
@@ -84,7 +84,7 @@ export const LOGIC = {
         g.addProj({
           x: p.x, y: p.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
           r: 7 * s.area * (evo ? 1.3 : 1), dmg: s.dmg * pinch * (evo ? 1.5 : 1), pierce: s.pierce + (evo ? 2 : 0),
-          life: 1.4 * s.life / 1.4, wid: 'ruby', sprite: gemSprite('ruby', evo ? 18 : 14), rotToVel: true,
+          life: s.life, wid: 'ruby', sprite: gemSprite('ruby', evo ? 18 : 14), rotToVel: true,
           trail: '#ff2d55', explode: evo ? 48 * s.area : 0, knock: 90,
         });
         audio.shoot();
@@ -713,9 +713,11 @@ export const LOGIC = {
         const R = 105 * s.area;
         const Q2 = this._q || (this._q = []);
         const x = p.x + Math.cos(w.ang) * R, y = p.y + Math.sin(w.ang) * R;
-        g.grid.query(x, y, 50, Q2);
+        const hitR = 22 * s.area;
+        // 検索の半径は当たり判定（満月の半径＋敵の半径）に合わせる（範囲が広いと、固定の半径では端の敵を取りこぼしていた）
+        g.grid.query(x, y, hitR + 30, Q2);
         for (const e of Q2) {
-          if (!e.alive || (e.x - x) ** 2 + (e.y - y) ** 2 > (22 * s.area + e.r) ** 2) continue;
+          if (!e.alive || (e.x - x) ** 2 + (e.y - y) ** 2 > (hitR + e.r) ** 2) continue;
           if ((e.hitT.moon || 0) > g.time) continue;
           e.hitT.moon = g.time + 0.4;
           g.damage(e, s.dmg, { wid: 'moonstone', kb: 60 });
@@ -761,7 +763,6 @@ export const LOGIC = {
 const ALEX_GREEN = { color: '#1fb58a', light: '#b8ffe0', dark: '#0a5a3a', cut: 'oval' };
 const ALEX_RED = { color: '#e0306a', light: '#ffb3c8', dark: '#5a1030', cut: 'oval' };
 
-// 地面エリア（エメラルド・ほのおの あと）の え
 // ------------------------------------------------------------- オブシディアン
 // 間近の敵を扇状に薙ぎ払う（進化後は全周＋斬った跡に闇の裂け目）
 const OBS_ARC = 1.25; // 扇の半分の角度
@@ -833,6 +834,7 @@ LOGIC.obsidian = {
   },
 };
 
+// 地面エリア（エメラルドのクローバー・炎の跡・闇の裂け目）の絵
 export function drawArea(ctx, a, time) {
   const t = a.life / a.max;
   const fadeIn = Math.min(1, (a.max - a.life) / 0.15);
@@ -898,4 +900,3 @@ function drawClover(ctx, x, y, s, four, t) {
   ctx.restore();
 }
 
-export { sparkle };

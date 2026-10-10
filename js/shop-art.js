@@ -819,8 +819,6 @@ Object.assign(ICON, {
   },
 });
 
-export const SHOP_ICON_IDS = Object.keys(ICON);
-
 export function drawShopIcon(ctx, id, size) {
   const f = ICON[id];
   if (!f) return false;

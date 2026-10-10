@@ -321,7 +321,6 @@ export function showCharSelect() {
     $('#go', node).disabled = !unlocked;
   };
   CHAR_IDS.forEach((id) => {
-    const c = CHARACTERS[id];
     const cell = el(`<button class="char-cell ${save.unlocked[id] ? '' : 'locked'} ${id === sel ? 'sel' : ''}" style="--c:${gemColor(id)}">
       <img src="${gemIcon(id, 96)}">
       ${save.awaken[id] ? `<span class="aw">★${save.awaken[id]}</span>` : ''}</button>`);
@@ -814,7 +813,7 @@ export function showZukan(tab = 'gems', ch = 1) {
       zl.appendChild(el(`<div class="zitem ${open ? '' : 'unk'}" style="border-left:3px solid ${st.pal.accent}">
         <div><div class="zname">STAGE ${st.no}　${open ? st.name : '???'}${open ? `<span class="en">${st.en}</span>` : ''}</div>
           <div class="ztext">${open ? st.desc : '未解放'}</div>
-          <div class="ztext muted">ギミック：${open ? st.hazardText : '???'} ／ ボス：${bosses.join(' → ')}</div>
+          <div class="ztext muted">ギミック：${open ? st.hazardText : '???'} ／ ボス：${open ? bosses.join(' → ') : '???'}</div>
           <div class="zevo">${rec.cleared ? `クリア済み ・ 最高HEAT ${rec.heat || 0} ・ 最長 ${fmtTime(rec.best || 0)}` : rec.best ? `最長 ${fmtTime(rec.best)}` : '未挑戦'}</div>
         </div></div>`));
     }

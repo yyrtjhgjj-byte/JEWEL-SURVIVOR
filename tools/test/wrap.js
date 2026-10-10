@@ -95,7 +95,7 @@ async function fullSave(p) {
     sv.rough = { shard: 9, rough: 9, large: 9, mystic: 9 };
     sv.dust = 999;
     sv.jewels = Object.fromEntries(Object.keys(D.GEMS).map((id) => [id, { n: 30, best: 4, ct: 5.2 }]));
-    sv.login = { last: new Date().toISOString().slice(0, 10), streak: 1 };
+    sv.login = { last: ((d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`)(new Date()), days: 1 }; // ui.js の todayStr と同じ形式
     localStorage.setItem('jewel-survivor-save-v1', JSON.stringify(sv));
   });
 }

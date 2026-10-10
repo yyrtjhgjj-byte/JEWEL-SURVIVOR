@@ -8,6 +8,37 @@ import { warn } from './enemies.js';
 
 const CHUNK = 360;
 
+// 黒い星の夜の星（ぼかし付き）。毎フレーム shadowBlur で描くと重いので、大きさごとに 1 度だけ描いて使い回す
+const starCache = new Map();
+function blackStar(s) {
+  const key = Math.round(s);
+  let c = starCache.get(key);
+  if (c) return c;
+  const pad = key * 1.6;
+  const size = Math.ceil((key + pad) * 2);
+  c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.translate(size / 2, size / 2);
+  ctx.shadowColor = '#c78bff';
+  ctx.shadowBlur = key * 1.2;
+  ctx.fillStyle = '#07030c';
+  ctx.beginPath();
+  for (let j = 0; j < 10; j++) {
+    const a = (j / 10) * TAU - Math.PI / 2, rr = j % 2 ? key * 0.42 : key;
+    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(199,139,255,0.8)';
+  ctx.lineWidth = Math.max(1, key * 0.08);
+  ctx.stroke();
+  c.half = size / 2;
+  starCache.set(key, c);
+  return c;
+}
+
 // 座標から決まる乱数（同じ場所には毎回同じ地形）
 function hashRng(cx, cy, salt) {
   let h = (cx * 374761393 + cy * 668265263 + salt * 2246822519) | 0;
@@ -555,24 +586,15 @@ export class Hazards {
       ctx.fillStyle = `rgba(20,8,30,${0.18 * k})`;
       ctx.fillRect(0, 0, CW, CH);
       const S = Math.min(CW, CH) * 0.035;
+      ctx.globalAlpha = k;
       for (let i = 0; i < 7; i++) {
         const x = CW * (0.1 + i * 0.13) + Math.sin(i * 7.3) * CW * 0.03, y = CH * (0.06 + (i % 3) * 0.035);
-        const s = S * (0.7 + (i % 3) * 0.25) * (1 + Math.sin(this.t * 2 + i) * 0.08);
-        ctx.globalAlpha = k;
-        ctx.shadowColor = '#c78bff';
-        ctx.shadowBlur = s * 1.2;
-        ctx.fillStyle = '#07030c';
-        ctx.beginPath();
-        for (let j = 0; j < 10; j++) {
-          const a = (j / 10) * TAU - Math.PI / 2, rr = j % 2 ? s * 0.42 : s;
-          ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(199,139,255,0.8)';
-        ctx.lineWidth = Math.max(1, s * 0.08);
-        ctx.stroke();
+        const base = S * (0.7 + (i % 3) * 0.25);
+        const s = base * (1 + Math.sin(this.t * 2 + i) * 0.08);
+        // 星の絵は基本の大きさで作り、脈打つ分は拡大縮小で表す
+        const spr = blackStar(base);
+        const h = spr.half * (s / Math.round(base));
+        ctx.drawImage(spr, x - h, y - h, h * 2, h * 2);
       }
       ctx.restore();
       return;
