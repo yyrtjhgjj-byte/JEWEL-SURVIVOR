@@ -29,7 +29,7 @@ const DEBUG = {
   stage: params.get('stage'),
   heat: +(params.get('heat') || 0),
   norender: params.has('norender'),
-  // BOSS モード：rush=武器,武器/チャーム,チャーム（空なら、そのジュエルの武器だけ）
+  // BOSS モード：rush=武器,武器/チャーム,チャーム/開始位置（武器が空なら、そのジュエルの武器だけ。開始位置は倒した数）
   rush: params.has('rush') ? params.get('rush') : null,
 };
 
@@ -183,6 +183,8 @@ const hooks = {
   levelUp: (g, done) => UI.levelUp(g, done),
   chest: (g, big, done) => UI.chest(g, big, done),
   artifact: (g, done) => UI.artifactChoice(g, done),
+  rushWarp: (g, m, done) => UI.rushWarp(g, m, done),
+  rushCount: (n) => UI.rushCount(n),
   checkAchievements: (r, live) => checkAchievements(r, live),
   gameOver: (res, cleared) => finishRun(res, cleared),
 };
@@ -206,6 +208,7 @@ function startGame(charId, opt = {}) {
       done();
     },
     chest: (g, big, done) => { g.rollChest(big); done(); },
+    rushWarp: (g, m, done) => done(),
     artifact: (g, done) => { const c = g.artifactChoices(); if (c.length) g.addArtifact(c[0]); done(); },
   } : {};
   clearEnemySprites();
@@ -218,6 +221,7 @@ function startGame(charId, opt = {}) {
   window.__game = game; // デバッグ用
   UI.hudShow(true);
   if (opt.resume) game.restore(opt.resume); // 中断したランの続き（HUD の準備のあとに）
+  else if (opt.rush && opt.rush.from) game.rushWarp(opt.rush.from); // BOSS モードを最高記録の続きから
   moveHint = document.getElementById('movehint');
   moveHint.classList.remove('hidden', 'gone');
   audio.tempoMul = 1;
@@ -225,7 +229,8 @@ function startGame(charId, opt = {}) {
   const m = Math.floor(stage.time / 60);
   if (opt.resume) UI.banner('RESUME', 'start', opt.rush ? `BOSS ・ STAGE ${stage.no}` : stage.name);
   else if (opt.rush) {
-    UI.banner('BOSS RUSH', 'start', `STAGE ${stage.no} のボス ${game.rushOrder.length} 体 ・ 1 周ごとに ×2`);
+    // 最高記録の続きから始めるときは、まとめの画面（rushWarp）が開くのでバナーは出さない
+    if (!game.rushFrom) UI.banner('BOSS RUSH', 'start', `STAGE ${stage.no} のボス ${game.rushOrder.length} 体 ・ 1 周ごとに ×2`);
     save.stats.runs++;
   } else {
     UI.banner(stage.en, 'start', `${m}:00 — ${ENEMIES[stage.finalBoss].name}を撃破せよ`);
@@ -467,7 +472,7 @@ window.__save = save; // デバッグ用
 if (DEBUG.autostart) {
   if (save.pendingRun) { delete save.pendingRun; persist(); }
   const rs = DEBUG.rush !== null ? DEBUG.rush.split('/') : null;
-  const rush = rs ? { w: (rs[0] || '').split(',').filter(Boolean), p: (rs[1] || '').split(',').filter(Boolean) } : null;
+  const rush = rs ? { w: (rs[0] || '').split(',').filter(Boolean), p: (rs[1] || '').split(',').filter(Boolean), from: +(rs[2] || 0) } : null;
   startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), artifact: params.get('art'), stageId: DEBUG.stage, heat: DEBUG.heat, rush });
 } else {
   UI.showTitle();

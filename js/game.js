@@ -89,6 +89,8 @@ const BOSS_HP = 2.7;
 const BOSS_TRASH = 0.5;
 const BREAK_NEED = 0.42;
 const BREAK_GROW = 1.5;
+// ブレイクゲージのたまりやすさ（どの距離でも同じ倍率。ブレイクしやすすぎたため 0.85 倍に。ユーザーの指定）
+const BREAK_EASE = 0.85;
 // ブレイクでダウンしている秒数
 export const BREAK_TIME = 3;
 
@@ -130,6 +132,8 @@ export class Game {
     // BOSS モード：雑魚は出さず、ステージのボス（中ボス・最終ボス）を順に出し続ける。1 周するたびに 2 倍。ギミックはなし
     this.rush = opts.rush || null;
     this.rushKills = 0;
+    // 最高記録の続きから始めたときの開始位置（それまでに倒した数。rushWarp）
+    this.rushFrom = 0;
     this.rushNextT = 3;
     this.rushOrder = this.stage.events.filter((e) => e.type === 'boss').map((e) => ({ enemy: e.enemy, mul: e.mul || 1, t: e.t }));
     this.hazards = new Hazards(this, this.rush ? { ...this.stage, hazard: null } : this.stage);
@@ -598,9 +602,17 @@ export class Game {
 
   // BOSS モード：ボスがいなくなってから RUSH_GAP 秒後に、次のボスを出す
   rushDirector(dt) {
-    if (this.enemies.some((e) => e.alive && e.boss)) return;
+    // 宝箱などの画面が控えている間は、次のボスまでの時間を進めない
+    if (this.modalQueue.length || this.enemies.some((e) => e.alive && e.boss)) return;
     this.rushNextT -= dt;
+    // 次のボスまでの 3・2・1 を画面の中央に出す
+    const cnt = Math.ceil(this.rushNextT);
+    if (cnt >= 1 && cnt <= 3 && cnt !== this.rushCountN) {
+      this.rushCountN = cnt;
+      if (this.hooks.rushCount) this.hooks.rushCount(cnt);
+    }
     if (this.rushNextT > 0) return;
+    this.rushCountN = 0;
     this.rushNextT = RUSH_GAP;
     const n = this.rushOrder.length;
     const lap = Math.floor(this.rushKills / n);
@@ -618,7 +630,24 @@ export class Game {
     this.fx.shake(12);
     save.seen.enemies[ev.enemy] = true;
   }
-  // BOSS モードの強さの倍率（1 周するたびに 2 倍。HP と攻撃力に掛ける）
+  // BOSS モードを最高記録の続きから始める：倒した数を from にして、その数だけ BOSS TREASURE をまとめて開ける
+  // （中のコインはなし）。開けた結果は、まとめの画面（rushWarp）で 1 回だけ見せる
+  rushWarp(from) {
+    if (!this.rush || !(from > 0)) return;
+    const coins = this.coins;
+    const got = { evo: 0, up: 0, lb: 0 };
+    for (let i = 0; i < from; i++) {
+      for (const c of this.rollChest(true).items) {
+        if (c.type === 'evo') got.evo++;
+        else if (c.type === 'lb' || c.type === 'plb') got.lb++;
+        else if (c.type === 'wup' || c.type === 'pup') got.up++;
+      }
+    }
+    this.coins = coins;
+    this.rushKills = this.rushFrom = from;
+    this.player.hp = this.stats.maxHp;
+    this.modalQueue.push({ type: 'rushWarp', n: from, ...got });
+  }
   // BOSS モードの原石：盤面には落とさず、リザルトでまとめて渡す（roughGot に足す）。
   // 1 体ごとにステージと同じ抽選、1 周するたびにおまけで大原石か秘石。周が進むほど上の段階になりやすい
   rushRough(e, lapBonus) {
@@ -627,6 +656,7 @@ export class Game {
     const t = lapBonus ? bossDrop(true, h) : bossDrop(e.type === this.stage.finalBoss, h);
     this.roughGot[upgradeTier(t, this.stage.no, h, this.stats.roughUp)]++;
   }
+  // BOSS モードの強さの倍率（1 周するたびに 2 倍。HP と攻撃力に掛ける）
   rushMul() {
     return this.rush ? 2 ** Math.floor(this.rushKills / this.rushOrder.length) : 1;
   }
@@ -1226,13 +1256,16 @@ export class Game {
     if (crit) dmg *= 2.5 * (1 + (this.stats.critDmg || 0)); // クリティカルは 2.5 倍（critDmg で上乗せ）
     dmg *= rand(0.92, 1.08);
     dmg = Math.max(1, Math.round(dmg));
-    const dealt = Math.min(dmg, e.hp);
+    const hp0 = e.hp;
+    let dealt = Math.min(dmg, hp0);
     e.hp -= dmg;
     if (o.wid && !o.dot && !e.boss && !e.segment && e.ai !== 'thief' && this.artSet.has('loupe') && chance(0.08)) e.frozenT = Math.max(e.frozenT, 1.5); // 秘宝「氷晶のルーペ」
     // 形態のあるボスは、形態変化の処理（AI 側）を飛ばして次の形態へ進んだり倒れたりしないようにする
     if (e.ai === 'emperor' && e.phaseNow && e.phaseNow < 3) {
       const floor = e.maxHp * (e.phaseNow === 1 ? 0.66 : 0.33) - 1;
       if (e.hp < floor) {
+        // 止めた分は与えたダメージに数えない（ブレイクゲージや記録に入らないように）
+        dealt = Math.max(0, hp0 - floor);
         e.hp = floor;
         if (e.breakT > 0) e.breakT = 0; // ダウン中に境目まで削ったら、すぐ起き上がって形態変化する（被ダメージ 2 倍を無駄にしない）
       }
@@ -1286,7 +1319,7 @@ export class Game {
     const p = this.player;
     const d = Math.max(0, Math.hypot(e.x - p.x, e.y - p.y) - e.r);
     const f = d <= 70 ? 2 : d >= 320 ? 0.4 : 2 - ((d - 70) / 250) * 1.6;
-    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * BREAK_NEED * (e.breakNeed || 1))) * f * earthBreak(this) * (1 + this.stats.breakUp);
+    e.breakG = (e.breakG || 0) + (dealt / (e.maxHp * BREAK_NEED * (e.breakNeed || 1))) * f * BREAK_EASE * earthBreak(this) * (1 + this.stats.breakUp);
     e.breakNear = f;
     if (e.breakG >= 1) this.bossBreak(e);
   }
@@ -1923,6 +1956,9 @@ export class Game {
       this.hooks.artifact(this, done);
     } else if (m.type === 'chest') {
       this.hooks.chest(this, m.big, done);
+    } else if (m.type === 'rushWarp') {
+      if (this.hooks.rushWarp) this.hooks.rushWarp(this, m, done);
+      else done();
     }
   }
 
@@ -1957,7 +1993,8 @@ export class Game {
   snapshot() {
     const p = this.player;
     // 開いている画面は、中身をまだ反映していないときだけ残す（宝箱の結果画面や進化演出の途中で落ちても二重にもらえないように）
-    const modals = [...(this.state === 'modal' && this.curModal && !this.curModal.applied ? [this.curModal] : []), ...this.modalQueue];
+    // （BOSS モードの開始時のまとめの画面は、中身を反映し終えているので残さない）
+    const modals = [...(this.state === 'modal' && this.curModal && !this.curModal.applied ? [this.curModal] : []), ...this.modalQueue].filter((m) => m.type !== 'rushWarp');
     return {
       v: 1, time: this.time, level: this.level, xp: this.xp, kills: this.kills, coins: this.coins, totalDmg: this.totalDmg,
       dmgBy: { ...this.dmgBy }, killsByType: { ...this.killsByType }, maxCombo: this.maxCombo, combo: this.comboT > 0 ? this.combo : 0,
@@ -1968,13 +2005,13 @@ export class Game {
       roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
       hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
-      endlessBoss: this.endlessBoss || null, cleared: this.cleared, hurt: this.hurt, rushKills: this.rushKills, rushNextT: this.rushNextT,
+      endlessBoss: this.endlessBoss || null, cleared: this.cleared, hurt: this.hurt, rushKills: this.rushKills, rushNextT: this.rushNextT, rushFrom: this.rushFrom,
       bossList: this.enemies.filter((e) => e.alive && e.boss && e.ai !== 'piper').map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1, woke: !!e.azWoke })),
     };
   }
   restore(s) {
     const S = ['level', 'xp', 'kills', 'coins', 'totalDmg', 'maxCombo', 'feverGauge', 'feverNeed', 'fevers', 'evolvedCount', 'bosses', 'miracles', 'revBuff', 'rerolls', 'skips', 'banishes',
-      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext', 'endlessBoss', 'hurt', 'rushKills', 'rushNextT'];
+      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext', 'endlessBoss', 'hurt', 'rushKills', 'rushNextT', 'rushFrom'];
     this.weapons = [];
     for (const x of s.weapons) {
       const w = this.addWeapon(x.id);
@@ -2038,7 +2075,7 @@ export class Game {
       charId: this.charId, killsByType: { ...this.killsByType }, endless: this.endless,
       stageId: this.stage.id, heat: this.heat, charmed: this.charmed || 0, dmgTaken: this.dmgTaken, hurt: Math.round(this.hurt),
       // BOSS モード：倒したボスの数と周回数、選んだ武器とチャーム（RETRY と再開に使う）
-      rush: this.rush ? { kills: this.rushKills, laps: Math.floor(this.rushKills / this.rushOrder.length), per: this.rushOrder.length, w: this.rush.w || [], p: this.rush.p || [] } : null,
+      rush: this.rush ? { kills: this.rushKills, from: this.rushFrom, laps: Math.floor(this.rushKills / this.rushOrder.length), per: this.rushOrder.length, w: this.rush.w || [], p: this.rush.p || [] } : null,
     };
   }
 
