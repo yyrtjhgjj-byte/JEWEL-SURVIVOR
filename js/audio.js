@@ -248,9 +248,10 @@ class AudioEngine {
     [60, 67, 72, 79, 84, 91, 96].forEach((n, i) => this.tone(mtof(n), 0.6, { type: 'sawtooth', vol: 0.03, when: 0.4 + i * 0.05 }));
     this.tone(mtof(48), 1.5, { type: 'sine', vol: 0.2, when: 0.4 });
   }
-  bomb(force) {
+  // max：大きい音のグループで同時に鳴らす数の上限（灼熱鉱脈の噴火は 2）
+  bomb(force, max = 3) {
     if (!force && !this.throttle('bomb', 90)) return;
-    const k = force ? 1 : this.voice('loud', 3, 0.7); // アイテムのボムは必ず鳴らす
+    const k = force ? 1 : this.voice('loud', max, 0.7); // アイテムのボムは必ず鳴らす
     if (!k) return;
     this.noise(1.0, { vol: 0.35 * k, freq: 3000, slide: 80, q: 0.5, type: 'lowpass' });
     this.tone(120, 0.8, { type: 'sine', vol: 0.3 * k, slide: 30 });

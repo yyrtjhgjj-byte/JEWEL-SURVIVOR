@@ -19,13 +19,13 @@ function defaults() {
     hyper: false, // ハイパーモード（ステージ選択の切り替え）
     hurry: false, // ハリーモード
     artSel: null, // 持ち込む秘宝
-    artSel2: null, // 2 つ目の持ち込む秘宝（裏工房「秘宝の持ち込み」）
+    artSel2: null, // 2 つ目の持ち込む秘宝（上位工房「秘宝の持ち込み」）
     upgradesOff: {}, // 工房：最大まで上げた強化のうち、無効にしているもの
-    upgrades2: {}, // 裏工房の強化レベル
-    upgrades2Off: {}, // 裏工房：最大まで上げた強化のうち、無効にしているもの
-    rank: { lv: 1, xp: 0 }, // ユーザーレベル（js/rank.js）
-    backShop: false, // 裏工房を解放済みか（一度解放したら、工房を返金しても閉じない）
-    login: { last: '', streak: 0 },
+    upgrades2: {}, // 上位工房の強化レベル
+    upgrades2Off: {}, // 上位工房：最大まで上げた強化のうち、無効にしているもの
+    rank: { lv: 1, xp: 0 }, // ユーザーランク（js/rank.js）
+    upperShop: false, // 上位工房を解放済みか（一度解放したら、工房を返金しても閉じない）
+    login: { last: '', days: 0 }, // ログインボーナス：最後に受け取った日と、受け取った日数の累計
     stages: {},
     selectedStage: 'wastes',
     heatSels: {}, // ステージごとに選んでいる HEAT
@@ -36,6 +36,7 @@ function defaults() {
     nextGem: {}, // 次に磨く原石の中身（等級ごと。atelier.js の nextGem）
     jewels: {}, // コレクション { gemId: { n: 研磨数, best: 最高品質, ct: 最大カラット, have: 所持数 } }
     beasts: {}, // 百獣 { gemId: レベル }（beasts.js）
+    migrated: {}, // 一度だけ行う移行処理の済み印（main.js の migrateSave）
   };
 }
 
@@ -80,7 +81,9 @@ const APP = 'jewel-survivor';
 
 // 書き出し用の文字列
 export function exportSave() {
-  return JSON.stringify({ app: APP, version: 1, exportedAt: new Date().toISOString(), data: save });
+  // 中断したランは入れない（読み込んだあとに、古いランを再開・精算できてしまわないように）
+  const { pendingRun, ...data } = save;
+  return JSON.stringify({ app: APP, version: 1, exportedAt: new Date().toISOString(), data });
 }
 
 // 読み込んだ文字列を解析。正しくなければ例外
@@ -96,6 +99,7 @@ export function parseBackup(text) {
 // 現在のセーブを置き換える
 export function importSave(data) {
   const d = merge(defaults(), JSON.parse(JSON.stringify(data)));
+  delete d.pendingRun;
   for (const k of Object.keys(save)) delete save[k];
   Object.assign(save, d);
   persist();

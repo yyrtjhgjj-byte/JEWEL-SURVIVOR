@@ -12,8 +12,8 @@ import {
   mastery, nextMilestone, collectionStats, gemBonusText, statText, nextGem, rollCarat, applyPolish, autoGrade,
   collectionCount,
 } from './atelier.js';
-import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, showTitle, getApp } from './ui.js';
-import { currentLot, awardLot, RIVALS } from './auction.js';
+import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, showTitle, getApp, upperLv } from './ui.js';
+import { currentLot, awardLot, RIVALS, BLACK_RIVALS } from './auction.js';
 import { BEASTS, BEAST_IDS, BEAST_COST, jewelStock, beastLevel, beastValue, beastStats, raiseBeast, beastIcon } from './beasts.js';
 
 const TAU = Math.PI * 2;
@@ -35,7 +35,7 @@ export function showAtelier(tab = 'polish') {
       <div class="tabs">
         <button class="tab ${tab === 'polish' ? 'on' : ''}" data-t="polish">研磨</button>
         <button class="tab ${tab === 'collection' || tab === 'beasts' ? 'on' : ''}" data-t="collection">コレクション</button>
-        <button class="tab ${tab === 'auction' ? 'on' : ''}" data-t="auction">オークション</button>
+        <button class="tab ${tab === 'auction' || tab === 'auction2' ? 'on' : ''}" data-t="auction">オークション</button>
       </div>
       <div id="at"></div>
     </div>`);
@@ -44,7 +44,8 @@ export function showAtelier(tab = 'polish') {
   node.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showAtelier(b.dataset.t); }));
   const box = $('#at', node);
   if (tab === 'polish') renderPolish(box);
-  else if (tab === 'auction') renderAuction(box);
+  else if (tab === 'auction') renderAuction(box, false);
+  else if (tab === 'auction2') renderAuction(box, true);
   else if (tab === 'beasts') renderBeasts(box);
   else renderCollection(box);
 }
@@ -52,6 +53,15 @@ export function showAtelier(tab = 'polish') {
 // ---------------------------------------------------------------- 研磨タブ
 function renderPolish(box) {
   box.innerHTML = '';
+  // チュートリアル：一度も開いていなければ枠を虹色に光らせる
+  const tut = el(`<button class="btn tut-btn ${save.seen.polishTut ? '' : 'fresh'}">TUTORIAL<span class="sub">研磨のチュートリアル</span></button>`);
+  tut.onclick = () => {
+    audio.select();
+    save.seen.polishTut = true;
+    persist();
+    startPolish('shard', true);
+  };
+  box.appendChild(tut);
   const list = el('<div class="rough-list"></div>');
   for (const t of ROUGH_IDS) {
     const R = ROUGH[t];
@@ -117,19 +127,27 @@ function autoPolish(tier, count, box) {
 }
 
 // ---------------------------------------------------------------- 研磨ミニゲーム
-function startPolish(tier) {
+// tut = true でチュートリアル（原石もコインも使わない練習。1 面目は針が止まるのを待ってタップ、2 面目はゆっくり、3 面目は本番の速さ）
+const TUT_SPEED = [0.4, 0.65, 1];
+const TUT_HINT = [
+  '針がゆっくり回ります。光る面の真ん中で止まったらタップ',
+  '次は止まりません。光る面に針が重なった瞬間にタップ',
+  '最後は本番と同じ速さです',
+];
+function startPolish(tier, tut = false) {
   const R = ROUGH[tier];
-  if (!save.rough[tier] || save.coins < R.cost) return;
+  if (!tut && (!save.rough[tier] || save.coins < R.cost)) return;
   // コインは研磨が終わったとき（原石を消費するのと同時）に払う。途中でアプリが落ちてもコインだけ失わないように
-  const gemId = nextGem(tier);
-  persist();
+  const gemId = tut ? 'diamond' : nextGem(tier);
+  if (!tut) persist();
   const hint = gemColor(gemId);
 
   const node = el(`<div class="screen polish-screen">
-    <div class="pol-head"><div class="en">POLISHING</div><div class="jp">${R.name}</div>
+    <div class="pol-head"><div class="en">${tut ? 'TUTORIAL' : 'POLISHING'}</div><div class="jp">${tut ? '研磨のチュートリアル' : R.name}</div>
       <div class="facets">${Array.from({ length: R.facets }, () => '<i></i>').join('')}</div></div>
     <canvas id="pc"></canvas>
-    <div class="pol-hint" id="ph">タップで研磨開始</div>
+    <div class="pol-hint" id="ph">${tut ? 'タップで練習開始' : 'タップで研磨開始'}</div>
+    ${tut ? '<div class="pol-tip" id="pt"><div>リングの光っている所が、研磨する面です。</div><div>真ん中の白い帯ほど高い評価になります。</div></div><button class="btn small" id="tq">やめる</button>' : ''}
   </div>`);
   show(node);
   const cv = $('#pc', node);
@@ -145,7 +163,9 @@ function startPolish(tier) {
     ready: false, goT: 0, // 最初のタップで開始し、少し間を置いてから針が動く
   };
   const zone = { p: 0.2 * R.zone, g: 0.4 * R.zone, ok: 0.64 * R.zone };
-  const speed = () => 2.2 * R.speed * (1 + 0.1 * st.facet);
+  const speed = () => 2.2 * R.speed * (1 + 0.1 * st.facet) * (tut ? TUT_SPEED[Math.min(st.facet, TUT_SPEED.length - 1)] : 1);
+  const tip = (t) => { const e = $('#pt', node); if (e) e.innerHTML = t; };
+  if (tut) $('#tq', node).onclick = (e) => { e.stopPropagation(); audio.tap(); st.done = true; showAtelier('polish'); };
   const place = () => { st.target = st.ang + rand(1.8, 4.3); };
   place();
 
@@ -158,6 +178,14 @@ function startPolish(tier) {
   };
   const resolve = (diff) => {
     const [sc, label, col] = judge(diff);
+    if (tut) {
+      // 判定のわけを説明する
+      const why = sc >= 1 ? '真ん中の白い帯：PERFECT' : sc >= 0.7 ? '金色の帯：GREAT' : sc > 0 ? '水色の帯：GOOD' : diff < 0 ? '早すぎました：MISS' : '通り過ぎました：MISS';
+      const next = TUT_HINT[st.facet + 1];
+      tip(`<div><b style="color:${col}">${why}</b></div>${next ? `<div>${next}</div>` : ''}`);
+      $('#ph', node).textContent = '';
+      st.hold = false;
+    }
     st.results.push(sc);
     st.cuts.push({ a: st.target, sc });
     st.pops.push({ label, col, t: 0 });
@@ -169,15 +197,18 @@ function startPolish(tier) {
     if (st.facet >= R.facets) { st.done = true; setTimeout(finish, 650); } else place();
   };
   node.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
     e.preventDefault();
     if (!st.ready) {
       st.ready = true;
       st.goT = 0.8;
       audio.select();
-      $('#ph', node).textContent = '光る面に針が重なったらタップ';
+      $('#ph', node).textContent = tut ? '' : '光る面に針が重なったらタップ';
+      if (tut) tip(`<div>${TUT_HINT[0]}</div>`);
       return;
     }
     if (st.done || st.lockT > 0 || st.goT > 0) return;
+    if (tut && st.facet === 0 && !st.hold) return; // 1 面目は、針が止まるまで待つ
     let diff = (st.ang - st.target) % TAU;
     if (diff > Math.PI) diff -= TAU;
     if (diff < -Math.PI) diff += TAU;
@@ -193,8 +224,15 @@ function startPolish(tier) {
     st.lockT = Math.max(0, st.lockT - dt);
     st.flash = Math.max(0, st.flash - dt * 3);
     if (st.goT > 0) st.goT -= dt;
-    else if (!st.done && st.ready) {
+    else if (!st.done && st.ready && !st.hold) {
       st.ang += speed() * dt;
+      // チュートリアルの 1 面目：光る面の真ん中で針を止めて、タップを待つ
+      if (tut && st.facet === 0 && st.ang >= st.target) {
+        st.ang = st.target;
+        st.hold = true;
+        $('#ph', node).textContent = '今！ タップ';
+        audio.countTick();
+      }
       // 通り過ぎたら MISS
       if (st.ang - st.target > zone.ok) resolve(st.ang - st.target);
     }
@@ -260,6 +298,18 @@ function startPolish(tier) {
     ctx.shadowColor = hint; ctx.shadowBlur = 14;
     ctx.beginPath(); ctx.arc(nx, ny, 7, 0, TAU); ctx.fill();
     ctx.shadowBlur = 0;
+    // チュートリアル：針が止まっている間は「TAP」を点滅
+    if (st.hold) {
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.6 + 0.4 * Math.sin(st.t * 10);
+      ctx.font = '700 26px Rajdhani, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('TAP!', C, C - W * 0.3);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = `rgba(255,210,74,${0.55 + 0.45 * Math.sin(st.t * 10)})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(nx, ny, 13 + 3 * Math.sin(st.t * 10), 0, TAU); ctx.stroke();
+    }
     // 開始前の表示
     if (!st.ready || st.goT > 0) {
       ctx.fillStyle = st.ready ? '#ffd24a' : '#ffffff';
@@ -283,6 +333,13 @@ function startPolish(tier) {
   function finish() {
     const score = st.results.reduce((a, b) => a + b, 0) / st.results.length;
     const grade = gradeFromScore(score);
+    if (!node.isConnected) return; // 途中でやめた
+    if (tut) {
+      st.revealed = true;
+      cancelAnimationFrame(raf);
+      tutorialResult(score, grade);
+      return;
+    }
     const ct = rollCarat(tier);
     save.coins = Math.max(0, save.coins - R.cost);
     const res = applyPolish(tier, gemId, grade, ct);
@@ -291,6 +348,30 @@ function startPolish(tier) {
     cancelAnimationFrame(raf);
     reveal(res, score);
   }
+}
+
+// チュートリアルの結果：精度と品質の関係をまとめる
+function tutorialResult(score, grade) {
+  const rows = GRADES.map((G, i) => `<div class="rrow2 ${i === grade ? 'tut-now' : ''}"><span>${gradeBadge(i)}</span><b>精度 ${i ? `${Math.round(G.min * 100)}% 以上` : `${Math.round(GRADES[1].min * 100)}% 未満`}</b></div>`).reverse().join('');
+  const node = el(`<div class="screen dim reveal-screen">
+    <div class="rays"></div>
+    <div class="big-title prism-text">PRACTICE</div>
+    <div class="rv-grade">${gradeBadge(grade, true)}</div>
+    <div class="sub-title">精度 <b>${Math.round(score * 100)}%</b></div>
+    <div class="panel rv-m">
+      ${rows}
+      <div class="at-note">本番では原石の面の数（欠片 3 〜 秘石 6）だけ繰り返し、その平均の精度で品質が決まります。上位の原石ほど針が速く、光る面が細くなります。</div>
+    </div>
+    <div class="rbtns">
+      <button class="btn big primary" id="again">もう一度</button>
+      <button class="btn" id="back2">戻る</button>
+    </div>
+  </div>`);
+  show(node);
+  guard($('.rbtns', node), 700);
+  if (grade >= 3) audio.levelUp(); else audio.chestOpen();
+  $('#again', node).onclick = () => { audio.select(); startPolish('shard', true); };
+  $('#back2', node).onclick = () => { audio.tap(); showAtelier('polish'); };
 }
 
 // ---------------------------------------------------------------- 研磨結果
@@ -496,15 +577,30 @@ function lotHead(lot, big) {
   </div>`;
 }
 
-function renderAuction(box) {
-  const lot = currentLot();
+// 上位工房「裏オークション」を解放していれば、表と裏を切り替えるタブを出す
+function auctionTabs(box, black) {
+  if (!upperLv('blackAuction')) return;
+  const t = el(`<div class="tabs sub">
+    <button class="tab ${black ? '' : 'on'}" data-t="auction">オークション</button>
+    <button class="tab ${black ? 'on' : ''}" data-t="auction2">裏オークション</button>
+  </div>`);
+  t.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showAtelier(b.dataset.t); }));
+  box.appendChild(t);
+}
+
+function renderAuction(box, black) {
+  if (black && !upperLv('blackAuction')) black = false;
+  const lot = currentLot(black);
+  persist();
   const rec = save.jewels[lot.gem];
   const upd = !rec || !rec.n ? '<span class="ctag2 t-new">未所持</span>'
     : [lot.grade > rec.best ? '<span class="ctag2 t-evo">最高品質 更新</span>' : '', lot.ct > rec.ct ? '<span class="ctag2 t-pair">最大カラット 更新</span>' : ''].join('');
   const msg = lot.state === 'won' ? '落札済み。次のランのあとに新しい品が出品されます'
     : lot.state === 'lost' ? 'ほかの入札者が落札しました。次のランのあとに新しい品が出品されます' : '';
-  box.innerHTML = `<div class="panel auc-panel">
-    <div class="label">TODAY'S LOT</div>
+  box.innerHTML = '';
+  auctionTabs(box, black);
+  box.insertAdjacentHTML('beforeend', `<div class="panel auc-panel ${black ? 'black' : ''}">
+    <div class="label">${black ? 'BLACK MARKET' : "TODAY'S LOT"}</div>
     ${lotHead(lot, false)}
     <div class="rv-tags">${upd}</div>
     <div class="rrow2"><span>予想落札価格</span><b>${fmt(r100(lot.est * 0.8))} 〜 ${fmt(r100(lot.est * 1.3))}</b></div>
@@ -512,16 +608,17 @@ function renderAuction(box) {
     ${msg ? `<div class="at-note" style="text-align:center">${msg}</div>` : ''}
     <button class="btn big primary" id="auc-go" ${lot.state === 'open' ? '' : 'disabled'}>競りに参加</button>
   </div>
-  <div class="at-note">ランを 1 回終えるごとに、次の品に入れ替わります。落札した宝石は研磨コレクションに入り、最高品質と最大カラットが更新されます。</div>`;
-  $('#auc-go', box).onclick = () => { audio.select(); startBidding(lot); };
+  <div class="at-note">ランを 1 回終えるごとに、次の品に入れ替わります。落札した宝石は研磨コレクションに入り、最高品質と最大カラットが更新されます。</div>`);
+  $('#auc-go', box).onclick = () => { audio.select(); startBidding(lot, black); };
 }
 
-function startBidding(lot) {
+function startBidding(lot, black) {
   const HAM = 4; // ハンマーの時間（入札のたびに戻る）
+  const tab = black ? 'auction2' : 'auction';
   const st = { price: r100(lot.est * 0.45), leader: null, hammer: HAM, over: false, you: false, log: [] };
-  const rivals = RIVALS.map((r) => ({ ...r, max: r100(lot.est * rnd(...r.cap)), next: rnd(0.3, 1.2), out: false }));
-  const node = el(`<div class="screen auc-screen">
-    <div class="auc-top"><span class="en">AUCTION</span></div>
+  const rivals = (black ? BLACK_RIVALS : RIVALS).map((r) => ({ ...r, max: r100(lot.est * rnd(...r.cap)), next: rnd(0.3, 1.2), out: false }));
+  const node = el(`<div class="screen auc-screen ${black ? 'black' : ''}">
+    <div class="auc-top"><span class="en">${black ? 'BLACK AUCTION' : 'AUCTION'}</span></div>
     ${lotHead(lot, true)}
     <div class="auc-price"><small>現在の価格</small><b id="ap">0</b><span id="al"></span></div>
     <div class="auc-ham"><i id="ah"></i><span id="ahl"></span></div>
@@ -537,7 +634,7 @@ function startBidding(lot) {
   const renderRivals = () => { $('#ar', node).innerHTML = rivals.map((r) => `<span class="${r.out ? 'out' : ''} ${st.leader === r ? 'lead' : ''}" style="--rc:${r.color}">${r.name}</span>`).join(''); };
   const renderBids = () => {
     $('#ab', node).innerHTML = bids.map((k, i) => { const v = r100(st.price * (1 + k)); return `<button class="btn gold" data-i="${i}" ${st.over || st.leader === 'you' || v > save.coins ? 'disabled' : ''}>+${k * 100}%<span class="sub">${fmt(v)}</span></button>`; }).join('');
-    $('#ab', node).querySelectorAll('button').forEach((b) => (b.onclick = () => { if (st.over || st.leader === 'you') return; const v = r100(st.price * (1 + bids[+b.dataset.i])); if (v > save.coins) return; audio.coin(); haptic(); st.you = true; place('you', v); for (const r of rivals) r.next = Math.min(r.next, rnd(0.4, 1.3)); }));
+    $('#ab', node).querySelectorAll('button').forEach((b) => (b.onclick = () => { if (st.over || st.leader === 'you') return; const v = r100(st.price * (1 + bids[+b.dataset.i])); if (v > save.coins) return; audio.coin(); haptic(); if (!st.you) { lot.joined = true; persist(); } st.you = true; place('you', v); for (const r of rivals) r.next = Math.min(r.next, rnd(0.4, 1.3)); }));
   };
   const place = (who, v) => {
     st.price = v; st.leader = who; st.hammer = HAM;
@@ -561,7 +658,7 @@ function startBidding(lot) {
       r.next = rnd(...r.wait);
       const v = r100(st.price * (1 + rnd(...r.step)));
       // 上限を超えるか、成金は相場を超えると降りやすい
-      if (v > r.max || (r.id === 'tycoon' && st.price > lot.est * 0.85 && Math.random() < 0.5)) { r.out = true; log(`${r.name}が降りた`, '#8a86a0'); renderRivals(); continue; }
+      if (v > r.max || (r.rash && st.price > lot.est * 0.85 && Math.random() < 0.5)) { r.out = true; log(`${r.name}が降りた`, '#8a86a0'); renderRivals(); continue; }
       place(r, v);
     }
     st.hammer -= dt;
@@ -579,8 +676,8 @@ function startBidding(lot) {
   requestAnimationFrame(frame);
   $('#aq', node).onclick = () => {
     audio.tap();
-    if (!st.you) { showAtelier('auction'); return; } // まだ入札していなければ、出品はそのまま
-    st.over = true; lot.state = 'lost'; persist(); showAtelier('auction');
+    if (!st.you) { showAtelier(tab); return; } // まだ入札していなければ、出品はそのまま
+    st.over = true; lot.state = 'lost'; persist(); showAtelier(tab);
   };
   function finish() {
     st.over = true;
@@ -605,7 +702,7 @@ function startBidding(lot) {
       </div>`);
       $('#screens').appendChild(ov);
       guard($('#aok', ov), 600);
-      $('#aok', ov).onclick = () => { audio.tap(); showAtelier('auction'); };
+      $('#aok', ov).onclick = () => { audio.tap(); showAtelier(tab); };
     }, 900);
   }
 }

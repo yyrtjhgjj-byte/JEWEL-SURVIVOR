@@ -433,6 +433,17 @@ export const PASSIVES = {
   peridot: { gem: 'peridot', name: 'ペリドット', max: 5, per: { moveSpeed: 0.08, speed: 0.08, duration: 0.08 }, t: '移動速度・弾速・持続 +8%' },
 };
 export const PASSIVE_IDS = Object.keys(PASSIVES);
+// チャームのリミットブレイク（上位工房）：最大レベルのチャームに、1 レベル分の半分の効果を重ねる（1 つのチャームに CHARM_LB_MAX 回まで）。
+// ネフライト（弾数 +1）は半分にできないので、名前の「チームワーク」にちなんで、装備している武器 1 つにつき攻撃力 +1.5% にする
+export const CHARM_LB_MAX = 5;
+export function charmLbPer(id, weaponCount) {
+  if (id === 'nephrite') return { might: 0.015 * weaponCount };
+  return Object.fromEntries(Object.entries(PASSIVES[id].per).map(([k, v]) => [k, v / 2]));
+}
+export function charmLbText(id) {
+  if (id === 'nephrite') return '装備している武器 1 つにつき攻撃力 +1.5%';
+  return PASSIVES[id].t.replace(/\d+(?:\.\d+)?/g, (n) => String(+(parseFloat(n) / 2).toFixed(2)));
+}
 
 // ゲーム中に装備できる数
 export const MAX_WEAPONS = 4;
@@ -440,7 +451,7 @@ export const MAX_CHARMS = 6;
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
-  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, startLv: 0, choice: 0, art2: 0, chestPlus: 0, bossChest: 0, heatCoin: 0, roughUp: 0, feverUp: 0, breakUp: 0, lbUp: 0, hpMul: 0, healUp: 0, dmgUp: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
+  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, startLv: 0, choice: 0, art2: 0, charmLb: 0, chestPlus: 0, bossChest: 0, heatCoin: 0, roughUp: 0, feverUp: 0, breakUp: 0, lbUp: 0, hpMul: 0, healUp: 0, dmgUp: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
 };
 
 // ---------------------------------------------------------------------
@@ -576,9 +587,9 @@ export const SHOP = [
 export function shopCost(item, lv) {
   return Math.round(item.base * [1, 2.2, 3.8, 6, 9, 13][lv] / 10) * 20;
 }
-// 裏工房：工房をすべて最大にすると解放されるやり込み用の強化。工房にはない、ランの遊び方を変える強化だけを置く。
+// 上位工房：工房をすべて最大にすると解放されるやり込み用の強化。工房にはない、ランの遊び方を変える強化だけを置く。
 // cost はレベルごとの値段（Lv0→1, 1→2, …）。効果は per の値 × レベル（BASE_STATS に初期値 0）
-export const BACK_SHOP = [
+export const UPPER_SHOP = [
   { id: 'startLv', name: '初期強化', max: 3, cost: [40000, 80000, 120000], per: { startLv: 1 }, t: '開始時のレベルアップ +1' },
   { id: 'choice', name: '選択肢', max: 1, cost: [150000], per: { choice: 1 }, t: 'レベルアップの選択肢が 1 つ増える' },
   { id: 'art2', name: '秘宝の持ち込み', max: 1, cost: [120000], per: { art2: 1 }, t: '秘宝を 2 つ持ち込める（1 ランで持てる数も +1）' },
@@ -588,7 +599,11 @@ export const BACK_SHOP = [
   { id: 'roughUp', name: '原石の目利き', max: 5, cost: [6000, 9000, 12000, 15000, 18000], per: { roughUp: 0.2 }, t: '原石の出やすさ +20%' },
   { id: 'feverUp', name: 'フィーバー延長', max: 5, cost: [5000, 8000, 11000, 14000, 17000], per: { feverUp: 1 }, t: 'フィーバーの時間 +1秒' },
   { id: 'breakUp', name: 'ブレイク強化', max: 5, cost: [5000, 8000, 11000, 14000, 17000], per: { breakUp: 0.1 }, t: 'ブレイクゲージのたまりやすさ +10%' },
-  { id: 'lbUp', name: 'リミットブレイク強化', max: 2, cost: [25000, 50000], per: { lbUp: 0.5 }, t: 'リミットブレイクの強化量 +50%' },
+  { id: 'lbUp', name: 'リミットブレイク強化', max: 2, cost: [25000, 50000], per: { lbUp: 0.5 }, t: '武器のリミットブレイクの強化量 +50%' },
+  { id: 'charmLb', name: 'チャーム・リミットブレイク', max: 1, cost: [100000], per: { charmLb: 1 }, t: '最大レベルのチャームも、リミットブレイクで強化できる' },
+  // ここから下はラン外の強化（採掘・研磨工房）。効果は ui.js ／ atelier-ui.js で upperLv を見て切り替える
+  { id: 'mine100', name: '採掘の極意', max: 1, cost: [60000], per: {}, t: '採掘に 100 連（秘石 5 つ以上確定）が加わる' },
+  { id: 'blackAuction', name: '裏オークション', max: 1, cost: [80000], per: {}, t: '研磨工房に、品質の高い宝石が出る裏オークションが開く' },
 ];
 
 // ---------------------------------------------------------------------
@@ -609,11 +624,11 @@ export const ACHIEVEMENTS = [
   { id: 'lv30', name: 'Lv.30', t: 'レベル30到達', coins: 200, unlock: 'emerald', check: (r) => r.level >= 30 },
   { id: 'lv50', name: 'Lv.50', t: 'レベル50到達', coins: 600, check: (r) => r.level >= 50 },
   { id: 'lv70', name: 'Lv.70', t: 'レベル70到達', coins: 1500, check: (r) => r.level >= 70 },
-  // 生存時間（エンドレスの id は旧仕様の分数のまま）
-  { id: 'time3', name: 'サバイバー I', t: '3分間生存', coins: 80, check: (r) => (r.runT ?? r.time) >= 180 },
-  { id: 'time5', name: 'サバイバー II', t: '5分間生存', coins: 200, unlock: 'angelite', check: (r) => (r.runT ?? r.time) >= 300 },
-  { id: 'endless20', name: 'エンドレス・ナイト', t: 'エンドレスで10分生存', coins: 1500, check: (r) => r.endless && (r.runT ?? r.time) >= 600 },
-  { id: 'endless40', name: 'エターナル', t: 'エンドレスで20分生存', coins: 5000, check: (r) => r.endless && (r.runT ?? r.time) >= 1200 },
+  // 生存時間：画面の時計（リザルトの生存時間）で判定する。HURRY で時計が速く進んだ分も含む（エンドレスの id は旧仕様の分数のまま）
+  { id: 'time3', name: 'サバイバー I', t: '3分間生存', coins: 80, check: (r) => r.time >= 180 },
+  { id: 'time5', name: 'サバイバー II', t: '5分間生存', coins: 200, unlock: 'angelite', check: (r) => r.time >= 300 },
+  { id: 'endless20', name: 'エンドレス・ナイト', t: 'エンドレスで10分生存', coins: 1500, check: (r) => r.endless && r.time >= 600 },
+  { id: 'endless40', name: 'エターナル', t: 'エンドレスで20分生存', coins: 5000, check: (r) => r.endless && r.time >= 1200 },
   // ステージクリア
   { id: 'clear', name: 'ブリリアンス', t: '黒曜の荒野をクリア', coins: 2000, unlock: 'diamond', check: (r) => r.cleared && r.stageId === 'wastes' },
   { id: 'clear2', name: 'プリズム・ブレイカー', t: 'STAGE 2 の最終ボスを倒す', coins: 2500, check: (r) => r.cleared && r.stageId === 'cavern' },
@@ -632,6 +647,7 @@ export const ACHIEVEMENTS = [
   { id: 'heat1', name: 'ヒートアップ', t: 'HEAT 1以上でクリア', coins: 500, unlock: 'aquamarine', check: (r) => r.cleared && r.heat >= 1 },
   { id: 'heat3', name: 'オーバーヒート', t: 'HEAT 3以上でクリア', coins: 2000, check: (r) => r.cleared && r.heat >= 3 },
   { id: 'heat5', name: 'メルトダウン', t: 'HEAT 5でクリア', coins: 6000, check: (r) => r.cleared && r.heat >= 5 },
+  { id: 'heat10', name: 'スーパーノヴァ', t: 'HEAT 10でクリア', coins: 15000, check: (r) => r.cleared && r.heat >= 10 },
   { id: 'heat5void', name: '極光', t: 'STAGE 5 を HEAT 5 でクリア', coins: 15000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'void' },
   { id: 'heat5azath', name: 'アウター・ゴッド', t: 'STAGE 11 を HEAT 5 でクリア', coins: 30000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'azathoth' },
   { id: 'hyperclear', name: 'ハイパー・ドライブ', t: 'HYPER でステージをクリア', coins: 1000, check: (r) => r.cleared && r.hyper },
@@ -701,12 +717,12 @@ export const ACHIEVEMENTS = [
   { id: 'auction1', meta: true, name: 'ハンマー・プライス', t: 'オークションで落札する', coins: 1000, check: (r, s) => (s.stats.auctionWins || 0) >= 1 },
   { id: 'auction10', meta: true, name: 'コレクターズ・アイ', t: 'オークションで10回落札する', coins: 5000, check: (r, s) => (s.stats.auctionWins || 0) >= 10 },
   // 工房
-  { id: 'backroom', meta: true, name: 'バックルーム', t: '裏工房を解放する', coins: 3000, check: (r, s) => s.backShop },
-  { id: 'backroomMax', meta: true, name: 'バックルーム・マスター', t: '裏工房の強化をすべて最大にする', coins: 10000, check: (r, s) => BACK_SHOP.every((it) => ((s.upgrades2 || {})[it.id] || 0) >= it.max) },
+  { id: 'backroom', meta: true, name: 'マスターワークス', t: '上位工房を解放する', coins: 3000, check: (r, s) => s.upperShop },
+  { id: 'backroomMax', meta: true, name: 'マスターワークス・コンプリート', t: '上位工房の強化をすべて最大にする', coins: 10000, check: (r, s) => UPPER_SHOP.every((it) => ((s.upgrades2 || {})[it.id] || 0) >= it.max) },
   // やり込み
   { id: 'allchars', meta: true, name: 'オールスター', t: 'すべてのジュエルを解放する', coins: 5000, check: (r, s) => CHAR_IDS.every((id) => s.unlocked[id]) },
-  { id: 'rank20', meta: true, name: 'グラス・ハート', t: 'ユーザーレベル20到達', coins: 1500, check: (r, s) => s.rank && s.rank.lv >= 20 },
-  { id: 'rank50', meta: true, name: 'クリスタル・ハート', t: 'ユーザーレベル50到達', coins: 6000, check: (r, s) => s.rank && s.rank.lv >= 50 },
+  { id: 'rank20', meta: true, name: 'グラス・ハート', t: 'ユーザーランク20到達', coins: 1500, check: (r, s) => s.rank && s.rank.lv >= 20 },
+  { id: 'rank50', meta: true, name: 'クリスタル・ハート', t: 'ユーザーランク50到達', coins: 6000, check: (r, s) => s.rank && s.rank.lv >= 50 },
   { id: 'runs100', meta: true, name: 'ヘビー・プレイヤー', t: '100回プレイする', coins: 2000, check: (r, s) => s.stats.runs >= 100 },
   { id: 'kills100k', meta: true, name: '十万の骸', t: '累計で10万体撃破', coins: 5000, check: (r, s) => s.stats.kills >= 1e5 },
 ];
@@ -716,6 +732,9 @@ export const ACHIEVEMENTS = [
 // ---------------------------------------------------------------------
 export const GACHA_COST = 300;
 export const GACHA10_COST = 2700;
+// 100 連（上位工房「採掘の極意」）：秘石（UR）が GACHA100_UR 個以上確定
+export const GACHA100_COST = 27000;
+export const GACHA100_UR = 5;
 // ガチャの中身は原石。引くたびにジェムダストが貯まり、交換所で使える
 export const GACHA_TABLE = [
   { rank: 'UR', p: 0.03, tier: 'mystic', n: 1, dust: 10 },

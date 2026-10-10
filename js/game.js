@@ -2,7 +2,8 @@
 //  ゲーム本体
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, AREA_CAP, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, BACK_SHOP, LIMIT_BREAK,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, AREA_CAP, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, UPPER_SHOP, LIMIT_BREAK,
+  CHARM_LB_MAX, charmLbPer,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
@@ -81,6 +82,12 @@ const BOSS_HP = 2.7;
 const BOSS_TRASH = 0.5;
 const BREAK_NEED = 0.42;
 const BREAK_GROW = 1.5;
+// ブレイクでダウンしている秒数
+export const BREAK_TIME = 3;
+
+// 雑魚の重さ：押し返し（ノックバック）の効きやすさ。体の大きい敵ほど押し返しにくい
+// （半径 13 以下は 1、16 で 0.72、20 で 0.5、24 で 0.37）。エリートはさらに 0.3 倍、ボスは 0.05
+const kbWeight = (d, elite) => (d.boss ? 0.05 : Math.min(1, Math.pow(13 / d.r, 1.6)) * (elite || d.ai === 'thief' ? 0.3 : 1));
 
 const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000];
 
@@ -128,7 +135,6 @@ export class Game {
     this.passives = [];
     this.input = { x: 0, y: 0 };
     this.time = opts.startTime || 0;
-    this.runT = this.time; // HURRY の倍速を含まない生存時間（生存時間の実績に使う）
     this.hurt = 0; // 受けたダメージの合計（アーマーなどで減らした後。実績「かすり傷」）
     this.state = 'play';
     this.modalQueue = [];
@@ -184,10 +190,10 @@ export class Game {
     this.lodestoneNext = (Math.floor(this.time / 120) + 1) * 120;
     this.hopeNext = this.time + 60;
     if (opts.artifact && ARTIFACT_BY_ID[opts.artifact]) this.addArtifact(opts.artifact, true);
-    // 裏工房「秘宝の持ち込み」：2 つ目の秘宝と、1 ランで持てる数 +1
+    // 上位工房「秘宝の持ち込み」：2 つ目の秘宝と、1 ランで持てる数 +1
     this.artMax = ARTIFACT_MAX + (this.stats.art2 ? 1 : 0);
     if (this.stats.art2 && opts.artifact2 && ARTIFACT_BY_ID[opts.artifact2]) this.addArtifact(opts.artifact2, true);
-    // 裏工房「初期強化」：開始時のレベルアップ
+    // 上位工房「初期強化」：開始時のレベルアップ
     for (let i = 0; i < this.stats.startLv; i++) { this.level++; this.pendingLevels++; this.modalQueue.push({ type: 'level' }); }
     this.xpNext = xpFor(this.level);
     if (opts.build) this.debugBuild(opts.build);
@@ -203,7 +209,7 @@ export class Game {
       const lv = save.upgrades[it.id] || 0;
       if (lv && !save.upgradesOff[it.id]) add(it.per, lv); // 工房で無効にした強化は入れない
     }
-    for (const it of BACK_SHOP) { // 裏工房
+    for (const it of UPPER_SHOP) { // 上位工房
       const lv2 = (save.upgrades2 || {})[it.id] || 0;
       if (lv2 && !(save.upgrades2Off || {})[it.id]) add(it.per, lv2);
     }
@@ -214,7 +220,10 @@ export class Game {
     const mightOut = s.might;
     s.might = 1;
     // チャームは秘宝の倍率（ペンダントの最大HP・プリズムの範囲）より先に足す（チャームの分にも倍率が掛かるように）
-    for (const p of this.passives) add(PASSIVES[p.id].per, p.level);
+    for (const p of this.passives) {
+      add(PASSIVES[p.id].per, p.level);
+      if (p.lbN) add(charmLbPer(p.id, this.weapons ? this.weapons.length : 1), p.lbN); // チャームのリミットブレイク
+    }
     // 秘宝
     if (this.artSet && this.artSet.has('box')) {
       const empty = Math.max(0, MAX_WEAPONS - (this.weapons ? this.weapons.length : 1));
@@ -232,9 +241,9 @@ export class Game {
       s.duration += 0.1 * n;
     }
     if (this.artSet && this.artSet.has('prism')) s.area *= 1.75 + 1.25 * Math.sin((this.time / 10) * TAU);
-    s.greed *= rankCoinMul(); // ユーザーレベルによる獲得コインの倍率
+    s.greed *= rankCoinMul(); // ユーザーランクによる獲得コインの倍率
     // ヒート・HYPER のコインの倍率もラン中に掛ける（HUD のコインとリザルトの獲得コインが一致するように）
-    s.greed *= (1 + (0.3 + s.heatCoin) * this.heat) * (this.hyper ? 1.5 : 1); // ヒート 1 段階ごとに +30%（裏工房のヒートの報酬で上乗せ）
+    s.greed *= (1 + (0.3 + s.heatCoin) * this.heat) * (this.hyper ? 1.5 : 1); // ヒート 1 段階ごとに +30%（上位工房のヒートの報酬で上乗せ）
     recalcElements(this);
     // 上限を超えた分は攻撃力（ラン中の枠）に変える。攻撃範囲の上限（AREA_CAP）は、範囲のインフレと、描画が重くなって古い iPhone で落ちるのを防ぐため
     let over = 0;
@@ -379,7 +388,6 @@ export class Game {
 
   update(dt) {
     this.time += dt * (this.hurry ? 2 : 1);
-    this.runT += dt;
     const p = this.player;
     // スローモーション
     if (this.slowT > 0) {
@@ -660,7 +668,7 @@ export class Game {
       speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * this.stageDmg * (d.boss ? 1.5 : 2), xp: d.xp,
       vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop, segment: !!d.segment,
       frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
-      ai: d.ai || type, spr: d.sprite || type, weave: d.weave,
+      ai: d.ai || type, spr: d.sprite || type, weave: d.weave, kbk: kbWeight(d, elite),
       tint: d.tint || (this.stage.tint && !d.boss && !d.prop && !d.segment && !d.ai ? TINT(type, this.stage.tint) : null),
     };
     this.enemies.push(e);
@@ -1169,7 +1177,7 @@ export class Game {
         const d = Math.hypot(e.x - p.x, e.y - p.y) || 1;
         kx = (e.x - p.x) / d; ky = (e.y - p.y) / d;
       }
-      const k = e.boss ? 0.05 : e.elite || e.ai === 'thief' ? 0.3 : 1;
+      const k = e.kbk ?? 1; // 重さ（spawnEnemy の kbWeight）
       e.vx += kx * o.kb * k;
       e.vy += ky * o.kb * k;
     }
@@ -1206,7 +1214,7 @@ export class Game {
   }
 
   // ブレイクゲージ：ボスに与えたダメージでたまる。近くで戦うほど早くたまる
-  // （ボスの体の縁からの距離が 70 以内で 2 倍、320 以上で 0.4 倍）。満タンで 4 秒ダウンし、被ダメージ 2 倍
+  // （ボスの体の縁からの距離が 70 以内で 2 倍、320 以上で 0.4 倍）。満タンで BREAK_TIME 秒ダウンし、被ダメージ 2 倍
   addBreak(e, dealt) {
     const p = this.player;
     const d = Math.max(0, Math.hypot(e.x - p.x, e.y - p.y) - e.r);
@@ -1218,7 +1226,7 @@ export class Game {
   bossBreak(e) {
     e.breakG = 0;
     e.breakNeed = (e.breakNeed || 1) * BREAK_GROW; // 次のブレイクは少し遠くなる
-    e.breakT = 4;
+    e.breakT = BREAK_TIME;
     e.dash = 0;
     e.windup = 0;
     e.charging = false;
@@ -1227,7 +1235,7 @@ export class Game {
     this.fx.ring(e.x, e.y, e.r, e.r * 3, 0.5, '#ffe39a', 10);
     this.fx.burst(e.x, e.y, '#ffe39a', 30, 320, 0.7, 14);
     this.fx.shake(10);
-    this.hooks.banner('BREAK', 'victory', '4秒間 被ダメージ×2');
+    this.hooks.banner('BREAK', 'victory', `${BREAK_TIME}秒間 被ダメージ×2`);
     audio.crit();
     audio.bigWin();
   }
@@ -1417,7 +1425,7 @@ export class Game {
   }
 
   startFever() {
-    this.feverDur = 10 + this.stats.feverUp; // 裏工房「フィーバー延長」
+    this.feverDur = 10 + this.stats.feverUp; // 上位工房「フィーバー延長」
     this.feverT = this.feverDur;
     this.fevers++;
     this.feverGauge = 0;
@@ -1657,6 +1665,7 @@ export class Game {
       const c = this.limitBreakChoice(w);
       if (c) pool.push({ ...c, weight: 6 });
     }
+    for (const p of this.passives) if (this.charmLbOk(p)) pool.push({ type: 'plb', id: p.id, weight: 6 });
     if (this.weapons.length < MAX_WEAPONS) for (const id of WEAPON_IDS) if (!this.getWeapon(id) && !this.banished.has(id)) pool.push({ type: 'wnew', id, weight: 5 });
     if (this.passives.length < MAX_CHARMS) for (const id of PASSIVE_IDS) if (!this.getPassive(id) && !this.banished.has(id)) {
       // しんかに ひつようなら でやすく
@@ -1708,6 +1717,11 @@ export class Game {
     return { type: 'lb', id: w.id, stat: LIMIT_BREAK.indexOf(o) };
   }
 
+  // チャームのリミットブレイク（上位工房）：最大レベルのチャームに、CHARM_LB_MAX 回まで
+  charmLbOk(p) {
+    return this.stats.charmLb > 0 && p.level >= PASSIVES[p.id].max && (p.lbN || 0) < CHARM_LB_MAX && !this.banished.has(p.id);
+  }
+
   applyChoice(c) {
     let evolved = null;
     if (this.curModal) this.curModal.applied = true; // 途中保存で、反映済みのレベルアップ・宝箱をもう一度開かないように
@@ -1730,8 +1744,11 @@ export class Game {
       const w = this.getWeapon(c.id);
       const o = LIMIT_BREAK[c.stat];
       w.lb = w.lb || {};
-      w.lb[o.k] = (w.lb[o.k] || 0) + (o.k === 'amount' ? o.v : o.v * (1 + this.stats.lbUp)); // 裏工房「リミットブレイク強化」（弾数は整数のまま）
+      w.lb[o.k] = (w.lb[o.k] || 0) + (o.k === 'amount' ? o.v : o.v * (1 + this.stats.lbUp)); // 上位工房「リミットブレイク強化」（弾数は整数のまま）
       w.lbN = (w.lbN || 0) + 1;
+    } else if (c.type === 'plb') {
+      const p = this.getPassive(c.id);
+      p.lbN = (p.lbN || 0) + 1;
     } else if (c.type === 'coins') {
       this.coins += Math.round(c.value * this.stats.greed);
     } else if (c.type === 'heal') {
@@ -1747,7 +1764,7 @@ export class Game {
   rollChest(big) {
     const r = Math.random() / this.stats.luck;
     let n = big ? (r < 0.3 || this.stats.bossChest ? 5 : 3) : r < 0.05 ? 5 : r < 0.3 ? 3 : 1;
-    n += this.stats.chestPlus; // 裏工房「宝箱の中身」
+    n += this.stats.chestPlus; // 上位工房「宝箱の中身」
     const items = [];
     for (let i = 0; i < n; i++) {
       // しんか ゆうせん
@@ -1758,7 +1775,10 @@ export class Game {
         const pool = [];
         for (const w of this.weapons) if (!w.evolved && w.level < WEAPON_MAX && !this.banished.has(w.id)) pool.push({ type: 'wup', id: w.id });
         for (const p of this.passives) if (p.level < PASSIVES[p.id].max && !this.banished.has(p.id)) pool.push({ type: 'pup', id: p.id });
-        if (!pool.length) for (const w of this.weapons) { const lb = this.limitBreakChoice(w); if (lb) pool.push(lb); }
+        if (!pool.length) {
+          for (const w of this.weapons) { const lb = this.limitBreakChoice(w); if (lb) pool.push(lb); }
+          for (const p of this.passives) if (this.charmLbOk(p)) pool.push({ type: 'plb', id: p.id });
+        }
         c = pool.length ? pick(pool) : { type: 'coins', value: 100 };
       }
       items.push(c);
@@ -1833,24 +1853,24 @@ export class Game {
       dmgBy: { ...this.dmgBy }, killsByType: { ...this.killsByType }, maxCombo: this.maxCombo, combo: this.comboT > 0 ? this.combo : 0,
       feverGauge: this.feverGauge, feverNeed: this.feverNeed, fevers: this.fevers, evolvedCount: this.evolvedCount, bosses: this.bosses, miracles: this.miracles,
       weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved, lb: w.lb, lbN: w.lbN })),
-      passives: this.passives.map((x) => ({ id: x.id, level: x.level })),
+      passives: this.passives.map((x) => ({ id: x.id, level: x.level, lbN: x.lbN })),
       arts: [...this.arts], revives: this.revives, revBuff: this.revBuff, rerolls: this.rerolls, skips: this.skips, banishes: this.banishes, banished: [...this.banished],
       roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
       hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
-      endlessBoss: this.endlessBoss || null, cleared: this.cleared, runT: this.runT, hurt: this.hurt,
+      endlessBoss: this.endlessBoss || null, cleared: this.cleared, hurt: this.hurt,
       bossList: this.enemies.filter((e) => e.alive && e.boss && e.ai !== 'piper').map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1, woke: !!e.azWoke })),
     };
   }
   restore(s) {
     const S = ['level', 'xp', 'kills', 'coins', 'totalDmg', 'maxCombo', 'feverGauge', 'feverNeed', 'fevers', 'evolvedCount', 'bosses', 'miracles', 'revBuff', 'rerolls', 'skips', 'banishes',
-      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext', 'endlessBoss', 'runT', 'hurt'];
+      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext', 'endlessBoss', 'hurt'];
     this.weapons = [];
     for (const x of s.weapons) {
       const w = this.addWeapon(x.id);
       w.level = x.level; w.evolved = x.evolved; if (x.lb) w.lb = x.lb; if (x.lbN) w.lbN = x.lbN;
     }
-    this.passives = s.passives.map((x) => ({ id: x.id, level: x.level }));
+    this.passives = s.passives.map((x) => ({ id: x.id, level: x.level, ...(x.lbN ? { lbN: x.lbN } : {}) }));
     for (const id of s.arts) this.addArtifact(id, true);
     for (const k of S) if (s[k] !== undefined) this[k] = s[k];
     this.revives = s.revives;
@@ -1903,7 +1923,7 @@ export class Game {
       passives: this.passives.map((p) => ({ id: p.id, level: p.level })),
       timeline: this.timeline, bossLog: this.bossLog,
       charId: this.charId, killsByType: { ...this.killsByType }, endless: this.endless,
-      stageId: this.stage.id, heat: this.heat, charmed: this.charmed || 0, dmgTaken: this.dmgTaken, hurt: Math.round(this.hurt), runT: this.runT,
+      stageId: this.stage.id, heat: this.heat, charmed: this.charmed || 0, dmgTaken: this.dmgTaken, hurt: Math.round(this.hurt),
     };
   }
 
