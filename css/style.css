@@ -593,6 +593,17 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .st-desc { font-family: var(--font-jp); font-size: 12px; line-height: 1.6; color: #c9c6dc; }
 .st-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; font-family: var(--font-jp); font-size: 11px; color: var(--muted); }
 .st-meta span { border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
+.rush-ch { margin: 6px 2px 2px; }
+.rush-boss { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.rush-boss img { width: 46px; height: 46px; object-fit: contain; }
+.rp-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; letter-spacing: 0.1em; margin: 12px 2px 6px; }
+.rp-head b { font-size: 13px; color: var(--muted); letter-spacing: 0; }
+.rush-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.rp { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; padding: 6px 2px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: #fff; font-family: var(--font-jp); font-size: 9.5px; font-weight: 700; line-height: 1.25; letter-spacing: 0; text-align: center; min-width: 0; }
+.rp span { width: 100%; overflow-wrap: anywhere; }
+.rp img { width: 36px; height: 36px; }
+.rp.on { border-color: var(--gold); box-shadow: 0 0 12px rgba(255,210,74,0.35), inset 0 0 0 1px var(--gold); }
+.rp.full { filter: brightness(0.5); }
 .heat-ctl { display: flex; align-items: center; gap: 10px; }
 .heat-ctl .iconbtn { width: 36px; height: 36px; font-size: 18px; }
 .heat-ctl .iconbtn:disabled { filter: brightness(0.35); }
