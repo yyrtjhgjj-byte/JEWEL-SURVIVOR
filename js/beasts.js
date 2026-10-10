@@ -232,6 +232,8 @@ export function beastIcon(id, size = 96) {
   }
   x.restore();
   u = c.toDataURL();
+  // 作業用のキャンバスはすぐ小さくする（iOS の Safari はキャンバスのメモリの上限が小さく、捨てたキャンバスも回収されるまで数える）
+  for (const cv of [mask, body, rim, c]) cv.width = cv.height = 1;
   artCache.set(key, u);
   return u;
 }
