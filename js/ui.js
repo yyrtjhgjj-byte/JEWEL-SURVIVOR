@@ -1672,7 +1672,7 @@ export function results(res, cleared, extra) {
     ['総ダメージ', fmt(res.damage), extra.newBest.damage],
     ['最大コンボ', fmt(res.maxCombo), false],
     ['進化', String(res.evolved), false],
-    ['フィーバー', String(res.fevers), false],
+    ...(res.rush ? [] : [['フィーバー', String(res.fevers), false]]),
   ];
   rows.forEach(([k, v, nb]) => rowsEl.appendChild(el(`<div class="rrow"><span>${k}</span><b>${v}${nb ? '<span class="new">NEW RECORD</span>' : ''}</b></div>`)));
   const dmgEl = $('#dmg', node);
