@@ -1,5 +1,5 @@
 // =====================================================================
-//  ユーザーレベル（ランク）：ランが終わるたびに経験値が入り、レベルに応じて獲得コインが増える
+//  ユーザーランク：ランが終わるたびに経験値が入り、ランクに応じて獲得コインが増える
 // =====================================================================
 import { save } from './save.js';
 
@@ -11,10 +11,10 @@ export const RANK_CLASSES = [
 ];
 export const rankClass = (lv) => RANK_CLASSES.find((c) => lv <= c.max);
 
-// 次のレベルまでに必要な経験値（7 分のクリアで 400 前後入る。Lv20 までおよそ 5 回、Lv50 までおよそ 29 回）
-export const rankNeed = (lv) => Math.round((80 + 25 * lv) / 3);
+// 次のランクまでに必要な経験値（7 分のクリアで 400 前後入る。ランク 20 までおよそ 4 回、ランク 50 までおよそ 22 回）
+export const rankNeed = (lv) => Math.round(((80 + 25 * lv) / 3) * 0.75);
 
-// 獲得コインの倍率：1 レベルにつき +0.5%（Lv50 で 1.25 倍）
+// 獲得コインの倍率：1 ランクにつき +0.5%（ランク 50 で 1.25 倍）
 export const rankCoinMul = (lv = rankLv()) => 1 + 0.005 * lv;
 
 export function rankState() {
@@ -22,7 +22,7 @@ export function rankState() {
   return save.rank;
 }
 export const rankLv = () => rankState().lv;
-// 必要経験値を下げたとき、貯まっている経験値でレベルを上げ直す
+// 必要経験値を下げたとき、貯まっている経験値でランクを上げ直す
 export function settleRank() {
   const r = rankState();
   const lv = r.lv;
@@ -36,7 +36,7 @@ export function runExp(res, cleared) {
   return Math.max(1, Math.round(base * (1 + 0.1 * (res.heat || 0))));
 }
 
-// 経験値を加えて、上がる前と後のレベルを返す
+// 経験値を加えて、上がる前と後のランクを返す
 export function addRankExp(exp) {
   const r = rankState();
   const from = { lv: r.lv, xp: r.xp };

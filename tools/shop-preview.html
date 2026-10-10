@@ -5,9 +5,9 @@
 <body><div class="g" id="g"></div>
 <script type="module">
 import { drawShopIcon } from '../js/shop-art.js';
-import { SHOP, BACK_SHOP } from '../js/data.js';
+import { SHOP, UPPER_SHOP } from '../js/data.js';
 const g = document.getElementById('g');
-for (const it of [...SHOP, ...BACK_SHOP]) {
+for (const it of [...SHOP, ...UPPER_SHOP]) {
   const d = document.createElement('div'); d.className = 'c';
   const c = document.createElement('canvas'); c.width = c.height = 240;
   const x = c.getContext('2d'); x.translate(120, 120); drawShopIcon(x, it.id, 210);

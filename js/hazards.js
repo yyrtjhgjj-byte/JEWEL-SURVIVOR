@@ -252,7 +252,7 @@ export class Hazards {
             g2.fx.burst(x, y, '#ff8a3d', 16, 260, 0.6, 14);
             g2.fx.ring(x, y, 8, 60, 0.35, '#ffb84a', 6);
             g2.fx.shake(3);
-            audio.bomb();
+            audio.bomb(false, 2); // 噴火の音は同時に 2 つまで
             if (Math.hypot(g2.player.x - x, g2.player.y - y) < 55 + g2.player.r) g2.hurtPlayer(32 * g2.stageDmg); // 噴火（2 倍）
             g2.aoe(x, y, 55, 300 * g2.hpScale(), null, { kb: 150 });
           });

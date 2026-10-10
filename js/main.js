@@ -6,7 +6,7 @@ import { refreshLot } from './auction.js';
 import { Input } from './input.js';
 import { audio } from './audio.js';
 import { save, persist } from './save.js';
-import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, BACK_SHOP, shopCost } from './data.js';
+import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost } from './data.js';
 import { ARTIFACTS } from './artifacts.js';
 import { STAGES, STAGE_BY_ID } from './stages.js';
 import { gemSprite, starSprite, backgroundTile } from './render.js';
@@ -271,7 +271,7 @@ function settleRun(res, cleared) {
     newBest[k] = v > (save.best[k] || 0) && save.stats.runs > 1;
     if (v > (save.best[k] || 0)) save.best[k] = v;
   }
-  const rankUp = DEBUG.bot ? null : addRankExp(runExp(res, cleared)); // ユーザーレベルの経験値
+  const rankUp = DEBUG.bot ? null : addRankExp(runExp(res, cleared)); // ユーザーランクの経験値
   const newAch = checkAchievements(res, false);
   persist();
   return { coinsEarned, newBest, newAch, firstClear, unlocked, nextStage, rankUp };
@@ -342,7 +342,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape' || e.code === 'KeyP') document.getElementById('pausebtn').click();
 });
 
-// 旧バージョンのセーブの移行。起動時と、バックアップの読み込み時に行う。工房の返金額（裏工房の入れ替えの分）を返す
+// 旧バージョンのセーブの移行。起動時と、バックアップの読み込み時に行う。工房の返金額（上位工房の入れ替えの分）を返す
 function migrateSave() {
   // 旧バージョンのセーブ：ステージ1クリア済みなら引き継ぐ
   if (save.stats.clears > 0 && !(save.stages.wastes && save.stages.wastes.cleared)) {
@@ -356,6 +356,12 @@ function migrateSave() {
     persist();
   }
   if (settleRank()) persist(); // ランクの必要経験値を下げた分を反映
+  // ログインボーナスを連続日数から累計日数に変えた：それまでの連続日数を累計として引き継ぐ
+  if (save.login && 'streak' in save.login) {
+    save.login.days = Math.max(save.login.days || 0, save.login.streak || 0);
+    delete save.login.streak;
+    persist();
+  }
   // 虚空聖堂をクリア済みなら、あとから追加したオブシディアンを解放する
   if (save.stages.void && save.stages.void.cleared && !save.unlocked.obsidian) { save.unlocked.obsidian = true; persist(); }
   // 宝石の所持数を数える前のセーブは、研磨数をそのまま所持数にする
@@ -363,27 +369,51 @@ function migrateSave() {
     for (const r of Object.values(save.jewels)) if (r.have === undefined) r.have = r.n || 0;
     persist();
   }
-  // 工房の返金額：払ったコインを記録する前のセーブは、当時の値段（表の工房は今の半分、裏工房は今と同じ）で数えて引き継ぐ
-  if (!save.shopPaid) {
-    const sum = (up, cost) => SHOP.reduce((a, it) => { for (let i = 0; i < ((up || {})[it.id] || 0); i++) a += cost(it, i); return a; }, 0);
-    const oldBack = (it) => (['reroll', 'skip', 'banish', 'revive', 'amount'].includes(it.id) ? 12 : 6); // 旧裏工房の値段（工房の 6 倍、回数系などは 12 倍）
-    save.shopPaid = { front: sum(save.upgrades, (it, i) => shopCost(it, i) / 2), back: sum(save.upgrades2, (it, i) => shopCost(it, i) * oldBack(it)) };
+  // 「裏工房」を「上位工房」に改名した：セーブの名前も移す
+  if ('backShop' in save) {
+    if (save.backShop) save.upperShop = true;
+    delete save.backShop;
     persist();
   }
-  // 裏工房の中身を専用の強化に入れ替えた：旧裏工房（工房の半分の効果）で強化していた分は、払ったコインを全額返す
-  let backRefund = 0;
-  if (Object.keys(save.upgrades2 || {}).some((k) => !BACK_SHOP.some((it) => it.id === k))) {
-    backRefund = save.shopPaid.back || 0;
-    save.coins += backRefund;
+  if (save.shopPaid && 'back' in save.shopPaid) {
+    save.shopPaid.upper = (save.shopPaid.upper || 0) + (save.shopPaid.back || 0);
+    delete save.shopPaid.back;
+    persist();
+  }
+  // 工房の返金額：払ったコインを記録する前のセーブは、当時の値段（工房は今の半分、上位工房は今と同じ）で数えて引き継ぐ
+  if (!save.shopPaid) {
+    const sum = (up, cost) => SHOP.reduce((a, it) => { for (let i = 0; i < ((up || {})[it.id] || 0); i++) a += cost(it, i); return a; }, 0);
+    const oldBack = (it) => (['reroll', 'skip', 'banish', 'revive', 'amount'].includes(it.id) ? 12 : 6); // 旧上位工房の値段（工房の 6 倍、回数系などは 12 倍）
+    save.shopPaid = { front: sum(save.upgrades, (it, i) => shopCost(it, i) / 2), upper: sum(save.upgrades2, (it, i) => shopCost(it, i) * oldBack(it)) };
+    persist();
+  }
+  // 上位工房の中身を専用の強化に入れ替えた：旧上位工房（工房の半分の効果）で強化していた分は、払ったコインを全額返す
+  let upperRefund = 0;
+  if (Object.keys(save.upgrades2 || {}).some((k) => !UPPER_SHOP.some((it) => it.id === k))) {
+    upperRefund = save.shopPaid.upper || 0;
+    save.coins += upperRefund;
     save.upgrades2 = {};
     save.upgrades2Off = {};
-    save.shopPaid.back = 0;
+    save.shopPaid.upper = 0;
     persist();
   }
   // 流星のオルゴールの解放を Lv.50 から Lv.15 の実績に移した：Lv.30 以上の実績があれば Lv.15 も達成済みにする
   if (!save.achievements.lv15 && (save.achievements.lv30 || save.achievements.lv50)) {
     save.achievements.lv15 = true;
     save.coins += ACHIEVEMENTS.find((a) => a.id === 'lv15').coins;
+    persist();
+  }
+  // 生存時間の実績を HURRY の倍速を含まない時間で判定していたため、HURRY で 10 分（20 分）を超えても取れていなかった。
+  // クリア済みステージの最長記録（画面の時計）から付ける（最終ボスの 3 分以上あとまで続く記録は、実際にはエンドレスでしか出ない）
+  const mig = save.migrated || (save.migrated = {});
+  if (!mig.endlessTime) {
+    mig.endlessTime = true;
+    const longest = Math.max(0, ...STAGES.filter((st) => (save.stages[st.id] || {}).cleared).map((st) => save.stages[st.id].best || 0));
+    for (const [id, sec] of [['endless20', 600], ['endless40', 1200]]) {
+      if (save.achievements[id] || longest < sec) continue;
+      save.achievements[id] = true;
+      save.coins += ACHIEVEMENTS.find((a) => a.id === id).coins;
+    }
     persist();
   }
   // 解放条件を実績に移したキャラ：すでにその実績を持っていれば解放しておく
@@ -393,9 +423,9 @@ function migrateSave() {
       persist();
     }
   }
-  return backRefund;
+  return upperRefund;
 }
-const backRefund = migrateSave();
+const upperRefund = migrateSave();
 
 UI.initUI({ startGame, toTitle, migrateSave, checkMetaAchievements: () => checkAchievements(null, true) });
 window.__save = save; // デバッグ用
@@ -406,7 +436,7 @@ if (DEBUG.autostart) {
 } else {
   UI.showTitle();
   recoverPendingRun(); // 再開の確認はタイトル（ログインボーナス）の上に出す
-  if (backRefund) setTimeout(() => UI.toast('裏工房の入れ替えに伴い返金', `+${backRefund.toLocaleString()} コイン`, 'BACKROOM'), 900);
+  if (upperRefund) setTimeout(() => UI.toast('上位工房の入れ替えに伴い返金', `+${upperRefund.toLocaleString()} コイン`, 'MASTERWORKS'), 900);
 }
 
 // オフライン用 サービスワーカー

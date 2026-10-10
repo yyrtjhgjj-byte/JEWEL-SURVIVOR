@@ -149,7 +149,7 @@ export function autoGrade() {
 
 // ---------------------------------------------------------------- ラン中のドロップ
 // 基本の等級を、ステージとヒートに応じて確率で 1 段階上げる
-// bonus：裏工房「原石の目利き」（+0.2/Lv）。上位の等級になる確率 +0.1 × bonus
+// bonus：上位工房「原石の目利き」（+0.2/Lv）。上位の等級になる確率 +0.1 × bonus
 export function upgradeTier(tier, stageNo, heat, bonus = 0) {
   const i = ROUGH_IDS.indexOf(tier);
   if (i >= ROUGH_IDS.length - 1) return tier;

@@ -2,8 +2,8 @@
 //  UI：タイトル / レベルアップ / 宝箱 / ガチャ / 図鑑 / リザルト
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, BACK_SHOP, shopCost,
-  ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost,
+  ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA100_COST, GACHA100_UR, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK, charmLbText,
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite, shopIcon, pickaxeIcon } from './render.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
@@ -17,6 +17,7 @@ import { save, persist, resetSave, exportSave, parseBackup, importSave } from '.
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox } from './jukebox.js';
+import { BREAK_TIME } from './game.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 function el(html) {
@@ -147,8 +148,9 @@ function countUp(elm, target, dur, fmtFn, tick = true) {
 }
 
 // ================================================================== タイトル
-// ------------------------------------------------------------------ ユーザーレベル
-const rankStyle = (lv) => { const c = rankClass(lv).color; return c === 'prism' ? 'rk-prism' : ''; };
+// ------------------------------------------------------------------ ユーザーランク
+// 称号の素材ごとの見た目（rk-acrylic ／ rk-glass ／ rk-crystal）
+const rankStyle = (lv) => `rk-${rankClass(lv).en.toLowerCase()}`;
 const rankColor = (lv) => { const c = rankClass(lv).color; return c === 'prism' ? '#e6c8ff' : c; };
 function rankChip() {
   const r = rankState();
@@ -164,7 +166,7 @@ function showRank() {
       <div class="label">USER RANK</div>
       <div class="rk-head"><b class="rk-num">${r.lv}</b><div><div class="rk-cls ${rankStyle(r.lv)}">${cls.name}</div><div class="rk-en">${cls.en}</div></div></div>
       <div class="rk-bar"><i style="width:${(r.xp / need) * 100}%"></i></div>
-      <div class="rk-next">次のレベルまで <b>${fmt(need - r.xp)}</b> EXP</div>
+      <div class="rk-next">次のランクまで <b>${fmt(need - r.xp)}</b> EXP</div>
       <div class="rrow2"><span>獲得コイン</span><b>+${pct(rankCoinMul(r.lv))}%<span class="up">→ +${pct(rankCoinMul(r.lv + 1))}%</span></b></div>
       <button class="btn" id="ok" style="margin-top:8px">閉じる</button>
     </div></div>`);
@@ -248,7 +250,7 @@ export function showTitle() {
 function todayStr(d = new Date()) {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
-// ログインボーナス（7 日周期）：研磨の原石
+// ログインボーナス（受け取った日数の累計で 7 日周期。連続でなくてよい）：研磨の原石
 const LOGIN_REWARDS = [
   { tier: 'shard', n: 2 }, { tier: 'rough', n: 1 }, { tier: 'shard', n: 3 }, { tier: 'rough', n: 2 },
   { tier: 'large', n: 1 }, { tier: 'rough', n: 3 }, { tier: 'mystic', n: 1 },
@@ -257,11 +259,9 @@ function loginBonus() {
   const today = todayStr();
   const L = save.login;
   if (L.last === today) return;
-  const y = new Date();
-  y.setDate(y.getDate() - 1);
-  L.streak = L.last === todayStr(y) ? L.streak + 1 : 1;
+  L.days = (L.days || 0) + 1;
   L.last = today;
-  const day = ((L.streak - 1) % 7) + 1;
+  const day = ((L.days - 1) % 7) + 1;
   const reward = LOGIN_REWARDS[day - 1];
   save.rough[reward.tier] = (save.rough[reward.tier] || 0) + reward.n;
   persist();
@@ -270,7 +270,7 @@ function loginBonus() {
     <div class="screen dim" style="justify-content:center;gap:14px;text-align:center">
       <div class="rays"></div>
       <div class="big-title prism-text">DAILY BONUS</div>
-      <div class="sub-title">連続ログイン <b>${L.streak}</b> 日目</div>
+      <div class="sub-title">累計ログイン <b>${L.days}</b> 日目</div>
       <div class="login-days">${LOGIN_REWARDS.map((r, i) => `<div class="lday ${i + 1 < day ? 'got' : ''} ${i + 1 === day ? 'today' : ''}"><span>DAY</span><b>${i + 1}</b><img src="${roughIcon(r.tier, ROUGH[r.tier].color, 48)}" alt=""><span>×${r.n}</span></div>`).join('')}</div>
       <div class="login-reward"><img src="${roughIcon(reward.tier, R.color, 96)}" alt=""><span>${R.name} ×${reward.n}</span></div>
       <button class="btn big primary" id="lok">CLAIM</button>
@@ -344,8 +344,8 @@ export function showCharSelect() {
   };
 }
 
-// 裏工房の強化のレベル（無効にしているものは 0）
-const backLv = (id) => ((save.upgrades2Off || {})[id] ? 0 : (save.upgrades2 || {})[id] || 0);
+// 上位工房の強化のレベル（無効にしているものは 0）
+export const upperLv = (id) => ((save.upgrades2Off || {})[id] ? 0 : (save.upgrades2 || {})[id] || 0);
 
 // ================================================================== ステージ選択
 function stageRec(id) { return save.stages[id] || {}; }
@@ -378,11 +378,11 @@ export function showStageSelect() {
     const arts = unlockedArtifacts();
     if (save.artSel && !arts.includes(save.artSel)) save.artSel = null;
     const artA = save.artSel ? ARTIFACT_BY_ID[save.artSel] : null;
-    // 裏工房「秘宝の持ち込み」：2 つ目の秘宝
-    const two = backLv('art2') > 0;
+    // 上位工房「秘宝の持ち込み」：2 つ目の秘宝
+    const two = upperLv('art2') > 0;
     if (save.artSel2 && (!arts.includes(save.artSel2) || save.artSel2 === save.artSel)) save.artSel2 = null;
     const artB = two && save.artSel2 ? ARTIFACT_BY_ID[save.artSel2] : null;
-    const coinMul = 1 + (0.3 + 0.06 * backLv('heatCoin')) * h;
+    const coinMul = 1 + (0.3 + 0.06 * upperLv('heatCoin')) * h;
     $('#opts', node).innerHTML = `
       <div class="toggle-row art-row" style="margin-bottom:10px"><span>ARTIFACT<small>${arts.length ? (artA ? `${artA.no}　${artA.name}` : '持ち込まない') : '実績を達成すると解放'}</small></span>
         <button class="btn small" id="artsel" ${arts.length ? '' : 'disabled'}>${artA ? '変更' : '選ぶ'}</button></div>
@@ -430,7 +430,7 @@ export function showStageSelect() {
     save.selectedStage = sel;
     persist();
     const rec = stageRec(sel);
-    app.startGame(save.selected, { stageId: sel, heat: Math.min((save.heatSels || {})[sel] ?? 0, rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0), endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry, artifact: save.artSel || null, artifact2: backLv('art2') ? save.artSel2 : null });
+    app.startGame(save.selected, { stageId: sel, heat: Math.min((save.heatSels || {})[sel] ?? 0, rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0), endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
   };
 }
 
@@ -446,37 +446,37 @@ function shopEffect(it, lv, max, eff = 1) {
   return `${label}<b class="scur">${v(lv)}</b>${max ? '' : `<span class="snext"> → ${v(lv + 1)}</span>`}`;
 }
 
-// back = true で裏工房（工房をすべて最大にすると解放）
-export function showShop(back = false) {
-  const up = back ? save.upgrades2 : save.upgrades;
-  const upOff = back ? save.upgrades2Off : save.upgradesOff;
-  const ITEMS = back ? BACK_SHOP : SHOP; // 裏工房は専用の強化（data.js の BACK_SHOP）
-  const costOf = (it, lv) => (back ? it.cost[lv] : shopCost(it, lv));
-  if (!back && !save.backShop && SHOP.every((it) => (save.upgrades[it.id] || 0) >= it.max)) {
-    save.backShop = true;
+// upper = true で上位工房（工房をすべて最大にすると解放）
+export function showShop(upper = false) {
+  const up = upper ? save.upgrades2 : save.upgrades;
+  const upOff = upper ? save.upgrades2Off : save.upgradesOff;
+  const ITEMS = upper ? UPPER_SHOP : SHOP; // 上位工房は専用の強化（data.js の UPPER_SHOP）
+  const costOf = (it, lv) => (upper ? it.cost[lv] : shopCost(it, lv));
+  if (!upper && !save.upperShop && SHOP.every((it) => (save.upgrades[it.id] || 0) >= it.max)) {
+    save.upperShop = true;
     persist();
   }
   const node = el(`
     <div class="screen">
-      ${back ? topbar('BACKROOM', '裏工房') : topbar('WORKSHOP', '工房 — 永続強化')}
-      ${back ? '' : `<button class="btn back-shop-btn" id="ura" ${save.backShop ? '' : 'disabled'}>BACKROOM<span class="sub">${save.backShop ? '裏工房' : '裏工房 — 工房の強化をすべて最大にすると解放'}</span></button>`}
+      ${upper ? topbar('MASTERWORKS', '上位工房') : topbar('WORKSHOP', '工房 — 永続強化')}
+      ${upper ? '' : `<button class="btn upper-shop-btn" id="upper" ${save.upperShop ? '' : 'disabled'}>MASTERWORKS<span class="sub">${save.upperShop ? '上位工房' : '上位工房 — 工房の強化をすべて最大にすると解放'}</span></button>`}
       <div class="shop-list" id="list"></div>
       <div class="refund-row"><button class="btn small" id="refund"></button><span>最大まで上げた強化は ON／OFF を切り替えられます</span></div>
     </div>`);
   show(node);
-  $('#back', node).onclick = () => { audio.tap(); if (back) showShop(false); else showTitle(); };
-  if (!back) $('#ura', node).onclick = () => { if (!save.backShop) return; audio.select(); showShop(true); };
+  $('#back', node).onclick = () => { audio.tap(); if (upper) showShop(false); else showTitle(); };
+  if (!upper) $('#upper', node).onclick = () => { if (!save.upperShop) return; audio.select(); showShop(true); };
   const list = $('#list', node);
   // 実際に払ったコイン（値段を変えても、払った分だけ返す。main.js で旧セーブから引き継ぐ）
-  const paid = save.shopPaid || (save.shopPaid = { front: 0, back: 0 });
-  const pk = back ? 'back' : 'front';
+  const paid = save.shopPaid || (save.shopPaid = { front: 0, upper: 0 });
+  const pk = upper ? 'upper' : 'front';
   const spent = () => paid[pk] || 0;
-  // 全額返金：強化をすべて Lv0 に戻し、使ったコインを返す（工房と裏工房は別々）
+  // 全額返金：強化をすべて Lv0 に戻し、使ったコインを返す（工房と上位工房は別々）
   $('#refund', node).onclick = () => {
     const v = spent();
     if (!v) return;
     audio.tap();
-    if (!confirm(`${back ? '裏工房' : '工房'}の強化をすべて Lv0 に戻し、${fmt(v)} コインを返金します。よろしいですか？`)) return;
+    if (!confirm(`${upper ? '上位工房' : '工房'}の強化をすべて Lv0 に戻し、${fmt(v)} コインを返金します。よろしいですか？`)) return;
     save.coins += v;
     paid[pk] = 0;
     for (const k of Object.keys(up)) delete up[k];
@@ -498,7 +498,7 @@ export function showShop(back = false) {
       const off = max && !!upOff[it.id];
       const row = el(`<div class="shop-item ${off ? 'off' : ''}">
         <img src="${shopIcon(it.id, 72)}">
-        <div class="sbody"><div class="sname">${it.name}<small>LV ${lv}/${it.max}</small></div>
+        <div class="sbody"><div class="sname"><span class="sn">${it.name}</span><small>LV ${lv}/${it.max}</small></div>
           <div class="sdesc">${shopEffect(it, lv, max)}</div>
           <div class="pips">${Array.from({ length: it.max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>
         <button class="btn small ${max ? 'maxsw' : 'gold'}" ${!max && save.coins < cost ? 'disabled' : ''}>${max ? (off ? 'OFF' : 'MAX ON') : coinIco + fmt(cost)}</button>
@@ -556,6 +556,7 @@ export function showGacha() {
       <div class="rbtns" id="gbtns">
         <button class="btn gold" id="g1">×1<span class="sub">${fmt(GACHA_COST)} コイン</span></button>
         <button class="btn primary" id="g10">×10<span class="sub">${fmt(GACHA10_COST)} コイン・大原石以上1枠確定</span></button>
+        ${upperLv('mine100') ? `<button class="btn primary g100" id="g100">×100<span class="sub">${fmt(GACHA100_COST)} コイン・秘石${GACHA100_UR}つ以上確定</span></button>` : ''}
       </div>
       <button class="btn dust-btn" id="gex">EXCHANGE<span class="sub">交換所 ／ ジェムダスト <b id="dustn">${fmt(save.dust || 0)}</b></span></button>
       <div class="odds">UR 3%：秘石 ／ SSR 10%：大原石 ／ SR 27%：原石 ／ R 60%：原石の欠片 ×2<br>掘るたびにジェムダスト（UR 10 ／ SSR 5 ／ SR 2 ／ R 1）が貯まり、交換所で秘石・大原石・覚醒と交換できます</div>
@@ -567,17 +568,26 @@ export function showGacha() {
   const upd = () => {
     $('#g1', node).disabled = save.coins < GACHA_COST;
     $('#g10', node).disabled = save.coins < GACHA10_COST;
+    if ($('#g100', node)) $('#g100', node).disabled = save.coins < GACHA100_COST;
     $('#dustn', node).textContent = fmt(save.dust || 0);
   };
   $('#gex', node).onclick = () => { audio.tap(); showExchange(upd); };
   upd();
   const run = async (n) => {
-    const cost = n === 1 ? GACHA_COST : GACHA10_COST;
+    const cost = n === 1 ? GACHA_COST : n === 10 ? GACHA10_COST : GACHA100_COST;
     if (save.coins < cost) return;
     save.coins -= cost;
     save.stats.gacha += n;
     const results = [];
-    for (let i = 0; i < n; i++) results.push(gachaRoll(n === 10 && i === 9 && !results.some((r) => rankNum(r.rank) >= 3) ? 'SSR' : 'R'));
+    if (n === 100) {
+      // 100 連：残りの回数が、足りない秘石の数と同じになったら秘石を確定させる
+      let ur = 0;
+      for (let i = 0; i < n; i++) {
+        const r = gachaRoll(n - i <= GACHA100_UR - ur ? 'UR' : 'R');
+        if (r.rank === 'UR') ur++;
+        results.push(r);
+      }
+    } else for (let i = 0; i < n; i++) results.push(gachaRoll(n === 10 && i === 9 && !results.some((r) => rankNum(r.rank) >= 3) ? 'SSR' : 'R'));
     persist();
     refreshCoinPill();
     btns.style.visibility = 'hidden';
@@ -607,6 +617,8 @@ export function showGacha() {
     altar.classList.add('hidden');
     if (n === 1) {
       res.appendChild(el(gachaCardHTML(results[0], true)));
+    } else if (n === 100) {
+      await gachaStacks(res, results);
     } else {
       const wrap = el('<div class="gacha-result"></div>');
       res.appendChild(wrap);
@@ -626,6 +638,45 @@ export function showGacha() {
   };
   $('#g1', node).onclick = () => run(1);
   $('#g10', node).onclick = () => run(10);
+  if ($('#g100', node)) $('#g100', node).onclick = () => run(100);
+}
+
+// 100 連の結果：レア度ごとに 1 つの山に重ねて、手に入った原石の数を数え上げる（低いレア度から順に）
+async function gachaStacks(box, results) {
+  const by = {};
+  for (const r of results) {
+    const g = by[r.rank] || (by[r.rank] = { rank: r.rank, tier: r.tier, count: 0, n: 0, dust: 0 });
+    g.count++;
+    g.n += r.n;
+    g.dust += r.dust;
+  }
+  const groups = Object.values(by).sort((a, b) => rankNum(b.rank) - rankNum(a.rank));
+  const wrap = el('<div class="gacha-stacks"></div>');
+  box.appendChild(wrap);
+  const nodes = groups.map((g) => {
+    const R = ROUGH[g.tier];
+    const s = el(`<div class="gstack r-${g.rank}">
+      <div class="gs-pile"><i class="ghost"></i><i class="ghost"></i>
+        <div class="gcard r-${g.rank}"><span class="rarbadge r-${g.rank}">${g.rank}</span><img src="${roughIcon(g.tier, R.color, 72)}"><div class="gn">${R.name}</div></div>
+        <b class="gs-n">×0</b></div>
+      <div class="gs-total">ジェムダスト +${g.dust}</div>
+    </div>`);
+    s.style.visibility = 'hidden';
+    wrap.appendChild(s);
+    return s;
+  });
+  const dust = results.reduce((a, r) => a + r.dust, 0);
+  box.appendChild(el(`<div class="gs-sum">100 連 ／ ジェムダスト +${dust}</div>`));
+  for (let i = groups.length - 1; i >= 0; i--) {
+    const s = nodes[i], g = groups[i];
+    s.style.visibility = '';
+    s.classList.add('in');
+    audio.cardFlip(groups.length - 1 - i);
+    await countUp($('.gs-n', s), g.n, 380 + g.count * 6, (v) => '×' + Math.round(v));
+    haptic();
+    await wait(120);
+  }
+  audio.bigWin();
 }
 const rankNum = (r) => ({ R: 1, SR: 2, SSR: 3, UR: 4 })[r] || 0;
 function gachaCardHTML(r, big) {
@@ -839,9 +890,9 @@ function setupBackup(node) {
     const when = data.lastBackup ? new Date(data.lastBackup).toLocaleString('ja-JP') : '不明';
     const msg = `このバックアップで現在のデータを上書きします。\n\n書き出し日時：${when}\nコイン：${fmt(data.coins)}\nクリア済みステージ：${clears}\n解放ジュエル：${chars}\n\nよろしいですか？`;
     if (!confirm(msg)) return;
-    const login = { ...save.login }; // ログインボーナスを二重に受け取れないよう、今の受け取り状況は引き継ぐ
+    // ログインボーナスの記録もバックアップのものを使う（累計の日数を引き継ぐ）。バックアップが今日より前のものなら、
+    // タイトルに戻ったときに今日の分をもう一度受け取る（読み込む前に受け取った分は、上書きで消えているため）
     importSave(data);
-    save.login = login;
     // 古い版のバックアップでも、起動時と同じ移行処理を通す（工房の支払い記録などが欠けたまま保存されないように）
     const refund = app.migrateSave ? app.migrateSave() : 0;
     persist();
@@ -849,7 +900,7 @@ function setupBackup(node) {
     audio.levelUp();
     showTitle();
     banner('LOADED', 'item', 'バックアップを読み込みました');
-    if (refund) setTimeout(() => toast('裏工房の入れ替えに伴い返金', `+${refund.toLocaleString()} コイン`, 'BACKROOM'), 900);
+    if (refund) setTimeout(() => toast('上位工房の入れ替えに伴い返金', `+${refund.toLocaleString()} コイン`, 'MASTERWORKS'), 900);
   };
 }
 
@@ -880,6 +931,8 @@ export function showSettings(back, asOverlay) {
   $('#back', node).onclick = () => { audio.tap(); persist(); if (asOverlay) node.remove(); if (back) back(); };
   $('#bgm', node).oninput = (e) => { save.settings.bgm = +e.target.value; audio.applyVolume(); };
   $('#sfx', node).oninput = (e) => { save.settings.sfx = +e.target.value; audio.applyVolume(); audio.coin(); };
+  // 指を離したときにも保存する（戻るを押す前にアプリが終了しても、音量が戻らないように）
+  for (const id of ['#bgm', '#sfx']) $(id, node).onchange = () => persist();
   node.querySelectorAll('.switch').forEach((sw) => (sw.onclick = () => {
     const k = sw.dataset.k;
     save.settings[k] = !save.settings[k];
@@ -931,13 +984,13 @@ export function hud(g) {
     if (lastCoins >= 0) { H.coinstat.classList.remove('bump'); void H.coinstat.offsetWidth; H.coinstat.classList.add('bump'); }
     lastCoins = g.coins;
   }
-  const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '') + (w.lbN || 0)).join() + '|' + g.passives.map((p) => p.id + p.level).join() + '|' + g.arts.join();
+  const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '') + (w.lbN || 0)).join() + '|' + g.passives.map((p) => p.id + p.level + (p.lbN || 0)).join() + '|' + g.arts.join();
   if (key !== lastSlots) {
     lastSlots = key;
     const empty = (n, max) => '<div class="slotico empty"></div>'.repeat(Math.max(0, max - n));
     H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}${w.lbN ? `<i>+${w.lbN}</i>` : ''}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
       '<i style="grid-column:1/-1;height:0"></i>' +
-      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
+      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}${p.lbN ? `<i>+${p.lbN}</i>` : ''}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
       (g.arts.length ? '<i style="grid-column:1/-1;height:0"></i>' + g.arts.map((id) => `<div class="slotico art"><img src="${artifactIcon(id, 48)}"></div>`).join('') : '');
   }
   const f = g.feverT > 0 ? g.feverT / (g.feverDur || 10) : g.feverGauge / g.feverNeed;
@@ -955,7 +1008,7 @@ export function hud(g) {
     H.bossFill.style.transform = `scaleX(${Math.max(0, g.boss.hp / g.boss.maxHp)})`;
     // ブレイクゲージ：ブレイク中は残り時間、それ以外はたまり具合。近くで戦っていると明るくなる
     const b = g.boss;
-    H.bossBreak.style.transform = `scaleX(${b.breakT > 0 ? b.breakT / 4 : Math.min(1, b.breakG || 0)})`;
+    H.bossBreak.style.transform = `scaleX(${b.breakT > 0 ? b.breakT / BREAK_TIME : Math.min(1, b.breakG || 0)})`;
     H.boss.classList.toggle('broken', b.breakT > 0);
     H.boss.classList.toggle('near', !(b.breakT > 0) && (b.breakNear || 0) >= 1.5);
   }
@@ -1037,10 +1090,14 @@ function choiceInfo(g, c) {
     if (c.double && def.levels[w.level]) desc += ' ／ ' + real(def.levels[w.level].t);
     return { icon: gemIcon(def.gem, 96), name: def.name, lv: `LV ${w.level} → ${next}${next >= WEAPON_MAX ? ' MAX' : ''}`, desc, word, rar: c.double ? 'SSR' : next >= WEAPON_MAX ? 'SR' : 'N', tags: evoTagForWeapon(g, def) };
   }
-  if (c.type === 'pnew' || c.type === 'pup') {
+  if (c.type === 'pnew' || c.type === 'pup' || c.type === 'plb') {
     const P = PASSIVES[c.id];
     const gem = GEMS[P.gem];
     const word = `ジュエルパワー「${gem.word}」`;
+    if (c.type === 'plb') {
+      const p = g.getPassive(c.id);
+      return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LIMIT BREAK ${(p.lbN || 0) + 1}`, desc: charmLbText(c.id), word, rar: 'R', tags: '' };
+    }
     if (c.type === 'pnew') {
       const evoTags = evoTagsForCharm(g, c.id, false);
       return { icon: gemIcon(P.gem, 96), name: P.name, lv: 'NEW', desc: P.t, word, rar: evoTags ? 'UR' : 'R', tags: (save.seen.passives[c.id] ? '' : T_NEW) + evoTags };
@@ -1236,6 +1293,7 @@ function itemIcon(c) {
 function itemLabel(g, c) {
   if (c.type === 'evo') return 'EVOLVE';
   if (c.type === 'lb') return `LIMIT +${g.getWeapon(c.id).lbN}`;
+  if (c.type === 'plb') return `LIMIT +${g.getPassive(c.id).lbN}`;
   if (c.type === 'wup') return `LV ${g.getWeapon(c.id).level}`;
   if (c.type === 'pup') return `LV ${g.getPassive(c.id).level}`;
   return 'COIN';
@@ -1329,7 +1387,7 @@ export function pauseMenu(g, onResume, onQuit) {
           ${g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 64)}"><b>${w.evolved ? '★' : w.level}${w.lbN ? `<i>+${w.lbN}</i>` : ''}</b></div>`).join('')}
         </div>
         <div class="pause-build">
-          ${g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 64)}"><b>${p.level}</b></div>`).join('')}
+          ${g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 64)}"><b>${p.level}${p.lbN ? `<i>+${p.lbN}</i>` : ''}</b></div>`).join('')}
         </div>
         ${elemSummary(g)}
         ${g.stats.overMight > 0.005 ? `<div class="hint">上限超過 → 攻撃力 +${Math.round(g.stats.overMight * 100)}%</div>` : ''}
@@ -1380,7 +1438,7 @@ export function resumePrompt(res, onResume, onSettle) {
 }
 
 // ================================================================== リザルト
-// ユーザーレベルの経験値バーを伸ばす（レベルが上がったら数字と色を切り替える）
+// ユーザーランクの経験値バーを伸ばす（ランクが上がったら数字と色を切り替える）
 async function rankAnim(box, ru) {
   const bar = $('.rk-bar i', box), num = $('#rkl', box);
   let lv = ru.from.lv;
@@ -1436,7 +1494,7 @@ export function results(res, cleared, extra) {
     </div>`);
   show(node);
   guard($('.rbtns', node), 1500);
-  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, artifact: save.artSel || null, artifact2: backLv('art2') ? save.artSel2 : null }); };
+  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null }); };
   $('#home', node).onclick = () => { audio.tap(); app.toTitle(); };
   const rowsEl = $('#rows', node);
   const rows = [

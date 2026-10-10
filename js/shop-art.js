@@ -573,7 +573,7 @@ const ICON = {
   },
 };
 
-// ------------------------------------------------------------------ 裏工房の強化
+// ------------------------------------------------------------------ 上位工房の強化
 function coinAt(ctx, x, y, r) {
   ctx.fillStyle = GOLD(ctx, x - r, x + r);
   glow(ctx, '#ffd23d', 6);
@@ -758,6 +758,64 @@ Object.assign(ICON, {
     gemlet(ctx, -4, 4, 6, '#ffffff', '#ffffff', '#c79a2a', 6);
     plus(ctx, 28, -26, 13, '#ffffff');
     plus(ctx, 34, 4, 8, '#ffe39a');
+  },
+  // チャームのリミットブレイク：金の輪に収まったチャームと★
+  charmLb(ctx) {
+    halo(ctx, 0, 2, 44, 'rgba(120,255,200,0.26)');
+    ctx.strokeStyle = GOLD(ctx, -12, 12); ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.arc(-4, -30, 7, 0, TAU); ctx.stroke();
+    ctx.fillStyle = GOLD(ctx, -26, 18);
+    glow(ctx, '#ffd24a', 8);
+    ctx.beginPath(); ctx.arc(-4, 4, 26, 0, TAU); ctx.fill();
+    noGlow(ctx);
+    ctx.fillStyle = '#141024'; ctx.beginPath(); ctx.arc(-4, 4, 21, 0, TAU); ctx.fill();
+    gemlet(ctx, -4, 4, 16, '#3fe0a0', '#e0fff2', '#0f6a48', 8);
+    ctx.save(); ctx.translate(26, -22);
+    glow(ctx, '#ffe39a', 10);
+    ctx.fillStyle = lin(ctx, 0, -14, 0, 14, [[0, '#fff6cf'], [1, '#e0a020']]);
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i / 10) * TAU, r = i % 2 ? 6 : 14; ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); }
+    ctx.closePath(); ctx.fill();
+    noGlow(ctx);
+    ctx.restore();
+    plus(ctx, 30, 22, 11, '#ffffff');
+  },
+  // 採掘の極意：交差したつるはしと、こぼれる原石
+  mine100(ctx) {
+    halo(ctx, 0, 0, 46, 'rgba(255,214,245,0.3)');
+    const axe = (rot) => {
+      ctx.save(); ctx.rotate(rot);
+      ctx.fillStyle = lin(ctx, -3, 0, 3, 0, [[0, '#5a3a1c'], [0.5, '#a8743a'], [1, '#4a2a10']]);
+      ctx.fillRect(-3, -26, 6, 58);
+      ctx.fillStyle = STEEL(ctx, -24, 24);
+      glow(ctx, '#e6f0ff', 6);
+      ctx.beginPath(); ctx.moveTo(-26, -18); ctx.quadraticCurveTo(0, -38, 26, -18); ctx.lineTo(22, -14); ctx.quadraticCurveTo(0, -28, -22, -14); ctx.closePath(); ctx.fill();
+      noGlow(ctx);
+      ctx.restore();
+    };
+    axe(-0.6); axe(0.6);
+    gemlet(ctx, -20, 30, 7, '#ffd6f5', '#ffffff', '#9c5a8a', 6);
+    gemlet(ctx, 0, 34, 8.5, '#e0b8ff', '#ffffff', '#6a3a9c', 6);
+    gemlet(ctx, 20, 30, 6, '#b8a8e0', '#ffffff', '#4a3a7a', 6);
+    star(ctx, -32, -6, 3); star(ctx, 34, -10, 2.6, '#ffd6f5'); star(ctx, 0, -40, 3.4, '#ffe39a');
+  },
+  // 裏オークション：闇に浮かぶ黒い木槌と紫の宝石
+  blackAuction(ctx) {
+    halo(ctx, 0, 0, 46, 'rgba(160,80,255,0.34)');
+    ctx.fillStyle = lin(ctx, -30, 24, 30, 36, [[0, '#2a1a40'], [1, '#120a1e']]);
+    ctx.strokeStyle = 'rgba(200,150,255,0.6)'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.ellipse(0, 32, 30, 7, 0, 0, TAU); ctx.fill(); ctx.stroke();
+    gemlet(ctx, -14, 18, 10, '#a77be0', '#f0e0ff', '#3a1a60', 6);
+    ctx.save(); ctx.translate(8, -6); ctx.rotate(-0.7);
+    ctx.fillStyle = lin(ctx, -3, 0, 3, 0, [[0, '#1a1022'], [0.5, '#4a3a5a'], [1, '#1a1022']]);
+    ctx.fillRect(-3, -2, 6, 40);
+    glow(ctx, '#b06bff', 10);
+    ctx.fillStyle = lin(ctx, -20, -14, 20, 4, [[0, '#2a1a3a'], [0.5, '#5a3a7a'], [1, '#1a0d26']]);
+    ctx.beginPath(); ctx.roundRect(-20, -16, 40, 18, 5); ctx.fill();
+    noGlow(ctx);
+    ctx.fillStyle = GOLD(ctx, -20, 20); ctx.fillRect(-14, -16, 4, 18); ctx.fillRect(10, -16, 4, 18);
+    ctx.restore();
+    star(ctx, 30, -30, 3, '#d8b8ff'); star(ctx, -32, -18, 2.4, '#ffffff');
   },
 });
 
