@@ -32,6 +32,38 @@ function warn(g, x, y, r, T, color, fn, owner = null) {
   g.warns.push({ x, y, r, t: 0, T, color, fn, owner });
 }
 
+// 渾沌の穴（竅）が開いたときの説明
+const HOLE_TEXT = [
+  '目が開いた — 狙って撃ってくる',
+  'もう一つの目が開いた',
+  '耳が開いた — 足音を聴いて狙ってくる',
+  'もう一つの耳が開いた',
+  '鼻が開いた — 吸い込んで、吐き出す',
+  'もう一つの鼻が開いた — 残るは口ひとつ',
+];
+
+// 檮杌の洪水：画面の外から、隙間（弾 5 つぶん）のある水の弾の壁が押し寄せる。怒ると 2 枚
+function floodWall(g, e, enraged) {
+  const p = g.player;
+  const a = Math.floor(rand(4)) * (Math.PI / 2);
+  const ux = Math.cos(a), uy = Math.sin(a);
+  const nx = -uy, ny = ux;
+  const step = 26;
+  const n = Math.floor((Math.max(g.viewW, g.viewH) * 1.3) / step);
+  for (let w = 0; w < (enraged ? 2 : 1); w++) {
+    const gap = Math.floor(rand(n * 0.25, n * 0.75));
+    const start = g.viewR + 40 + w * 150;
+    const cx = p.x - ux * start, cy = p.y - uy * start;
+    for (let i = 0; i < n; i++) {
+      if (Math.abs(i - gap) <= 2) continue;
+      const k = (i - n / 2) * step;
+      g.ebullets.push({ x: cx + nx * k, y: cy + ny * k, vx: ux * 115, vy: uy * 115, r: 9, dmg: e.dmg * 0.6, life: 12, color: '#3fd8b0' });
+    }
+  }
+  g.hooks.banner('FLOOD', 'warning', '洪水が押し寄せる — 隙間を抜けろ');
+  audio.whoosh();
+}
+
 export const AI = {
   // ------------------------------------------------ ジュエルシーフ（逃げ回る。時間がたつと消える）
   thief(g, e, dt, dist, mv) {
@@ -623,6 +655,276 @@ export const AI = {
     }
   },
 
+  // ================================================= 第3章：四凶
+  // 窮奇：羽の扇（狙い）／続けざまの飛びかかり・北風・眷属を順番に
+  kyuki(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.qkT === undefined) { e.qkT = 2; e.qk2 = 4; e.qkPat = 0; e.pounce = 0; }
+    mv.spd *= 0.85;
+    e.qkT -= dt * (enraged ? 1.3 : 1);
+    e.qk2 -= dt;
+    // 飛びかかる構えの間は口を開ける
+    e.charging = e.windup > 0;
+    // 続けざまの飛びかかり：突進が終わるたびに狙い直す
+    if (e.pounce > 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.pounce--;
+      startDash(e, p, enraged ? 0.45 : 0.55);
+    }
+    if (e.qkT <= 0) {
+      e.qkT = 2.4;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      const n = enraged ? 9 : 7;
+      for (let i = 0; i < n; i++) shoot(g, e, a0 + (i - (n - 1) / 2) * 0.13, 195, 7, { color: '#bfe8ff', mul: 0.55 });
+    }
+    if (e.northT > 0) {
+      // 北風：自機を南（画面の下）へ押し流し、上から風の刃が降る
+      e.northT -= dt;
+      p.y += 70 * dt;
+      e.windT = (e.windT || 0) - dt;
+      if (e.windT <= 0) {
+        e.windT = enraged ? 0.28 : 0.38;
+        for (let i = 0; i < 2; i++) {
+          const x = p.x + rand(-g.viewW * 0.5, g.viewW * 0.5);
+          g.ebullets.push({ x, y: p.y - g.viewH * 0.55 - rand(0, 60), vx: rand(-15, 15), vy: 200, r: 7, dmg: e.dmg * 0.5, life: 6, color: '#bfe8ff' });
+        }
+      }
+      if (Math.random() < 0.6) g.fx.add(p.x + rand(-g.viewW / 2, g.viewW / 2), p.y - g.viewH / 2 + rand(0, g.viewH), rand(-10, 10), 420, 0.5, 4, '#dff2ff', 'dot');
+    }
+    if (e.qk2 <= 0 && !(e.dash > 0) && !(e.windup > 0) && !(e.pounce > 0) && !(e.northT > 0)) {
+      e.qk2 = enraged ? 4.2 : 5.5;
+      e.qkPat = (e.qkPat + 1) % 3;
+      if (e.qkPat === 0) {
+        e.pounce = enraged ? 3 : 2;
+        g.hooks.banner('POUNCE', 'warning', '続けざまに飛びかかってくる');
+      } else if (e.qkPat === 1) {
+        e.northT = 3.4;
+        g.hooks.banner('NORTH WIND', 'warning', '北風 — 上から風の刃が降る');
+        audio.whoosh();
+      } else {
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < (enraged ? 3 : 2); i++) { const a = rand(TAU); g.spawnEnemy('yokko', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; g.spawnEnemy('kochou', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      }
+    }
+  },
+
+  // 檮杌：咆哮の輪（隙間あり）／尾の薙ぎ払い・洪水の壁・眷属を順番に
+  tokotsu(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.tkT === undefined) { e.tkT = 2.5; e.tk2 = 4; e.tkPat = 0; }
+    mv.spd *= 0.75;
+    e.tkT -= dt * (enraged ? 1.3 : 1);
+    e.tk2 -= dt;
+    if (e.tkT <= 0) {
+      e.tkT = 2.6;
+      const n = 28, a0 = rand(TAU);
+      for (let w = 0; w < (enraged ? 2 : 1); w++) {
+        for (let i = 2; i < n - 1; i++) shoot(g, e, a0 + (i / n) * TAU + w * Math.PI, 105 + w * 30, 8, { color: '#3fd8b0', mul: 0.6 });
+      }
+      g.fx.ring(e.x, e.y, e.r, e.r * 2.2, 0.4, '#3fd8b0', 6);
+    }
+    if (e.tk2 <= 0) {
+      e.tk2 = enraged ? 4.4 : 5.6;
+      e.tkPat = (e.tkPat + 1) % 3;
+      if (e.tkPat === 0) {
+        // 尾の薙ぎ払い：自機のいる側を、弧を描くように順に叩く（一丈八尺の尾）
+        const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+        const dir = chance(0.5) ? 1 : -1;
+        const n = enraged ? 11 : 9;
+        for (let k = 0; k < 2; k++) {
+          const R = e.r + 70 + k * 75;
+          for (let i = 0; i < n; i++) {
+            const a = a0 + dir * (-1.4 + (i / (n - 1)) * 2.8);
+            const x = e.x + Math.cos(a) * R, y = e.y + Math.sin(a) * R;
+            warn(g, x, y, 40, 0.75 + i * 0.07, '#e8c070', (g2) => {
+              g2.fx.burst(x, y, '#e8c070', 8, 180, 0.4, 8);
+              if (Math.hypot(g2.player.x - x, g2.player.y - y) < 40 + g2.player.r) g2.hurtPlayer(e.dmg * 0.9);
+            }, e);
+          }
+        }
+        audio.whoosh();
+      } else if (e.tkPat === 1) {
+        floodWall(g, e, enraged);
+      } else {
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < (enraged ? 4 : 3); i++) { const a = rand(TAU); g.spawnEnemy('tsuchi', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        const a = rand(TAU);
+        g.spawnEnemy('kui', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R);
+      }
+    }
+  },
+
+  // 饕餮：青銅のかけら（狙いの扇）／吸い込み・三青鳥と狍鴞・噛みつきを順番に。
+  // 吸い込んだ経験値とコインは、ダウン（ブレイク）か撃破のときに 1.5 倍にして吐き出す（spillEaten）
+  totetsu(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.ttT === undefined) { e.ttT = 2; e.tt2 = 4; e.ttPat = 0; }
+    mv.spd *= e.devourT > 0 ? 0 : 0.75;
+    e.ttT -= dt * (enraged ? 1.3 : 1);
+    e.tt2 -= dt;
+    if (e.devourT > 0) {
+      e.devourT -= dt;
+      e.charging = true;
+      const d = Math.hypot(e.x - p.x, e.y - p.y) || 1;
+      p.x += ((e.x - p.x) / d) * 75 * dt;
+      p.y += ((e.y - p.y) / d) * 75 * dt;
+      let ate = false;
+      for (const pk of g.pickups) {
+        if ((pk.kind !== 'xp' && pk.kind !== 'coin') || pk.vac) continue;
+        const dx = e.x - pk.x, dy = e.y - pk.y, dd = Math.hypot(dx, dy) || 1;
+        if (dd > g.viewR * 1.2) continue;
+        if (dd < e.r * 0.7) {
+          if (pk.kind === 'xp') e.eatXp = (e.eatXp || 0) + pk.value;
+          else e.eatCoin = (e.eatCoin || 0) + pk.value;
+          pk.eaten = true;
+          ate = true;
+          continue;
+        }
+        pk.x += (dx / dd) * 280 * dt;
+        pk.y += (dy / dd) * 280 * dt;
+      }
+      if (ate) g.pickups = g.pickups.filter((pk) => !pk.eaten);
+      if (Math.random() < 0.7) {
+        const a = rand(TAU), R = rand(120, 260);
+        g.fx.add(e.x + Math.cos(a) * R, e.y + Math.sin(a) * R, -Math.cos(a) * R * 2.2, -Math.sin(a) * R * 2.2, 0.45, 5, '#e8c070', 'dot');
+      }
+      if (e.devourT <= 0) {
+        // 吐き出す：骨の弾を扇状に
+        e.charging = false;
+        const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+        for (let i = -6; i <= 6; i++) shoot(g, e, a0 + i * 0.09, rand(150, 220), 8, { color: '#f6f0e2', mul: 0.55 });
+        g.fx.ring(e.x, e.y, e.r, e.r * 2.2, 0.4, '#e8c070', 6);
+      }
+      return;
+    }
+    if (e.ttT <= 0) {
+      e.ttT = 2.2;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      const n = enraged ? 7 : 5;
+      for (let i = 0; i < n; i++) shoot(g, e, a0 + (i - (n - 1) / 2) * 0.2, 180, 8, { color: '#e8c070', mul: 0.6 });
+    }
+    if (e.tt2 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.tt2 = enraged ? 4.4 : 5.6;
+      e.ttPat = (e.ttPat + 1) % 3;
+      if (e.ttPat === 0) {
+        e.devourT = 3.2;
+        g.hooks.banner('DEVOUR', 'warning', '吸い込まれる — 食べたものはダウンで吐き出す');
+        audio.warning();
+      } else if (e.ttPat === 1) {
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < 2; i++) { const a = rand(TAU); g.spawnEnemy('seicho', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        for (let i = 0; i < (enraged ? 3 : 2); i++) { const a = rand(TAU); g.spawnEnemy('houkyou', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      } else {
+        startDash(e, p, 0.75);
+      }
+    }
+  },
+
+  // 渾沌：HP を 7 等分した境目を越えるたびに、顔に穴（竅）が一つ開く（左目・右目・左耳・右耳・左の鼻・右の鼻。七つ目で死ぬ）。
+  // 拍に合わせた輪は最初から。目が開くと狙い撃ち、耳が開くと自機の足あとへの予告、鼻が開くと吸って吐く息が加わる。穴が六つで速くなる
+  konton(g, e, dt, dist, mv) {
+    const p = g.player;
+    const holes = Math.max(0, Math.min(6, Math.floor((1 - e.hp / e.maxHp) * 7)));
+    if (e.holes === undefined) { e.holes = holes; e.knT = 1.5; e.kn2 = 2.5; e.kn3 = 3.5; e.kn4 = 5; e.kn5 = 8; e.steps = []; e.stepT = 0; }
+    if (holes > e.holes) {
+      // 穴が開く：弾を消して、少しの間だけ無敵
+      e.holes = holes;
+      e.invulnT = 1.2;
+      e.breathT = 0;
+      g.ebullets.length = 0;
+      g.fx.shake(14);
+      g.fx.screenFlash(0.6, '#ff8a3d');
+      g.fx.ring(e.x, e.y, 20, g.viewR, 0.8, '#ffa040', 12);
+      g.hooks.banner(`第${'一二三四五六'[holes - 1]}の竅`, 'boss', HOLE_TEXT[holes - 1]);
+      audio.evolve();
+    }
+    e.sprFrame = e.holes;
+    if (e.invulnT > 0) { e.invulnT -= dt; mv.spd = 0; return; }
+    const fast = e.holes >= 6 ? 1.3 : 1;
+    // 舞：体を揺らしながら回る
+    const sway = Math.sin(g.time * 2.9) * 0.9;
+    const mx = mv.mx;
+    mv.mx += -mv.my * sway;
+    mv.my += mx * sway;
+    mv.spd *= 0.8;
+    // 自機の足あと（耳で聴く）
+    e.stepT -= dt;
+    if (e.stepT <= 0) { e.stepT = 0.25; e.steps.push([p.x, p.y]); if (e.steps.length > 8) e.steps.shift(); }
+    // 歌と舞：4 拍ごとの輪（BGM と同じ 140 BPM）
+    e.knT -= dt * fast;
+    if (e.knT <= 0) {
+      e.knT = (60 / 140) * 4;
+      e.spin = (e.spin || 0) + 0.35;
+      const n = 12;
+      for (let i = 0; i < n; i++) shoot(g, e, e.spin + (i / n) * TAU, 105, 7, { color: i % 2 ? '#ffd27a' : '#ff6a3d', mul: 0.5 });
+    }
+    // 目：狙い撃ち
+    if (e.holes >= 1) {
+      e.kn2 -= dt * fast;
+      if (e.kn2 <= 0) {
+        e.kn2 = 2.2;
+        const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+        const n = e.holes >= 2 ? 5 : 3;
+        for (let i = 0; i < n; i++) shoot(g, e, a0 + (i - (n - 1) / 2) * 0.16, 200, 7, { color: '#fff2c0', mul: 0.55 });
+      }
+    }
+    // 耳：少し前の足あとに予告
+    if (e.holes >= 3) {
+      e.kn3 -= dt * fast;
+      if (e.kn3 <= 0) {
+        e.kn3 = 3.4;
+        const st = e.steps;
+        const pts = [st[st.length - 1], st[st.length - 4]];
+        if (e.holes >= 4) pts.push(st[0]);
+        for (const pt of pts) {
+          if (!pt) continue;
+          const [x, y] = pt;
+          warn(g, x, y, 50, 1.0, '#ff8a3d', (g2) => {
+            g2.fx.burst(x, y, '#ffb84a', 12, 200, 0.5, 10);
+            g2.fx.ring(x, y, 6, 52, 0.3, '#ff8a3d', 5);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 50 + g2.player.r) g2.hurtPlayer(e.dmg * 0.9);
+          }, e);
+        }
+      }
+    }
+    // 鼻：吸って、吐く
+    if (e.holes >= 5) {
+      e.kn4 -= dt * fast;
+      if (e.kn4 <= 0 && !(e.breathT > 0)) {
+        e.kn4 = 7;
+        e.breathT = 2.2;
+        e.blown = false;
+        g.hooks.banner('BREATH', 'warning', '吸い込んで、吐き出す');
+      }
+    }
+    if (e.breathT > 0) {
+      e.breathT -= dt;
+      const d = Math.hypot(e.x - p.x, e.y - p.y) || 1;
+      const k = e.breathT > 0.7 ? 70 : -140;
+      p.x += ((e.x - p.x) / d) * k * dt;
+      p.y += ((e.y - p.y) / d) * k * dt;
+      if (e.breathT <= 0.7 && !e.blown) {
+        e.blown = true;
+        const off = rand(TAU);
+        for (let i = 0; i < 24; i++) shoot(g, e, off + (i / 24) * TAU, 150, 8, { color: '#ff6a3d', mul: 0.55 });
+        if (e.holes >= 6) for (let i = 0; i < 24; i++) shoot(g, e, off + ((i + 0.5) / 24) * TAU, 110, 8, { color: '#ffd27a', mul: 0.55 });
+        g.fx.ring(e.x, e.y, e.r, e.r * 3, 0.5, '#ff8a3d', 8);
+        audio.whoosh();
+      }
+    }
+    // 子：舞子と鑿
+    e.kn5 -= dt;
+    if (e.kn5 <= 0) {
+      e.kn5 = 11;
+      const R = g.viewR * 0.8;
+      for (let i = 0; i < 2; i++) { const a = rand(TAU); g.spawnEnemy('maiko', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      for (let i = 0; i < (e.holes >= 3 ? 3 : 2); i++) { const a = rand(TAU); g.spawnEnemy('nomi', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+    }
+  },
+
   emperor(g, e, dt, dist, mv) {
     const p = g.player;
     const ph = e.hp > e.maxHp * 0.66 ? 1 : e.hp > e.maxHp * 0.33 ? 2 : 3;
@@ -716,9 +1018,28 @@ export function thiefTick(g, e, dt) {
   return true;
 }
 
-// 分裂型が倒れたとき
+// 饕餮が食べたものを 1.5 倍にして吐き出す（ダウンか撃破のとき）
+export function spillEaten(g, e) {
+  if (!e.eatXp && !e.eatCoin) return;
+  const xp = (e.eatXp || 0) * 1.5, coin = Math.round((e.eatCoin || 0) * 1.5);
+  e.eatXp = 0;
+  e.eatCoin = 0;
+  if (xp > 0) {
+    const n = Math.min(24, Math.max(4, Math.ceil(xp / 20)));
+    for (let i = 0; i < n; i++) g.dropPickup('xp', e.x, e.y, Math.max(1, Math.round(xp / n)));
+  }
+  if (coin > 0) {
+    const n = Math.min(20, coin);
+    for (let i = 0; i < n; i++) g.dropPickup('coin', e.x, e.y, Math.max(1, Math.round(coin / n)));
+  }
+  g.fx.burst(e.x, e.y, '#ffd23d', 24, 300, 0.7, 12);
+  g.fx.text(e.x, e.y - e.r - 24, '吐き出した！', { size: 18, color: '#ffe38a', stroke: 'rgba(60,30,0,0.85)', life: 1.1 });
+}
+
+// 倒れたとき（分裂型の分裂、饕餮の吐き出し）
 export function onEnemyKilled(g, e) {
   const def = ENEMIES[e.type];
+  if (e.ai === 'totetsu') spillEaten(g, e);
   if (def.ai === 'splitter' && !e.elite) {
     for (let i = 0; i < 2; i++) {
       const m = g.spawnEnemy('mini', e.x + rand(-10, 10), e.y + rand(-10, 10));

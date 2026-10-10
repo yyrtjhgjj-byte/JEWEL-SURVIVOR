@@ -9,6 +9,8 @@ import { save } from './save.js';
 import { show, el, $, topbar, showTitle, stageUnlocked } from './ui.js';
 
 const heard = (id) => !!(save.seen.bgm && save.seen.bgm[id]);
+// 章ごとの最終ボスの曲の名前
+const FINAL_BGM = { shikyou: ['四凶との戦い', 'THE FOUR FIENDS'] };
 const anyCleared = () => STAGES.some((st) => save.stages[st.id] && save.stages[st.id].cleared);
 const bossSeen = () => Object.keys(save.seen.enemies || {}).some((id) => ENEMIES[id] && ENEMIES[id].boss);
 
@@ -30,6 +32,11 @@ function trackList() {
         const cl = save.stages.azathoth && save.stages.azathoth.cleared;
         list.push({ id: 'azathoth', name: `${ENEMIES.azathoth.name}（目覚め）`, en: 'AWAKENING', no: st.no, color: '#ff5fd2', open: open && (heard('azathoth') || cl) });
       }
+    }
+    // 章ごとの最終ボスの曲（第3章の四凶）。一度流れるか、その章のステージをどれかクリアすると聴ける
+    for (const id of new Set(STAGES.filter((s) => s.chapter === ch.no && s.finalBgm).map((s) => s.finalBgm))) {
+      const cl = STAGES.some((s) => s.finalBgm === id && save.stages[s.id] && save.stages[s.id].cleared);
+      list.push({ id, name: FINAL_BGM[id][0], en: FINAL_BGM[id][1], color: '#ff5a3d', open: heard(id) || cl, lock: '🔒 ゲーム中に流れると解放' });
     }
   }
   return list;

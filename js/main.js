@@ -9,7 +9,7 @@ import { save, persist } from './save.js';
 import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost } from './data.js';
 import { ARTIFACTS } from './artifacts.js';
 import { STAGES, STAGE_BY_ID } from './stages.js';
-import { gemSprite, starSprite, backgroundTile } from './render.js';
+import { gemSprite, starSprite, backgroundTile, clearEnemySprites } from './render.js';
 import { TAU, rand, pick } from './util.js';
 import * as UI from './ui.js';
 import { addRankExp, runExp, settleRank } from './rank.js';
@@ -206,6 +206,7 @@ function startGame(charId, opt = {}) {
     chest: (g, big, done) => { g.rollChest(big); done(); },
     artifact: (g, done) => { const c = g.artifactChoices(); if (c.length) g.addArtifact(c[0]); done(); },
   } : {};
+  clearEnemySprites();
   game = new Game(canvas, {
     ...hooks,
     ...botHooks,
