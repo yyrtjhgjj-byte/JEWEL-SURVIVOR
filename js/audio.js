@@ -17,6 +17,7 @@ class AudioEngine {
     this.bgmTrack = null;
     this.bgmTimer = null;
     this.tempoMul = 1;
+    this.nodeCount = 0; // 作った音声ノードの数（動作の記録 diag.js 用）
   }
 
   // iOS は ユーザー操作の中で よばないと 音が でない
@@ -55,6 +56,7 @@ class AudioEngine {
     const g = c.createGain();
     g.gain.value = 0.0001;
     o.connect(g).connect(c.destination);
+    o.onended = () => { o.disconnect(); g.disconnect(); };
     o.start();
     o.stop(c.currentTime + 0.05);
     this.ready = true;
@@ -92,6 +94,9 @@ class AudioEngine {
     g.gain.exponentialRampToValueAtTime(vol, t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(bus || this.sfxBus);
+    // 鳴り終わったら切り離す（iOS の Safari は、つないだままの音声ノードを解放しないことがあり、メモリが増え続ける）
+    o.onended = () => { o.disconnect(); g.disconnect(); };
+    this.nodeCount += 2;
     o.start(t);
     o.stop(t + dur + 0.02);
   }
@@ -124,6 +129,8 @@ class AudioEngine {
     o.connect(g);
     o2.connect(g2).connect(g);
     g.connect(bus || this.sfxBus);
+    o.onended = () => { for (const x of [o, o2, g2, lfo, lg, g]) x.disconnect(); };
+    this.nodeCount += 6;
     for (const x of [o, o2, lfo]) { x.start(t); x.stop(t + dur + 0.05); }
     this.noise(Math.min(0.12, dur), { vol: vol * 0.45, freq: freq * 1.6, q: 1.5, when, bus });
   }
@@ -143,6 +150,8 @@ class AudioEngine {
     g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(f).connect(g).connect(bus || this.sfxBus);
+    s.onended = () => { s.disconnect(); f.disconnect(); g.disconnect(); };
+    this.nodeCount += 3;
     s.start(t, Math.random() * 0.5);
     s.stop(t + dur + 0.02);
   }

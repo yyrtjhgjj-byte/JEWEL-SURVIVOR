@@ -6,6 +6,7 @@ import { TAU, mix, rgba } from './util.js';
 import { drawArtifact } from './artifact-art.js';
 import { drawShopIcon } from './shop-art.js';
 import { drawCutGem } from './gem-art.js';
+import { diagCanvas } from './diag.js';
 
 const RES = 2; // スプライトの 解像度倍率
 
@@ -13,7 +14,23 @@ function makeCanvas(w, h) {
   const c = document.createElement('canvas');
   c.width = Math.ceil(w);
   c.height = Math.ceil(h);
+  diagCanvas(c.width * c.height * 4);
   return c;
+}
+
+// 使い捨ての絵（アイコンの dataURL、縁取りの下ごしらえ）は、決まったキャンバスを使い回す。
+// iOS の Safari はキャンバスのメモリに上限があり、捨てたキャンバスもしばらく数えられたままになるので、作っては捨てるを繰り返さない。
+// 使い終わったら 1×1 に縮めてメモリを手放す
+const iconCanvas = makeCanvas(1, 1);
+function iconBegin(w, h) {
+  iconCanvas.width = Math.ceil(w);
+  iconCanvas.height = Math.ceil(h);
+  return iconCanvas;
+}
+function iconEnd(c) {
+  const u = c.toDataURL();
+  c.width = c.height = 1;
+  return u;
 }
 
 // 0=dark 0.5=color 1=light
@@ -276,12 +293,12 @@ export function roughIcon(tier, color, size = 72) {
   const key = 'rough:' + tier + ':' + color + ':' + size;
   let u = iconCache.get(key);
   if (u) return u;
-  const c = makeCanvas(size * 2, size * 2);
+  const c = iconBegin(size * 2, size * 2);
   const ctx = c.getContext('2d');
   ctx.scale(2, 2);
   ctx.translate(size / 2, size / 2);
   drawRough(ctx, size * 0.4, tier, color);
-  u = c.toDataURL();
+  u = iconEnd(c);
   iconCache.set(key, u);
   return u;
 }
@@ -293,7 +310,7 @@ export function artifactIcon(id, size = 72) {
   let u = iconCache.get(key);
   if (u) return u;
   const W = size;
-  const c = makeCanvas(W * 2, W * 2);
+  const c = iconBegin(W * 2, W * 2);
   const ctx = c.getContext('2d');
   ctx.scale(2, 2);
   const m = W * 0.03, rr = W * 0.12;
@@ -309,7 +326,7 @@ export function artifactIcon(id, size = 72) {
   ctx.translate(W / 2, W / 2);
   drawArtifact(ctx, id, W * 0.92);
   ctx.restore();
-  u = c.toDataURL();
+  u = iconEnd(c);
   iconCache.set(key, u);
   return u;
 }
@@ -319,12 +336,12 @@ export function shopIcon(id, size = 72) {
   const key = 'shop:' + id + ':' + size;
   let u = iconCache.get(key);
   if (u) return u;
-  const c = makeCanvas(size * 2, size * 2);
+  const c = iconBegin(size * 2, size * 2);
   const ctx = c.getContext('2d');
   ctx.scale(2, 2);
   ctx.translate(size / 2, size / 2);
   drawShopIcon(ctx, id, size * 0.96);
-  u = c.toDataURL();
+  u = iconEnd(c);
   iconCache.set(key, u);
   return u;
 }
@@ -334,7 +351,7 @@ export function pickaxeIcon(size = 120) {
   const key = 'pick:' + size;
   let u = iconCache.get(key);
   if (u) return u;
-  const c = makeCanvas(size * 2, size * 2);
+  const c = iconBegin(size * 2, size * 2);
   const ctx = c.getContext('2d');
   ctx.scale(2, 2);
   ctx.translate(size / 2, size / 2);
@@ -397,7 +414,7 @@ export function pickaxeIcon(size = 120) {
   ctx.rotate(-Math.PI / 4);
   drawGem(ctx, s * 0.05, GEMS.diamond);
   ctx.restore();
-  u = c.toDataURL();
+  u = iconEnd(c);
   iconCache.set(key, u);
   return u;
 }
@@ -407,7 +424,7 @@ export function coinIcon(size = 72) {
   const key = 'coin:' + size;
   let u = iconCache.get(key);
   if (u) return u;
-  const c = makeCanvas(size * 2, size * 2);
+  const c = iconBegin(size * 2, size * 2);
   const ctx = c.getContext('2d');
   ctx.scale(2, 2);
   ctx.translate(size / 2, size / 2);
@@ -440,7 +457,7 @@ export function coinIcon(size = 72) {
   coin(-size * 0.15, size * 0.08, r);
   coin(size * 0.15, size * 0.1, r);
   coin(0, -size * 0.08, r * 1.08);
-  u = c.toDataURL();
+  u = iconEnd(c);
   iconCache.set(key, u);
   return u;
 }
@@ -450,12 +467,12 @@ export function gemIcon(id, size = 72) {
   let u = iconCache.get(key);
   if (u) return u;
   const g = GEMS[id];
-  const c = makeCanvas(size * 2, size * 2);
+  const c = iconBegin(size * 2, size * 2);
   const ctx = c.getContext('2d');
   ctx.scale(2, 2);
   ctx.translate(size / 2, size / 2);
   drawCutGem(ctx, size * 0.36, g, id);
-  u = c.toDataURL();
+  u = iconEnd(c);
   iconCache.set(key, u);
   return u;
 }
@@ -2532,6 +2549,25 @@ export function enemySprite(type, r, frame = 0, flash = false, colOverride) {
   if (c) return c;
   const S = r * 3.4;
   c = makeCanvas(S * RES, S * RES);
+  paintEnemy(c, type, r, frame, flash, colOverride);
+  c.logical = S;
+  enemyCache.set(key, c);
+  return c;
+}
+// 図鑑の敵のアイコン（dataURL）
+export function enemyIcon(type, r, colOverride) {
+  const key = 'enemy:' + type + ':' + r + ':' + (colOverride || '');
+  let u = iconCache.get(key);
+  if (u) return u;
+  const S = r * 3.4;
+  const c = iconBegin(S * RES, S * RES);
+  paintEnemy(c, type, r, 0, false, colOverride);
+  u = iconEnd(c);
+  iconCache.set(key, u);
+  return u;
+}
+function paintEnemy(c, type, r, frame, flash, colOverride) {
+  const S = r * 3.4;
   const ctx = c.getContext('2d');
   ctx.scale(RES, RES);
   ctx.translate(S / 2, S / 2);
@@ -2545,39 +2581,40 @@ export function enemySprite(type, r, frame = 0, flash = false, colOverride) {
     ctx.fillRect(0, 0, c.width, c.height);
   }
   outline(c, r >= 30 ? 1.6 : 1.1);
-  c.logical = S;
-  enemyCache.set(key, c);
-  return c;
 }
 
 // 縁取り：外側に黒、内側に白の線を付ける（攻撃エフェクトの上でも敵の形が分かるように）。w は論理ピクセル
-function tintedCopy(src, color) {
-  const t = makeCanvas(src.width, src.height);
-  const x = t.getContext('2d');
-  x.drawImage(src, 0, 0);
-  x.globalCompositeOperation = 'source-in';
-  x.fillStyle = color;
-  x.fillRect(0, 0, t.width, t.height);
-  return t;
-}
+const outlineSrc = makeCanvas(1, 1), outlineTint = makeCanvas(1, 1);
 function outline(c, w) {
-  const src = makeCanvas(c.width, c.height);
-  src.getContext('2d').drawImage(c, 0, 0);
-  const black = tintedCopy(src, '#000'), white = tintedCopy(src, '#fff');
+  const W = c.width, H = c.height;
+  // 元の絵を退避（幅を設定し直すと中身と状態がリセットされる）
+  outlineSrc.width = W; outlineSrc.height = H;
+  outlineSrc.getContext('2d').drawImage(c, 0, 0);
+  outlineTint.width = W; outlineTint.height = H;
+  const t = outlineTint.getContext('2d');
   const ctx = c.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
-  ctx.clearRect(0, 0, c.width, c.height);
-  const ring = (img, d) => {
+  ctx.clearRect(0, 0, W, H);
+  // 形を単色で塗った絵を、少しずつずらして周りに重ねる
+  const ring = (color, d) => {
+    t.globalCompositeOperation = 'source-over';
+    t.clearRect(0, 0, W, H);
+    t.drawImage(outlineSrc, 0, 0);
+    t.globalCompositeOperation = 'source-in';
+    t.fillStyle = color;
+    t.fillRect(0, 0, W, H);
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * TAU;
-      ctx.drawImage(img, Math.cos(a) * d, Math.sin(a) * d);
+      ctx.drawImage(outlineTint, Math.cos(a) * d, Math.sin(a) * d);
     }
   };
-  ring(black, w * 2 * RES);
-  ring(white, w * RES);
-  ctx.drawImage(src, 0, 0);
+  ring('#000', w * 2 * RES);
+  ring('#fff', w * RES);
+  ctx.drawImage(outlineSrc, 0, 0);
+  outlineSrc.width = outlineSrc.height = 1;
+  outlineTint.width = outlineTint.height = 1;
 }
 const ENEMY_COLORS = {
   slime: '#7a64a8', bat: '#5a4a80', ghost: '#9c90c8', toge: '#6a3a70', golem: '#7a6a60', knight: '#3c3456',

@@ -5,7 +5,8 @@ import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA100_COST, GACHA100_UR, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK, charmLbText,
 } from './data.js';
-import { gemIcon, coinIcon, roughIcon, artifactIcon, enemySprite, shopIcon, pickaxeIcon } from './render.js';
+import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickaxeIcon } from './render.js';
+import { diagCrashes, diagLaunches, clearDiag } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
@@ -786,9 +787,9 @@ export function showZukan(tab = 'gems', ch = 1) {
       const e = ENEMIES[id];
       if (e.prop || e.segment || enemyChapter(id) !== ch) continue;
       const seen = save.seen.enemies[id];
-      const spr = enemySprite(e.sprite || id, Math.min(e.r, 40), 0, false, e.tint);
+      const icon = enemyIcon(e.sprite || id, Math.min(e.r, 40), e.tint);
       zl.appendChild(el(`<div class="zitem ${seen ? '' : 'unk'}">
-        <img src="${spr.toDataURL()}">
+        <img src="${icon}">
         <div><div class="zname">${seen ? e.name : '???'} ${e.boss ? '<span class="rarbadge r-SSR">BOSS</span>' : ''}</div>
           <div class="ztext">${seen ? e.desc : '未遭遇'}</div>
           <div class="ztext muted">撃破数 <b style="color:#fff">${fmt(save.kills[id] || 0)}</b></div>
@@ -903,6 +904,37 @@ function setupBackup(node) {
   };
 }
 
+// 動作の記録（diag.js）：途中で終了したときの直前の様子
+function diagRow(c) {
+  const d = new Date(c.ts);
+  const pad = (n) => String(n).padStart(2, '0');
+  const when = `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const r = c.run;
+  const where = r ? `${STAGE_BY_ID[r.stage] ? 'STAGE ' + STAGE_BY_ID[r.stage].no : r.stage} ${fmtTime(r.time)}・敵 ${r.enemies}` : (c.screen || '-');
+  return `<div class="dg-row"><b>${when}</b><span>${where}</span><small>起動から ${Math.round(c.up / 60)} 分</small></div>`;
+}
+
+function setupDiag(node) {
+  const list = $('#dglist', node);
+  const draw = () => {
+    const cs = diagCrashes();
+    $('#dghead', node).textContent = `途中で終了 ${cs.length} 回／起動 ${diagLaunches()} 回`;
+    list.innerHTML = cs.length ? cs.map(diagRow).join('') : '<div class="dg-none">記録はありません</div>';
+  };
+  draw();
+  $('#dgcopy', node).onclick = async () => {
+    audio.tap();
+    const text = JSON.stringify({ launches: diagLaunches(), crashes: diagCrashes() });
+    try {
+      await navigator.clipboard.writeText(text);
+      banner('COPIED', 'item', '記録をコピーしました');
+    } catch (e) {
+      window.prompt('コピーしてください', text);
+    }
+  };
+  $('#dgclear', node).onclick = () => { audio.tap(); clearDiag(); draw(); };
+}
+
 export function showSettings(back, asOverlay) {
   const node = el(`
     <div class="screen ${asOverlay ? 'dim' : ''}">
@@ -923,6 +955,15 @@ export function showSettings(back, asOverlay) {
           <input type="file" id="bkfile" accept=".json,application/json,text/plain" hidden>
         </div>
         <div class="bk-note">書き出したファイルは共有メニューの「"ファイル"に保存」で iCloud Drive に保存できます。</div>
+      </div>
+      <div class="panel backup">
+        <div class="bk-head"><span>動作の記録</span><small id="dghead"></small></div>
+        <div class="dg-list" id="dglist"></div>
+        <div class="bk-btns">
+          <button class="btn small" id="dgcopy">コピー</button>
+          <button class="btn small" id="dgclear">消去</button>
+        </div>
+        <div class="bk-note">アプリが途中で終了したとき、直前の様子が残ります。</div>
       </div>`}
       <div class="credit" style="margin-top:14px">Safari の共有メニュー →「ホーム画面に追加」で全画面プレイできます</div>
     </div>`);
@@ -940,7 +981,7 @@ export function showSettings(back, asOverlay) {
     if (k === 'haptic') haptic();
     persist();
   }));
-  if (!asOverlay) setupBackup(node);
+  if (!asOverlay) { setupBackup(node); setupDiag(node); }
   const reset = $('#reset', node);
   if (reset) {
     let n = 0;

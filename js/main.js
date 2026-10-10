@@ -13,6 +13,7 @@ import { gemSprite, starSprite, backgroundTile } from './render.js';
 import { TAU, rand, pick } from './util.js';
 import * as UI from './ui.js';
 import { addRankExp, runExp, settleRank } from './rank.js';
+import { initDiag } from './diag.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -55,6 +56,7 @@ window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200)
 resizeCanvas();
 
 let titleT = 0;
+let titlePattern = null; // 背景の模様（毎フレーム作り直さない）
 function renderTitle(dt) {
   titleT += dt;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -64,7 +66,7 @@ function renderTitle(dt) {
   ctx.fillRect(0, 0, W, H);
   // グリッド
   ctx.globalAlpha = 0.8;
-  ctx.fillStyle = ctx.createPattern(backgroundTile(), 'repeat');
+  ctx.fillStyle = titlePattern || (titlePattern = ctx.createPattern(backgroundTile(), 'repeat'));
   ctx.save();
   ctx.translate(0, (titleT * 12) % 256);
   ctx.fillRect(0, -256, W, H + 256);
@@ -425,6 +427,27 @@ function migrateSave() {
 const upperRefund = migrateSave();
 
 UI.initUI({ startGame, toTitle, migrateSave, checkMetaAchievements: () => checkAchievements(null, true) });
+
+// 動作の記録（diag.js）：画面に出ている間に落ちたら、次の起動でこの様子が記録に残る
+const crashed = initDiag(() => {
+  const top = document.getElementById('screens').lastElementChild;
+  const info = {
+    screen: top ? [...top.classList].filter((c) => c !== 'screen' && c !== 'dim').join(' ') || 'screen' : '',
+    audioNodes: audio.nodeCount, w: innerWidth, h: innerHeight, dpr: window.devicePixelRatio || 1,
+    os: (navigator.userAgent.match(/OS ([\d_]+)/) || [])[1] || '',
+  };
+  const g = game;
+  if (g && g.state !== 'over') {
+    info.run = {
+      stage: g.stage.id, time: Math.round(g.time), heat: g.heat, endless: g.endless, hyper: g.hyper, state: g.state, level: g.level,
+      enemies: g.enemies.length, projs: g.projs.length, bullets: g.ebullets.length, pickups: g.pickups.length, parts: g.fx.parts.length,
+      areas: g.areas.length, quality: g.quality || 0, fps: Math.round(1 / (g.frameAvg || 1 / 60)),
+      boss: g.boss && g.boss.alive ? g.boss.type : null,
+      weapons: g.weapons.map((w) => w.id + (w.evolved ? '*' : w.level)).join(','),
+    };
+  }
+  return info;
+});
 window.__save = save; // デバッグ用
 
 if (DEBUG.autostart) {
@@ -434,6 +457,7 @@ if (DEBUG.autostart) {
   UI.showTitle();
   recoverPendingRun(); // 再開の確認はタイトル（ログインボーナス）の上に出す
   if (upperRefund) setTimeout(() => UI.toast('上位工房の入れ替えに伴い返金', `+${upperRefund.toLocaleString()} コイン`, 'MASTERWORKS'), 900);
+  if (crashed) setTimeout(() => UI.toast('前回は途中で終了しました', '設定の「動作の記録」に残しました', 'DIAGNOSTIC'), 1500);
 }
 
 // オフライン用 サービスワーカー
