@@ -533,8 +533,9 @@ export class Game {
       if (t >= this.nextEndlessBoss) {
         this.nextEndlessBoss += 180;
         this.runEvent({ type: 'warning' });
-        const bosses = this.stage.events.filter((e) => e.type === 'boss').map((e) => e.enemy);
-        this.endlessBoss = { at: t + 8, enemy: pick(bosses), mul: 1 + (t - this.stageTime) / 120 };
+        // ステージ別の HP 補正（stages.js の bm。ほかのステージと共通のボス用）も、予定表のボスと同じく掛ける
+        const ev = pick(this.stage.events.filter((e) => e.type === 'boss'));
+        this.endlessBoss = { at: t + 8, enemy: ev.enemy, mul: (ev.mul || 1) * (1 + (t - this.stageTime) / 120) };
       }
       if (this.endlessBoss && t >= this.endlessBoss.at) {
         const b = this.endlessBoss;
@@ -1763,10 +1764,16 @@ export class Game {
   }
 
   // たからばこの なかみ
-  rollChest(big) {
+  // 宝箱から出る強化の数（幸運で増える。上位工房「ボスの宝箱」「宝箱の中身」）と、中のコイン
+  chestCount(big) {
     const r = Math.random() / this.stats.luck;
-    let n = big ? (r < 0.3 || this.stats.bossChest ? 5 : 3) : r < 0.05 ? 5 : r < 0.3 ? 3 : 1;
-    n += this.stats.chestPlus; // 上位工房「宝箱の中身」
+    return (big ? (r < 0.3 || this.stats.bossChest ? 5 : 3) : r < 0.05 ? 5 : r < 0.3 ? 3 : 1) + this.stats.chestPlus;
+  }
+  chestCoins(big, n) {
+    return Math.round((big ? rand(150, 400) : rand(30, 120)) * n * this.stats.greed);
+  }
+  rollChest(big) {
+    const n = this.chestCount(big);
     const items = [];
     for (let i = 0; i < n; i++) {
       // しんか ゆうせん
@@ -1786,7 +1793,7 @@ export class Game {
       items.push(c);
       this.applyChoice(c);
     }
-    const coins = Math.round((big ? rand(150, 400) : rand(30, 120)) * n * this.stats.greed);
+    const coins = this.chestCoins(big, n);
     this.coins += coins;
     return { items, coins, n };
   }
@@ -1832,12 +1839,26 @@ export class Game {
     }
   }
 
+  // クリア時（最終ボス撃破後。ENDLESS 以外）：拾い損ねたアイテムをすべて回収する。
+  // 原石・コイン・経験値はそのまま入れ、宝箱は中のコインだけ足す（ランが終わるので強化は使わない）。
+  // 経験値はレベルだけ上げる（レベルアップの画面は出さない）
+  sweepPickups() {
+    for (const pk of this.pickups) {
+      if (pk.kind === 'rough') this.roughGot[pk.value]++;
+      else if (pk.kind === 'coin') this.coins += Math.max(1, Math.round(pk.value * this.stats.greed));
+      else if (pk.kind === 'chest' || pk.kind === 'bigchest') { const big = pk.kind === 'bigchest'; this.coins += this.chestCoins(big, this.chestCount(big)); }
+      else if (pk.kind === 'xp') {
+        this.xp += pk.value * this.stats.growth * (this.feverT > 0 ? 2 : 1) * this.hazards.xpMul();
+        while (this.xp >= this.xpNext) { this.xp -= this.xpNext; this.level++; this.xpNext = xpFor(this.level); }
+      }
+    }
+    this.pickups.length = 0;
+  }
+
   finishClear() {
     if (this.state === 'over') return;
     this.pendingClear = false;
-    // 拾い損ねた原石はクリア時に回収する
-    for (const pk of this.pickups) if (pk.kind === 'rough') this.roughGot[pk.value]++;
-    this.pickups = this.pickups.filter((pk) => pk.kind !== 'rough');
+    this.sweepPickups();
     this.state = 'over';
     audio.stopBgm();
     this.hooks.gameOver(this.results(), true);

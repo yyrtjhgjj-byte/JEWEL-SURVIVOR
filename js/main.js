@@ -315,27 +315,24 @@ function toTitle() {
 }
 
 // ポーズ
+// リタイア（最終ボス撃破後、クリア画面の前なら盤面のアイテムも回収する）
+function quitRun() {
+  if (game.cleared && !game.endless) game.sweepPickups();
+  game.state = 'over';
+  audio.stopBgm();
+  finishRun(game.results(), false);
+}
 document.getElementById('pausebtn').addEventListener('click', () => {
   if (!game || !game.pause()) return;
   audio.tap();
-  UI.pauseMenu(game, () => game && game.resume(), () => {
-    game.state = 'over';
-    audio.stopBgm();
-    finishRun(game.results(), false);
-  });
+  UI.pauseMenu(game, () => game && game.resume(), quitRun);
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     saveRunSnapshot();
     audio.suspend();
     input.reset(); // 指を離したことが伝わらずスティックが効かなくなるのを防ぐ
-    if (game && game.pause()) {
-      UI.pauseMenu(game, () => game && game.resume(), () => {
-        game.state = 'over';
-        audio.stopBgm();
-        finishRun(game.results(), false);
-      });
-    }
+    if (game && game.pause()) UI.pauseMenu(game, () => game && game.resume(), quitRun);
   } else audio.resume();
 });
 window.addEventListener('keydown', (e) => {
