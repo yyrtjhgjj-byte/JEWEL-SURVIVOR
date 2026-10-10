@@ -1391,7 +1391,8 @@ export class Game {
     if (this.combo === 50 || this.combo === 100 || this.combo === 200 || this.combo % 500 === 0) {
       this.hooks.combo(this.combo);
     }
-    if (this.feverT <= 0) {
+    // BOSS モードにフィーバーはない
+    if (this.feverT <= 0 && !this.rush) {
       this.feverGauge += e.boss ? 60 : e.elite ? 15 : 1;
       if (this.feverGauge >= this.feverNeed) this.startFever();
     }

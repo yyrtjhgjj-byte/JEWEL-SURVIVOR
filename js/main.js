@@ -220,6 +220,8 @@ function startGame(charId, opt = {}) {
   achDuringRun = [];
   window.__game = game; // デバッグ用
   UI.hudShow(true);
+  // BOSS モードは経験値もフィーバーもないので、レベル・経験値バー・フィーバーのゲージを出さない
+  document.getElementById('hud').classList.toggle('rush', !!game.rush);
   if (opt.resume) game.restore(opt.resume); // 中断したランの続き（HUD の準備のあとに）
   else if (opt.rush && opt.rush.from) game.rushWarp(opt.rush.from); // BOSS モードを最高記録の続きから
   moveHint = document.getElementById('movehint');
