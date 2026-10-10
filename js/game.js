@@ -509,7 +509,7 @@ export class Game {
       this.hooks.checkAchievements(this.results(), true);
     }
 
-    if (this.modalQueue.length && this.state === 'play') this.openModal();
+    if (this.modalQueue.length && this.state === 'play' && !(this.rush && this.slowT > 0)) this.openModal();
     else if (this.pendingClear && this.state === 'play') this.finishClear();
   }
 
@@ -619,6 +619,14 @@ export class Game {
     save.seen.enemies[ev.enemy] = true;
   }
   // BOSS モードの強さの倍率（1 周するたびに 2 倍。HP と攻撃力に掛ける）
+  // BOSS モードの原石：盤面には落とさず、リザルトでまとめて渡す（roughGot に足す）。
+  // 1 体ごとにステージと同じ抽選、1 周するたびにおまけで大原石か秘石。周が進むほど上の段階になりやすい
+  rushRough(e, lapBonus) {
+    const lap = Math.floor((this.rushKills - 1) / this.rushOrder.length);
+    const h = Math.min(10, lap * 3);
+    const t = lapBonus ? bossDrop(true, h) : bossDrop(e.type === this.stage.finalBoss, h);
+    this.roughGot[upgradeTier(t, this.stage.no, h, this.stats.roughUp)]++;
+  }
   rushMul() {
     return this.rush ? 2 ** Math.floor(this.rushKills / this.rushOrder.length) : 1;
   }
@@ -1395,7 +1403,11 @@ export class Game {
     setTimeout(() => audio.bigWin(), 400);
     // 渾沌は七つ目の穴（口）が開いて死ぬ
     this.hooks.banner(e.ai === 'konton' ? '七日ニシテ渾沌死ス' : 'BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
-    this.dropPickup('bigchest', e.x, e.y);
+    // BOSS モードは宝箱を拾わず、撃破の演出のあとそのまま BOSS TREASURE の画面を開く
+    if (this.rush) {
+      this.modalQueue.push({ type: 'chest', big: true });
+      audio.chestOpen();
+    } else this.dropPickup('bigchest', e.x, e.y);
     if (e.artChest && this.arts.length < this.artMax && this.artifactChoices().length) this.modalQueue.push({ type: 'artifact' });
     if (!this.rush) this.dropPickup('rough', e.x, e.y, upgradeTier(bossDrop(e.type === this.stage.finalBoss, this.heat), this.stage.no, this.heat, this.stats.roughUp));
     // けいけんちの シャワー
@@ -1406,7 +1418,11 @@ export class Game {
     if (this.rush && !other) {
       this.rushKills++;
       this.rushNextT = RUSH_GAP;
-      if (this.rushKills % this.rushOrder.length === 0) this.hooks.banner(`${this.rushKills / this.rushOrder.length} 周 達成`, 'victory', `次の周は ×${this.rushMul()}`);
+      this.rushRough(e, false);
+      if (this.rushKills % this.rushOrder.length === 0) {
+        this.rushRough(e, true);
+        this.hooks.banner(`${this.rushKills / this.rushOrder.length} 周 達成`, 'victory', `次の周は ×${this.rushMul()}`);
+      }
     }
     this.lasers.length = 0;
     // 盤面の敵弾をすべて消す
