@@ -403,7 +403,7 @@ export function showStageSelect() {
       return `<button class="rp ${on ? 'on' : ''} ${!on && list.length >= max ? 'full' : ''}" data-k="${kind}" data-id="${id}"><img src="${gemIcon(g, 72)}"><span>${GEMS[g].jp}</span></button>`;
     }).join('');
     $('#opts', node).innerHTML = `${artHTML()}
-      ${best ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHECKPOINT<small>最高記録の ${best + 1} 体目（${lap + 1} 周目${lap ? ` ×${2 ** lap}` : ''}）から。BOSS TREASURE ×${best} を開けた状態で始める</small></span><button class="switch ${save.rushFromBest ? 'on' : ''}" id="rfrom"></button></div>` : ''}
+      ${best ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHECKPOINT<small>最高記録の ${best + 1} 体目（${lap + 1} 周目${lap ? ` ×${2 ** lap}` : ''}）から。BOSS TREASURE ×${best + 1} を開けた状態で始める</small></span><button class="switch ${save.rushFromBest ? 'on' : ''}" id="rfrom"></button></div>` : ''}
       <div class="rp-head"><span>WEAPON</span><b>${lo.w.length} / ${MAX_WEAPONS}</b></div>
       <div class="rush-pick">${pickHTML(WEAPON_IDS, lo.w, MAX_WEAPONS, 'w')}</div>
       <div class="rp-head"><span>CHARM</span><b>${lo.p.length} / ${MAX_CHARMS}</b></div>
@@ -1418,11 +1418,25 @@ function itemLabel(g, c) {
   return 'COIN';
 }
 
-export function chest(g, big, done) {
+// 宝箱の中身が多いとき（BOSS モードの後半）は、同じ石の強化を 1 枠にまとめる（右上に回数。表示は最後の状態）
+function chestTiles(items) {
+  if (items.length <= 5) return items.map((c) => ({ c, k: 1 }));
+  const tiles = [], by = new Map();
+  for (const c of items) {
+    const key = c.type === 'evo' ? 'evo:' + c.id : c.type === 'coins' ? 'coins' : (c.type === 'wup' || c.type === 'lb' ? 'w:' : 'p:') + c.id;
+    let t = by.get(key);
+    if (!t) { t = { c, k: 0 }; by.set(key, t); tiles.push(t); }
+    t.k++;
+    if (c.type === 'lb' || c.type === 'plb') t.c = c;
+  }
+  return tiles;
+}
+
+export function chest(g, big, done, plus = 0) {
   haptic();
   const node = el(`
     <div class="screen dim chest-screen">
-      <div class="chest-msg"><div class="big-title prism-text" style="font-size:min(10vw,44px)">${big ? 'BOSS TREASURE' : 'TREASURE'}</div></div>
+      <div class="chest-msg"><div class="big-title prism-text" style="font-size:min(10vw,44px)">${big ? 'BOSS TREASURE' : 'TREASURE'}</div><div class="chest-n" id="cn"></div></div>
       <div class="chest-stage">
         <div class="chest-beam" id="beam"></div>
         <div class="chest" id="chest"><div class="body"><div class="band"></div></div><div class="lid"><div class="band"></div></div><div class="rim"></div><img class="lock" src="${gemIcon('ruby', 72)}"></div>
@@ -1431,6 +1445,8 @@ export function chest(g, big, done) {
       <div class="chest-coins" id="ccoins"></div>
       <button class="btn big primary hidden" id="ok">OK</button>
     </div>`);
+  // 枠が多くなりそうなら、開ける前から小さめの見た目にしておく（開けたあとに実際の数で決め直す）
+  node.classList.toggle('many', plus >= 3);
   screens().appendChild(node);
   const chestEl = $('#chest', node);
   const allIcons = [...WEAPON_IDS.map((id) => gemIcon(WEAPONS[id].gem, 72)), ...PASSIVE_IDS.map((id) => gemIcon(PASSIVES[id].gem, 72))];
@@ -1443,14 +1459,18 @@ export function chest(g, big, done) {
     chestEl.classList.add('open');
     audio.chestOpen();
     haptic();
-    const res = g.rollChest(big);
+    const res = g.rollChest(big, plus);
     const hasEvo = res.items.some((c) => c.type === 'evo');
+    // BOSS モードは倒すたびに枠が増えるので、枠の数を出す
+    if (g.rush) $('#cn', node).textContent = `${res.n} 枠`;
+    const tiles = chestTiles(res.items);
+    node.classList.toggle('many', tiles.length > 5 || res.items.length > 5);
     const beam = $('#beam', node);
     beam.classList.add('on');
     if (hasEvo || res.n >= 5) beam.classList.add('prism');
     const slotsEl = $('#cslots', node);
-    const slots = res.items.map(() => {
-      const s = el(`<div class="slot spin"><img src="${pick(allIcons)}"><div class="sl">???</div></div>`);
+    const slots = tiles.map((t) => {
+      const s = el(`<div class="slot spin"><img src="${pick(allIcons)}"><div class="sl">???</div>${t.k > 1 ? `<i class="sk">${t.c.type === 'coins' ? '×' : '+'}${t.k}</i>` : ''}</div>`);
       slotsEl.appendChild(s);
       return s;
     });
@@ -1460,16 +1480,18 @@ export function chest(g, big, done) {
       audio.slotTick(tick++);
     }, 70);
     await wait(500);
+    // 枠が多いときは、全部で 2.4 秒ほどで止まるように速める
+    const step = Math.min(330, Math.round(2400 / slots.length));
     for (let i = 0; i < slots.length; i++) {
-      const s = slots[i], c = res.items[i];
+      const s = slots[i], c = tiles[i].c;
       s.classList.remove('spin');
       s.classList.add('stop');
       if (c.type === 'evo') s.classList.add('evo');
       $('img', s).src = itemIcon(c);
       $('.sl', s).textContent = itemLabel(g, c);
-      audio.cardFlip(i);
+      audio.cardFlip(i % 8);
       haptic();
-      await wait(c.type === 'evo' ? 600 : 330);
+      await wait(c.type === 'evo' ? 600 : step);
     }
     clearInterval(iv);
     const cc = $('#ccoins', node);
@@ -1506,7 +1528,7 @@ export function rushWarp(g, m, done) {
         </div>
         ${sum ? `<div class="hint">${sum}</div>` : ''}
       </div>
-      <div class="sub-title">${m.n + 1} 体目から</div>
+      <div class="sub-title">${m.from + 1} 体目から</div>
       <button class="btn big primary" id="ok">OK</button>
     </div>`);
   screens().appendChild(node);

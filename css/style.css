@@ -315,6 +315,15 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .chest-coins { position: relative; z-index: 2; font-size: 36px; font-weight: 700; color: #ffe39a; letter-spacing: 0.05em; min-height: 44px; text-shadow: 0 0 18px rgba(255,197,61,0.7); display: flex; align-items: center; gap: 10px; }
 .chest-coins .coin-ico, .rcoins .coin-ico { width: 22px; height: 22px; }
 .chest-msg { position: relative; z-index: 3; margin-bottom: 10px; text-align: center; }
+.chest-n { font-family: var(--font-jp); font-weight: 700; font-size: 15px; letter-spacing: 0.2em; color: #fff; margin-top: 6px; min-height: 1.4em; text-shadow: 0 0 12px rgba(190,140,255,0.9); }
+.slot .sk { position: absolute; top: 3px; right: 5px; font-style: normal; font-size: 11px; font-weight: 700; color: #9fe8ff; text-shadow: 0 0 3px #000; }
+/* 枠が多いとき（BOSS モードの後半）：同じ石をまとめた小さめの枠で、宝箱も小さく */
+.chest-screen.many { gap: 8px; }
+.chest-screen.many .chest-stage { height: 150px; transform: scale(0.8); margin-bottom: -14px; }
+.chest-screen.many .slots { gap: 6px; max-width: 330px; }
+.chest-screen.many .slot { width: 60px; height: 74px; border-radius: 10px; }
+.chest-screen.many .slot img { width: 40px; height: 40px; }
+.chest-screen.many .slot .sl { font-size: 10.5px; letter-spacing: 0.04em; }
 /* BOSS モード：最高記録の続きから始めるときのまとめ */
 .warp-n { font-family: var(--font); font-weight: 700; font-size: 28px; letter-spacing: 0.1em; color: #fff; margin-top: 6px; text-shadow: 0 0 14px rgba(190,140,255,0.9); }
 .warp-panel { text-align: center; width: min(92%, 360px); }
