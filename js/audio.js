@@ -332,6 +332,11 @@ class AudioEngine {
     this.tone(mtof(72 + rank * 5), 0.15, { type: 'square', vol: 0.06 });
     if (rank >= 2) this.bigWin();
   }
+  // BOSS モードの 3・2・1
+  countdown() {
+    this.tone(mtof(84), 0.12, { type: 'square', vol: 0.05 });
+    this.tone(mtof(96), 0.18, { type: 'sine', vol: 0.07, when: 0.02 });
+  }
   countTick() {
     if (!this.throttle('count', 45)) return;
     this.tone(mtof(96), 0.03, { type: 'square', vol: 0.025 });

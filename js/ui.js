@@ -391,13 +391,19 @@ export function showStageSelect() {
     const a2 = $('#artsel2', node);
     if (a2) a2.onclick = () => { audio.tap(); pickArtifact(arts.filter((x) => x !== save.artSel), (id) => { save.artSel2 = id; persist(); again(); }, true); };
   };
+  // BOSS モードの最高記録と、1 周のボスの数
+  const rushBest = (id) => (id && (save.bossRush || {})[id]) || 0;
+  const rushPer = (id) => STAGE_BY_ID[id].events.filter((e) => e.type === 'boss').length;
   const renderRush = () => {
+    const best = rushBest(rsel);
+    const lap = best ? Math.floor(best / rushPer(rsel)) : 0;
     const pickHTML = (ids, list, max, kind) => ids.map((id) => {
       const g = kind === 'w' ? WEAPONS[id].gem : PASSIVES[id].gem;
       const on = list.includes(id);
       return `<button class="rp ${on ? 'on' : ''} ${!on && list.length >= max ? 'full' : ''}" data-k="${kind}" data-id="${id}"><img src="${gemIcon(g, 72)}"><span>${GEMS[g].jp}</span></button>`;
     }).join('');
     $('#opts', node).innerHTML = `${artHTML()}
+      ${best ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHECKPOINT<small>最高記録の ${best + 1} 体目（${lap + 1} 周目${lap ? ` ×${2 ** lap}` : ''}）から。BOSS TREASURE ×${best} を開けた状態で始める</small></span><button class="switch ${save.rushFromBest ? 'on' : ''}" id="rfrom"></button></div>` : ''}
       <div class="rp-head"><span>WEAPON</span><b>${lo.w.length} / ${MAX_WEAPONS}</b></div>
       <div class="rush-pick">${pickHTML(WEAPON_IDS, lo.w, MAX_WEAPONS, 'w')}</div>
       <div class="rp-head"><span>CHARM</span><b>${lo.p.length} / ${MAX_CHARMS}</b></div>
@@ -413,6 +419,8 @@ export function showStageSelect() {
       renderRush();
     }));
     artWire(renderRush);
+    const rf = $('#rfrom', node);
+    if (rf) rf.onclick = () => { save.rushFromBest = !save.rushFromBest; rf.classList.toggle('on', save.rushFromBest); audio.tap(); persist(); };
     $('#go', node).disabled = !rsel || !lo.w.length;
   };
   const renderOpts = () => {
@@ -494,7 +502,7 @@ export function showStageSelect() {
       audio.select();
       save.rushStage = rsel;
       persist();
-      app.startGame(save.selected, { stageId: rsel, rush: { w: [...lo.w], p: [...lo.p] }, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
+      app.startGame(save.selected, { stageId: rsel, rush: { w: [...lo.w], p: [...lo.p], from: save.rushFromBest ? rushBest(rsel) : 0 }, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
       return;
     }
     audio.select();
@@ -1481,6 +1489,52 @@ export function chest(g, big, done) {
   })();
 }
 
+// BOSS モードを最高記録の続きから始めるとき：まとめて開けた BOSS TREASURE の結果を 1 画面で見せる
+export function rushWarp(g, m, done) {
+  haptic();
+  const sum = [m.evo ? `進化 ${m.evo}` : '', m.up ? `レベルアップ ${m.up}` : '', m.lb ? `リミットブレイク ${m.lb}` : ''].filter(Boolean).join(' ・ ');
+  let i = 0;
+  const node = el(`
+    <div class="screen dim chest-screen warp-screen">
+      <div class="chest-msg"><div class="big-title prism-text" style="font-size:min(10vw,44px)">BOSS TREASURE</div><div class="warp-n">×${m.n}</div></div>
+      <div class="panel warp-panel">
+        <div class="pause-build">
+          ${g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}" style="--i:${i++}"><img src="${gemIcon(WEAPONS[w.id].gem, 64)}"><b>${w.evolved ? '★' : w.level}${w.lbN ? `<i>+${w.lbN}</i>` : ''}</b></div>`).join('')}
+        </div>
+        <div class="pause-build">
+          ${g.passives.map((p) => `<div class="slotico" style="--i:${i++}"><img src="${gemIcon(PASSIVES[p.id].gem, 64)}"><b>${p.level}${p.lbN ? `<i>+${p.lbN}</i>` : ''}</b></div>`).join('')}
+        </div>
+        ${sum ? `<div class="hint">${sum}</div>` : ''}
+      </div>
+      <div class="sub-title">${m.n + 1} 体目から</div>
+      <button class="btn big primary" id="ok">OK</button>
+    </div>`);
+  screens().appendChild(node);
+  audio.chestOpen();
+  setTimeout(() => audio.bigWin(), 350);
+  const ok = $('#ok', node);
+  guard(ok, 600);
+  ok.onclick = () => {
+    audio.tap();
+    node.remove();
+    done();
+  };
+}
+
+// BOSS モード：次のボスが出るまでの 3・2・1（画面の中央）
+export function rushCount(n) {
+  let c = $('#rushcount');
+  if (!c) {
+    c = el('<div id="rushcount" class="rush-count"></div>');
+    $('#hud').appendChild(c);
+  }
+  c.textContent = n;
+  c.classList.remove('go');
+  void c.offsetWidth;
+  c.classList.add('go');
+  audio.countdown();
+}
+
 // ================================================================== ポーズ
 // 揃えた属性の数と倍率
 function elemSummary(g) {
@@ -1605,12 +1659,13 @@ export function results(res, cleared, extra) {
     </div>`);
   show(node);
   guard($('.rbtns', node), 1500);
-  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, rush: res.rush ? { w: res.rush.w, p: res.rush.p } : null, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null }); };
+  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, rush: res.rush ? { w: res.rush.w, p: res.rush.p, from: save.rushFromBest ? (save.bossRush || {})[res.stageId] || 0 : 0 } : null, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null }); };
   $('#home', node).onclick = () => { audio.tap(); app.toTitle(); };
   const rowsEl = $('#rows', node);
   const rows = [
     // BOSS モードは倒したボスの数（周回数）を先頭に。レベルは上がらないので出さない
     ...(res.rush ? [['倒したボス', `${res.rush.kills} 体（${res.rush.laps} 周）`, extra.rushBest]] : []),
+    ...(res.rush && res.rush.from ? [['開始', `${res.rush.from + 1} 体目から`]] : []),
     ['生存時間', fmtTime(res.time), extra.newBest.time],
     ['撃破数', fmt(res.kills), extra.newBest.kills],
     ...(res.rush ? [] : [['レベル', 'LV ' + res.level, extra.newBest.level]]),

@@ -315,6 +315,25 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .chest-coins { position: relative; z-index: 2; font-size: 36px; font-weight: 700; color: #ffe39a; letter-spacing: 0.05em; min-height: 44px; text-shadow: 0 0 18px rgba(255,197,61,0.7); display: flex; align-items: center; gap: 10px; }
 .chest-coins .coin-ico, .rcoins .coin-ico { width: 22px; height: 22px; }
 .chest-msg { position: relative; z-index: 3; margin-bottom: 10px; text-align: center; }
+/* BOSS モード：最高記録の続きから始めるときのまとめ */
+.warp-n { font-family: var(--font); font-weight: 700; font-size: 28px; letter-spacing: 0.1em; color: #fff; margin-top: 6px; text-shadow: 0 0 14px rgba(190,140,255,0.9); }
+.warp-panel { text-align: center; width: min(92%, 360px); }
+.warp-panel .pause-build .slotico { width: 46px; height: 46px; animation: warpIn 0.35s cubic-bezier(.2,1.4,.4,1) backwards; animation-delay: calc(var(--i) * 70ms + 0.2s); }
+.warp-panel .slotico b { font-size: 12px; }
+@keyframes warpIn { from { transform: scale(0); opacity: 0; } }
+/* BOSS モード：次のボスまでの 3・2・1 */
+.rush-count {
+  position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.5em; text-align: center; pointer-events: none; opacity: 0;
+  font-family: var(--font); font-weight: 700; font-size: min(26vw, 120px); line-height: 1; color: #fff;
+  text-shadow: 0 0 26px rgba(190,140,255,0.95), 0 0 4px rgba(0,0,0,0.9);
+}
+.rush-count.go { animation: rushCount 0.95s cubic-bezier(.2,1.2,.4,1) forwards; }
+@keyframes rushCount {
+  0% { opacity: 0; transform: scale(1.9); }
+  18% { opacity: 1; transform: none; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.8); }
+}
 
 /* ------------------------------------------------------------------ 進化 */
 .evo-screen { justify-content: center; gap: 8px; text-align: center; }
