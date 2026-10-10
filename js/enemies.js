@@ -730,4 +730,4 @@ export function onEnemyKilled(g, e) {
   }
 }
 
-export { laser, warn };
+export { warn };

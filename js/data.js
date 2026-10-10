@@ -402,11 +402,11 @@ export const WEAPON_MAX = 8;
 // 攻撃範囲の上限（キャラ・工房・チャーム・秘宝などの合計と、武器ごとのリミットブレイクを掛けた値）。超えた分は攻撃力に変える（game.js の computeStats）
 export const AREA_CAP = 2;
 // リミットブレイク：Lv8（進化済みを含む）の武器を、レベルアップのたびに少しずつ強化する
-// need：その武器が持っている性能だけを候補にする。max：1 つの武器で強化できる回数の上限
+// need：その武器が持っている性能だけを候補にする。max：1 つの武器で強化できる回数の上限。cap：1 つの武器で重ねられる量の上限
 // 進化後に使わなくなる性能は、WEAPONS の evo.lbSkip で候補から外す
 export const LIMIT_BREAK = [
   { k: 'dmg', v: 0.06, t: 'ダメージ +6%', w: 5 },
-  { k: 'cd', v: 0.03, t: 'クールダウン短縮 3%', w: 3 },
+  { k: 'cd', v: 0.03, t: 'クールダウン短縮 3%', w: 3, cap: 0.5 },
   { k: 'area', v: 0.035, t: '攻撃範囲 +3.5%', w: 3, need: 'area' },
   { k: 'speed', v: 0.06, t: '弾速 +6%', w: 2, need: 'speed' },
   { k: 'dur', v: 0.06, t: '持続 +6%', w: 2, need: ['duration', 'life'] },
@@ -756,5 +756,3 @@ export const RARITY = {
   UR: { name: 'UR', color: 'rainbow', rank: 4 },
 };
 
-// ステージの時間
-export const STAGE_TIME = 420; // 7分（ステージごとの時間は stages.js。ここは使っていない）

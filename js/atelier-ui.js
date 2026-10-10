@@ -147,7 +147,7 @@ function startPolish(tier, tut = false) {
       <div class="facets">${Array.from({ length: R.facets }, () => '<i></i>').join('')}</div></div>
     <canvas id="pc"></canvas>
     <div class="pol-hint" id="ph">${tut ? 'タップで練習開始' : 'タップで研磨開始'}</div>
-    ${tut ? '<div class="pol-tip" id="pt"><div>リングの光っている所が、研磨する面です。</div><div>真ん中の白い帯ほど高い評価になります。</div></div><button class="btn small" id="tq">やめる</button>' : ''}
+    ${tut ? '<div class="pol-tip" id="pt"><div>リングの光っている所が、研磨する面です。</div><div>真ん中の白い帯ほど高い評価になります。</div></div><button class="btn small" id="tq">やめる</button>' : '<button class="btn small" id="tq">やめる</button>'}
   </div>`);
   show(node);
   const cv = $('#pc', node);
@@ -165,7 +165,8 @@ function startPolish(tier, tut = false) {
   const zone = { p: 0.2 * R.zone, g: 0.4 * R.zone, ok: 0.64 * R.zone };
   const speed = () => 2.2 * R.speed * (1 + 0.1 * st.facet) * (tut ? TUT_SPEED[Math.min(st.facet, TUT_SPEED.length - 1)] : 1);
   const tip = (t) => { const e = $('#pt', node); if (e) e.innerHTML = t; };
-  if (tut) $('#tq', node).onclick = (e) => { e.stopPropagation(); audio.tap(); st.done = true; showAtelier('polish'); };
+  // やめる：チュートリアルはいつでも。本番は始める前だけ（原石とコインは研磨が終わったときに使うので、何も減らない）
+  $('#tq', node).onclick = (e) => { e.stopPropagation(); audio.tap(); st.done = true; showAtelier('polish'); };
   const place = () => { st.target = st.ang + rand(1.8, 4.3); };
   place();
 
@@ -202,6 +203,7 @@ function startPolish(tier, tut = false) {
     if (!st.ready) {
       st.ready = true;
       st.goT = 0.8;
+      if (!tut) $('#tq', node).remove(); // 始めたら本番はやめられない
       audio.select();
       $('#ph', node).textContent = tut ? '' : '光る面に針が重なったらタップ';
       if (tut) tip(`<div>${TUT_HINT[0]}</div>`);
@@ -377,7 +379,6 @@ function tutorialResult(score, grade) {
 // ---------------------------------------------------------------- 研磨結果
 function reveal(res, score) {
   const g = GEMS[res.gemId];
-  const G = GRADES[res.grade];
   const col = gemColor(res.gemId);
   const R = ROUGH[res.tier];
   const tags = [

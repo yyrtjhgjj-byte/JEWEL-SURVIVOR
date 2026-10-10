@@ -595,7 +595,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .st-meta span { border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
 .heat-ctl { display: flex; align-items: center; gap: 10px; }
 .heat-ctl .iconbtn { width: 36px; height: 36px; font-size: 18px; }
-.heat-ctl .iconbtn:disabled { opacity: 0.3; }
+.heat-ctl .iconbtn:disabled { filter: brightness(0.35); }
 .heat-val { font-size: 26px; min-width: 30px; text-align: center; }
 .heat-val.h1, .heat-val.h2 { color: #ffd23d; }
 .heat-val.h3, .heat-val.h4 { color: #ff8a3d; text-shadow: 0 0 10px #ff6a3d; }
@@ -773,7 +773,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 /* 工房：返金・無効化 */
 .refund-row { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin: 12px 2px 24px; font-family: var(--font-jp); font-size: 11px; color: var(--muted); text-align: center; }
 .refund-row .btn { white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
-.shop-item.off { opacity: 0.45; }
+.shop-item.off { filter: brightness(0.45) saturate(0.5); }
 .shop-item .btn.maxsw { min-width: 72px; }
 
 /* ---------------- 秘宝 ---------------- */

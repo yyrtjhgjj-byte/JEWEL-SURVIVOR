@@ -30,7 +30,7 @@ async function runOne(browser, spec) {
   const errs = [];
   page.on('pageerror', (e) => errs.push(e.message));
   await page.addInitScript((up) => {
-    localStorage.setItem('jewel-survivor-save-v1', JSON.stringify({ coins: 0, unlocked: { ruby: true }, upgrades: up, login: { last: new Date().toDateString(), streak: 1 } }));
+    localStorage.setItem('jewel-survivor-save-v1', JSON.stringify({ coins: 0, unlocked: { ruby: true }, upgrades: up, login: { last: ((d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`)(new Date()), days: 1 } }));
   }, shop(spec.meta));
   if (process.env.SIM_ENEMY) await page.addInitScript((o) => { window.__enemyOverride = o; }, JSON.parse(process.env.SIM_ENEMY));
   const q = `auto=${spec.char}&bot&norender&stage=${spec.stage}&heat=${spec.heat}${spec.god ? '&god' : ''}`;

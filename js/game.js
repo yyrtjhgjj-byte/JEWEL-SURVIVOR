@@ -642,8 +642,8 @@ export class Game {
     } else if (ev.type === 'boss') {
       const a = -Math.PI / 2 + rand(-0.5, 0.5);
       const e = this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * (this.viewR * 0.8), p.y + Math.sin(a) * (this.viewR * 0.8), { mul: ev.mul || 1 });
-      // 6:00 以降の中ボスは秘宝の宝箱を落とす
-      e.artChest = ev.t !== undefined && ev.t >= 300 * TIME_SCALE && ev.enemy !== this.stage.finalBoss; // 2 体目以降の中ボス
+      // 2 体目以降の中ボス（4:00 以降。予定表の 5:00 を TIME_SCALE で縮めた時刻より後）は秘宝の宝箱を落とす
+      e.artChest = ev.t !== undefined && ev.t >= 300 * TIME_SCALE && ev.enemy !== this.stage.finalBoss;
       this.boss = e;
       e.atkT = 2;
       e.atk2 = 5;
@@ -731,7 +731,7 @@ export class Game {
       const dist = Math.hypot(dx, dy) || 1;
       // 魅了：ほかの敵を襲う
       if (e.charmT > 0) {
-        e.charmT -= dt;
+        if (!stop) e.charmT -= dt; // 時間停止中は魅了の残り時間も止める
         if (e.charmT <= 0) {
           e.charmT = 0;
           if (e.charmBoom) {
@@ -975,8 +975,7 @@ export class Game {
       const o = L.owner;
       if (!o || !o.alive) { L.dur = 0; L.tele = 0; continue; }
       // 水晶柱はレーザーも遮る（予告の線も柱で止める）
-      L.cut = this.hazards.rayCut(o.x, o.y, L.a, L.len);
-      if (L.tele > 0) { L.tele -= dt; continue; }
+      if (L.tele > 0) { L.tele -= dt; L.cut = this.hazards.rayCut(o.x, o.y, L.a, L.len); continue; }
       L.dur -= dt;
       L.a += L.va * dt;
       L.cut = this.hazards.rayCut(o.x, o.y, L.a, L.len);
@@ -1230,6 +1229,8 @@ export class Game {
     e.dash = 0;
     e.windup = 0;
     e.charging = false;
+    e.pullT = 0; // 引き寄せ（皇帝・アザトース）
+    e.gustT = 0; // 翼の突風（クトゥルフ）
     this.lasers = this.lasers.filter((L) => L.owner !== e);
     this.warns = this.warns.filter((w) => w.owner !== e);
     this.fx.ring(e.x, e.y, e.r, e.r * 3, 0.5, '#ffe39a', 10);
@@ -1711,7 +1712,7 @@ export class Game {
     const has = (n) => [].concat(n).some((k) => def.base[k] !== undefined);
     const skip = w.evolved ? [...(def.evo.lbSkip || [])] : [];
     if (this.stats.area * (1 + (lb.area || 0)) >= AREA_CAP) skip.push('area'); // 攻撃範囲が上限に届いていれば出さない
-    const opts = LIMIT_BREAK.filter((o) => (!o.need || has(o.need)) && (!o.max || (lb[o.k] || 0) < o.max) && !skip.includes(o.k));
+    const opts = LIMIT_BREAK.filter((o) => (!o.need || has(o.need)) && (!o.max || (lb[o.k] || 0) < o.max) && (!o.cap || (lb[o.k] || 0) < o.cap) && !skip.includes(o.k));
     if (!opts.length) return null;
     const o = weightedPick(opts, (x) => x.w);
     return { type: 'lb', id: w.id, stat: LIMIT_BREAK.indexOf(o) };
@@ -1744,7 +1745,8 @@ export class Game {
       const w = this.getWeapon(c.id);
       const o = LIMIT_BREAK[c.stat];
       w.lb = w.lb || {};
-      w.lb[o.k] = (w.lb[o.k] || 0) + (o.k === 'amount' ? o.v : o.v * (1 + this.stats.lbUp)); // 上位工房「リミットブレイク強化」（弾数は整数のまま）
+      // 上位工房「リミットブレイク強化」で強化量が増える（弾数は整数のまま）。クールダウン短縮は cap まで（1 を超えると火力の見積もりが壊れる）
+      w.lb[o.k] = Math.min(o.cap ?? Infinity, (w.lb[o.k] || 0) + (o.k === 'amount' ? o.v : o.v * (1 + this.stats.lbUp)));
       w.lbN = (w.lbN || 0) + 1;
     } else if (c.type === 'plb') {
       const p = this.getPassive(c.id);
@@ -2417,4 +2419,3 @@ export class Game {
   }
 }
 
-export { xpFor };

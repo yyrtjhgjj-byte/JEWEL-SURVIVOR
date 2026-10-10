@@ -3,12 +3,7 @@ export const TAU = Math.PI * 2;
 export const rand = (a = 1, b) => (b === undefined ? Math.random() * a : a + Math.random() * (b - a));
 export const randi = (a, b) => Math.floor(rand(a, b + 1));
 export const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const lerp = (a, b, t) => a + (b - a) * t;
-export const dist2 = (ax, ay, bx, by) => {
-  const dx = ax - bx, dy = ay - by;
-  return dx * dx + dy * dy;
-};
 export const chance = (p) => Math.random() < p;
 
 export function weightedPick(items, weightFn) {
@@ -20,14 +15,6 @@ export function weightedPick(items, weightFn) {
     if (r <= 0) return it;
   }
   return items[items.length - 1];
-}
-
-export function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
 }
 
 export function fmt(n) {
