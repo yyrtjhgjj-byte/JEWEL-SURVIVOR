@@ -367,27 +367,65 @@ export function showStageSelect() {
   show(node);
   $('#back', node).onclick = () => { audio.tap(); showCharSelect(); };
   const list = $('#list', node);
-  let ch = STAGE_BY_ID[sel].chapter; // 表示している章
+  let ch = save.stageTab === 'boss' ? 'boss' : STAGE_BY_ID[sel].chapter; // 表示している章（'boss' は BOSS モード）
+  // BOSS モード：クリア済みのステージのボスたちと連戦する。武器とチャームは自由に選ぶ（save.rushLoadout）
+  const cleared = (id) => !!stageRec(id).cleared;
+  let rsel = cleared(save.rushStage) ? save.rushStage : (STAGES.find((st) => cleared(st.id)) || {}).id || null;
+  const lo = save.rushLoadout || (save.rushLoadout = { w: [CHARACTERS[save.selected] ? CHARACTERS[save.selected].weapon : 'ruby'], p: [] });
+  // 秘宝の持ち込み（通常のステージと BOSS モードで共通）
+  const artHTML = () => {
+    const arts = unlockedArtifacts();
+    if (save.artSel && !arts.includes(save.artSel)) save.artSel = null;
+    const artA = save.artSel ? ARTIFACT_BY_ID[save.artSel] : null;
+    const two = upperLv('art2') > 0;
+    if (save.artSel2 && (!arts.includes(save.artSel2) || save.artSel2 === save.artSel)) save.artSel2 = null;
+    const artB = two && save.artSel2 ? ARTIFACT_BY_ID[save.artSel2] : null;
+    return `<div class="toggle-row art-row" style="margin-bottom:10px"><span>ARTIFACT<small>${arts.length ? (artA ? `${artA.no}　${artA.name}` : '持ち込まない') : '実績を達成すると解放'}</small></span>
+        <button class="btn small" id="artsel" ${arts.length ? '' : 'disabled'}>${artA ? '変更' : '選ぶ'}</button></div>
+      ${two ? `<div class="toggle-row art-row" style="margin-bottom:10px"><span>ARTIFACT 2<small>${artB ? `${artB.no}　${artB.name}` : '持ち込まない'}</small></span>
+        <button class="btn small" id="artsel2" ${arts.length > 1 ? '' : 'disabled'}>${artB ? '変更' : '選ぶ'}</button></div>` : ''}`;
+  };
+  const artWire = (again) => {
+    const arts = unlockedArtifacts();
+    $('#artsel', node).onclick = () => { audio.tap(); pickArtifact(arts.filter((x) => x !== save.artSel2), (id) => { save.artSel = id; persist(); again(); }, true); };
+    const a2 = $('#artsel2', node);
+    if (a2) a2.onclick = () => { audio.tap(); pickArtifact(arts.filter((x) => x !== save.artSel), (id) => { save.artSel2 = id; persist(); again(); }, true); };
+  };
+  const renderRush = () => {
+    const pickHTML = (ids, list, max, kind) => ids.map((id) => {
+      const g = kind === 'w' ? WEAPONS[id].gem : PASSIVES[id].gem;
+      const on = list.includes(id);
+      return `<button class="rp ${on ? 'on' : ''} ${!on && list.length >= max ? 'full' : ''}" data-k="${kind}" data-id="${id}"><img src="${gemIcon(g, 72)}"><span>${GEMS[g].jp}</span></button>`;
+    }).join('');
+    $('#opts', node).innerHTML = `${artHTML()}
+      <div class="rp-head"><span>WEAPON</span><b>${lo.w.length} / ${MAX_WEAPONS}</b></div>
+      <div class="rush-pick">${pickHTML(WEAPON_IDS, lo.w, MAX_WEAPONS, 'w')}</div>
+      <div class="rp-head"><span>CHARM</span><b>${lo.p.length} / ${MAX_CHARMS}</b></div>
+      <div class="rush-pick">${pickHTML(PASSIVE_IDS, lo.p, MAX_CHARMS, 'p')}</div>`;
+    node.querySelectorAll('.rp').forEach((b) => (b.onclick = () => {
+      const arr = b.dataset.k === 'w' ? lo.w : lo.p, max = b.dataset.k === 'w' ? MAX_WEAPONS : MAX_CHARMS;
+      const i = arr.indexOf(b.dataset.id);
+      if (i >= 0) arr.splice(i, 1);
+      else if (arr.length < max) arr.push(b.dataset.id);
+      else return;
+      audio.tap();
+      persist();
+      renderRush();
+    }));
+    artWire(renderRush);
+    $('#go', node).disabled = !rsel || !lo.w.length;
+  };
   const renderOpts = () => {
+    if (ch === 'boss') { renderRush(); return; }
+    $('#go', node).disabled = false;
     const rec = stageRec(sel);
     const maxHeat = rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0;
     // HEAT はステージごとに覚える（上限の低いステージを見ただけで、別のステージの選択が下がらないように）
     const hs = save.heatSels || (save.heatSels = {});
     const h = Math.min(maxHeat, hs[sel] ?? 0);
     const m = heatMods(h);
-    const arts = unlockedArtifacts();
-    if (save.artSel && !arts.includes(save.artSel)) save.artSel = null;
-    const artA = save.artSel ? ARTIFACT_BY_ID[save.artSel] : null;
-    // 上位工房「秘宝の持ち込み」：2 つ目の秘宝
-    const two = upperLv('art2') > 0;
-    if (save.artSel2 && (!arts.includes(save.artSel2) || save.artSel2 === save.artSel)) save.artSel2 = null;
-    const artB = two && save.artSel2 ? ARTIFACT_BY_ID[save.artSel2] : null;
     const coinMul = 1 + (0.3 + 0.06 * upperLv('heatCoin')) * h;
-    $('#opts', node).innerHTML = `
-      <div class="toggle-row art-row" style="margin-bottom:10px"><span>ARTIFACT<small>${arts.length ? (artA ? `${artA.no}　${artA.name}` : '持ち込まない') : '実績を達成すると解放'}</small></span>
-        <button class="btn small" id="artsel" ${arts.length ? '' : 'disabled'}>${artA ? '変更' : '選ぶ'}</button></div>
-      ${two ? `<div class="toggle-row art-row" style="margin-bottom:10px"><span>ARTIFACT 2<small>${artB ? `${artB.no}　${artB.name}` : '持ち込まない'}</small></span>
-        <button class="btn small" id="artsel2" ${arts.length > 1 ? '' : 'disabled'}>${artB ? '変更' : '選ぶ'}</button></div>` : ''}
+    $('#opts', node).innerHTML = `${artHTML()}
       <div class="toggle-row"><span>HEAT<small>${rec.cleared ? `敵HP ×${m.hp.toFixed(2)} ／ 敵攻撃 ×${m.dmg.toFixed(2)} ／ 獲得コイン ×${coinMul.toFixed(1)}` : 'このステージをクリアすると解放'}</small></span>
         <div class="heat-ctl"><button class="iconbtn" id="hm" ${h <= 0 ? 'disabled' : ''}>−</button><b class="heat-val h${h}">${h}</b><button class="iconbtn" id="hp" ${h >= maxHeat ? 'disabled' : ''}>＋</button></div></div>
       ${rec.cleared ? `<div class="toggle-row" style="margin-top:10px"><span>ENDLESS<small>最終ボス撃破後も続行（敵が際限なく強化）</small></span><button class="switch ${save.endless ? 'on' : ''}" id="en"></button></div>
@@ -396,9 +434,7 @@ export function showStageSelect() {
     const hm = $('#hm', node), hp = $('#hp', node);
     hm.onclick = () => { hs[sel] = Math.max(0, h - 1); audio.tap(); persist(); renderOpts(); };
     hp.onclick = () => { hs[sel] = Math.min(maxHeat, h + 1); audio.tap(); persist(); renderOpts(); };
-    $('#artsel', node).onclick = () => { audio.tap(); pickArtifact(arts.filter((x) => x !== save.artSel2), (id) => { save.artSel = id; persist(); renderOpts(); }, true); };
-    const a2 = $('#artsel2', node);
-    if (a2) a2.onclick = () => { audio.tap(); pickArtifact(arts.filter((x) => x !== save.artSel), (id) => { save.artSel2 = id; persist(); renderOpts(); }, true); };
+    artWire(renderOpts);
     const en = $('#en', node);
     if (en) en.onclick = () => { save.endless = !save.endless; en.classList.toggle('on', save.endless); audio.tap(); persist(); };
     for (const [id, k] of [['#hy', 'hyper'], ['#hu', 'hurry']]) {
@@ -407,9 +443,36 @@ export function showStageSelect() {
     }
   };
   const render = () => {
-    $('#chtabs', node).innerHTML = CHAPTERS.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${c.name}</button>`).join('');
-    $('#chtabs', node).querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); ch = +b.dataset.c; render(); }));
+    $('#chtabs', node).innerHTML = CHAPTERS.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${c.name}</button>`).join('') +
+      `<button class="tab ${ch === 'boss' ? 'on' : ''}" data-c="boss">BOSS</button>`;
+    $('#chtabs', node).querySelectorAll('.tab').forEach((b) => (b.onclick = () => {
+      audio.tap();
+      const was = ch;
+      ch = b.dataset.c === 'boss' ? 'boss' : +b.dataset.c;
+      save.stageTab = ch === 'boss' ? 'boss' : null;
+      render();
+      if ((was === 'boss') !== (ch === 'boss')) renderOpts();
+    }));
     list.innerHTML = '';
+    if (ch === 'boss') {
+      // BOSS モード：ステージごとに、そのステージのボスたちを並べる
+      for (const c of CHAPTERS) {
+        list.appendChild(el(`<div class="label rush-ch">${c.name}</div>`));
+        for (const st of STAGES.filter((x) => x.chapter === c.no)) {
+          const ok = cleared(st.id);
+          const best = (save.bossRush || {})[st.id] || 0;
+          const bosses = st.events.filter((e) => e.type === 'boss').map((e) => e.enemy);
+          const card = el(`<button class="stage-card rush-card ${ok ? '' : 'locked'} ${st.id === rsel ? 'sel' : ''}" style="--sc:${st.pal.accent};--sg:${st.pal.glow}">
+            <div class="st-head"><span class="st-no">STAGE ${st.no}</span>${best ? `<span class="st-clear">最高 ${best} 体</span>` : ''}</div>
+            <div class="st-name">${stageUnlocked(st) ? st.name : '？？？'}</div>
+            ${ok ? `<div class="rush-boss">${bosses.map((id) => `<img src="${enemyIcon(ENEMIES[id].sprite || id, Math.min(ENEMIES[id].r, 40), ENEMIES[id].tint)}">`).join('')}</div>` : `<div class="st-desc">🔒 STAGE ${st.no} をクリアで解放</div>`}
+          </button>`);
+          if (ok) card.onclick = () => { rsel = st.id; save.rushStage = st.id; audio.cardFlip(st.no); render(); renderRush(); };
+          list.appendChild(card);
+        }
+      }
+      return;
+    }
     for (const st of STAGES.filter((x) => x.chapter === ch)) {
       const open = stageUnlocked(st);
       const rec = stageRec(st.id);
@@ -426,6 +489,14 @@ export function showStageSelect() {
   render();
   renderOpts();
   $('#go', node).onclick = () => {
+    if (ch === 'boss') {
+      if (!rsel || !lo.w.length) return;
+      audio.select();
+      save.rushStage = rsel;
+      persist();
+      app.startGame(save.selected, { stageId: rsel, rush: { w: [...lo.w], p: [...lo.p] }, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
+      return;
+    }
     audio.select();
     save.selectedStage = sel;
     persist();
@@ -1460,10 +1531,10 @@ export function resumePrompt(res, onResume, onSettle) {
       <div class="big-title prism-text">RESUME</div>
       <div class="sub-title">中断したランがあります</div>
       <div class="panel" style="min-width:260px">
-        <div class="rrow"><span>ステージ</span><b>${st.name}${res.heat ? `　HEAT ${res.heat}` : ''}</b></div>
+        <div class="rrow"><span>ステージ</span><b>${res.rush ? `BOSS ・ STAGE ${st.no}` : st.name}${res.heat ? `　HEAT ${res.heat}` : ''}</b></div>
         <div class="rrow"><span>ジュエル</span><b>${GEMS[res.charId].jp}</b></div>
         <div class="rrow"><span>経過時間</span><b>${fmtTime(r.time)}</b></div>
-        <div class="rrow"><span>レベル</span><b>LV ${r.level}</b></div>
+        ${res.rush ? `<div class="rrow"><span>倒したボス</span><b>${res.rush.kills} 体</b></div>` : `<div class="rrow"><span>レベル</span><b>LV ${r.level}</b></div>`}
       </div>
       <div class="rbtns">
         <button class="btn big primary" id="rs-go">再開</button>
@@ -1517,8 +1588,8 @@ export function results(res, cleared, extra) {
     <div class="screen dim result-screen">
       <div class="rays"></div>
       <div class="result-head">
-        ${cleared ? '<div class="big-title prism-text">STAGE CLEAR</div>' : '<div class="big-title lose">GAME OVER</div>'}
-        <div class="sub-title" style="margin-top:6px">STAGE ${STAGE_BY_ID[res.stageId].no}　${STAGE_BY_ID[res.stageId].name}${res.heat ? `　HEAT ${res.heat}` : ''}${res.endless ? '　ENDLESS' : ''}${res.hyper ? '　HYPER' : ''}${res.hurry ? '　HURRY' : ''}</div>
+        ${res.rush ? '<div class="big-title prism-text">BOSS RUSH</div>' : cleared ? '<div class="big-title prism-text">STAGE CLEAR</div>' : '<div class="big-title lose">GAME OVER</div>'}
+        <div class="sub-title" style="margin-top:6px">${res.rush ? 'BOSS ・ ' : ''}STAGE ${STAGE_BY_ID[res.stageId].no}　${STAGE_BY_ID[res.stageId].name}${res.heat ? `　HEAT ${res.heat}` : ''}${res.endless ? '　ENDLESS' : ''}${res.hyper ? '　HYPER' : ''}${res.hurry ? '　HURRY' : ''}</div>
         ${extra.firstClear ? `<div class="hint" style="margin-top:6px;color:#ffe39a">初クリア報酬 ${fmt(STAGE_BY_ID[res.stageId].reward)} コイン${extra.unlocked ? ` ／ ${GEMS[extra.unlocked].jp} 解放` : ''}${extra.nextStage ? ` ／ ${extra.nextStage} 解放` : ''}</div>` : ''}
       </div>
       <div class="panel" id="rows"></div>
@@ -1534,13 +1605,15 @@ export function results(res, cleared, extra) {
     </div>`);
   show(node);
   guard($('.rbtns', node), 1500);
-  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null }); };
+  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, rush: res.rush ? { w: res.rush.w, p: res.rush.p } : null, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null }); };
   $('#home', node).onclick = () => { audio.tap(); app.toTitle(); };
   const rowsEl = $('#rows', node);
   const rows = [
+    // BOSS モードは倒したボスの数（周回数）を先頭に。レベルは上がらないので出さない
+    ...(res.rush ? [['倒したボス', `${res.rush.kills} 体（${res.rush.laps} 周）`, extra.rushBest]] : []),
     ['生存時間', fmtTime(res.time), extra.newBest.time],
     ['撃破数', fmt(res.kills), extra.newBest.kills],
-    ['レベル', 'LV ' + res.level, extra.newBest.level],
+    ...(res.rush ? [] : [['レベル', 'LV ' + res.level, extra.newBest.level]]),
     ['総ダメージ', fmt(res.damage), extra.newBest.damage],
     ['最大コンボ', fmt(res.maxCombo), false],
     ['進化', String(res.evolved), false],

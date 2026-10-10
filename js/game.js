@@ -77,6 +77,9 @@ function TINT(type, tint) {
   return (tintCache[k] = '#' + m.map((v) => v.toString(16).padStart(2, '0')).join(''));
 }
 
+// BOSS モード（ステージのボスの連戦）：ボスを倒してから次のボスが出るまでの秒数
+export const RUSH_GAP = 5;
+
 // 羽ばたく敵（絵のコマを交互に切り替える）
 const FLAP = new Set(['bat', 'byakhee', 'kochou']);
 
@@ -124,7 +127,12 @@ export class Game {
     this.stageDmg = this.stage.dmg * this.heatM.dmg;
     this.lasers = [];
     this.warns = [];
-    this.hazards = new Hazards(this, this.stage);
+    // BOSS モード：雑魚は出さず、ステージのボス（中ボス・最終ボス）を順に出し続ける。1 周するたびに 2 倍。ギミックはなし
+    this.rush = opts.rush || null;
+    this.rushKills = 0;
+    this.rushNextT = 3;
+    this.rushOrder = this.stage.events.filter((e) => e.type === 'boss').map((e) => ({ enemy: e.enemy, mul: e.mul || 1, t: e.t }));
+    this.hazards = new Hazards(this, this.rush ? { ...this.stage, hazard: null } : this.stage);
     this.bot = !!opts.bot;
     this.god = !!opts.god;
     this.noRender = !!opts.noRender;
@@ -190,7 +198,13 @@ export class Game {
     this.banishes = this.stats.banish;
     this.revives = this.stats.revive;
     this.startWeapon = CHARACTERS[this.charId].weapon;
-    this.addWeapon(CHARACTERS[this.charId].weapon);
+    if (this.rush) {
+      // BOSS モード：自由に選んだ武器（4 つまで）とチャーム（6 つまで）を Lv1 で持つ
+      for (const id of (this.rush.w || []).slice(0, MAX_WEAPONS)) if (WEAPONS[id] && !this.getWeapon(id)) this.addWeapon(id);
+      if (!this.weapons.length) this.addWeapon(this.startWeapon);
+      for (const id of (this.rush.p || []).slice(0, MAX_CHARMS)) if (PASSIVES[id] && !this.getPassive(id)) this.addPassive(id);
+      this.player.hp = this.stats.maxHp;
+    } else this.addWeapon(CHARACTERS[this.charId].weapon);
     this.lodestoneNext = (Math.floor(this.time / 120) + 1) * 120;
     this.hopeNext = this.time + 60;
     if (opts.artifact && ARTIFACT_BY_ID[opts.artifact]) this.addArtifact(opts.artifact, true);
@@ -198,7 +212,8 @@ export class Game {
     this.artMax = ARTIFACT_MAX + (this.stats.art2 ? 1 : 0);
     if (this.stats.art2 && opts.artifact2 && ARTIFACT_BY_ID[opts.artifact2]) this.addArtifact(opts.artifact2, true);
     // 上位工房「初期強化」：開始時のレベルアップ
-    for (let i = 0; i < this.stats.startLv; i++) { this.level++; this.pendingLevels++; this.modalQueue.push({ type: 'level' }); }
+    // （BOSS モードでは石を宝箱でしか強化しないので、なし）
+    if (!this.rush) for (let i = 0; i < this.stats.startLv; i++) { this.level++; this.pendingLevels++; this.modalQueue.push({ type: 'level' }); }
     this.xpNext = xpFor(this.level);
     if (opts.build) this.debugBuild(opts.build);
     this.resize();
@@ -447,7 +462,8 @@ export class Game {
     this.grid.clear();
     for (const e of this.enemies) if (e.alive) this.grid.insert(e);
 
-    this.director(dt);
+    if (this.rush) this.rushDirector(dt);
+    else this.director(dt);
     this.hazards.update(dt);
 
     // ---- ぶき
@@ -505,13 +521,13 @@ export class Game {
     return w;
   }
   // 難易度の曲線に使う経過時間（1 戦の長さを縮めたぶん速く進む。7 分で、もとの 10 分と同じ）
-  progress() { return this.time / TIME_SCALE; }
+  progress() { return this.rush ? 0 : this.time / TIME_SCALE; }
   hpScale() {
     const pt = this.progress();
     const m = Math.min(pt, 600) / 60;
     let s = 1 + 0.35 * m + 0.06 * m * m; // もとの 10 分で 10.5 倍
     if (pt > 600) s *= 1 + (pt - 600) / 60 * 0.1; // もとの 10 分以降（虚空聖堂）
-    if (this.time > this.stageTime) s *= 1 + (this.time - this.stageTime) / 60 * 0.15; // エンドレス
+    if (this.time > this.stageTime && !this.rush) s *= 1 + (this.time - this.stageTime) / 60 * 0.15; // エンドレス
     return s * this.stage.hp * this.heatM.hp;
   }
 
@@ -578,6 +594,33 @@ export class Game {
         if (!this.hazards.blocks(cx, cy)) this.spawnEnemy('crystal', cx, cy);
       }
     }
+  }
+
+  // BOSS モード：ボスがいなくなってから RUSH_GAP 秒後に、次のボスを出す
+  rushDirector(dt) {
+    if (this.enemies.some((e) => e.alive && e.boss)) return;
+    this.rushNextT -= dt;
+    if (this.rushNextT > 0) return;
+    this.rushNextT = RUSH_GAP;
+    const n = this.rushOrder.length;
+    const lap = Math.floor(this.rushKills / n);
+    const ev = this.rushOrder[this.rushKills % n];
+    const p = this.player, a = -Math.PI / 2 + rand(-0.5, 0.5);
+    // 1 周目はステージで出るときと同じ強さ（攻撃力は、そのボスが出る時刻の時間の伸びを掛ける。HP の時間の伸びはボスにはない）
+    const e = this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * (this.viewR * 0.8), p.y + Math.sin(a) * (this.viewR * 0.8), { mul: ev.mul });
+    e.dmg *= 1 + Math.min(ev.t / TIME_SCALE, 900) / 600;
+    e.atkT = 2;
+    e.atk2 = 5;
+    this.boss = e;
+    this.hooks.bossBar(e);
+    this.hooks.banner(ENEMIES[ev.enemy].name, 'boss', `${lap + 1} 周目 ・ ${(this.rushKills % n) + 1} / ${n}${lap ? ` ・ ×${2 ** lap}` : ''}`);
+    if (!this.stage.keepBgm) audio.playBgm(this.bossBgm(ev.enemy));
+    this.fx.shake(12);
+    save.seen.enemies[ev.enemy] = true;
+  }
+  // BOSS モードの強さの倍率（1 周するたびに 2 倍。HP と攻撃力に掛ける）
+  rushMul() {
+    return this.rush ? 2 ** Math.floor(this.rushKills / this.rushOrder.length) : 1;
   }
 
   ringPos(extra = 40) {
@@ -681,6 +724,12 @@ export class Game {
       ai: d.ai || type, spr: d.sprite || type, weave: d.weave, kbk: kbWeight(d, elite),
       tint: d.tint || (this.stage.tint && !d.boss && !d.prop && !d.segment && !d.ai ? TINT(type, this.stage.tint) : null),
     };
+    if (this.rush) {
+      const k = this.rushMul();
+      e.hp *= k;
+      e.maxHp *= k;
+      e.dmg *= k;
+    }
     this.enemies.push(e);
     if (!d.prop) save.seen.enemies[type] = true;
     return e;
@@ -1348,11 +1397,17 @@ export class Game {
     this.hooks.banner(e.ai === 'konton' ? '七日ニシテ渾沌死ス' : 'BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     this.dropPickup('bigchest', e.x, e.y);
     if (e.artChest && this.arts.length < this.artMax && this.artifactChoices().length) this.modalQueue.push({ type: 'artifact' });
-    this.dropPickup('rough', e.x, e.y, upgradeTier(bossDrop(e.type === this.stage.finalBoss, this.heat), this.stage.no, this.heat, this.stats.roughUp));
+    if (!this.rush) this.dropPickup('rough', e.x, e.y, upgradeTier(bossDrop(e.type === this.stage.finalBoss, this.heat), this.stage.no, this.heat, this.stats.roughUp));
     // けいけんちの シャワー
     for (let i = 0; i < 30; i++) this.dropXp(e.x + rand(-60, 60), e.y + rand(-60, 60), Math.ceil(e.xp / 30));
     for (let i = 0; i < 25; i++) this.dropPickup('coin', e.x, e.y, randi(3, 8));
-    if (this.state !== 'over' && !other) audio.playBgm(this.stage.bgm);
+    if (this.state !== 'over' && !other && !this.rush) audio.playBgm(this.stage.bgm);
+    // BOSS モード：撃破数を数えて、RUSH_GAP 秒後に次のボス（クリアにはしない）
+    if (this.rush && !other) {
+      this.rushKills++;
+      this.rushNextT = RUSH_GAP;
+      if (this.rushKills % this.rushOrder.length === 0) this.hooks.banner(`${this.rushKills / this.rushOrder.length} 周 達成`, 'victory', `次の周は ×${this.rushMul()}`);
+    }
     this.lasers.length = 0;
     // 盤面の敵弾をすべて消す
     for (let i = 0; i < this.ebullets.length; i++) {
@@ -1360,7 +1415,7 @@ export class Game {
       if (i < 120) this.fx.burst(b.x, b.y, '#ffd6f5', 3, 90, 0.35, 6);
     }
     this.ebullets.length = 0;
-    if (e.type === this.stage.finalBoss && !this.cleared) {
+    if (e.type === this.stage.finalBoss && !this.cleared && !this.rush) {
       this.cleared = true; // ENDLESS でもクリアは記録する（ランはそのまま続く）
       if (this.endless) {
         this.hooks.banner('STAGE CLEAR', 'victory', 'ENDLESS 続行');
@@ -1517,6 +1572,7 @@ export class Game {
 
   // ---------------------------------------------------------------- アイテム
   dropXp(x, y, v) {
+    if (this.rush) return; // BOSS モードは経験値なし（石は宝箱でだけ強化する）
     // おおすぎたら まとめる
     if (this.pickups.length > 380) {
       let best = null, bd = Infinity;
@@ -1896,13 +1952,13 @@ export class Game {
       roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
       hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
-      endlessBoss: this.endlessBoss || null, cleared: this.cleared, hurt: this.hurt,
+      endlessBoss: this.endlessBoss || null, cleared: this.cleared, hurt: this.hurt, rushKills: this.rushKills, rushNextT: this.rushNextT,
       bossList: this.enemies.filter((e) => e.alive && e.boss && e.ai !== 'piper').map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1, woke: !!e.azWoke })),
     };
   }
   restore(s) {
     const S = ['level', 'xp', 'kills', 'coins', 'totalDmg', 'maxCombo', 'feverGauge', 'feverNeed', 'fevers', 'evolvedCount', 'bosses', 'miracles', 'revBuff', 'rerolls', 'skips', 'banishes',
-      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext', 'endlessBoss', 'hurt'];
+      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext', 'endlessBoss', 'hurt', 'rushKills', 'rushNextT'];
     this.weapons = [];
     for (const x of s.weapons) {
       const w = this.addWeapon(x.id);
@@ -1928,6 +1984,9 @@ export class Game {
       const a = -Math.PI / 2 + rand(-0.5, 0.5);
       const e = this.spawnEnemy(b.type, p.x + Math.cos(a) * this.viewR * 0.8, p.y + Math.sin(a) * this.viewR * 0.8);
       e.maxHp = b.maxHp; e.hp = b.hp; e.artChest = b.artChest; e.breakNeed = b.breakNeed; e.atkT = 2; e.atk2 = 5;
+      // BOSS モード：攻撃力の時間の伸び（rushDirector と同じ）。周回の倍率は spawnEnemy で掛かる
+      const rev = this.rush && this.rushOrder.find((o) => o.enemy === b.type);
+      if (rev) e.dmg *= 1 + Math.min(rev.t / TIME_SCALE, 900) / 600;
       // アザトースは目覚めた後から（奏者は眠りの間だけ、作り直す）。攻撃のタイマーも目覚めたときと同じ値にする
       if (b.woke) { e.azWoke = true; e.azInit = true; e.charging = true; e.azT = 2; e.az2 = 3.5; e.azPat = 0; }
       this.boss = e;
@@ -1962,6 +2021,8 @@ export class Game {
       timeline: this.timeline, bossLog: this.bossLog,
       charId: this.charId, killsByType: { ...this.killsByType }, endless: this.endless,
       stageId: this.stage.id, heat: this.heat, charmed: this.charmed || 0, dmgTaken: this.dmgTaken, hurt: Math.round(this.hurt),
+      // BOSS モード：倒したボスの数と周回数、選んだ武器とチャーム（RETRY と再開に使う）
+      rush: this.rush ? { kills: this.rushKills, laps: Math.floor(this.rushKills / this.rushOrder.length), per: this.rushOrder.length, w: this.rush.w || [], p: this.rush.p || [] } : null,
     };
   }
 
