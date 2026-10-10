@@ -181,7 +181,7 @@ const hooks = {
   coinPop: () => UI.coinPop(),
   haptic: () => UI.haptic(),
   levelUp: (g, done) => UI.levelUp(g, done),
-  chest: (g, big, done) => UI.chest(g, big, done),
+  chest: (g, big, done, plus) => UI.chest(g, big, done, plus),
   artifact: (g, done) => UI.artifactChoice(g, done),
   rushWarp: (g, m, done) => UI.rushWarp(g, m, done),
   rushCount: (n) => UI.rushCount(n),
@@ -207,7 +207,7 @@ function startGame(charId, opt = {}) {
       g.applyChoice(cs[0]);
       done();
     },
-    chest: (g, big, done) => { g.rollChest(big); done(); },
+    chest: (g, big, done, plus) => { g.rollChest(big, plus); done(); },
     rushWarp: (g, m, done) => done(),
     artifact: (g, done) => { const c = g.artifactChoices(); if (c.length) g.addArtifact(c[0]); done(); },
   } : {};
@@ -223,7 +223,7 @@ function startGame(charId, opt = {}) {
   // BOSS モードは経験値もフィーバーもないので、レベル・経験値バー・フィーバーのゲージを出さない
   document.getElementById('hud').classList.toggle('rush', !!game.rush);
   if (opt.resume) game.restore(opt.resume); // 中断したランの続き（HUD の準備のあとに）
-  else if (opt.rush && opt.rush.from) game.rushWarp(opt.rush.from); // BOSS モードを最高記録の続きから
+  else if (opt.rush) game.rushBegin(opt.rush.from || 0); // BOSS モードの開始時の宝箱（CHECKPOINT ならまとめて）
   moveHint = document.getElementById('movehint');
   moveHint.classList.remove('hidden', 'gone');
   audio.tempoMul = 1;

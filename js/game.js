@@ -626,18 +626,26 @@ export class Game {
     this.boss = e;
     this.hooks.bossBar(e);
     this.hooks.banner(ENEMIES[ev.enemy].name, 'boss', `${lap + 1} 周目 ・ ${(this.rushKills % n) + 1} / ${n}${lap ? ` ・ ×${2 ** lap}` : ''}`);
-    if (!this.stage.keepBgm) audio.playBgm(this.bossBgm(ev.enemy));
+    // keepBgm のステージ（アザトース）は、目覚めの曲のまま次の周に入らないよう、ボスが出るたびにステージの曲へ戻す
+    audio.playBgm(this.stage.keepBgm ? this.stage.bgm : this.bossBgm(ev.enemy));
     this.fx.shake(12);
     save.seen.enemies[ev.enemy] = true;
   }
   // BOSS モードを最高記録の続きから始める：倒した数を from にして、その数だけ BOSS TREASURE をまとめて開ける
   // （中のコインはなし）。開けた結果は、まとめの画面（rushWarp）で 1 回だけ見せる
+  // BOSS モードの開始：最初のボスの前に BOSS TREASURE を 1 つ（CHECKPOINT ならまとめて開ける）
+  rushBegin(from) {
+    if (!this.rush) return;
+    if (from > 0) this.rushWarp(from);
+    else this.modalQueue.push({ type: 'chest', big: true, plus: 0 });
+  }
   rushWarp(from) {
     if (!this.rush || !(from > 0)) return;
     const coins = this.coins;
     const got = { evo: 0, up: 0, lb: 0 };
-    for (let i = 0; i < from; i++) {
-      for (const c of this.rollChest(true).items) {
+    // 開始時の 1 つと、倒した from 体ぶん（k 体目は +k-1）
+    for (let i = 0; i <= from; i++) {
+      for (const c of this.rollChest(true, Math.max(0, i - 1)).items) {
         if (c.type === 'evo') got.evo++;
         else if (c.type === 'lb' || c.type === 'plb') got.lb++;
         else if (c.type === 'wup' || c.type === 'pup') got.up++;
@@ -646,7 +654,7 @@ export class Game {
     this.coins = coins;
     this.rushKills = this.rushFrom = from;
     this.player.hp = this.stats.maxHp;
-    this.modalQueue.push({ type: 'rushWarp', n: from, ...got });
+    this.modalQueue.push({ type: 'rushWarp', n: from + 1, from, ...got });
   }
   // BOSS モードの原石：盤面には落とさず、リザルトでまとめて渡す（roughGot に足す）。
   // 1 体ごとにステージと同じ抽選、1 周するたびにおまけで大原石か秘石。周が進むほど上の段階になりやすい
@@ -1438,8 +1446,9 @@ export class Game {
     // 渾沌は七つ目の穴（口）が開いて死ぬ
     this.hooks.banner(e.ai === 'konton' ? '七日ニシテ渾沌死ス' : 'BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     // BOSS モードは宝箱を拾わず、撃破の演出のあとそのまま BOSS TREASURE の画面を開く
+    // 中身はそれまでに倒した数だけ多い（1 体目 +0、2 体目 +1 …。ユーザーの指定）
     if (this.rush) {
-      this.modalQueue.push({ type: 'chest', big: true });
+      this.modalQueue.push({ type: 'chest', big: true, plus: this.rushKills });
       audio.chestOpen();
     } else this.dropPickup('bigchest', e.x, e.y);
     if (e.artChest && this.arts.length < this.artMax && this.artifactChoices().length) this.modalQueue.push({ type: 'artifact' });
@@ -1893,8 +1902,10 @@ export class Game {
   chestCoins(big, n) {
     return Math.round((big ? rand(150, 400) : rand(30, 120)) * n * this.stats.greed);
   }
-  rollChest(big) {
-    const n = this.chestCount(big);
+  // plus：追加の枠（BOSS モード）。中のコインは追加の枠には付けない
+  rollChest(big, plus = 0) {
+    const base = this.chestCount(big);
+    const n = base + plus;
     const items = [];
     for (let i = 0; i < n; i++) {
       // しんか ゆうせん
@@ -1914,7 +1925,7 @@ export class Game {
       items.push(c);
       this.applyChoice(c);
     }
-    const coins = this.chestCoins(big, n);
+    const coins = this.chestCoins(big, base);
     this.coins += coins;
     return { items, coins, n };
   }
@@ -1956,7 +1967,7 @@ export class Game {
       audio.chestOpen();
       this.hooks.artifact(this, done);
     } else if (m.type === 'chest') {
-      this.hooks.chest(this, m.big, done);
+      this.hooks.chest(this, m.big, done, m.plus || 0);
     } else if (m.type === 'rushWarp') {
       if (this.hooks.rushWarp) this.hooks.rushWarp(this, m, done);
       else done();
