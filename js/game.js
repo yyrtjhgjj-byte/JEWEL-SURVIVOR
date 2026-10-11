@@ -3,7 +3,7 @@
 // =====================================================================
 import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, AREA_CAP, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, UPPER_SHOP, LIMIT_BREAK,
-  CHARM_LB_MAX, charmLbPer,
+  charmLbMax, charmLbPer,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
 import { STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
@@ -245,7 +245,8 @@ export class Game {
     // チャームは秘宝の倍率（ペンダントの最大HP・プリズムの範囲）より先に足す（チャームの分にも倍率が掛かるように）
     for (const p of this.passives) {
       add(PASSIVES[p.id].per, p.level);
-      if (p.lbN) add(charmLbPer(p.id, this.weapons ? this.weapons.length : 1), p.lbN); // チャームのリミットブレイク
+      // チャームのリミットブレイク（上限を超えて重ねた古い途中保存があっても、上限までしか数えない）
+      if (p.lbN) add(charmLbPer(p.id), Math.min(p.lbN, charmLbMax(p.id)));
     }
     // 秘宝
     if (this.artSet && this.artSet.has('box')) {
@@ -1849,9 +1850,9 @@ export class Game {
     return { type: 'lb', id: w.id, stat: LIMIT_BREAK.indexOf(o) };
   }
 
-  // チャームのリミットブレイク（上位工房）：最大レベルのチャームに、CHARM_LB_MAX 回まで
+  // チャームのリミットブレイク（上位工房）：最大レベルのチャームに、charmLbMax 回まで（ネフライトは 3、ほかは 5）
   charmLbOk(p) {
-    return this.stats.charmLb > 0 && p.level >= PASSIVES[p.id].max && (p.lbN || 0) < CHARM_LB_MAX && !this.banished.has(p.id);
+    return this.stats.charmLb > 0 && p.level >= PASSIVES[p.id].max && (p.lbN || 0) < charmLbMax(p.id) && !this.banished.has(p.id);
   }
 
   applyChoice(c) {
