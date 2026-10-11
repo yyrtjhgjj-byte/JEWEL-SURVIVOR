@@ -230,7 +230,7 @@ export const WEAPONS = {
     gem: 'angelite', name: 'セラフ・オーラ',
     dmgMul: 2.68, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
     lowBoost: 0.55, // 低レベル時の補正（Lv1 で ×1.55、Lv8 で ×1）
-    desc: '周囲に光のオーラを展開。接近した敵にダメージ、自身はHPを回復し続ける',
+    desc: '周囲に光のオーラを展開。接近した敵にダメージ、自身はHPを回復し続ける。HP30%未満でオーラが広がり回復3倍',
     base: { dmg: 25, cd: 0.5, area: 1, knock: 0.4 },
     levels: [
       { area: 0.15, t: '範囲アップ' },
@@ -264,7 +264,7 @@ export const WEAPONS = {
     gem: 'emerald', name: 'ハーモニー・フィールド',
     dmgMul: 1.59, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
     lowBoost: -0.25, // 低レベル時の補正（Lv1 で ×0.75、Lv8 で ×1）
-    desc: '地面に光のクローバー畑を展開し、上の敵に継続ダメージ',
+    desc: '地面に光のクローバー畑を展開し、上の敵に継続ダメージ。畑で倒した敵がまれにアイテムを落とす',
     base: { dmg: 40, cd: 2.6, amount: 1, area: 1, duration: 2.5 },
     levels: [
       { dmg: 6, t: 'ダメージ +6' },
@@ -275,7 +275,7 @@ export const WEAPONS = {
       { dmg: 8, t: 'ダメージ +8' },
       { amount: 1, t: 'フィールド +1' },
     ],
-    evo: { mul: 1.4, with: 'granite', name: 'エデン・ガーデン', desc: '範囲拡大＋敵を減速。四つ葉がアイテムを落とす' },
+    evo: { mul: 1.4, with: 'granite', name: 'エデン・ガーデン', desc: '範囲拡大＋敵を減速。アイテムが出やすくなる' },
   },
   rhodochrosite: {
     gem: 'rhodochrosite', name: 'パッション・フレイム',

@@ -1208,8 +1208,15 @@ export class Game {
           if ((e.x - a.x) ** 2 + (e.y - a.y) ** 2 > (a.r + e.r) ** 2) continue;
           const wasAlive = e.alive;
           this.damage(e, a.dmg, { wid: a.wid, kb: 0 });
-          if (a.clover && wasAlive && !e.alive && chance(0.04 * this.stats.luck)) {
-            this.dropPickup(chance(0.5) ? 'heart' : 'coin', e.x, e.y, 5);
+          // エメラルドのクローバー畑で倒すと、ときどきアイテム（進化前 3%・進化後 5%。間隔は 3 秒以上あける）。
+          // 中身はコインと回復が多く、爆弾と磁石はまれ。畑は 1 分に 150〜300 体ほど倒すので、回復が多すぎないようにしてある
+          if (a.kind === 'clover' && wasAlive && !e.alive && this.time - (this.cloverItemAt ?? -9) >= 3 && chance((a.clover ? 0.05 : 0.03) * this.stats.luck)) {
+            this.cloverItemAt = this.time;
+            const r = Math.random();
+            if (r < 0.5) this.dropPickup('coin', e.x, e.y, 5);
+            else if (r < 0.85) this.dropPickup('heart', e.x, e.y);
+            else if (r < 0.95) this.dropPickup('bomb', e.x, e.y);
+            else this.dropPickup('magnet', e.x, e.y);
           }
         }
       }

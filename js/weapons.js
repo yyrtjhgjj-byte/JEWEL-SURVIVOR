@@ -384,10 +384,17 @@ export const LOGIC = {
     update(g, w, s, dt) {
       const evo = w.evolved;
       const p = g.player;
-      const R = 62 * s.area * (evo ? 1.5 : 1);
+      // ピンチ（HP 30% 未満）の保険：オーラが 1.5 倍に広がり、回復が 3 倍になる（ユーザーの指定）
+      const pinch = p.hp < p.maxHp * 0.3;
+      if (pinch && !w.pinch) {
+        g.fx.ring(p.x, p.y, 20, 62 * s.area * 2.2, 0.5, '#ffb3d1', 6);
+        g.fx.text(p.x, p.y - 34, 'SANCTUARY', { color: '#ffd6e6', size: 14, stroke: 'rgba(0,0,0,0.7)', life: 1 });
+      }
+      w.pinch = pinch;
+      const R = 62 * s.area * (evo ? 1.5 : 1) * (pinch ? 1.5 : 1);
       w.R = R;
-      // 毎秒の回復量：Lv1 0.75 〜 Lv8 1.8、進化後 3.0
-      g.heal((evo ? 3.0 : 0.6 + w.level * 0.15) * dt, true);
+      // 毎秒の回復量：Lv1 0.75 〜 Lv8 1.8、進化後 3.0（ピンチのときは 3 倍）
+      g.heal((evo ? 3.0 : 0.6 + w.level * 0.15) * (pinch ? 3 : 1) * dt, true);
       w.t -= dt;
       if (w.t > 0) {
         if (evo) {
@@ -418,13 +425,14 @@ export const LOGIC = {
       const rr = R * (1 + (w.pulse || 0) * 0.06);
       const grd = ctx.createRadialGradient(p.x, p.y, rr * 0.2, p.x, p.y, rr);
       grd.addColorStop(0, 'rgba(200,235,255,0.05)');
-      grd.addColorStop(0.75, w.evolved ? 'rgba(255,240,180,0.22)' : 'rgba(140,200,255,0.2)');
-      grd.addColorStop(1, w.evolved ? 'rgba(255,230,140,0.5)' : 'rgba(140,200,255,0.45)');
+      // ピンチのときは薔薇色に変える
+      grd.addColorStop(0.75, w.pinch ? 'rgba(255,170,205,0.24)' : w.evolved ? 'rgba(255,240,180,0.22)' : 'rgba(140,200,255,0.2)');
+      grd.addColorStop(1, w.pinch ? 'rgba(255,150,195,0.55)' : w.evolved ? 'rgba(255,230,140,0.5)' : 'rgba(140,200,255,0.45)');
       ctx.fillStyle = grd;
       ctx.beginPath();
       ctx.arc(p.x, p.y, rr, 0, TAU);
       ctx.fill();
-      ctx.strokeStyle = w.evolved ? 'rgba(255,230,150,0.8)' : 'rgba(170,220,255,0.8)';
+      ctx.strokeStyle = w.pinch ? 'rgba(255,190,215,0.9)' : w.evolved ? 'rgba(255,230,150,0.8)' : 'rgba(170,220,255,0.8)';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 8]);
       ctx.lineDashOffset = -g.time * 30;
