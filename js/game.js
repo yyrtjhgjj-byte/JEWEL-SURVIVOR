@@ -6,7 +6,7 @@ import {
   charmLbMax, charmLbPer,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
-import { STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
+import { STAGES, STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
 import { AI, onEnemyKilled, thiefTick, spillEaten } from './enemies.js';
 import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
@@ -93,6 +93,12 @@ const BREAK_GROW = 1.5;
 const BREAK_EASE = 0.85;
 // ブレイクでダウンしている秒数
 export const BREAK_TIME = 3;
+// トレーニングの木人の HP：STAGE n の最終ボスと同じ（ヒート 0）
+export function trainDummyHp(n) {
+  const st = STAGES[Math.max(0, Math.min(STAGES.length - 1, n - 1))];
+  const ev = st.events.find((e) => e.type === 'boss' && e.enemy === st.finalBoss);
+  return ENEMIES[st.finalBoss].hp * BOSS_HP * ((ev && ev.mul) || 1) * st.hp;
+}
 
 // 雑魚の重さ：押し返し（ノックバック）の効きやすさ。体の大きい敵ほど押し返しにくい
 // （半径 13 以下は 1、16 で 0.72、20 で 0.5、24 で 0.37）。エリートはさらに 0.3 倍、ボスは 0.05
@@ -131,12 +137,15 @@ export class Game {
     this.warns = [];
     // BOSS モード：雑魚は出さず、ステージのボス（中ボス・最終ボス）を順に出し続ける。1 周するたびに 2 倍。ギミックはなし
     this.rush = opts.rush || null;
+    // トレーニング：選んだ装備で的（木人・群れ）を相手に火力などを測る。経験値・ドロップ・報酬・記録なし
+    this.train = opts.train || null;
+    this.trainSpeed = 1;
     this.rushKills = 0;
     // 最高記録の続きから始めたときの開始位置（それまでに倒した数。rushWarp）
     this.rushFrom = 0;
     this.rushNextT = 3;
     this.rushOrder = this.stage.events.filter((e) => e.type === 'boss').map((e) => ({ enemy: e.enemy, mul: e.mul || 1, t: e.t }));
-    this.hazards = new Hazards(this, this.rush ? { ...this.stage, hazard: null } : this.stage);
+    this.hazards = new Hazards(this, this.rush || this.train ? { ...this.stage, hazard: null } : this.stage);
     this.bot = !!opts.bot;
     this.god = !!opts.god;
     this.noRender = !!opts.noRender;
@@ -208,7 +217,8 @@ export class Game {
       if (!this.weapons.length) this.addWeapon(this.startWeapon);
       for (const id of (this.rush.p || []).slice(0, MAX_CHARMS)) if (PASSIVES[id] && !this.getPassive(id)) this.addPassive(id);
       this.player.hp = this.stats.maxHp;
-    } else this.addWeapon(CHARACTERS[this.charId].weapon);
+    } else if (this.train) this.trainSetup();
+    else this.addWeapon(CHARACTERS[this.charId].weapon);
     this.lodestoneNext = (Math.floor(this.time / 120) + 1) * 120;
     this.hopeNext = this.time + 60;
     if (opts.artifact && ARTIFACT_BY_ID[opts.artifact]) this.addArtifact(opts.artifact, true);
@@ -217,7 +227,7 @@ export class Game {
     if (this.stats.art2 && opts.artifact2 && ARTIFACT_BY_ID[opts.artifact2]) this.addArtifact(opts.artifact2, true);
     // 上位工房「初期強化」：開始時のレベルアップ
     // （BOSS モードでは石を宝箱でしか強化しないので、なし）
-    if (!this.rush) for (let i = 0; i < this.stats.startLv; i++) { this.level++; this.pendingLevels++; this.modalQueue.push({ type: 'level' }); }
+    if (!this.rush && !this.train) for (let i = 0; i < this.stats.startLv; i++) { this.level++; this.pendingLevels++; this.modalQueue.push({ type: 'level' }); }
     this.xpNext = xpFor(this.level);
     if (opts.build) this.debugBuild(opts.build);
     this.resize();
@@ -467,7 +477,8 @@ export class Game {
     this.grid.clear();
     for (const e of this.enemies) if (e.alive) this.grid.insert(e);
 
-    if (this.rush) this.rushDirector(dt);
+    if (this.train) this.trainDirector(dt);
+    else if (this.rush) this.rushDirector(dt);
     else this.director(dt);
     this.hazards.update(dt);
 
@@ -526,7 +537,7 @@ export class Game {
     return w;
   }
   // 難易度の曲線に使う経過時間（1 戦の長さを縮めたぶん速く進む。7 分で、もとの 10 分と同じ）
-  progress() { return this.rush ? 0 : this.time / TIME_SCALE; }
+  progress() { return this.rush || this.train ? 0 : this.time / TIME_SCALE; }
   hpScale() {
     const pt = this.progress();
     const m = Math.min(pt, 600) / 60;
@@ -634,6 +645,132 @@ export class Game {
   }
   // BOSS モードを最高記録の続きから始める：倒した数を from にして、その数だけ BOSS TREASURE をまとめて開ける
   // （中のコインはなし）。開けた結果は、まとめの画面（rushWarp）で 1 回だけ見せる
+  // ---------------------------------------------------------------- トレーニング
+  // 選んだ武器・チャームを、選んだレベル・進化・リミットブレイクで持つ。
+  // 武器のリミットブレイクの中身はふつうと同じ抽選だが、同じ設定なら毎回同じになるよう、決まった乱数で選ぶ
+  trainSetup() {
+    const c = this.train;
+    for (const it of (c.p || []).slice(0, MAX_CHARMS)) {
+      if (!PASSIVES[it.id] || this.getPassive(it.id)) continue;
+      const p = this.addPassive(it.id);
+      p.level = Math.max(1, Math.min(PASSIVES[it.id].max, it.lv || 1));
+      if (p.level >= PASSIVES[it.id].max && it.lb) p.lbN = Math.min(it.lb, charmLbMax(it.id));
+    }
+    for (const it of (c.w || []).slice(0, MAX_WEAPONS)) {
+      if (!WEAPONS[it.id] || this.getWeapon(it.id)) continue;
+      const w = this.addWeapon(it.id);
+      w.level = Math.max(1, Math.min(WEAPON_MAX, it.lv || 1));
+      if (w.level >= WEAPON_MAX && it.evo) w.evolved = true;
+    }
+    if (!this.weapons.length) this.addWeapon(this.startWeapon);
+    this.computeStats();
+    const R0 = Math.random;
+    let sd = 20261011;
+    Math.random = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    try {
+      for (const it of c.w || []) {
+        const w = this.getWeapon(it.id);
+        for (let i = 0; w && i < (it.lb || 0); i++) {
+          const ch = this.limitBreakChoice(w, true);
+          if (!ch) break;
+          this.applyChoice(ch);
+        }
+      }
+    } finally {
+      Math.random = R0;
+    }
+    this.computeStats();
+    this.player.hp = this.stats.maxHp;
+    this.god = true;
+    this.trainReset();
+  }
+  // 数値をリセットし、的も最初から（木人は HP 満タン・ブレイクも最初から）
+  trainReset() {
+    this.totalDmg = 0;
+    for (const k in this.dmgBy) this.dmgBy[k] = 0;
+    this.trainStat = { t0: this.time, hits: 0, crits: 0, heal: 0, items: {}, kills: 0, lastKill: null, lastBreak: null, hist: [], histT: 0 };
+    for (const e of this.enemies) if (e.trainDummy) e.alive = false;
+    if (this.boss) { this.boss = null; this.hooks.bossBar(null); }
+    this.trainNextT = 0;
+  }
+  trainDummyHp() { return trainDummyHp(this.train.stage || 1); }
+  trainSpawn(type, x, y, hp) {
+    const e = this.spawnEnemy(type, x, y);
+    e.hp = e.maxHp = hp;
+    e.dmg = 0;
+    e.speed = 0;
+    e.trainDummy = true;
+    e.px = x;
+    e.py = y;
+    e.trainT0 = this.time;
+    return e;
+  }
+  trainDirector(dt) {
+    const p = this.player, st = this.trainStat;
+    if (this.train.target === 'crowd') {
+      // 群れ：動かない雑魚 40 体。倒すと自機のまわりに湧き直す
+      let n = 0;
+      for (const e of this.enemies) if (e.alive && e.trainDummy) n++;
+      for (; n < 40; n++) {
+        const a = rand(TAU), d = rand(60, 260);
+        this.trainSpawn('dummy_s', p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, this.train.crowdHp || 1500);
+      }
+    } else if (!this.enemies.some((e) => e.alive && e.trainDummy)) {
+      // 木人：倒すと少しおいて同じ場所に立ち直る
+      this.trainNextT -= dt;
+      if (this.trainNextT <= 0) {
+        const e = this.trainSpawn('dummy', 0, -150, this.trainDummyHp());
+        this.boss = e;
+        this.hooks.bossBar(e);
+      }
+    }
+    // HP を 25% に固定（アンジェライトのピンチなどを試す用）
+    if (this.train.low) p.hp = Math.min(p.hp, p.maxHp * 0.25);
+    // 直近 5 秒の DPS 用に、0.25 秒ごとに累計を記録
+    st.histT -= dt;
+    if (st.histT <= 0) {
+      st.histT = 0.25;
+      st.hist.push({ t: this.time, total: this.totalDmg, by: { ...this.dmgBy } });
+      while (st.hist.length > 2 && this.time - st.hist[1].t >= 5) st.hist.shift();
+    }
+  }
+  trainKill(e, wid) {
+    e.alive = false;
+    this.kills++;
+    this.fx.purify(e.x, e.y, '#fff3b0', e.boss);
+    audio.kill();
+    this.trainStat.kills++;
+    // コハク：この武器で倒すとコイン（数だけ数える）
+    const w = wid === 'amber' && this.getWeapon('amber');
+    if (w && chance((0.25 + (w.evolved ? 0.75 : 0)) * this.stats.luck)) this.dropPickup('coin', e.x, e.y);
+    if (e.boss) {
+      this.trainStat.lastKill = this.time - e.trainT0;
+      this.trainNextT = 1;
+      this.boss = null;
+      this.hooks.bossBar(null);
+      this.fx.shake(10);
+      this.fx.burst(e.x, e.y, 'rainbow', 40, 400, 1, 16);
+      this.hooks.banner('DOWN', 'victory', `${this.trainStat.lastKill.toFixed(1)} 秒`);
+    }
+  }
+  // 数値パネルに出す値
+  trainNumbers() {
+    const st = this.trainStat;
+    const el = Math.max(0.001, this.time - st.t0);
+    const h0 = st.hist[0];
+    const win = h0 ? Math.max(0.001, this.time - h0.t) : el;
+    const by = this.weapons.map((w) => ({
+      id: w.id, evolved: w.evolved, level: w.level, lbN: w.lbN || 0,
+      dps: ((this.dmgBy[w.id] || 0) - (h0 ? h0.by[w.id] || 0 : 0)) / win,
+      total: this.dmgBy[w.id] || 0,
+    }));
+    return {
+      elapsed: el, dps5: (this.totalDmg - (h0 ? h0.total : 0)) / win, dps: this.totalDmg / el, by, total: this.totalDmg,
+      crit: st.hits ? st.crits / st.hits : 0, heal: st.heal / el, items: Object.values(st.items).reduce((a, b) => a + b, 0) / (el / 60),
+      kills: st.kills, lastKill: st.lastKill, lastBreak: st.lastBreak,
+    };
+  }
+
   // BOSS モードの開始：最初のボスの前に BOSS TREASURE を 1 つ（CHECKPOINT ならまとめて開ける）
   rushBegin(from) {
     if (!this.rush) return;
@@ -778,7 +915,7 @@ export class Game {
       e.dmg *= k;
     }
     this.enemies.push(e);
-    if (!d.prop) save.seen.enemies[type] = true;
+    if (!d.prop && !d.dummy) save.seen.enemies[type] = true;
     return e;
   }
 
@@ -858,6 +995,8 @@ export class Game {
           continue;
         }
       }
+      // トレーニングの的は動かず、攻撃もしない（魅了されたときだけ動き、解けると元の場所に戻る）
+      if (e.trainDummy) { e.x = e.px; e.y = e.py; e.vx = e.vy = 0; continue; }
       if (!stop && e.frozenT <= 0) {
         mv.spd = e.speed * (e.slowT > 0 ? e.slowMul : 1);
         mv.mx = dx / dist; mv.my = dy / dist;
@@ -1270,6 +1409,7 @@ export class Game {
     // オブシディアンの攻撃はクリティカル率 -10%（一撃が重い代わり）
     const crit = o.forceCrit || (!o.dot && chance(this.stats.crit + ev.crit - (o.wid === 'obsidian' ? 0.1 : 0)));
     if (crit) dmg *= 2.5 * (1 + (this.stats.critDmg || 0)); // クリティカルは 2.5 倍（critDmg で上乗せ）
+    if (this.trainStat && !o.dot) { this.trainStat.hits++; if (crit) this.trainStat.crits++; }
     dmg *= rand(0.92, 1.08);
     dmg = Math.max(1, Math.round(dmg));
     const hp0 = e.hp;
@@ -1340,6 +1480,10 @@ export class Game {
     if (e.breakG >= 1) this.bossBreak(e);
   }
   bossBreak(e) {
+    if (e.trainDummy && this.trainStat) {
+      this.trainStat.lastBreak = this.time - (e.trainBreakFrom ?? e.trainT0);
+      e.trainBreakFrom = this.time + BREAK_TIME;
+    }
     e.breakG = 0;
     e.breakNeed = (e.breakNeed || 1) * BREAK_GROW; // 次のブレイクは少し遠くなる
     e.breakT = BREAK_TIME;
@@ -1363,6 +1507,7 @@ export class Game {
   }
 
   kill(e, wid) {
+    if (e.trainDummy) { this.trainKill(e, wid); return; }
     e.alive = false;
     onEnemyKilled(this, e);
     if (e.segs) for (const sg of e.segs) if (sg.alive) { sg.alive = false; this.fx.purify(sg.x, sg.y, '#ffb84a', true); }
@@ -1408,7 +1553,7 @@ export class Game {
       this.hooks.combo(this.combo);
     }
     // BOSS モードにフィーバーはない
-    if (this.feverT <= 0 && !this.rush) {
+    if (this.feverT <= 0 && !this.rush && !this.train) {
       this.feverGauge += e.boss ? 60 : e.elite ? 15 : 1;
       if (this.feverGauge >= this.feverNeed) this.startFever();
     }
@@ -1579,6 +1724,8 @@ export class Game {
   // ---------------------------------------------------------------- プレイヤー
   heal(v, silent) {
     const p = this.player;
+    // トレーニング：回復しようとした量を数える（HP が満タンでも）
+    if (this.trainStat) this.trainStat.heal += v * (this.artSet.has('grail') ? 2 : 1);
     if (p.hp >= p.maxHp) return;
     if (!silent) {
       // ハートかいふくは 1びょうに ちょっとまで
@@ -1639,7 +1786,7 @@ export class Game {
 
   // ---------------------------------------------------------------- アイテム
   dropXp(x, y, v) {
-    if (this.rush) return; // BOSS モードは経験値なし（石は宝箱でだけ強化する）
+    if (this.rush || this.train) return; // BOSS モードとトレーニングは経験値なし（石は宝箱でだけ強化する）
     // おおすぎたら まとめる
     if (this.pickups.length > 380) {
       let best = null, bd = Infinity;
@@ -1654,6 +1801,11 @@ export class Game {
   }
 
   dropPickup(kind, x, y, value = 1) {
+    // トレーニングはアイテムを盤面に出さず、数だけ数える（エメラルドの畑・コハクのコインなど）
+    if (this.train) {
+      if (this.trainStat) this.trainStat.items[kind] = (this.trainStat.items[kind] || 0) + 1;
+      return;
+    }
     const a = rand(TAU), s = rand(40, 140);
     this.pickups.push({ kind, x, y, value, vx: Math.cos(a) * s, vy: Math.sin(a) * s, vac: false, t: 0 });
   }
@@ -1839,10 +1991,11 @@ export class Game {
 
   // リミットブレイク：Lv8 の武器の小さな強化を 1 つ選ぶ。
   // 未進化の武器には、もう進化できないとき（進化用のチャームがなく、チャーム枠が埋まっているか、そのチャームを外した）だけ出す
-  limitBreakChoice(w) {
+  // free：トレーニング用（進化できるかどうかを見ずに選ぶ）
+  limitBreakChoice(w, free) {
     const def = WEAPONS[w.id];
     if (w.level < WEAPON_MAX || this.banished.has(w.id)) return null;
-    if (!w.evolved) {
+    if (!w.evolved && !free) {
       const partner = def.evo.with;
       if (this.hasPassive(partner)) return null; // 進化できる
       if (this.passives.length < MAX_CHARMS && !this.banished.has(partner)) return null; // まだ進化用のチャームを取れる

@@ -144,7 +144,9 @@ function step(dt) {
       game.input.y = v.y;
       if (moveHint && (v.x || v.y)) { moveHint.classList.add('gone'); moveHint = null; }
     }
-    for (let i = 0; i < DEBUG.speed; i++) game.frame(dt);
+    // トレーニングの早送り（×2・×4）
+    const n = DEBUG.speed * (game.trainSpeed || 1);
+    for (let i = 0; i < n; i++) game.frame(dt);
   } else {
     renderTitle(dt);
   }
@@ -215,13 +217,15 @@ function startGame(charId, opt = {}) {
   game = new Game(canvas, {
     ...hooks,
     ...botHooks,
-    checkAchievements: (r, live) => { achDuringRun.push(...checkAchievements(r, live)); },
-  },{ charId, artifact: opt.artifact || null, artifact2: opt.artifact2 || null, endless: !opt.rush && !!opt.endless, hyper: !!opt.hyper, hurry: !opt.rush && !!opt.hurry, stageId: stage.id, heat: opt.rush ? 0 : opt.heat || 0, rush: opt.rush || null, bot: DEBUG.bot, god: DEBUG.god, startTime: opt.resume ? opt.resume.time : DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
+    // トレーニングは実績も判定しない
+    checkAchievements: (r, live) => { if (!opt.train) achDuringRun.push(...checkAchievements(r, live)); },
+  },{ charId, artifact: opt.artifact || null, artifact2: opt.artifact2 || null, endless: !opt.rush && !opt.train && !!opt.endless, hyper: !opt.train && !!opt.hyper, hurry: !opt.rush && !opt.train && !!opt.hurry, stageId: stage.id, heat: opt.rush || opt.train ? 0 : opt.heat || 0, rush: opt.rush || null, train: opt.train || null, bot: DEBUG.bot, god: DEBUG.god, startTime: opt.resume ? opt.resume.time : DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
   achDuringRun = [];
   window.__game = game; // デバッグ用
   UI.hudShow(true);
   // BOSS モードは経験値もフィーバーもないので、レベル・経験値バー・フィーバーのゲージを出さない
-  document.getElementById('hud').classList.toggle('rush', !!game.rush);
+  document.getElementById('hud').classList.toggle('rush', !!game.rush || !!game.train);
+  document.getElementById('hud').classList.toggle('train', !!game.train);
   if (opt.resume) game.restore(opt.resume); // 中断したランの続き（HUD の準備のあとに）
   else if (opt.rush) game.rushBegin(opt.rush.from || 0); // BOSS モードの開始時の宝箱（CHECKPOINT ならまとめて）
   moveHint = document.getElementById('movehint');
@@ -230,7 +234,9 @@ function startGame(charId, opt = {}) {
   if (!(opt.resume && game.boss)) audio.playBgm(stage.bgm);
   const m = Math.floor(stage.time / 60);
   if (opt.resume) UI.banner('RESUME', 'start', opt.rush ? `BOSS ・ STAGE ${stage.no}` : stage.name);
-  else if (opt.rush) {
+  else if (opt.train) {
+    UI.banner('TRAINING', 'start', opt.train.target === 'crowd' ? '群れ' : '木人');
+  } else if (opt.rush) {
     // 最高記録の続きから始めるときは、まとめの画面（rushWarp）が開くのでバナーは出さない
     if (!game.rushFrom) UI.banner('BOSS RUSH', 'start', `STAGE ${stage.no} のボス ${game.rushOrder.length} 体 ・ 1 周ごとに ×2`);
     save.stats.runs++;
@@ -303,7 +309,7 @@ function settleRun(res, cleared) {
 // 途中保存：ラン中の成績と状態を数秒ごとにセーブへ書いておく。アプリが落ちたり終了させられたりしても、
 // 次の起動時に「再開」か「精算」（リタイア扱い。最終ボス撃破後ならクリア扱い）を選べる
 function saveRunSnapshot() {
-  if (!game || DEBUG.bot || game.state === 'over') return;
+  if (!game || DEBUG.bot || game.train || game.state === 'over') return;
   const res = game.results();
   // 最終ボス撃破後は、ENDLESS で続けているときだけ再開できる（それ以外はクリア画面の直前なので精算する）
   if ((!game.cleared || game.endless) && game.state !== 'dying') res.resume = game.snapshot();
@@ -340,6 +346,19 @@ function toTitle() {
 // ポーズ
 // リタイア（最終ボス撃破後、クリア画面の前なら盤面のアイテムも回収する）
 function quitRun() {
+  // トレーニング：精算もリザルトもなく、ステージ選択の TRAINING タブへ戻る
+  if (game.train) {
+    game.state = 'over';
+    audio.stopBgm();
+    game = null;
+    window.__game = null;
+    input.enabled = false;
+    UI.hudShow(false);
+    document.getElementById('movehint').classList.add('hidden');
+    save.stageTab = 'train';
+    UI.showStageSelect();
+    return;
+  }
   if (game.cleared && !game.endless) game.sweepPickups();
   game.state = 'over';
   audio.stopBgm();

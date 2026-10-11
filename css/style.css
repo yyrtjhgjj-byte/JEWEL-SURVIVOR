@@ -372,6 +372,21 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 #hudleft { display: flex; flex-direction: column; gap: 1px; font-weight: 700; }
 #lvtext { font-size: 15px; letter-spacing: 0.15em; color: #fff; }
 #hud.rush #xpbar, #hud.rush #lvtext, #hud.rush #feverwrap { display: none; }
+/* トレーニング：左の数値パネル（通常のランには出さない） */
+#hud.train #coinstat, #hud:not(.train) #trainpanel { display: none; }
+.train-panel {
+  position: absolute; top: calc(var(--safe-t) + 166px); left: calc(var(--safe-l) + 8px); width: 132px; padding: 7px 9px 8px;
+  border-radius: 10px; border: 1px solid var(--line); background: rgba(8,8,14,0.84); color: var(--muted); font-size: 11px; line-height: 1.6;
+}
+.tp-speed { pointer-events: auto; display: block; width: 100%; margin-bottom: 4px; padding: 5px 0; border-radius: 8px; border: 1px solid var(--line2); background: var(--panel); color: #fff; font-family: var(--font); font-weight: 700; font-size: 13px; letter-spacing: 0.12em; }
+.tp-big { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--font); font-weight: 700; letter-spacing: 0.1em; }
+.tp-big b { color: #fff; font-size: 19px; letter-spacing: 0.02em; }
+.tp-row { display: flex; justify-content: space-between; gap: 6px; font-family: var(--font-jp); }
+.tp-row b { color: #fff; font-family: var(--font); }
+.tp-w { display: flex; align-items: center; gap: 4px; }
+.tp-w img { width: 16px; height: 16px; flex: none; }
+.tp-w b { flex: 1; text-align: right; color: #fff; font-family: var(--font); }
+.tp-w i { width: 30px; text-align: right; font-style: normal; font-size: 10px; }
 .stat { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #d6d3e8; letter-spacing: 0.05em; }
 .stat .k { font-size: 10px; color: var(--muted); letter-spacing: 0.2em; width: 34px; }
 .stat.bump { animation: bump 0.25s; }
@@ -631,6 +646,25 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .rp { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; padding: 6px 2px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: #fff; font-family: var(--font-jp); font-size: 9.5px; font-weight: 700; line-height: 1.25; letter-spacing: 0; text-align: center; min-width: 0; }
 .rp span { width: 100%; overflow-wrap: anywhere; }
 .rp img { width: 36px; height: 36px; }
+/* トレーニング：的のカードと、レベル・進化・リミットブレイクの設定 */
+.train-card { cursor: pointer; }
+.tr-hp { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 12px; color: #e8dcc4; font-family: var(--font-jp); }
+.tr-hp .iconbtn { width: 32px; height: 32px; font-size: 16px; }
+.tr-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.tr-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); }
+.tr-row > img { width: 34px; height: 34px; flex: none; }
+.tr-main { flex: 1; min-width: 0; }
+.tr-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.tr-name { font-family: var(--font-jp); font-weight: 700; font-size: 13px; }
+.tr-evo { padding: 2px 10px; border-radius: 6px; border: 1px solid var(--line2); background: var(--panel); color: var(--muted); font-family: var(--font); font-weight: 700; font-size: 11px; letter-spacing: 0.12em; }
+.tr-evo.on { color: #111; background: var(--gold); border-color: var(--gold); }
+.tr-evo:disabled { filter: brightness(0.4); }
+.tr-ctls { display: flex; align-items: center; gap: 5px; margin-top: 4px; font-family: var(--font); font-weight: 700; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
+.tr-ctls b { min-width: 18px; text-align: center; color: #fff; font-size: 14px; }
+.tr-ctls span + button { margin-left: 2px; }
+.tr-ctls b + span { margin-left: 10px; }
+.tr-ctls .iconbtn { width: 28px; height: 28px; font-size: 15px; border-radius: 8px; }
+.tr-ctls .iconbtn:disabled { filter: brightness(0.35); }
 .rp.on { border-color: var(--gold); box-shadow: 0 0 12px rgba(255,210,74,0.35), inset 0 0 0 1px var(--gold); }
 .rp.full { filter: brightness(0.5); }
 .heat-ctl { display: flex; align-items: center; gap: 10px; }

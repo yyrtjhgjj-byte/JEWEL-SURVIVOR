@@ -759,6 +759,47 @@ function seaEmperor(ctx, r, col, tool, eyeCol) {
 }
 
 const ENEMY_DRAW = {
+  // トレーニングの木人：丸太の胴に腕木、頭は的
+  dummy(ctx, r) {
+    const wood = ctx.createLinearGradient(-r * 0.4, 0, r * 0.4, 0);
+    wood.addColorStop(0, '#5a3b24');
+    wood.addColorStop(0.45, '#9a6c44');
+    wood.addColorStop(1, '#4a2f1c');
+    // 腕木
+    ctx.fillStyle = '#6e4a2e';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.98, -r * 0.08); ctx.lineTo(r * 0.98, -r * 0.08); ctx.lineTo(r * 0.92, r * 0.1); ctx.lineTo(-r * 0.92, r * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    // 胴（丸太）
+    ctx.fillStyle = wood;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.36, -r * 0.3);
+    ctx.lineTo(r * 0.36, -r * 0.3);
+    ctx.lineTo(r * 0.32, r * 0.95);
+    ctx.lineTo(-r * 0.32, r * 0.95);
+    ctx.closePath();
+    ctx.fill();
+    // 木目
+    ctx.strokeStyle = 'rgba(40,22,10,0.45)';
+    ctx.lineWidth = r * 0.04;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.12, -r * 0.2); ctx.lineTo(-r * 0.15, r * 0.85);
+    ctx.moveTo(r * 0.14, -r * 0.1); ctx.lineTo(r * 0.12, r * 0.8);
+    ctx.stroke();
+    // 縄
+    ctx.fillStyle = '#d8c596';
+    for (const y of [r * 0.18, r * 0.55]) ctx.fillRect(-r * 0.36, y, r * 0.72, r * 0.09);
+    // 頭（的）
+    const hy = -r * 0.6;
+    const rings = [['#f1e6cf', 0.4], ['#d9435a', 0.31], ['#f1e6cf', 0.21], ['#d9435a', 0.11]];
+    for (const [c, k] of rings) {
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.arc(0, hy, r * k, 0, TAU);
+      ctx.fill();
+    }
+  },
   slime(ctx, r, col, f) {
     ctx.beginPath();
     ctx.moveTo(-r, r * 0.55);
@@ -4303,6 +4344,7 @@ function outline(c, w) {
   outlineTint.width = outlineTint.height = 1;
 }
 const ENEMY_COLORS = {
+  dummy: '#8a6240',
   slime: '#7a64a8', bat: '#5a4a80', ghost: '#9c90c8', toge: '#6a3a70', golem: '#7a6a60', knight: '#3c3456',
   boss1: '#6a48a0', boss2: '#35235a', boss3: '#1a0d2a',
   spitter: '#3a5a7a', splitter: '#3a7a5a', charger: '#6a4a3a', phantom: '#2a1a4a',
