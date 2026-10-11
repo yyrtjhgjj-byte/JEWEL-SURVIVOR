@@ -434,14 +434,16 @@ export const PASSIVES = {
 };
 export const PASSIVE_IDS = Object.keys(PASSIVES);
 // チャームのリミットブレイク（上位工房）：最大レベルのチャームに、1 レベル分の半分の効果を重ねる（1 つのチャームに CHARM_LB_MAX 回まで）。
-// ネフライト（弾数 +1）は半分にできないので、名前の「チームワーク」にちなんで、装備している武器 1 つにつき攻撃力 +1.5% にする
+// ネフライト（弾数 +1）は半分にできないので、1 回ごとに弾数 +1 をそのまま重ね、その代わり 3 回まで
+// （素のレベル上限がほかのチャームの 5 に対して 1 なのと同じ考え。ユーザーの指定）
 export const CHARM_LB_MAX = 5;
-export function charmLbPer(id, weaponCount) {
-  if (id === 'nephrite') return { might: 0.015 * weaponCount };
+export const charmLbMax = (id) => (id === 'nephrite' ? 3 : CHARM_LB_MAX);
+export function charmLbPer(id) {
+  if (id === 'nephrite') return { amount: 1 };
   return Object.fromEntries(Object.entries(PASSIVES[id].per).map(([k, v]) => [k, v / 2]));
 }
 export function charmLbText(id) {
-  if (id === 'nephrite') return '装備している武器 1 つにつき攻撃力 +1.5%';
+  if (id === 'nephrite') return '弾数 +1';
   return PASSIVES[id].t.replace(/\d+(?:\.\d+)?/g, (n) => String(+(parseFloat(n) / 2).toFixed(2)));
 }
 
