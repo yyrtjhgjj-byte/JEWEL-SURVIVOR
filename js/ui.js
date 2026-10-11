@@ -3,7 +3,7 @@
 // =====================================================================
 import {
   GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost,
-  ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA100_COST, GACHA100_UR, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK, charmLbText,
+  ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA100_COST, GACHA100_UR, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK, charmLbText, charmLbMax,
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickaxeIcon } from './render.js';
 import { diagCrashes, diagLaunches, clearDiag } from './diag.js';
@@ -18,7 +18,7 @@ import { save, persist, resetSave, exportSave, parseBackup, importSave } from '.
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox } from './jukebox.js';
-import { BREAK_TIME } from './game.js';
+import { BREAK_TIME, trainDummyHp } from './game.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 function el(html) {
@@ -367,7 +367,9 @@ export function showStageSelect() {
   show(node);
   $('#back', node).onclick = () => { audio.tap(); showCharSelect(); };
   const list = $('#list', node);
-  let ch = save.stageTab === 'boss' ? 'boss' : STAGE_BY_ID[sel].chapter; // 表示している章（'boss' は BOSS モード）
+  // 表示している章（'boss' は BOSS モード、'train' はトレーニング）
+  let ch = save.stageTab === 'boss' || save.stageTab === 'train' ? save.stageTab : STAGE_BY_ID[sel].chapter;
+  const kind = (c) => (c === 'boss' || c === 'train' ? c : 'stage');
   // BOSS モード：クリア済みのステージのボスたちと連戦する。武器とチャームは自由に選ぶ（save.rushLoadout）
   const cleared = (id) => !!stageRec(id).cleared;
   let rsel = cleared(save.rushStage) ? save.rushStage : (STAGES.find((st) => cleared(st.id)) || {}).id || null;
@@ -394,14 +396,15 @@ export function showStageSelect() {
   // BOSS モードの最高記録と、1 周のボスの数
   const rushBest = (id) => (id && (save.bossRush || {})[id]) || 0;
   const rushPer = (id) => STAGE_BY_ID[id].events.filter((e) => e.type === 'boss').length;
+  // 武器・チャームを自由に選ぶ並び（BOSS モードとトレーニングで共通）
+  const pickHTML = (ids, list, max, k) => ids.map((id) => {
+    const g = k === 'w' ? WEAPONS[id].gem : PASSIVES[id].gem;
+    const on = list.includes(id);
+    return `<button class="rp ${on ? 'on' : ''} ${!on && list.length >= max ? 'full' : ''}" data-k="${k}" data-id="${id}"><img src="${gemIcon(g, 72)}"><span>${GEMS[g].jp}</span></button>`;
+  }).join('');
   const renderRush = () => {
     const best = rushBest(rsel);
     const lap = best ? Math.floor(best / rushPer(rsel)) : 0;
-    const pickHTML = (ids, list, max, kind) => ids.map((id) => {
-      const g = kind === 'w' ? WEAPONS[id].gem : PASSIVES[id].gem;
-      const on = list.includes(id);
-      return `<button class="rp ${on ? 'on' : ''} ${!on && list.length >= max ? 'full' : ''}" data-k="${kind}" data-id="${id}"><img src="${gemIcon(g, 72)}"><span>${GEMS[g].jp}</span></button>`;
-    }).join('');
     $('#opts', node).innerHTML = `${artHTML()}
       ${best ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHECKPOINT<small>最高記録の ${best + 1} 体目（${lap + 1} 周目${lap ? ` ×${2 ** lap}` : ''}）から。BOSS TREASURE ×${best + 1} を開けた状態で始める</small></span><button class="switch ${save.rushFromBest ? 'on' : ''}" id="rfrom"></button></div>` : ''}
       <div class="rp-head"><span>WEAPON</span><b>${lo.w.length} / ${MAX_WEAPONS}</b></div>
@@ -423,7 +426,65 @@ export function showStageSelect() {
     if (rf) rf.onclick = () => { save.rushFromBest = !save.rushFromBest; rf.classList.toggle('on', save.rushFromBest); audio.tap(); persist(); };
     $('#go', node).disabled = !rsel || !lo.w.length;
   };
+  // トレーニング：的と、武器・チャームのレベル・進化・リミットブレイク（save.trainCfg）
+  const tc = save.trainCfg || (save.trainCfg = { target: 'dummy', stage: 1, crowdHp: 1500, low: false, w: [{ id: CHARACTERS[save.selected] ? CHARACTERS[save.selected].weapon : 'ruby', lv: WEAPON_MAX, evo: false, lb: 0 }], p: [] });
+  const trRow = (it, k) => {
+    const isW = k === 'w';
+    const max = isW ? WEAPON_MAX : PASSIVES[it.id].max;
+    const lbMax = isW ? 10 : charmLbMax(it.id);
+    const gem = isW ? WEAPONS[it.id].gem : PASSIVES[it.id].gem;
+    const top = it.lv >= max;
+    return `<div class="tr-row" data-k="${k}" data-id="${it.id}">
+      <img src="${gemIcon(gem, 64)}">
+      <div class="tr-main">
+        <div class="tr-top"><span class="tr-name">${GEMS[gem].jp}</span>${isW ? `<button class="tr-evo ${it.evo && top ? 'on' : ''}" data-a="evo" ${top ? '' : 'disabled'}>EVO</button>` : ''}</div>
+        <div class="tr-ctls">
+          <span>LV</span><button class="iconbtn" data-a="lv" data-d="-1" ${it.lv <= 1 ? 'disabled' : ''}>−</button><b>${it.lv}</b><button class="iconbtn" data-a="lv" data-d="1" ${top ? 'disabled' : ''}>＋</button>
+          <span>LB</span><button class="iconbtn" data-a="lb" data-d="-1" ${!top || !it.lb ? 'disabled' : ''}>−</button><b>${top ? it.lb || 0 : '-'}</b><button class="iconbtn" data-a="lb" data-d="1" ${!top || (it.lb || 0) >= lbMax ? 'disabled' : ''}>＋</button>
+        </div>
+      </div>
+    </div>`;
+  };
+  const renderTrain = () => {
+    const ids = (arr) => arr.map((x) => x.id);
+    $('#opts', node).innerHTML = `${artHTML()}
+      <div class="toggle-row" style="margin-bottom:10px"><span>HP 25%<small>自機の HP を 25% に固定する</small></span><button class="switch ${tc.low ? 'on' : ''}" id="tlow"></button></div>
+      <div class="rp-head"><span>WEAPON</span><b>${tc.w.length} / ${MAX_WEAPONS}</b></div>
+      <div class="rush-pick">${pickHTML(WEAPON_IDS, ids(tc.w), MAX_WEAPONS, 'w')}</div>
+      <div class="tr-list">${tc.w.map((it) => trRow(it, 'w')).join('')}</div>
+      <div class="rp-head"><span>CHARM</span><b>${tc.p.length} / ${MAX_CHARMS}</b></div>
+      <div class="rush-pick">${pickHTML(PASSIVE_IDS, ids(tc.p), MAX_CHARMS, 'p')}</div>
+      <div class="tr-list">${tc.p.map((it) => trRow(it, 'p')).join('')}</div>`;
+    node.querySelectorAll('.rp').forEach((b) => (b.onclick = () => {
+      const arr = b.dataset.k === 'w' ? tc.w : tc.p, max = b.dataset.k === 'w' ? MAX_WEAPONS : MAX_CHARMS;
+      const i = arr.findIndex((x) => x.id === b.dataset.id);
+      if (i >= 0) arr.splice(i, 1);
+      else if (arr.length < max) arr.push({ id: b.dataset.id, lv: b.dataset.k === 'w' ? WEAPON_MAX : PASSIVES[b.dataset.id].max, evo: false, lb: 0 });
+      else return;
+      audio.tap();
+      persist();
+      renderTrain();
+    }));
+    node.querySelectorAll('.tr-row button').forEach((b) => (b.onclick = () => {
+      const row = b.closest('.tr-row');
+      const isW = row.dataset.k === 'w';
+      const it = (isW ? tc.w : tc.p).find((x) => x.id === row.dataset.id);
+      const max = isW ? WEAPON_MAX : PASSIVES[it.id].max;
+      const d = +b.dataset.d || 0;
+      if (b.dataset.a === 'lv') it.lv = Math.max(1, Math.min(max, it.lv + d));
+      else if (b.dataset.a === 'lb') it.lb = Math.max(0, Math.min(isW ? 10 : charmLbMax(it.id), (it.lb || 0) + d));
+      else if (b.dataset.a === 'evo') it.evo = !it.evo;
+      audio.tap();
+      persist();
+      renderTrain();
+    }));
+    const tl = $('#tlow', node);
+    tl.onclick = () => { tc.low = !tc.low; tl.classList.toggle('on', tc.low); audio.tap(); persist(); };
+    artWire(renderTrain);
+    $('#go', node).disabled = !tc.w.length;
+  };
   const renderOpts = () => {
+    if (ch === 'train') { renderTrain(); return; }
     if (ch === 'boss') { renderRush(); return; }
     $('#go', node).disabled = false;
     const rec = stageRec(sel);
@@ -452,16 +513,44 @@ export function showStageSelect() {
   };
   const render = () => {
     $('#chtabs', node).innerHTML = CHAPTERS.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${c.name}</button>`).join('') +
-      `<button class="tab ${ch === 'boss' ? 'on' : ''}" data-c="boss">BOSS</button>`;
+      `<button class="tab ${ch === 'boss' ? 'on' : ''}" data-c="boss">BOSS</button>` +
+      `<button class="tab ${ch === 'train' ? 'on' : ''}" data-c="train">TRAINING</button>`;
     $('#chtabs', node).querySelectorAll('.tab').forEach((b) => (b.onclick = () => {
       audio.tap();
       const was = ch;
-      ch = b.dataset.c === 'boss' ? 'boss' : +b.dataset.c;
-      save.stageTab = ch === 'boss' ? 'boss' : null;
+      ch = b.dataset.c === 'boss' || b.dataset.c === 'train' ? b.dataset.c : +b.dataset.c;
+      save.stageTab = kind(ch) === 'stage' ? null : ch;
       render();
-      if ((was === 'boss') !== (ch === 'boss')) renderOpts();
+      if (kind(was) !== kind(ch)) renderOpts();
     }));
     list.innerHTML = '';
+    if (ch === 'train') {
+      // 的：木人（STAGE n の最終ボスと同じ HP）か、群れ（1 体の HP を選ぶ）
+      const T_HP = [300, 1500, 6000, 25000];
+      for (const [id, name, desc] of [['dummy', '木人', '動かない・攻撃しない的 1 体。倒すと立ち直る'], ['crowd', '群れ', '動かない雑魚 40 体。倒すと湧き直す']]) {
+        const on = tc.target === id;
+        const hp = id === 'dummy' ? `HP ${fmt(Math.round(trainDummyHp(tc.stage)))}（STAGE ${tc.stage} の最終ボスと同じ）` : `HP ${fmt(tc.crowdHp)}（1 体）`;
+        const card = el(`<div class="stage-card train-card ${on ? 'sel' : ''}" style="--sc:#e8c89a;--sg:rgba(232,200,154,0.35)">
+          <div class="st-head"><span class="st-no">TARGET</span></div>
+          <div class="st-name">${name}</div>
+          <div class="st-desc">${desc}</div>
+          ${on ? `<div class="tr-hp"><span>${hp}</span><div class="heat-ctl"><button class="iconbtn" data-h="-1">−</button><button class="iconbtn" data-h="1">＋</button></div></div>` : ''}
+        </div>`);
+        card.onclick = (ev) => {
+          const hb = ev.target.closest('[data-h]');
+          if (hb) {
+            const d = +hb.dataset.h;
+            if (id === 'dummy') tc.stage = Math.max(1, Math.min(STAGES.length, tc.stage + d));
+            else tc.crowdHp = T_HP[Math.max(0, Math.min(T_HP.length - 1, T_HP.indexOf(tc.crowdHp) + d))] || 1500;
+          } else tc.target = id;
+          audio.tap();
+          persist();
+          render();
+        };
+        list.appendChild(card);
+      }
+      return;
+    }
     if (ch === 'boss') {
       // BOSS モード：ステージごとに、そのステージのボスたちを並べる
       for (const c of CHAPTERS) {
@@ -497,6 +586,13 @@ export function showStageSelect() {
   render();
   renderOpts();
   $('#go', node).onclick = () => {
+    if (ch === 'train') {
+      if (!tc.w.length) return;
+      audio.select();
+      persist();
+      app.startGame(save.selected, { stageId: 'wastes', train: JSON.parse(JSON.stringify(tc)), artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
+      return;
+    }
     if (ch === 'boss') {
       if (!rsel || !lo.w.length) return;
       audio.select();
@@ -864,7 +960,7 @@ export function showZukan(tab = 'gems', ch = 1) {
     zl.appendChild(sub);
     for (const id of Object.keys(ENEMIES)) {
       const e = ENEMIES[id];
-      if (e.prop || e.segment || enemyChapter(id) !== ch) continue;
+      if (e.prop || e.segment || e.dummy || enemyChapter(id) !== ch) continue;
       const seen = save.seen.enemies[id];
       const icon = enemyIcon(e.sprite || id, Math.min(e.r, 40), e.tint);
       zl.appendChild(el(`<div class="zitem ${seen ? '' : 'unk'}">
@@ -1092,7 +1188,56 @@ export function hudShow(on) {
     H.combo.classList.add('hidden');
   }
 }
+// トレーニング：左側の数値パネル（0.25 秒ごとに更新。並びは装備が変わったときだけ作り直す）
+let trainAt = 0;
+let trainGame = null;
+function trainPanel(g) {
+  const now = performance.now();
+  if (now - trainAt < 250) return;
+  trainAt = now;
+  trainGame = g;
+  let pn = $('#trainpanel');
+  if (!pn) {
+    pn = el('<div id="trainpanel" class="train-panel"><button class="tp-speed" id="tpspeed"></button><div class="tp-body"></div></div>');
+    $('#hud').appendChild(pn);
+    $('#tpspeed', pn).onclick = () => {
+      const gg = trainGame;
+      if (!gg || gg.state !== 'play') return;
+      gg.trainSpeed = gg.trainSpeed >= 4 ? 1 : gg.trainSpeed * 2;
+      audio.tap();
+      trainAt = 0;
+      trainPanel(gg);
+    };
+  }
+  $('#tpspeed', pn).textContent = `SPEED ×${g.trainSpeed}`;
+  const n = g.trainNumbers();
+  const crowd = g.train.target === 'crowd';
+  const key = n.by.map((w) => w.id).join() + (crowd ? 'c' : 'd');
+  const body = $('.tp-body', pn);
+  if (body.dataset.key !== key) {
+    body.dataset.key = key;
+    const row = (label, f) => `<div class="tp-row"><span>${label}</span><b data-f="${f}"></b></div>`;
+    body.innerHTML = `<div class="tp-big"><span>DPS</span><b data-f="dps5"></b></div>
+      ${row('平均', 'dps')}
+      ${n.by.map((w, i) => `<div class="tp-w"><img src="${gemIcon(WEAPONS[w.id].gem, 40)}"><b data-f="w${i}"></b><i data-f="p${i}"></i></div>`).join('')}
+      ${row('会心率', 'crit')}
+      ${crowd ? row('撃破/分', 'kpm') : row('撃破まで', 'kill') + row('ブレイクまで', 'brk')}
+      ${row('回復/秒', 'heal')}
+      ${row('アイテム/分', 'items')}`;
+  }
+  const tot = n.by.reduce((a, b) => a + b.dps, 0);
+  const sec = (v) => (v == null ? '-' : v.toFixed(1) + ' 秒');
+  const v = {
+    dps5: fmt(Math.round(n.dps5)), dps: fmt(Math.round(n.dps)), crit: Math.round(n.crit * 100) + '%',
+    kpm: fmt(Math.round(n.kills / (n.elapsed / 60))), kill: sec(n.lastKill), brk: sec(n.lastBreak),
+    heal: n.heal.toFixed(1), items: n.items.toFixed(1),
+  };
+  n.by.forEach((w, i) => { v['w' + i] = fmt(Math.round(w.dps)); v['p' + i] = tot > 0 ? Math.round((w.dps / tot) * 100) + '%' : '-'; });
+  body.querySelectorAll('[data-f]').forEach((x) => { const t = v[x.dataset.f]; if (t !== undefined && x.textContent !== t) x.textContent = t; });
+}
+
 export function hud(g) {
+  if (g.train) trainPanel(g);
   H.xp.style.transform = `scaleX(${Math.min(1, g.xp / g.xpNext)})`;
   if (g.level !== lastLv) { H.lv.textContent = `LV ${g.level}`; lastLv = g.level; }
   const t = fmtTime(g.time);
@@ -1578,21 +1723,26 @@ export function pauseMenu(g, onResume, onQuit) {
         </div>
         ${elemSummary(g)}
         ${g.stats.overMight > 0.005 ? `<div class="hint">上限超過 → 攻撃力 +${Math.round(g.stats.overMight * 100)}%</div>` : ''}
-        <div class="hint">${fmtTime(g.time)} ／ ${fmt(g.kills)} KILLS ／ ${fmt(g.coins)} COINS</div>
+        <div class="hint">${fmtTime(g.time)} ／ ${fmt(g.kills)} KILLS${g.train ? '' : ` ／ ${fmt(g.coins)} COINS`}</div>
       </div>
       <button class="btn big primary" id="resume">RESUME</button>
       <div class="rbtns" style="margin:0">
+        ${g.train ? '<button class="btn" id="treset">数値リセット</button>' : ''}
         <button class="btn" id="set">設定</button>
-        <button class="btn" id="quit">リタイア</button>
+        <button class="btn" id="quit">${g.train ? '装備を変える' : 'リタイア'}</button>
       </div>
     </div>`);
   screens().appendChild(node);
   $('#resume', node).onclick = () => { audio.tap(); node.remove(); onResume(); };
   $('#set', node).onclick = () => { audio.tap(); showSettings(null, true); };
+  // トレーニング：数値と的を最初からにして再開
+  const tr = $('#treset', node);
+  if (tr) tr.onclick = () => { audio.tap(); g.trainReset(); node.remove(); onResume(); };
   let q = 0;
   $('#quit', node).onclick = (e) => {
     q++;
-    if (q === 1) { e.target.textContent = 'もう一度で確定'; return; }
+    // トレーニングは失うものがないので、確認なしで設定の画面へ
+    if (q === 1 && !g.train) { e.target.textContent = 'もう一度で確定'; return; }
     node.remove();
     onQuit();
   };

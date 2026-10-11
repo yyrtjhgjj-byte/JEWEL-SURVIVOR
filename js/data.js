@@ -589,6 +589,9 @@ export const ENEMIES = {
   konton: { name: '渾沌', kana: 'こんとん', hp: 300000, speed: 46, dmg: 50, r: 66, xp: 4000, boss: true, ai: 'konton', desc: '顔のない中央の帝。歌と舞を知っている。削るたびに七つの穴が一つずつ開き、目・耳・鼻を得るごとに攻撃が増える。7:00に出現。' },
   thief: { name: 'ジュエルシーフ', hp: 2600, speed: 128, dmg: 0, r: 15, xp: 6, ai: 'thief', sprite: 'ghost', tint: '#d8a93a', desc: '原石を抱えて逃げ回る盗賊。5:00ごろから現れ、しばらくすると姿を消す。倒すと原石と宝箱を落とす。' },
   crystal: { name: 'ライトクリスタル', hp: 1, speed: 0, dmg: 0, r: 16, xp: 0, prop: true, color: '#ffffff', desc: '破壊するとアイテムを落とす。' },
+  // トレーニングの的（動かない・攻撃しない。HP は game.js の trainSpawn で決める。図鑑には出さない）
+  dummy: { name: '木人', hp: 1, speed: 0, dmg: 0, r: 30, xp: 0, boss: true, dummy: true, ai: 'none', desc: '' },
+  dummy_s: { name: '木人', hp: 1, speed: 0, dmg: 0, r: 13, xp: 0, dummy: true, ai: 'none', sprite: 'dummy', desc: '' },
 };
 
 // ---------------------------------------------------------------------
