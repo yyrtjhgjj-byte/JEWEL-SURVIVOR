@@ -19,6 +19,7 @@ import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox } from './jukebox.js';
 import { stageScene } from './scene-art.js';
+import { showcaseBack, showcaseFront } from './case-art.js';
 import { BREAK_TIME, trainDummyHp } from './game.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -321,11 +322,11 @@ export function showCharSelect() {
     const aw = save.awaken[sel] || 0;
     $('#detail', node).innerHTML = `
       <div class="char-detail">
-        <div class="showcase ${unlocked ? '' : 'locked'}" style="--c:${gemColor(sel)}">
-          <div class="sc-rays"></div><div class="sc-spot"></div>
-          <div class="sc-ped"></div>
-          <img class="sc-gem" src="${gemIcon(sel, 200)}">
-          <i class="sc-spark" style="left:22%;top:30%"></i><i class="sc-spark" style="left:74%;top:20%;animation-delay:.8s"></i><i class="sc-spark" style="left:66%;top:58%;animation-delay:1.5s"></i>
+        <div class="showcase ${unlocked ? '' : 'locked'}">
+          <img class="sc-back" src="${showcaseBack(gemColor(sel), !unlocked)}" alt="">
+          <img class="sc-gem" src="${gemIcon(sel, 200)}" alt="">
+          <img class="sc-front" src="${showcaseFront()}" alt="">
+          <i class="sc-spark" style="left:39px;top:49px"></i><i class="sc-spark" style="left:72px;top:80px;animation-delay:.9s"></i><i class="sc-spark" style="left:80px;top:36px;animation-delay:1.7s"></i>
           ${aw ? `<span class="sc-aw">★${aw}</span>` : ''}
         </div>
         <div>

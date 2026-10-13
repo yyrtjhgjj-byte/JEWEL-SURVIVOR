@@ -40,6 +40,7 @@
 - 大きい背景の光（.rays）を入れるスクロールする画面は `.rays-clip` で包む（スクロールの範囲が光の分だけ広がるため）。はみ出しうる画面の中央寄せは前後の余白 auto で行う（justify-content: center だと上側に届かない）。
 - コイン報酬のアイコンは coinIcon。ユーザーランクは称号の素材の見た目（`.rk-mat` ＋ `.rk-acrylic` / `.rk-glass` / `.rk-crystal`。タイトル左上のチップ・詳細の板・称号の段で共通）。
 - ステージのカード（ステージ選択・図鑑）の背景は scene-art.js の風景（`has-scene` と `--scene`。ui.js の paintScenes が 1 枚ずつ間をあけて描いて貼る）。
+- ジュエル選択の宝石は額装（case-art.js。奥のベルベット `showcaseBack` は宝石の色の彩度を大きく落としてうっすら乗せる、手前の枠 `showcaseFront` は共通の 1 枚。宝石は gemIcon の img を間に置き、影の位置は `CASE_GEM` と CSS の `.sc-gem` で合わせる）。
 - 実績はメダル（ui.js の medalTier で報酬から 銅・銀・金・虹、`.medal`）。図鑑の敵はモンスターカード（`.mon`。未遭遇はシルエット、ボスは金の額縁）、武器・チャームは属性の色の縁取り（`.gemcard`）。
 
 **音**
@@ -62,7 +63,7 @@
 | js/enemies.js | 特殊な敵とボスの AI |
 | js/hazards.js | ステージのギミック |
 | js/elements.js | 属性（効果の説明文 `ELEMENTS` もここ） |
-| js/render.js / gem-art.js / artifact-art.js / shop-art.js / scene-art.js | スプライト・アイコン・ステージの風景の絵（キャッシュ付き） |
+| js/render.js / gem-art.js / artifact-art.js / shop-art.js / scene-art.js / case-art.js | スプライト・アイコン・ステージの風景・ジュエル選択の額装の絵（キャッシュ付き） |
 | js/fx.js | パーティクル・ダメージ数字・揺れ・フラッシュ |
 | js/audio.js | WebAudio の効果音と BGM |
 | js/ui.js | 全画面（タイトル〜リザルト、HUD、バナー） |
@@ -242,7 +243,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v111`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v112`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
