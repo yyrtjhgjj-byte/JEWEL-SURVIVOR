@@ -30,6 +30,11 @@ export function fmtShort(n) {
   return String(n);
 }
 
+// その日の日付の文字列（ログインボーナス・経営の配当の 1 日の区切り）
+export function todayStr(d = new Date()) {
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
 export function fmtTime(sec) {
   sec = Math.max(0, Math.floor(sec));
   const m = Math.floor(sec / 60), s = sec % 60;

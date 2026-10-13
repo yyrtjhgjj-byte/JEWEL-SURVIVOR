@@ -1,5 +1,5 @@
 // =====================================================================
-//  画面下のメニュー（ホーム・強化・宝石・記録・その他）と、カテゴリごとの入口（ハブ）
+//  画面下のメニュー（ホーム・強化・宝石・経営・記録・その他）と、カテゴリごとの入口（ハブ）。経営はハブを使わず地図の画面を開く
 //  画面の data-nav にカテゴリを書くと、show() のときにメニューが出てそのカテゴリが光る。
 //  data-nav の無い画面（ジュエル選択・研磨の本番・リザルトなど）ではメニューを隠す
 //  新しい要素はハブのカード（HUBS）に足す
@@ -20,11 +20,13 @@ import {
 } from './ui.js';
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox, trackList } from './jukebox.js';
+import { showBiz, bizBadge } from './biz-ui.js';
 
 export const NAV = [
   { id: 'home', jp: 'ホーム', en: 'HOME', c: '#b45cff' },
   { id: 'power', jp: '強化', en: 'POWER', c: '#ffd24a' },
   { id: 'jewel', jp: '宝石', en: 'JEWEL', c: '#e0b8ff' },
+  { id: 'biz', jp: '経営', en: 'BUSINESS', c: '#4ade9a' },
   { id: 'archive', jp: '記録', en: 'ARCHIVE', c: '#7fd0ff' },
   { id: 'more', jp: 'その他', en: 'MORE', c: '#9a93b0' },
 ];
@@ -37,6 +39,8 @@ function navIcon(id) {
   if (id === 'power') return `<img src="${shopIcon('might', 64)}" alt="">`;
   if (id === 'jewel') return `<img src="${roughIcon('large', ROUGH.large.color, 64)}" alt="">`;
   if (id === 'archive') return `<img src="${enemyIcon('boss3', 24)}" alt="">`;
+  // 経営：地球と航路
+  if (id === 'biz') return '<svg class="mn-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c3 2.6 3 14.4 0 17M12 3.5c-3 2.6-3 14.4 0 17"/><path d="M4 6.5C9 3 17 5 21 10" class="mn-arc"/></svg>';
   return '<span class="mn-glyph">⚙</span>';
 }
 
@@ -47,6 +51,7 @@ function buildNav() {
     audio.unlock();
     audio.tap();
     if (b.dataset.c === 'home') showTitle();
+    else if (b.dataset.c === 'biz') showBiz();
     else showHub(b.dataset.c);
   }));
 }
@@ -61,7 +66,7 @@ export function syncNav(cat, node) {
   if (!(node && node.classList.contains('jukebox-screen'))) audio.playBgm('title');
 }
 
-// 光るカテゴリ・アイコン・印（宝石：磨いていない原石の数）を描き直す
+// 光るカテゴリ・アイコン・印（宝石：磨いていない原石の数、経営：配当・満杯の倉庫・止まった工場）を描き直す
 export function refreshNav() {
   if (!navEl || !navCat) return;
   for (const b of navEl.querySelectorAll('button')) {
@@ -72,6 +77,7 @@ export function refreshNav() {
     if (old) old.remove();
     const n = id === 'jewel' ? totalRough() : 0;
     if (n) b.appendChild(el(`<b class="mn-badge">${n > 99 ? '99+' : n}</b>`));
+    if (id === 'biz' && bizBadge()) b.appendChild(el('<b class="mn-badge dot"></b>'));
   }
 }
 

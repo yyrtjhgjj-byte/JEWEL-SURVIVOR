@@ -10,7 +10,7 @@ import { mountLiveGem } from './gem-gl.js';
 import { diagCrashes, diagLaunches, clearDiag } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter } from './stages.js';
-import { fmt, fmtTime, pick } from './util.js';
+import { fmt, fmtTime, pick, todayStr } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState, RANK_CLASSES } from './rank.js';
 import { HOWTO, HOWTO_INTRO, RARITY_ORDER } from './howto.js';
@@ -252,9 +252,6 @@ export function showTitle() {
 }
 
 // ------------------------------------------------------------------ ログインボーナス
-function todayStr(d = new Date()) {
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
 // ログインボーナス（受け取った日数の累計で 7 日周期。連続でなくてよい）：研磨の原石
 const LOGIN_REWARDS = [
   { tier: 'shard', n: 2 }, { tier: 'rough', n: 1 }, { tier: 'shard', n: 3 }, { tier: 'rough', n: 2 },

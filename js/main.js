@@ -289,6 +289,7 @@ function settleRun(res, cleared) {
   const coinsEarned = Math.round(res.coins + (firstClear ? stage.reward : cleared ? 500 : 0));
   save.coins += coinsEarned;
   save.totalCoins += coinsEarned;
+  save.stats.runCoins = (save.stats.runCoins || 0) + coinsEarned;
   save.stats.kills += res.kills;
   if (cleared) save.stats.clears++;
   for (const [k, v] of Object.entries(res.killsByType)) save.kills[k] = (save.kills[k] || 0) + v;
@@ -395,6 +396,12 @@ window.addEventListener('keydown', (e) => {
 
 // 旧バージョンのセーブの移行。起動時と、バックアップの読み込み時に行う。工房の返金額（上位工房の入れ替えの分）を返す
 function migrateSave() {
+  // 経営の配当の上限に使う「ランで得たコインの累計」：記録を始める前のセーブは、累計のコインで代える
+  if (!save.migrated.runCoins) {
+    save.migrated.runCoins = true;
+    if (!save.stats.runCoins) save.stats.runCoins = save.totalCoins || 0;
+    persist();
+  }
   // 旧バージョンのセーブ：ステージ1クリア済みなら引き継ぐ
   if (save.stats.clears > 0 && !(save.stages.wastes && save.stages.wastes.cleared)) {
     save.stages.wastes = { cleared: true, heat: 0, best: save.best.time || 600 };

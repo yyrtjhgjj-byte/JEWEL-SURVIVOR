@@ -63,7 +63,8 @@ function findClipped(label) {
   const out = [];
   const r = document.createRange();
   for (const b of document.querySelectorAll('#app button, #app .btn')) {
-    if (!b.offsetParent || b.closest('#hud')) continue;
+    // 経営の地図のピンは、名前と数の印をわざと外に出している
+    if (!b.offsetParent || b.closest('#hud') || b.classList.contains('bzpin')) continue;
     const br = b.getBoundingClientRect();
     if (!br.width || !br.height) continue;
     const walker = document.createTreeWalker(b, NodeFilter.SHOW_TEXT);
@@ -88,8 +89,21 @@ async function fullSave(p) {
     const A = await import('/js/artifacts.js');
     const S = await import('/js/stages.js');
     const all = (ids) => Object.fromEntries(ids.map((id) => [id, true]));
+    const B = await import('/js/biz.js');
+    const BD = await import('/js/biz-data.js');
     const sv = JSON.parse(localStorage.getItem('jewel-survivor-save-v1') || '{}');
     sv.coins = 999999;
+    // 経営：全部の施設を持ち、在庫と輸送中の荷がある状態
+    const now = Date.now(), st = B.newBiz(now - 6 * 3600e3);
+    st.rank = 7; st.cash = 9e12;
+    for (const id in BD.MINES) { B.buyMine(st, id); for (let i = 0; i < 3; i++) B.upgradeMine(st, id); }
+    for (const id in BD.FACTORIES) { B.buyFactory(st, id); for (let i = 0; i < 4; i++) B.upgradeFactory(st, id); }
+    B.catchUp(st, now - 3600e3);
+    for (const id in st.mines) B.ship(st, id, BD.MINES[id].mix.diamond ? 'surat' : 'idar', now - 3600e3);
+    B.catchUp(st, now - 600e3);
+    for (const id in st.mines) B.ship(st, id, 'kofu', now - 600e3);
+    B.catchUp(st, now);
+    sv.biz = st;
     sv.unlocked = all(D.CHAR_IDS);
     sv.seen = { weapons: all(D.WEAPON_IDS), passives: all(D.PASSIVE_IDS), enemies: all(Object.keys(D.ENEMIES)), evos: all(D.WEAPON_IDS) };
     sv.achievements = Object.fromEntries(D.ACHIEVEMENTS.map((a) => [a.id, Date.now()]));
@@ -153,6 +167,18 @@ async function fullSave(p) {
       await p.click('#h-mining'); await check('gacha');
       if (await p.$('#gex')) { await p.click('#gex'); await check('exchange'); await p.evaluate(() => document.querySelector('#xok, #xd')?.click()); }
       await back();
+      // 経営（地図のピンから各施設のシート）
+      await nav('biz'); await check('biz');
+      for (const id of ['tokyo', 'ratnapura', 'minas', 'jaipur', 'bangkok']) {
+        await p.evaluate((id) => document.querySelector(`.bzpin[data-p="${id}"]`)?.click(), id);
+        await check('biz-' + id);
+        // 施設の種類のタブ（本社なら会社・在庫のタブも）を順に押す。押すとタブの数が変わることがある
+        for (let i = 0; i < 6; i++) {
+          if (!(await p.evaluate((i) => { const b = document.querySelectorAll('.bz-sheet .bs-tabs button')[i]; if (b) b.click(); return !!b; }, i))) break;
+          await check(`biz-${id}-tab#${i}`);
+        }
+        await p.evaluate(() => document.querySelector('.bz-sheet [data-act="close"]')?.click());
+      }
       await nav('archive'); await check('hub-archive');
       await p.click('#h-library'); await clickAll('.tabs button', 'zukan'); await back();
       await p.click('#h-records'); await check('records'); await back();

@@ -760,6 +760,14 @@ export const ACHIEVEMENTS = [
   // 工房
   { id: 'backroom', meta: true, name: 'マスターワークス', t: '上位工房を解放する', coins: 3000, check: (r, s) => s.upperShop },
   { id: 'backroomMax', meta: true, name: 'マスターワークス・コンプリート', t: '上位工房の強化をすべて最大にする', coins: 10000, check: (r, s) => UPPER_SHOP.every((it) => ((s.upgrades2 || {})[it.id] || 0) >= it.max) },
+  // 経営
+  { id: 'biz1', meta: true, name: 'ファースト・クレーム', t: '経営で鉱区を手に入れる', coins: 300, check: (r, s) => s.biz && Object.keys(s.biz.mines).length >= 1 },
+  { id: 'bizFactory', meta: true, name: 'カッティング・ハウス', t: '経営で工場を手に入れる', coins: 500, check: (r, s) => s.biz && Object.keys(s.biz.factories).length >= 1 },
+  { id: 'bizDiv', meta: true, name: 'ディビデンド', t: '経営の配当を受け取る', coins: 200, check: (r, s) => s.biz && s.biz.divTotal >= 1 },
+  { id: 'bizRank3', meta: true, name: 'ジュエル・マーチャント', t: '会社のランクを「宝石商」にする', coins: 1000, check: (r, s) => s.biz && s.biz.rank >= 3 },
+  { id: 'bizRank5', meta: true, name: 'トレーディング・ハウス', t: '会社のランクを「宝石商社」にする', coins: 5000, check: (r, s) => s.biz && s.biz.rank >= 5 },
+  { id: 'bizRank7', meta: true, name: 'ジュエル・ダイナスティ', t: '会社のランクを「宝石財閥」にする', coins: 20000, check: (r, s) => s.biz && s.biz.rank >= 7 },
+  { id: 'bizDiv100k', meta: true, name: 'シェアホルダー', t: '経営の配当で累計10万コインを受け取る', coins: 5000, check: (r, s) => s.biz && s.biz.divTotal >= 1e5 },
   // やり込み
   { id: 'allchars', meta: true, name: 'オールスター', t: 'すべてのジュエルを解放する', coins: 5000, check: (r, s) => CHAR_IDS.every((id) => s.unlocked[id]) },
   { id: 'rank20', meta: true, name: 'グラス・ハート', t: 'ユーザーランク20到達', coins: 1500, check: (r, s) => s.rank && s.rank.lv >= 20 },
