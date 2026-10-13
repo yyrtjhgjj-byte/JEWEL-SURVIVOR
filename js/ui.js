@@ -18,7 +18,7 @@ import { save, persist, resetSave, exportSave, parseBackup, importSave } from '.
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox } from './jukebox.js';
-import { stageScene } from './scene-art.js';
+import { stageScene, stageSceneCached } from './scene-art.js';
 import { showcaseBack, showcaseFront } from './case-art.js';
 import { BREAK_TIME, trainDummyHp } from './game.js';
 
@@ -370,12 +370,14 @@ function stageRec(id) { return save.stages[id] || {}; }
 export function stageUnlocked(st) {
   return st.no === 1 || !!stageRec(STAGES[st.no - 2].id).cleared;
 }
-// ステージのカードに風景を貼る。描いていない風景は 1 枚ずつ間をあけて描く（画面を開くのが遅くならないように）
+// ステージのカードに風景を貼る。描き済みの風景はすぐ貼り、描いていない風景は 1 枚ずつ間をあけて描く（画面を開くのが遅くならないように）
 function paintScenes(cards) {
   const todo = [];
   for (const [card, st] of cards) {
     card.classList.add('has-scene');
-    todo.push([card, st]);
+    const u = stageSceneCached(st.id);
+    if (u) card.style.setProperty('--scene', `url(${u})`);
+    else todo.push([card, st]);
   }
   const step = () => {
     const it = todo.shift();
@@ -548,6 +550,8 @@ export function showStageSelect() {
       if (b) b.onclick = () => { save[k] = !save[k]; b.classList.toggle('on', save[k]); audio.tap(); persist(); };
     }
   };
+  // カードを選ぶ：作り直さずに選択の枠だけ付け替える（作り直すと風景の背景がちらつく）
+  const markSel = (card) => list.querySelectorAll('.stage-card').forEach((c) => c.classList.toggle('sel', c === card));
   const render = () => {
     $('#chtabs', node).innerHTML = CHAPTERS.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${c.name}</button>`).join('') +
       `<button class="tab ${ch === 'boss' ? 'on' : ''}" data-c="boss">BOSS</button>` +
@@ -602,7 +606,7 @@ export function showStageSelect() {
             <div class="st-name">${stageUnlocked(st) ? st.name : '？？？'}</div>
             ${ok ? `<div class="rush-boss">${bosses.map((id) => `<img src="${enemyIcon(ENEMIES[id].sprite || id, Math.min(ENEMIES[id].r, 40), ENEMIES[id].tint)}">`).join('')}</div>` : `<div class="st-desc">🔒 STAGE ${st.no} をクリアで解放</div>`}
           </button>`);
-          if (ok) card.onclick = () => { rsel = st.id; save.rushStage = st.id; audio.cardFlip(st.no); render(); renderRush(); };
+          if (ok) card.onclick = () => { rsel = st.id; save.rushStage = st.id; audio.cardFlip(st.no); markSel(card); renderRush(); };
           if (ok) scenes.push([card, st]);
           list.appendChild(card);
         }
@@ -619,7 +623,7 @@ export function showStageSelect() {
         <div class="st-desc">${open ? st.desc : '🔒 前のステージをクリアで解放'}</div>
         ${open ? `<div class="st-meta"><span>${st.hazardText}</span><span>${fmtTime(st.time)}</span>${rec.best ? `<span>最長 ${fmtTime(rec.best)}</span>` : ''}</div>` : ''}
       </button>`);
-      if (open) card.onclick = () => { sel = st.id; audio.cardFlip(st.no); render(); renderOpts(); };
+      if (open) card.onclick = () => { sel = st.id; audio.cardFlip(st.no); markSel(card); renderOpts(); };
       if (open) scenes.push([card, st]);
       list.appendChild(card);
     }

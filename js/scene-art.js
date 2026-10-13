@@ -477,6 +477,9 @@ const SCENES = {
 };
 
 // ステージの風景の dataURL（JPEG。キャッシュする）
+// 描き済みの風景（まだなら null）
+export const stageSceneCached = (id) => cache.get(id) || null;
+
 export function stageScene(id, seed = 1) {
   let u = cache.get(id);
   if (u) return u;
