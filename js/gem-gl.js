@@ -225,21 +225,49 @@ float trace(vec3 ro, vec3 rd, float ior, float sig, float sig2, float pleo, floa
   return outv + T * .02;
 }
 
+// 中の層（向き m、物体の座標）が照明を返す強さ。光の向きと見る向きの中間が m に近いほど強い。
+// 画面の座標で比べるので、石が傾くと光る場所と色が変わる。al は向きの合い具合（重み付きの平均）
+float layerFlash(vec3 m, float k, out float al){
+  vec3 mw = normalize(uR * m); float s = 0., ws = 0., as = 0.;
+  for (int i = 0; i < 24; i++) {
+    if (i >= uNL) break;
+    float c = max(dot(normalize(uL[i].xyz + vec3(0, 0, 1)), mw), 0.), w = uL[i].w * (1. - uLc[i].x);
+    s += w * pow(c, k); ws += w; as += w * c;
+  }
+  al = as / max(ws, 1e-4);
+  return s;
+}
+// ラブラドライトの色：紫がかった青 → 鮮やかな青 → 水色 → 金 → 橙
+vec3 labPal(float t){
+  vec3 c = mix(vec3(.35, .22, 1.), vec3(.06, .28, 1.), smoothstep(0., .3, t));
+  c = mix(c, vec3(.12, .6, 1.), smoothstep(.35, .6, t));
+  c = mix(c, vec3(.4, .8, .5), smoothstep(.62, .72, t));
+  c = mix(c, vec3(1., .78, .28), smoothstep(.72, .84, t));
+  return mix(c, vec3(1., .52, .18), smoothstep(.9, 1., t));
+}
+
 // 石ごとの見た目：albedo（地の色）・emit（光の効果）・gloss・tr（半透明）
 void stone(vec2 q, vec3 n, vec3 r, out vec3 alb, out vec3 emit, out float tr){
   float x = q.x, y = q.y; emit = vec3(0); tr = 0.;
   if (uKind == 0) {
-    alb = mix(vec3(.7, .74, .82), vec3(.9, .9, .95), fbm(q * 3., 4, 3.));
+    // オパール：白い地に、小さな斑ごとの遊色。斑ごとに中の格子の向きが違い、向きが合うと強く光って色が移ろう
+    alb = mix(vec3(.8, .82, .86), vec3(.93, .93, .96), fbm(q * 3., 4, 3.));
+    float cover = 0.;
     for (int L = 0; L < 2; L++) {
-      float sc = L == 0 ? 3.4 : 7.5, sd = L == 0 ? 11. : 23., w = L == 0 ? 1. : .7;
-      vec2 wq = q + (vec2(fbm(q * 2., 3, sd), fbm(q.yx * 2., 3, sd + 1.)) - .5) * .25;
+      float sc = L == 0 ? 5. : 10., sd = L == 0 ? 11. : 23., w = L == 0 ? 1. : .75;
+      vec2 wq = q + (vec2(fbm(q * 2., 3, sd), fbm(q.yx * 2., 3, sd + 1.)) - .5) * .3;
       vec3 vo = vor(wq * sc, sd);
-      float hc = vo.z * 6.28; vec3 g = normalize(vec3(cos(hc) * .55, sin(hc) * .55, .72));
-      float al = dot(r, g), inner = fbm(wq * 14., 3, sd + 5.);
-      float k = pow(clamp(al * .5 + .5, 0., 1.), 4.) * smoothstep(0., .1, vo.y - vo.x) * (.55 + .9 * inner) * w;
-      emit += spectral(fract(vo.z * 13.7) + al * .4 + inner * .25) * k * 2.6;
+      float a1 = fract(vo.z * 7.13) * 6.283, a2 = fract(vo.z * 3.71);
+      float al, fs = layerFlash(normalize(vec3(cos(a1) * .9 * a2, sin(a1) * .9 * a2 + .25, 1.)), 34., al);
+      float inner = fbm(wq * 16., 3, sd + 5.);
+      float k = (fs * 8. + .015) * smoothstep(0., .08, vo.y - vo.x) * (.5 + inner) * w;
+      emit += spectral(fract(vo.z * 13.7) + (1. - al) * 1.5 + inner * .2) * k * 1.6;
+      cover = max(cover, min(1., k));
     }
-    tr = .25;
+    alb *= 1. - .45 * cover;
+    // 乳白の地の、内側からのほのかな光
+    emit += vec3(.15, .16, .18) * (1. - cover);
+    tr = .4;
   } else if (uKind == 1) {
     float st = fbm(vec2(x * 2. + y * 6., y * 1.2), 4, 21.);
     alb = mix(vec3(.62, .64, .7), vec3(.85, .86, .9), st) * .45;
@@ -247,11 +275,20 @@ void stone(vec2 q, vec3 n, vec3 r, out vec3 alb, out vec3 emit, out float tr){
     float gl = exp(-pow((c - .88) / .1, 2.)) * 1.6 + exp(-pow((c - .7) / .18, 2.)) * .35;
     emit = vec3(.55, .85, 1.9) * gl; tr = .55;
   } else if (uKind == 2) {
-    float st = fbm(vec2(x * 1.5 + y * .4, (y - x * .3) * 7.), 5, 31.);
-    alb = mix(vec3(.06, .07, .08), vec3(.19, .21, .23), st);
-    float pch = smoothstep(.38, .62, fbm(q * 2.2, 4, 41.)) * (.6 + .4 * st);
-    float fl = pow(clamp(dot(n, normalize(vec3(.3, -.25, .92))), 0., 1.), 3.);
-    emit = spectral(.72 - fbm(q * 1.6, 3, 51.) * .34) * pch * fl * 2.4;
+    // ラブラドライト：煙った暗い地。中の平行な層が光を返して、青を中心に光る（傾けると光る斑が変わり、色が金の側へずれる）
+    // 層の向きと厚み（色）は大きな斑ごとに違う。細い平行な筋と、細かなひびが入る
+    float st = fbm(q * 2.5, 4, 31.);
+    float ln = pow(abs(sin(y * 26. + x * 3. + fbm(q * 1.8, 3, 33.) * 7.)), 90.) * (.4 + .6 * fbm(q * 5., 3, 35.));
+    vec3 vo = vor(q * 3.2, 37.);
+    float crack = 1. - smoothstep(0., .012, vo.y - vo.x);
+    alb = mix(vec3(.045, .04, .036), vec3(.11, .1, .09), st) * (1. - .45 * ln) * (1. - .25 * crack);
+    float pch = smoothstep(.27, .44, fbm(q * 1.7, 4, 41.));
+    vec3 m = normalize(vec3((fbm(q * 1.1, 3, 61.) - .5) * 1.2 + .08, (fbm(q * 1.1, 3, 67.) - .5) * 1.2 + .38, 1.));
+    float al, fs = layerFlash(m, 22., al);
+    float t = clamp(fbm(q * 1.4, 4, 71.) * 1.3 - .45, 0., .6);
+    t = mix(t, .86, smoothstep(.58, .68, fbm(q * 1.05 + 9., 3, 91.)));
+    vec3 c = labPal(clamp(t + (1. - al) * 2., 0., 1.));
+    emit = c * pch * (fs * 9. + .05) * (1. - .4 * ln) * (1. - .35 * crack);
   } else if (uKind == 3) {
     alb = mix(vec3(.04, .55, .55), vec3(.25, .8, .74), fbm(q * 3., 5, 61.));
     float rv = 1. - abs(fbm(q * 2.4, 5, 71.) * 2. - 1.);
@@ -640,14 +677,14 @@ export function mountLiveGem(img, id) {
 
 // ---------------------------------------------------------------- 画像の書き出し（tools/gem-bake.html から使う）
 let baker = null;
-export function bakeGem(id, size) {
+export function bakeGem(id, size, rockT = 0, rockS = 0) {
   if (!baker) {
     const canvas = document.createElement('canvas');
     baker = createRenderer(canvas);
     baker.canvas = canvas;
   }
   baker.load(id);
-  baker.draw(size * 2, 0, 0, 2);
+  baker.draw(size * 2, rockT, rockS, 2);
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const x = c.getContext('2d');
