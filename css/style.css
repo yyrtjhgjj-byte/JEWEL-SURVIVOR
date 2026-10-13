@@ -15,6 +15,7 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
+  --nav-h: calc(62px + env(safe-area-inset-bottom, 0px));
   --font: "Rajdhani", "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
   --font-jp: "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
 }
@@ -109,6 +110,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
   animation: screenIn 0.3s ease-out;
 }
 @keyframes screenIn { from { opacity: 0; } to { opacity: 1; } }
+.screen.has-nav { bottom: var(--nav-h); --safe-b: 0px; }
 .screen.dim { background: rgba(4, 4, 10, 0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .screen.dark { background: radial-gradient(circle at 50% 38%, rgba(40, 24, 70, 0.9), rgba(3, 3, 8, 0.97) 70%); }
 
@@ -163,8 +165,6 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .title-hero .word small { display: block; color: var(--muted); font-size: 11px; letter-spacing: 0.3em; font-family: var(--font); }
 @keyframes floaty { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-8px) rotate(3deg); } }
 .title-menu { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 360px; align-items: stretch; margin-bottom: 6px; }
-.title-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.title-row .btn { font-size: 15px; padding: 11px 8px; }
 .credit { font-family: var(--font-jp); font-size: 10px; color: rgba(141,138,166,0.8); text-align: center; margin-top: 8px; line-height: 1.6; }
 
 /* ------------------------------------------------------------------ キャラ選択 */
@@ -517,7 +517,6 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 
 /* ------------------------------------------------------------------ 工房 */
 .shop-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px; }
-.upper-shop-btn { flex: none; width: 100%; max-width: 520px; margin-bottom: 10px; border-color: rgba(196,92,255,0.45); box-shadow: 0 0 14px rgba(196,92,255,0.18); }
 .shop-item { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; }
 .shop-item img { width: 40px; height: 40px; flex: none; }
 .shop-item .sbody { flex: 1; min-width: 0; }
@@ -1208,8 +1207,6 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .beast-detail .btn.big { margin-top: 8px; }
 
 /* ジュークボックス */
-.title-row.mini .btn { font-size: 13px; padding: 6px 6px; }
-.title-row.mini .btn .sub { margin-top: 0; }
 .jb-now { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 520px; margin-bottom: 10px; flex-shrink: 0; }
 .jb-nb { flex: 1; min-width: 0; }
 .jb-nb b { display: block; font-family: var(--font-jp); font-size: 15px; margin-top: 2px; text-wrap: balance; word-break: keep-all; }
@@ -1248,3 +1245,41 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .rar-order { white-space: nowrap; letter-spacing: 0.05em; }
 .rar-order b { display: inline; font-weight: 700; margin: 0 2px; }
 .lvl-order { font-family: var(--font-jp); font-size: 11px; color: var(--muted); }
+
+/* ------------------------------------------------------------------ 下のメニューとハブ（menu.js） */
+#mnav { position: absolute; left: 0; right: 0; bottom: 0; height: var(--nav-h); z-index: 19; display: grid; grid-template-columns: repeat(5, 1fr);
+  padding: 5px calc(var(--safe-r) + 6px) var(--safe-b) calc(var(--safe-l) + 6px); background: linear-gradient(180deg, rgba(12, 11, 20, 0.95), #07060c); border-top: 1px solid rgba(255, 255, 255, 0.1); }
+#mnav.hidden { display: none; }
+#mnav button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: none; border: 0; padding: 0; color: #8f8aa8; font-family: var(--font-jp); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; }
+#mnav .mn-ic { width: 30px; height: 30px; display: grid; place-items: center; }
+#mnav .mn-ic img { width: 30px; height: 30px; filter: grayscale(0.6) brightness(0.75); }
+#mnav .mn-glyph { font-size: 20px; line-height: 1; color: #8f8aa8; }
+#mnav .mn-en { font-family: var(--font); font-size: 8.5px; letter-spacing: 0.14em; opacity: 0.75; }
+#mnav button.on { color: #fff; }
+#mnav button.on .mn-ic img { filter: drop-shadow(0 0 8px var(--c)); }
+#mnav button.on .mn-glyph { color: #fff; text-shadow: 0 0 8px var(--c); }
+#mnav button.on::before { content: ''; position: absolute; top: -5px; left: 28%; right: 28%; height: 2px; border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.mn-badge { position: absolute; top: -2px; right: 18%; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; background: #ff4d6d; color: #fff; font: 700 10.5px/17px var(--font); letter-spacing: 0.02em; box-shadow: 0 0 8px rgba(255, 77, 109, 0.6); }
+.hub-screen { justify-content: flex-start; gap: 12px; }
+.hub-grid { width: 100%; max-width: 520px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hub-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 6px; min-height: 148px; padding: 12px; border-radius: 16px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text); text-align: left; overflow: hidden; cursor: pointer; transition: transform 0.12s; }
+.hub-card::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--c) 24%, transparent), transparent 62%); pointer-events: none; }
+.hub-card:active { transform: scale(0.97); }
+.hub-card.wide { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 16px; padding: 12px 18px; }
+.hub-card.wide .hc-ic { width: 96px; height: 96px; }
+.hub-card.wide .hc-en { font-size: 20px; }
+.hub-card.wide .hc-jp { font-size: 12px; }
+.hub-card.wide .hc-s { font-size: 13px; }
+.hub-card.locked { filter: brightness(0.55); }
+.hub-card .mn-badge { top: 10px; right: 10px; }
+.hc-ic { width: 60px; height: 60px; flex: none; filter: drop-shadow(0 0 10px var(--c)); }
+.hc-t { min-width: 0; }
+.hc-en { font-family: var(--font); font-weight: 700; font-size: 16px; letter-spacing: 0.12em; line-height: 1.1; }
+.hc-jp { font-family: var(--font-jp); font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; margin-top: 2px; }
+.hc-s { font-family: var(--font-jp); font-size: 11.5px; color: #cfc9e6; margin-top: 4px; text-wrap: balance; }
+.hc-glyph { display: grid; place-items: center; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--c) 30%, transparent), rgba(10, 9, 16, 0.6)); font-size: 30px; color: #fff; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c) 60%, transparent)); }
+.hub-card .hc-ic.medal { width: 56px; height: 56px; }
+.hub-card .hc-ic.medal::after { inset: 14px; }
+.hc-rank { display: grid; place-items: center; border-radius: 14px; }
+.hc-rank b { font-family: var(--font); font-weight: 700; font-size: 26px; color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }

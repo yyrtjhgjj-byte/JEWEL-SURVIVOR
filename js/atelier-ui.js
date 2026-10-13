@@ -12,7 +12,8 @@ import {
   mastery, nextMilestone, collectionStats, gemBonusText, statText, nextGem, rollCarat, applyPolish, autoGrade,
   collectionCount,
 } from './atelier.js';
-import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, showTitle, getApp, upperLv, toast } from './ui.js';
+import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast } from './ui.js';
+import { showHub } from './menu.js';
 import { currentSession, awardLot, rivalsOf, rivalMax, startPrice, settleWithoutYou, wantLabel } from './auction.js';
 import { BEASTS, BEAST_IDS, BEAST_COST, jewelStock, beastLevel, beastValue, beastStats, raiseBeast, beastIcon } from './beasts.js';
 
@@ -28,22 +29,17 @@ function pips(m) {
 const metaAch = () => { const a = getApp(); if (a && a.checkMetaAchievements) a.checkMetaAchievements(); };
 
 // ================================================================== 画面
-export function showAtelier(tab = save.tabs.atelier) {
-  save.tabs.atelier = tab;
-  persist();
+// 宝石のハブ（menu.js）から開く：研磨 ／ コレクション ／ 百獣 ／ オークション（表・裏）
+const ATELIER_TITLE = { polish: ['POLISH', '研磨'], collection: ['COLLECTION', 'コレクション'], beasts: ['BEASTS', '百獣'], auction: ['AUCTION', 'オークション'], auction2: ['AUCTION', 'オークション'] };
+export function showAtelier(tab = 'polish') {
+  const [en, jp] = ATELIER_TITLE[tab];
   const node = el(`
-    <div class="screen">
-      ${topbar('ATELIER', '研磨工房')}
-      <div class="tabs">
-        <button class="tab ${tab === 'polish' ? 'on' : ''}" data-t="polish">研磨</button>
-        <button class="tab ${tab === 'collection' || tab === 'beasts' ? 'on' : ''}" data-t="collection">コレクション</button>
-        <button class="tab ${tab === 'auction' || tab === 'auction2' ? 'on' : ''}" data-t="auction">オークション</button>
-      </div>
+    <div class="screen" data-nav="jewel">
+      ${topbar(en, jp)}
       <div id="at"></div>
     </div>`);
   show(node);
-  $('#back', node).onclick = () => { audio.tap(); showTitle(); };
-  node.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showAtelier(b.dataset.t); }));
+  $('#back', node).onclick = () => { audio.tap(); showHub('jewel'); };
   const box = $('#at', node);
   if (tab === 'polish') renderPolish(box);
   else if (tab === 'auction') renderAuction(box, false);
@@ -427,18 +423,9 @@ function reveal(res, score) {
 }
 
 // ---------------------------------------------------------------- コレクションタブ
-function subTabs(box, cur) {
-  const t = el(`<div class="tabs sub">
-    <button class="tab ${cur === 'collection' ? 'on' : ''}" data-t="collection">宝石</button>
-    <button class="tab ${cur === 'beasts' ? 'on' : ''}" data-t="beasts">百獣</button>
-  </div>`);
-  t.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showAtelier(b.dataset.t); }));
-  box.appendChild(t);
-}
 
 function renderCollection(box) {
   box.innerHTML = '';
-  subTabs(box, 'collection');
   const bonus = collectionStats();
   const bonusText = Object.entries(bonus).map(([k, v]) => statText(k, v)).join(' ／ ');
   box.appendChild(el(`<div class="panel coll-sum">
@@ -523,7 +510,6 @@ function gemDetail(id) {
 // ---------------------------------------------------------------- 百獣
 function renderBeasts(box) {
   box.innerHTML = '';
-  subTabs(box, 'beasts');
   const bonusText = Object.entries(beastStats()).map(([k, v]) => statText(k, v)).join(' ／ ');
   box.appendChild(el(`<div class="panel coll-sum"><div class="coll-bonus">${bonusText || 'ボーナスなし'}</div></div>`));
   const grid = el('<div class="beast-grid"></div>');

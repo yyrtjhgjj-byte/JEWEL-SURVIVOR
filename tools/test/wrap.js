@@ -132,9 +132,16 @@ async function fullSave(p) {
       await p.click('#go'); await check('stage');
       if (mode === 'full') { await p.evaluate(() => document.querySelector('#artsel')?.click()); await check('art-pick'); await p.evaluate(() => document.querySelector('#anone')?.click()); }
       await back(); await back();
-      await p.click('#t-shop'); await check('shop'); await back();
-      await p.click('#t-atelier'); await check('atelier');
-      await clickAll('.seg button, .tabs button', 'atelier-tab');
+      // 下のメニューから各カテゴリのハブへ（menu.js）
+      const nav = async (c) => { await p.click('#nav-' + c); await p.waitForTimeout(250); };
+      await nav('power'); await check('hub-power');
+      await p.click('#h-workshop'); await check('shop'); await back();
+      if (await p.$('#h-masterworks:not(.locked)')) { await p.click('#h-masterworks'); await check('upper-shop'); await back(); }
+      await nav('jewel'); await check('hub-jewel');
+      await p.click('#h-polish'); await check('polish'); await back();
+      await p.click('#h-auction'); await check('auction'); await clickAll('.tabs.sub button', 'auction-tab'); await back();
+      await p.click('#h-beasts'); await check('beasts'); await back();
+      await p.click('#h-collection'); await check('collection');
       // コレクションの詳細（閉じるボタンがパネルの中にある）
       const cells = await p.$$eval('.coll-cell', (e) => e.length);
       for (let i = 0; i < cells; i += mode === 'full' ? 1 : 7) {
@@ -143,11 +150,16 @@ async function fullSave(p) {
         await p.evaluate(() => document.querySelector('.at-over')?.remove());
       }
       await back();
-      await p.click('#t-gacha'); await check('gacha');
+      await p.click('#h-mining'); await check('gacha');
       if (await p.$('#gex')) { await p.click('#gex'); await check('exchange'); await p.evaluate(() => document.querySelector('#xok, #xd')?.click()); }
       await back();
-      await p.click('#t-zukan'); await clickAll('.tabs button, .seg button', 'zukan'); await back();
-      await p.click('#t-set'); await check('settings'); await back();
+      await nav('archive'); await check('hub-archive');
+      await p.click('#h-library'); await clickAll('.tabs button', 'zukan'); await back();
+      await p.click('#h-records'); await check('records'); await back();
+      await p.click('#h-jukebox'); await check('jukebox'); await back();
+      await nav('more'); await check('hub-more');
+      await p.click('#h-settings'); await check('settings'); await back();
+      await nav('home');
       await p.click('#t-howto'); await p.evaluate(() => document.querySelectorAll('.howto').forEach((d) => (d.open = true))); await check('howto'); await back();
 
       // ラン中の画面

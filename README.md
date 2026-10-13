@@ -90,6 +90,7 @@ js/render.js          宝石／敵／キャラの手続き型描画
 js/fx.js              パーティクル・ダメージ表示・雷
 js/audio.js           WebAudio 効果音＋BGMシーケンサー
 js/ui.js              各画面（タイトル・レベルアップ・宝箱・ガチャ・図鑑・リザルト）
+js/menu.js            画面の下のメニューとカテゴリのハブ
 js/atelier.js         研磨工房のロジック（原石・品質・練度・ボーナス）
 js/atelier-ui.js      研磨工房の画面（研磨ミニゲーム・コレクション）
 js/artifacts.js       秘宝の定義と解放条件

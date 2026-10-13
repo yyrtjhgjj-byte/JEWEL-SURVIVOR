@@ -1,12 +1,13 @@
 // =====================================================================
-//  ジュークボックス：ゲームの BGM を聴く画面（タイトルの JUKEBOX）
+//  ジュークボックス：ゲームの BGM を聴く画面（記録のハブの JUKEBOX）
 //  ステージの曲はそのステージを解放すると、ボス戦などの曲はゲーム中に一度流れると聴ける
 // =====================================================================
 import { ENEMIES } from './data.js';
 import { STAGES, CHAPTERS } from './stages.js';
 import { audio } from './audio.js';
 import { save } from './save.js';
-import { show, el, $, topbar, showTitle, stageUnlocked } from './ui.js';
+import { show, el, $, topbar, stageUnlocked } from './ui.js';
+import { showHub } from './menu.js';
 
 const heard = (id) => !!(save.seen.bgm && save.seen.bgm[id]);
 // 章ごとの最終ボスの曲の名前
@@ -15,7 +16,7 @@ const anyCleared = () => STAGES.some((st) => save.stages[st.id] && save.stages[s
 const bossSeen = () => Object.keys(save.seen.enemies || {}).some((id) => ENEMIES[id] && ENEMIES[id].boss);
 
 // 曲の一覧（sec は見出し）。open は聴けるかどうか、lock は聴けないときの説明
-function trackList() {
+export function trackList() {
   const list = [
     { sec: '共通' },
     { id: 'title', name: 'タイトル', en: 'TITLE', color: '#b45cff', open: true },
@@ -44,7 +45,7 @@ function trackList() {
 
 export function showJukebox() {
   const node = el(`
-    <div class="screen jukebox-screen">
+    <div class="screen jukebox-screen" data-nav="archive">
       ${topbar('JUKEBOX', 'ジュークボックス', '<div style="width:44px"></div>')}
       <div class="panel jb-now">
         <div class="jb-disc" id="jbd"></div>
@@ -89,6 +90,6 @@ export function showJukebox() {
     box.appendChild(row);
   }
   $('#jbs', node).onclick = () => { audio.tap(); audio.stopBgm(); audio.pendingTrack = null; render(); };
-  $('#back', node).onclick = () => { audio.tap(); showTitle(); };
+  $('#back', node).onclick = () => { audio.tap(); showHub('archive'); };
   render();
 }

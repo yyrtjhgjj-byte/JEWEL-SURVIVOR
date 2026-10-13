@@ -38,8 +38,9 @@
 - 高さ上限つきのスクロールパネル（.gem-detail / .exch / .at-sum）の子は `flex-shrink: 0`。
 - 品質・レア度の色：SS/UR 虹 ／ S/SSR 金 ／ A/SR 紫 ／ B/R 青 ／ C/N 緑（レベルアップのカードだけ N は白）。良い順の並びは howto.js の `RARITY_ORDER`（遊び方とレベルアップ画面に出る。色を変えたらここも直す）。レベルアップのカードのレア度は計算で決めるが、持っている武器の進化用チャーム（新規）は UR、リミットブレイクは R に固定。
 - 決定ボタン（ジュエル選択の NEXT・ステージ選択の DEPLOY・オークションの見送る／競りに参加）は画面の下端に貼りつける（`.dock` と `.cat-btns` の sticky。画面の下の余白ぶん負の bottom と margin で端まで伸ばす）。
-- 研磨工房と図鑑は、最後に開いていたタブ（図鑑は敵の章も）を `save.tabs` に覚え、タイトルから開くとそこから。リザルトの STAGE は main.js の toStageSelect（遊んだステージの章か BOSS タブ）。
-- 操作のあとに同じ画面を描き直すときは、スクロールの位置を保つ（show で画面ごと作り直すと先頭に戻る。中身だけ描き直すか、研磨工房なら atelier-ui.js の reopen を使う）。
+- 画面の下のメニュー（menu.js）：ホーム・強化・宝石・記録・その他。ホームは START と HOW TO PLAY だけで、ほかの要素は各カテゴリのハブ（`HUBS` のカード）から開く。新しい要素はハブにカードを足す。画面の `data-nav` にカテゴリを書くと show() がメニューを出し（`.has-nav` で画面の下をメニューの高さぶん空ける）、無い画面（ジュエル選択・ステージ選択・研磨の本番・競り・リザルト・ラン中）では隠す。重ねて出す画面（.screen.dim など）はメニューの上に重なる。
+- 図鑑は最後に開いていたタブと敵の章を `save.tabs` に覚える。リザルトの STAGE は main.js の toStageSelect（遊んだステージの章か BOSS タブ）。
+- 操作のあとに同じ画面を描き直すときは、スクロールの位置を保つ（show で画面ごと作り直すと先頭に戻る。中身だけ描き直すか、宝石の各画面なら atelier-ui.js の reopen を使う）。
 - 大きい背景の光（.rays）を入れるスクロールする画面は `.rays-clip` で包む（スクロールの範囲が光の分だけ広がるため）。はみ出しうる画面の中央寄せは前後の余白 auto で行う（justify-content: center だと上側に届かない）。
 - コイン報酬のアイコンは coinIcon。ユーザーランクは称号の素材の見た目（`.rk-mat` ＋ `.rk-acrylic` / `.rk-glass` / `.rk-crystal`。タイトル左上のチップ・詳細の板・称号の段で共通）。
 - ステージのカード（ステージ選択・図鑑）の背景は scene-art.js の風景（`has-scene` と `--scene`。ui.js の paintScenes が、描き済みはすぐ、まだのものは 1 枚ずつ間をあけて描いて貼る）。カードを選んだときは作り直さず選択の枠だけ付け替える（markSel。作り直すと風景がちらつく）。
@@ -70,7 +71,8 @@
 | js/fx.js | パーティクル・ダメージ数字・揺れ・フラッシュ |
 | js/audio.js | WebAudio の効果音と BGM |
 | js/ui.js | 全画面（タイトル〜リザルト、HUD、バナー） |
-| js/atelier.js / atelier-ui.js / auction.js / beasts.js | 研磨工房（研磨・コレクション・オークション・百獣） |
+| js/menu.js | 画面の下のメニューと、カテゴリごとのハブ |
+| js/atelier.js / atelier-ui.js / auction.js / beasts.js | 宝石の研磨・コレクション・オークション・百獣（atelier-ui.js の showAtelier(tab) が各画面） |
 | js/artifacts.js / rank.js | 秘宝、ユーザーランク |
 | js/jukebox.js | ジュークボックス（BGM を聴く画面） |
 | js/diag.js | 動作の記録（落ちたら次の起動で直前の様子を残す。設定画面で見る・コピーする） |
@@ -246,7 +248,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v115`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v116`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh

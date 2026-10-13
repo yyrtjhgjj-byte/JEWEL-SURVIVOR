@@ -37,7 +37,7 @@ function defaults() {
     jewels: {}, // コレクション { gemId: { n: 研磨数, best: 最高品質, ct: 最大カラット, have: 所持数 } }
     beasts: {}, // 百獣 { gemId: レベル }（beasts.js）
     migrated: {}, // 一度だけ行う移行処理の済み印（main.js の migrateSave）
-    tabs: { atelier: 'polish', zukan: 'gems', zukanCh: 1 }, // 研磨工房・図鑑で最後に開いていたタブ（タイトルから開くとここから）
+    tabs: { zukan: 'gems', zukanCh: 1 }, // 図鑑で最後に開いていたタブと敵の章
   };
 }
 
