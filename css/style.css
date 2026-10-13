@@ -574,6 +574,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .gs-total { font-family: var(--font-jp); font-size: 11px; color: var(--muted); text-align: center; }
 .gs-sum { font-family: var(--font-jp); font-size: 12px; color: var(--muted); margin-top: 4px; }
 .rbtns .g100 { flex-basis: 100%; }
+/* リザルト：RETRY を上に大きく、STAGE と TITLE を下に並べる */
+.res-btns { display: grid; grid-template-columns: 1fr 1fr; width: min(360px, 100%); }
+.res-btns #again { grid-column: 1 / -1; }
 .gacha-big { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .gacha-big img { width: 140px; height: 140px; animation: evoGem 0.8s cubic-bezier(.2,1.4,.4,1); }
 .gacha-big .gname { font-family: var(--font-jp); font-size: 22px; font-weight: 900; letter-spacing: 0.08em; }
@@ -682,6 +685,13 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .lday.today { border-color: var(--gold); background: rgba(255,197,61,0.1); color: #ffe39a; box-shadow: 0 0 16px rgba(255,197,61,0.45); }
 
 .center-col { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 520px; }
+/* 決定ボタンの台：画面の下端に貼りつき、スクロールしなくても押せる（スクロールの終わりでは本来の位置に戻る） */
+.dock { position: sticky; bottom: calc(-1 * (var(--safe-b) + 16px)); z-index: 6; align-self: stretch; display: flex; justify-content: center; gap: 8px; flex-shrink: 0;
+  margin: 4px calc(-1 * (var(--safe-r) + 16px)) calc(-1 * (var(--safe-b) + 16px)) calc(-1 * (var(--safe-l) + 16px));
+  padding: 22px calc(var(--safe-r) + 16px) calc(var(--safe-b) + 14px) calc(var(--safe-l) + 16px);
+  background: linear-gradient(180deg, rgba(6, 6, 11, 0), rgba(6, 6, 11, 0.9) 30%, #06060b 62%); pointer-events: none; }
+.dock > * { pointer-events: auto; }
+.dock > .btn.big { width: 100%; max-width: 360px; }
 .muted { color: var(--muted); }
 .hint { font-family: var(--font-jp); font-size: 12px; color: var(--muted); text-align: center; letter-spacing: 0.1em; }
 
@@ -1083,7 +1093,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .ls.now { font-family: var(--font); letter-spacing: 0.16em; color: var(--gold); text-shadow: 0 0 8px rgba(255,197,61,0.6); }
 .ls.won { color: #5dff9a; }
 .ls.lost { color: #c9c6dc; }
-.cat-btns { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.cat-btns { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; position: sticky; bottom: calc(-1 * (var(--safe-b) + 16px)); z-index: 6; margin: 0 -16px -14px; padding: 18px 16px calc(var(--safe-b) + 16px); border-radius: 0 0 16px 16px;
+  background: linear-gradient(180deg, rgba(14, 13, 23, 0), rgba(14, 13, 23, 0.95) 30%, #0e0d17 60%); }
 .cat-btns .btn { white-space: nowrap; }
 #auc-go { padding-left: 8px; padding-right: 8px; letter-spacing: 0.12em; }
 /* 品の絵：宝石はひとつ、詰め合わせは原石を重ねて */
@@ -1163,6 +1174,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 @keyframes soldIn { from { transform: rotate(-8deg) scale(2.2); opacity: 0; } }
 /* 裏オークション：黒と紫の会場 */
 .auc-cat.black { border-color: rgba(170,100,255,0.45); background: linear-gradient(180deg, rgba(34,14,56,0.92), rgba(10,6,18,0.94)); }
+.auc-cat.black .cat-btns { background: linear-gradient(180deg, rgba(10, 6, 18, 0), rgba(10, 6, 18, 0.95) 30%, #0a0612 60%); }
 .auc-cat.black .label { color: #c9a2ff; }
 .auc-hall.black { background: radial-gradient(ellipse 70% 45% at 50% 30%, rgba(90,30,150,0.4), transparent), linear-gradient(180deg, #0c0616, #040208 60%); }
 .auc-hall.black .hall-curtain { background: repeating-linear-gradient(90deg, #14082a 0 10px, #2a1050 10px 18px, #1c0a38 18px 26px), #1c0a38; }

@@ -253,7 +253,7 @@ export function showTitle() {
   tap('#t-juke', showJukebox);
   tap('#t-shop', showShop);
   tap('#t-gacha', showGacha);
-  tap('#t-zukan', () => showZukan('gems'));
+  tap('#t-zukan', () => showZukan());
   tap('#t-atelier', () => showAtelier());
   tap('#t-set', () => showSettings(showTitle));
   loginBonus();
@@ -307,8 +307,8 @@ export function showCharSelect() {
       ${topbar('SELECT', 'ジュエル選択')}
       <div class="panel" id="detail"></div>
       <div class="char-grid" id="grid"></div>
-      <div class="center-col">
-        <button class="btn big primary" id="go" style="width:100%;max-width:360px">NEXT</button>
+      <div class="dock">
+        <button class="btn big primary" id="go">NEXT</button>
       </div>
     </div>`);
   show(node);
@@ -397,8 +397,8 @@ export function showStageSelect() {
       <div class="tabs" id="chtabs" style="align-self:stretch"></div>
       <div class="stage-list" id="list"></div>
       <div class="panel" id="opts"></div>
-      <div class="center-col" style="margin-top:12px">
-        <button class="btn big primary" id="go" style="width:100%;max-width:360px">DEPLOY</button>
+      <div class="dock">
+        <button class="btn big primary" id="go">DEPLOY</button>
       </div>
     </div>`);
   show(node);
@@ -949,7 +949,10 @@ function showExchange(onClose) {
 }
 
 // ================================================================== 図鑑
-export function showZukan(tab = 'gems', ch = 1) {
+export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
+  save.tabs.zukan = tab;
+  if (tab === 'enemies') save.tabs.zukanCh = ch;
+  persist();
   const node = el(`
     <div class="screen">
       ${topbar(tab === 'trophy' ? 'RECORDS' : 'ARCHIVE', tab === 'trophy' ? '実績' : '図鑑', '<div style="width:44px"></div>')}
@@ -1906,8 +1909,9 @@ export function results(res, cleared, extra) {
       <div class="rcoins">${coinIco}<span id="rc">+0</span></div>
       ${extra.rankUp ? `<div class="rrank" id="rrank" style="--rk:${rankColor(extra.rankUp.from.lv)}"><span class="rk-l">RANK <b id="rkl">${extra.rankUp.from.lv}</b></span><div class="rk-bar"><i style="width:${(extra.rankUp.from.xp / rankNeed(extra.rankUp.from.lv)) * 100}%"></i></div><span class="rk-e">+${fmt(extra.rankUp.exp)} EXP</span></div>` : ''}
       ${roughResultHTML(res.roughGot)}
-      <div class="rbtns">
+      <div class="rbtns res-btns">
         <button class="btn big primary" id="again">RETRY</button>
+        <button class="btn" id="stage">STAGE</button>
         <button class="btn" id="home">TITLE</button>
       </div>
       <div class="panel newach hidden" id="ach"></div>
@@ -1916,6 +1920,7 @@ export function results(res, cleared, extra) {
   show(node);
   guard($('.rbtns', node), 1500);
   $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, rush: res.rush ? { w: res.rush.w, p: res.rush.p, from: save.rushFromBest ? (save.bossRush || {})[res.stageId] || 0 : 0 } : null, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null }); };
+  $('#stage', node).onclick = () => { audio.tap(); app.toStageSelect(res); };
   $('#home', node).onclick = () => { audio.tap(); app.toTitle(); };
   const rowsEl = $('#rows', node);
   const rows = [

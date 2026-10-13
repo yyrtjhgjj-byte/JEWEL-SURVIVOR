@@ -28,7 +28,9 @@ function pips(m) {
 const metaAch = () => { const a = getApp(); if (a && a.checkMetaAchievements) a.checkMetaAchievements(); };
 
 // ================================================================== 画面
-export function showAtelier(tab = 'polish') {
+export function showAtelier(tab = save.tabs.atelier) {
+  save.tabs.atelier = tab;
+  persist();
   const node = el(`
     <div class="screen">
       ${topbar('ATELIER', '研磨工房')}
