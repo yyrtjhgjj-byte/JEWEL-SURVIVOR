@@ -6,7 +6,7 @@ import { save, persist } from './save.js';
 import { audio } from './audio.js';
 import { fmt, todayStr } from './util.js';
 import { show, el, $, coinPill, refreshCoinPill, haptic, getApp, toast } from './ui.js';
-import { gemIcon } from './render.js';
+import { gemIcon, coinIcon } from './render.js';
 import { GEMS } from './data.js';
 import { gradeBadge } from './atelier-ui.js';
 import { refreshNav } from './menu.js';
@@ -84,6 +84,7 @@ export function showBiz() {
       <button class="bz-div" id="bzdiv"><small>配当</small><b id="bzdivv"></b></button>
       ${coinPill()}
     </div>
+    <button class="bz-goal" id="bzgoal" hidden></button>
     <div class="bz-map" id="bzmap"><div class="bz-world" id="bzworld">${worldSvg()}<svg class="bz-routes" id="bzroutes" viewBox="0 0 ${MAP_W} ${MAP_H}" preserveAspectRatio="none" aria-hidden="true"></svg><div class="bz-pins" id="bzpins"></div></div></div>
     <div class="bz-tools"><button id="bzzoom" aria-label="拡大"></button><button id="bzmk">${icon('market')}<span>相場</span></button><button id="bzhq">${icon('hq')}<span>本社</span></button></div>
     <div class="bz-sheet" id="bzsheet"></div>
@@ -98,6 +99,7 @@ export function showBiz() {
   $('#bzhq', node).onclick = () => { audio.tap(); openSheet('tokyo', 'hq'); };
   $('#bzmk', node).onclick = () => { audio.tap(); openSheet(null, 'market'); };
   $('#bzdiv', node).onclick = () => { audio.tap(); openSheet('tokyo', 'hq'); };
+  $('#bzgoal', node).onclick = onGoal;
   const map = $('#bzmap', node);
   let saveT = 0;
   map.addEventListener('scroll', () => {
@@ -163,7 +165,9 @@ function pinState(pid) {
 function renderPins() {
   const box = $('#bzpins', ui.node);
   // 近いピンどうしは少し離す（画面の上での位置で）
-  const pos = PLACE_IDS.map((pid) => ({ pid, x: (projX(PLACES[pid].lon) / MAP_W) * ui.w, y: (projY(PLACES[pid].lat) / MAP_H) * ui.h, dx: 0, dy: 0 }));
+  // 地図に出すのは、今のランクの 1 つ先までの地名と、持っている施設のある地名
+  const shown = PLACE_IDS.filter((pid) => placeRank(pid) <= ui.st.rank + 1 || facsAt(pid).some((k) => k !== 'hq' && owns(ui.st, k, pid)));
+  const pos = shown.map((pid) => ({ pid, x: (projX(PLACES[pid].lon) / MAP_W) * ui.w, y: (projY(PLACES[pid].lat) / MAP_H) * ui.h, dx: 0, dy: 0 }));
   const R = 26;
   for (let it = 0; it < 6; it++) {
     for (let i = 0; i < pos.length; i++) for (let j = i + 1; j < pos.length; j++) {
@@ -208,6 +212,41 @@ function renderTop() {
   const left = B.divLeft(st, avgRun(), today);
   $('#bzdivv', ui.node).textContent = left ? fmt(B.divPayable(st, avgRun(), today)) : '済';
   $('#bzdiv', ui.node).classList.toggle('ready', B.bizAlerts(st, avgRun(), today).div);
+  $('#bzmk', ui.node).hidden = r < 2;
+  renderGoal();
+}
+
+// ---------------------------------------------------------------- 目標（次にやることを 1 つ。達成したら押して受け取る）
+function renderGoal() {
+  const st = ui.st, g = B.goalNow(st), e = $('#bzgoal', ui.node);
+  if (!g) { e.hidden = true; return; }
+  const [a, b] = g.n(st), done = a >= b;
+  const prog = b > 1 ? `<span class="bg-p">${g.money ? `${usd(a)} / ${usd(b)}` : `${fmt(a)} / ${fmt(b)}`}</span>` : '';
+  const html = `<small>${done ? '達成' : '目標'}</small><b>${g.t}</b>${prog}<em><img src="${coinIcon(36)}" alt="">${fmt(g.coins)}</em>`;
+  if (e.dataset.h !== html) { e.dataset.h = html; e.innerHTML = html; }
+  e.classList.toggle('done', done);
+  e.hidden = false;
+}
+function onGoal() {
+  const st = ui.st, g = B.goalNow(st);
+  if (!g) return;
+  if (B.goalDone(st, g)) {
+    const n = B.claimGoal(st);
+    save.coins += n;
+    save.totalCoins += n;
+    audio.bigWin();
+    haptic();
+    toast(g.t, `+${fmt(n)} コイン`, 'GOAL');
+    afterChange(true);
+    return;
+  }
+  audio.tap();
+  // 目標のための場所を開く（まだ行けない地名なら何もしない）
+  if (g.go && placeRank(g.go[0]) <= st.rank) {
+    centerOn(g.go[0]);
+    openSheet(g.go[0], g.go[1]);
+    if (g.go[2]) { ui.sheet.tab = g.go[2]; renderSheet(); }
+  }
 }
 
 // ---------------------------------------------------------------- 航路（輸送中の荷）
@@ -353,7 +392,7 @@ function mineSheet(pid) {
     <div class="bs-ups">
       ${nl ? `<div><span>設備：${nl.name}<small>産出 ×${nl.out}</small></span>${btn('upMine', '強化', B.mineUpCost(st, pid), `data-id="${pid}"`)}</div>` : '<div><span>設備：最大</span></div>'}
       ${ns ? `<div><span>倉庫：${ns.h} 時間分<small>今 ${STORE_LV[m.sl].h} 時間分</small></span>${btn('upStore', '広げる', B.storeUpCost(st, pid), `data-id="${pid}"`)}</div>` : '<div><span>倉庫：最大</span></div>'}
-      <div><span>探鉱<small>埋蔵量 +30 日分（手掘りの産出で）</small></span>${btn('explore', '探す', B.exploreCost(st, pid), `data-id="${pid}"`)}</div>
+      ${m.reserve < B.reserveFull(pid) * 0.6 ? `<div><span>探鉱<small>埋蔵量 +30 日分（手掘りの産出で）</small></span>${btn('explore', '探す', B.exploreCost(st, pid), `data-id="${pid}"`)}</div>` : ''}
       ${bossRow('mine', pid, m)}
     </div>${m.boss ? mineBoss(pid, m) : ''}`;
 }
@@ -398,7 +437,7 @@ function factorySheet(pid) {
     </div>
     ${f.nofund ? '<div class="bs-note warn">資金が足りず、研磨が止まっています</div>' : ''}
     ${Object.keys(q).length ? `<div class="bs-gems">${Object.entries(q).map(([g, ct]) => `<span><img src="${gemIcon(g)}" alt="">${GEMS[g].jp}<small>${ctf(ct)} ct</small></span>`).join('')}</div>` : ''}
-    ${cutPanel(pid, f)}
+    ${st.rank >= 2 ? cutPanel(pid, f) : ''}
     <div class="bs-h">強化</div>
     <div class="bs-ups">
       ${nl ? `<div><span>処理の速さ Lv ${f.lv + 1}<small>×${nl.cap}</small></span>${btn('upFact', '強化', B.factUpCost(st, pid), `data-id="${pid}"`)}</div>` : '<div><span>処理の速さ：最大</span></div>'}
@@ -424,14 +463,22 @@ function factBoss(pid, f) {
     ${Object.keys(LABS).filter((id) => B.labOpen(st, id)).map((id) => `<button class="bs-prow ${f.out === 'lab:' + id ? 'on' : ''}" data-act="factOut" data-id="${pid}" data-v="lab:${id}"><span>${icon('lab')}${PLACES[id].name}で鑑定</span><small>品質 A 以上</small></button>`).join('')}</div>`;
 }
 
+// 在庫を宝石ごとにまとめた行。押すと品質・産地ごとの内訳を開く
 function stockRows(exId) {
   const st = ui.st;
   const keys = Object.keys(st.stock).filter((k) => st.stock[k].n >= 0.005);
   if (!keys.length) return { html: '<div class="bs-note">在庫はありません</div>', total: 0 };
-  const rows = keys.map((k) => ({ k, p: B.parseKey(k), s: st.stock[k], v: B.sellPrice(st, k, exId) })).sort((a, b) => b.v - a.v);
+  const by = {};
+  for (const k of keys) {
+    const p = B.parseKey(k), v = B.sellPrice(st, k, exId), g = by[p.gem] || (by[p.gem] = { gem: p.gem, n: 0, v: 0, lots: [] });
+    g.n += st.stock[k].n; g.v += v;
+    g.lots.push({ k, p, s: st.stock[k], v });
+  }
+  const groups = Object.values(by).sort((a, b) => b.v - a.v);
+  const lot = (r) => `<div class="bs-srow bs-lot">${gradeBadge(r.p.g)}<span class="bs-sn"><small>${lotNote(r.p)}</small></span><span class="bs-sc">${nf(r.s.n)} 個</span><button class="btn small" data-act="sell" data-k="${r.k}" data-ex="${exId}">${usd(r.v)}</button></div>`;
   return {
-    total: rows.reduce((s, r) => s + r.v, 0),
-    html: `<div class="bs-stock">${rows.map((r) => `<div class="bs-srow"><img src="${gemIcon(r.p.gem)}" alt=""><span class="bs-sn">${GEMS[r.p.gem].jp}<small>${lotNote(r.p)}</small></span>${gradeBadge(r.p.g)}<span class="bs-sc">${nf(r.s.n)} 個</span><button class="btn small" data-act="sell" data-k="${r.k}" data-ex="${exId}">${usd(r.v)}</button></div>`).join('')}</div>`,
+    total: groups.reduce((s, g) => s + g.v, 0),
+    html: `<div class="bs-stock">${groups.map((g) => `<div class="bs-srow"><button class="bs-gt" data-act="open" data-g="${g.gem}"><img src="${gemIcon(g.gem)}" alt=""><span class="bs-sn">${GEMS[g.gem].jp}<small>内訳 ${g.lots.length} ${ui.sheet.open === g.gem ? '▲' : '▼'}</small></span></button><span class="bs-sc">${nf(g.n)} 個</span><button class="btn small" data-act="sellGem" data-g="${g.gem}" data-ex="${exId}">${usd(g.v)}</button></div>${ui.sheet.open === g.gem ? g.lots.sort((a, b) => b.v - a.v).map(lot).join('') : ''}`).join('')}</div>`,
   };
 }
 function exchangeSheet(pid) {
@@ -652,7 +699,7 @@ function hqSheet() {
 // ---------------------------------------------------------------- 操作
 function onSheetClick(e) {
   const b = e.target.closest('[data-act]');
-  if (!b || b.disabled) return;
+  if (!b || b.disabled || !ui.sheet) return;
   const st = ui.st, d = b.dataset, now = Date.now();
   B.catchUp(st, now);
   let ok = true, sound = 'tap';
@@ -681,6 +728,8 @@ function onSheetClick(e) {
     case 'shelve': ok = B.shelve(st, d.id, d.k) > 0; sound = 'select'; break;
     case 'unshelve': ok = B.unshelve(st, d.id, d.k); break;
     case 'mtab': ui.sheet.mtab = d.t; break;
+    case 'open': ui.sheet.open = ui.sheet.open === d.g ? null : d.g; break;
+    case 'sellGem': { let v = 0; for (const k of Object.keys(st.stock)) if (k.split('|')[0] === d.g) v += B.sellLot(st, k, d.ex); ok = v > 0; sound = 'coin'; break; }
     case 'tut': st.tut = 0; closeSheet(); startTut(); return;
     case 'lab': ok = B.sendLab(st, d.id, d.k, now); sound = 'select'; break;
     case 'pickConsign': ui.sheet.pick = ui.sheet.pick === 'consign' ? null : 'consign'; break;

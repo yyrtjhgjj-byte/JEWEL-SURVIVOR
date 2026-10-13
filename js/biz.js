@@ -68,7 +68,7 @@ export const queueWork = (f) => f.queue.reduce((s, e) => s + e.ct * refVal(e.k.s
 export const BIZ_VER = 4;
 export function newBiz(now) {
   const st = {
-    v: BIZ_VER, cash: 12000, last: now, rank: 1, view: null, rng: (now ^ 0x9e3779b9) >>> 0, tut: 0,
+    v: BIZ_VER, cash: 12000, last: now, rank: 1, view: null, rng: (now ^ 0x9e3779b9) >>> 0, tut: 0, goals: {},
     mines: {}, factories: {}, ships: [], stock: {}, shops: {},
     market: null,
     labs: [], auctions: {}, orders: { list: [], next: now }, sight: { next: 0, store: {} },
@@ -690,6 +690,47 @@ export function deliver(st, id, now) {
   return o.reward;
 }
 
+// ---------------------------------------------------------------- 目標（会社の沿革）
+// 次にやることを 1 つずつ示す。達成して受け取るとコイン。進み具合は受け取った目標の id（save.biz.goals）
+// n は [今, 必要]、go はその目標のための地名とシートの種類（目標を押すと開く）
+const cnt = (o) => Object.keys(o || {}).length;
+const anyBoss = (st) => ['mines', 'factories', 'shops'].some((t) => Object.values(st[t] || {}).some((o) => o.boss));
+const rankGoal = (r, coins) => ({ id: 'rank' + r, t: `会社のランクを「${RANKS[r - 1].name}」にする`, coins, n: (st) => [st.rank >= r ? 1 : 0, 1] });
+export const GOALS = [
+  { id: 'mine1', t: '鉱区を手に入れる', coins: 100, go: ['ratnapura', 'mine'], n: (st) => [cnt(st.mines), 1] },
+  { id: 'fact1', t: '工場を手に入れる', coins: 100, go: ['ratnapura', 'factory'], n: (st) => [cnt(st.factories), 1] },
+  { id: 'sell1', t: '取引所で宝石を売る', coins: 150, go: ['tokyo', 'exchange'], n: (st) => [st.earned > 0 ? 1 : 0, 1] },
+  { id: 'div1', t: '配当を受け取る', coins: 150, go: ['tokyo', 'hq'], n: (st) => [st.divTotal > 0 ? 1 : 0, 1] },
+  { id: 'mine3', t: '鉱区を 3 つにする', coins: 200, n: (st) => [cnt(st.mines), 3] },
+  { id: 'mineup', t: '鉱区の設備を強化する', coins: 200, n: (st) => [Object.values(st.mines).some((m) => m.lv >= 2) ? 1 : 0, 1] },
+  rankGoal(2, 300),
+  { id: 'boss1', t: '人を雇う（鉱山長・工場長・店長）', coins: 300, n: (st) => [anyBoss(st) ? 1 : 0, 1] },
+  { id: 'shop1', t: '直営店を出す', coins: 400, go: ['tokyo', 'shop'], n: (st) => [cnt(st.shops), 1] },
+  { id: 'sales1', t: '累計の売上を $1M にする', coins: 500, n: (st) => [Math.min(st.earned, 1e6), 1e6], money: true },
+  { id: 'mine6', t: '鉱区を 6 つにする', coins: 500, n: (st) => [cnt(st.mines), 6] },
+  rankGoal(3, 800),
+  { id: 'cert1', t: '鑑定所で鑑定書を付ける', coins: 600, go: ['carlsbad', 'lab'], n: (st) => [(st.stat.cert || 0) > 0 ? 1 : 0, 1] },
+  { id: 'order1', t: '本社に届いた注文を納める', coins: 600, go: ['tokyo', 'hq', 'order'], n: (st) => [Math.min(st.stat.order || 0, 1), 1] },
+  { id: 'fact4', t: '工場を 4 つにする', coins: 700, n: (st) => [cnt(st.factories), 4] },
+  rankGoal(4, 1500),
+  { id: 'auction1', t: 'オークションで石を落札させる', coins: 1500, go: ['hongkong', 'auction'], n: (st) => [Math.min(st.stat.auction || 0, 1), 1] },
+  rankGoal(5, 3000),
+  { id: 'sight1', t: 'ハボローネのサイトで原石の箱を買う', coins: 2000, go: ['gaborone', 'sight'], n: (st) => [Math.min(st.stat.sight || 0, 1), 1] },
+  { id: 'shop4', t: '直営店を 4 つにする', coins: 2500, n: (st) => [cnt(st.shops), 4] },
+  rankGoal(6, 6000),
+  { id: 'mine20', t: '鉱区を 20 にする', coins: 4000, n: (st) => [cnt(st.mines), 20] },
+  rankGoal(7, 12000),
+];
+export const goalNow = (st) => GOALS.find((g) => !(st.goals || {})[g.id]) || null;
+export const goalDone = (st, g) => { const [a, b] = g.n(st); return a >= b; };
+// 受け取る（入るコインの数を返す。コインを save に足すのは呼ぶ側）
+export function claimGoal(st) {
+  const g = goalNow(st);
+  if (!g || !goalDone(st, g)) return 0;
+  (st.goals || (st.goals = {}))[g.id] = 1;
+  return g.coins;
+}
+
 // ---------------------------------------------------------------- 会社の値打ちとランク
 // 総資産 = 資金 + 施設に払った額の半分 + 在庫（卸した場合）+ 原石（倉庫・輸送中・工場の待ち。原石で売った場合）
 export function companyValue(st) {
@@ -751,5 +792,6 @@ export function bizAlerts(st, avgRun, today) {
   const pay = divPayable(st, avgRun, today), left = divLeft(st, avgRun, today);
   const div = !claimed && pay > 0 && pay >= Math.min(left, Math.ceil(divCap(st, avgRun) * 0.2));
   const order = st.orders.list.filter((o) => orderReady(st, o, st.last)).length;
-  return { full, nofund, div, order, any: !!(full || nofund || div || order) };
+  const g = goalNow(st), goal = !!(g && goalDone(st, g));
+  return { full, nofund, div, order, goal, any: !!(full || nofund || div || order || goal) };
 }
