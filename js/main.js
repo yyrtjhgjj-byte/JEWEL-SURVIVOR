@@ -342,6 +342,18 @@ function toTitle() {
   UI.hudShow(false);
   UI.showTitle();
 }
+// リザルトからステージ選択へ（直前に遊んだステージの章、または BOSS タブを開く）
+function toStageSelect(res) {
+  if (reloadPending) { location.reload(); return; }
+  save.stageTab = res.rush ? 'boss' : null;
+  if (!res.rush) save.selectedStage = res.stageId;
+  game = null;
+  window.__game = null;
+  input.enabled = false;
+  UI.hudShow(false);
+  audio.playBgm('title');
+  UI.showStageSelect();
+}
 
 // ポーズ
 // リタイア（最終ボス撃破後、クリア画面の前なら盤面のアイテムも回収する）
@@ -466,7 +478,7 @@ function migrateSave() {
 }
 const upperRefund = migrateSave();
 
-UI.initUI({ startGame, toTitle, migrateSave, checkMetaAchievements: () => checkAchievements(null, true) });
+UI.initUI({ startGame, toTitle, toStageSelect, migrateSave, checkMetaAchievements: () => checkAchievements(null, true) });
 
 // 動作の記録（diag.js）：画面に出ている間に落ちたら、次の起動でこの様子が記録に残る
 const crashed = initDiag(() => {
