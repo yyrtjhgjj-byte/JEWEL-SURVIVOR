@@ -49,6 +49,14 @@ export function showAtelier(tab = 'polish') {
   else if (tab === 'beasts') renderBeasts(box);
   else renderCollection(box);
 }
+// 同じタブを描き直す（スクロールの位置はそのまま）
+function reopen(tab) {
+  const prev = $('#screens > .screen');
+  const y = prev ? prev.scrollTop : 0;
+  showAtelier(tab);
+  const s = $('#screens > .screen');
+  if (s) s.scrollTop = y;
+}
 
 // ---------------------------------------------------------------- 研磨タブ
 function renderPolish(box) {
@@ -549,7 +557,7 @@ function beastDetail(id) {
       <button class="btn" id="ok">閉じる</button>
     </div></div>`);
   $('#screens').appendChild(ov);
-  const close = () => { ov.remove(); showAtelier('beasts'); };
+  const close = () => { ov.remove(); reopen('beasts'); };
   $('#ok', ov).onclick = () => { audio.tap(); close(); };
   ov.onclick = (e) => { if (e.target === ov) close(); };
   $('#bup', ov).onclick = () => {
@@ -648,7 +656,7 @@ function renderAuction(box, black) {
     const res = settleWithoutYou(sess, lot, black);
     sess.cur++;
     persist();
-    showAtelier(tab);
+    reopen(tab);
     if (res) toast(`LOT ${sess.cur}`, `${res.rival.name}が ${fmt(res.price)} コインで落札`, 'AUCTION');
   };
 }
