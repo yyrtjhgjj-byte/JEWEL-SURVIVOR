@@ -12,8 +12,8 @@ import {
   mastery, nextMilestone, collectionStats, gemBonusText, statText, nextGem, rollCarat, applyPolish, autoGrade,
   collectionCount,
 } from './atelier.js';
-import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, showTitle, getApp, upperLv } from './ui.js';
-import { currentLot, awardLot, RIVALS, BLACK_RIVALS } from './auction.js';
+import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, showTitle, getApp, upperLv, toast } from './ui.js';
+import { currentSession, awardLot, rivalsOf, rivalMax, startPrice, settleWithoutYou, wantLabel } from './auction.js';
 import { BEASTS, BEAST_IDS, BEAST_COST, jewelStock, beastLevel, beastValue, beastStats, raiseBeast, beastIcon } from './beasts.js';
 
 const TAU = Math.PI * 2;
@@ -568,13 +568,38 @@ function beastDetail(id) {
 // ---------------------------------------------------------------- オークション
 const r100 = (v) => Math.round(v / 100) * 100;
 const rnd = (a, b) => a + Math.random() * (b - a);
+const ROUGH_ORDER = ['mystic', 'large', 'rough', 'shard'];
 
-function lotHead(lot, big) {
+// 品の絵と名前（宝石：品質とカラット ／ 詰め合わせ：原石の山と中身）
+function lotArt(lot, size) {
+  if (lot.kind === 'bundle') {
+    const ts = ROUGH_ORDER.filter((t) => lot.rough[t]);
+    return `<div class="lot-art bundle" style="--c:${ROUGH[ts[0]].color}">${ts.map((t, i) => `<img src="${roughIcon(t, ROUGH[t].color, size)}" style="--i:${i}">`).join('')}</div>`;
+  }
+  return `<div class="lot-art" style="--c:${gemColor(lot.gem)}"><img src="${gemIcon(lot.gem, size)}"></div>`;
+}
+function lotName(lot) {
+  if (lot.kind === 'bundle') return `原石の詰め合わせ<small>${ROUGH_ORDER.filter((t) => lot.rough[t]).map((t) => `${ROUGH[t].short} ×${lot.rough[t]}`).join('　')}</small>`;
   const g = GEMS[lot.gem];
-  return `<div class="auc-lot ${big ? 'big' : ''}" style="--c:${gemColor(lot.gem)}">
-    <div class="auc-spot"><img src="${gemIcon(lot.gem, big ? 160 : 120)}" alt=""></div>
-    <div class="auc-name">${g.jp}<small>${g.en}</small></div>
-    <div class="auc-q">${gradeBadge(lot.grade)}<span class="rv-ct">${lot.ct.toFixed(2)} ct</span></div>
+  return `${g.jp}<small>${gradeBadge(lot.grade)} <span class="rv-ct">${lot.ct.toFixed(2)} ct</span></small>`;
+}
+// 研磨コレクションに対して新しいか（未所持・最高品質・最大カラットの更新）
+function lotTags(lot) {
+  if (lot.kind === 'bundle') return '';
+  const rec = save.jewels[lot.gem];
+  if (!rec || !rec.n) return '<span class="ctag2 t-new">未所持</span>';
+  return [lot.grade > rec.best ? '<span class="ctag2 t-evo">最高品質 更新</span>' : '', lot.ct > rec.ct ? '<span class="ctag2 t-pair">最大カラット 更新</span>' : ''].join('');
+}
+// ライバルの席：印・名前・財布の残り・この品への欲しがり具合
+function rivalSeat(sess, lot, r) {
+  const s = sess.rivals[r.id];
+  const want = lot ? lot.want[r.id] : 0;
+  return `<div class="seat" data-r="${r.id}" style="--rc:${r.color}">
+    <div class="seat-face"><b>${r.mark}</b></div>
+    <div class="seat-name">${r.name}</div>
+    <div class="seat-wallet"><i style="width:${Math.max(0, (s.left / s.budget) * 100)}%"></i></div>
+    ${lot ? `<div class="seat-want w${want >= 1.15 ? 3 : want >= 0.95 ? 2 : 1}">${wantLabel(want)}</div>` : ''}
+    <div class="seat-bub"></div>
   </div>`;
 }
 
@@ -589,65 +614,106 @@ function auctionTabs(box, black) {
   box.appendChild(t);
 }
 
+// カタログ：この回の 3 点と、ライバル。今の品は「競りに参加」か「見送る」
 function renderAuction(box, black) {
   if (black && !upperLv('blackAuction')) black = false;
-  const lot = currentLot(black);
+  const sess = currentSession(black);
   persist();
-  const rec = save.jewels[lot.gem];
-  const upd = !rec || !rec.n ? '<span class="ctag2 t-new">未所持</span>'
-    : [lot.grade > rec.best ? '<span class="ctag2 t-evo">最高品質 更新</span>' : '', lot.ct > rec.ct ? '<span class="ctag2 t-pair">最大カラット 更新</span>' : ''].join('');
-  const msg = lot.state === 'won' ? '落札済み。次のランのあとに新しい品が出品されます'
-    : lot.state === 'lost' ? 'ほかの入札者が落札しました。次のランのあとに新しい品が出品されます' : '';
+  const R = rivalsOf(black);
+  const lot = sess.lots[sess.cur];
+  const tab = black ? 'auction2' : 'auction';
+  const status = (l, i) => (l.state === 'won' ? `<b class="ls won">落札 ${fmt(l.price)}</b>`
+    : l.state === 'lost' ? `<b class="ls lost">${R.find((r) => r.id === l.winner).name}が ${fmt(l.price)} で落札</b>`
+      : l.state === 'unsold' ? '<b class="ls">流れた</b>' : i === sess.cur ? '<b class="ls now">NOW</b>' : '<b class="ls">これから</b>');
   box.innerHTML = '';
   auctionTabs(box, black);
-  box.insertAdjacentHTML('beforeend', `<div class="panel auc-panel ${black ? 'black' : ''}">
-    <div class="label">${black ? 'BLACK MARKET' : "TODAY'S LOT"}</div>
-    ${lotHead(lot, false)}
-    <div class="rv-tags">${upd}</div>
-    <div class="rrow2"><span>予想落札価格</span><b>${fmt(r100(lot.est * 0.8))} 〜 ${fmt(r100(lot.est * 1.3))}</b></div>
+  box.insertAdjacentHTML('beforeend', `<div class="panel auc-cat ${black ? 'black' : ''}">
+    <div class="label">${black ? 'BLACK MARKET' : 'AUCTION'}　・　${lot ? `LOT ${sess.cur + 1} / ${sess.lots.length}` : '閉会'}</div>
+    <div class="cat-lots">${sess.lots.map((l, i) => `<div class="cat-lot ${i === sess.cur ? 'cur' : ''} ${l.state}">
+      <span class="cat-no">LOT ${i + 1}</span>${lotArt(l, 72)}
+      <div class="cat-body"><div class="cat-name">${lotName(l)}</div><div class="cat-est">予想 ${fmt(r100(l.est * 0.8))} 〜 ${fmt(r100(l.est * 1.3))}</div><div class="rv-tags">${l.state === 'open' ? lotTags(l) : ''}</div></div>
+      ${status(l, i)}
+    </div>`).join('')}</div>
+    <div class="label" style="margin-top:6px">RIVALS${lot ? `　・　LOT ${sess.cur + 1} への気配` : ''}</div>
+    <div class="seats">${R.map((r) => rivalSeat(sess, lot, r)).join('')}</div>
     <div class="rrow2"><span>所持コイン</span><b>${fmt(save.coins)}</b></div>
-    ${msg ? `<div class="at-note" style="text-align:center">${msg}</div>` : ''}
-    <button class="btn big primary" id="auc-go" ${lot.state === 'open' ? '' : 'disabled'}>競りに参加</button>
+    ${lot ? `<div class="cat-btns"><button class="btn" id="auc-pass">見送る</button><button class="btn big primary" id="auc-go">競りに参加</button></div>`
+    : '<div class="at-note" style="text-align:center">この回は終わりました。ランを 1 回終えると、次の回が開かれます</div>'}
   </div>
-  <div class="at-note">ランを 1 回終えるごとに、次の品に入れ替わります。落札した宝石は研磨コレクションに入り、最高品質と最大カラットが更新されます。</div>`);
-  $('#auc-go', box).onclick = () => { audio.select(); startBidding(lot, black); };
+  <div class="at-note">ライバルは回ごとに予算を持っていて、落札するたびに財布が減ります。「本命」の品にはお金を惜しみません。見送った品は、ライバルどうしで競り落とします。</div>`);
+  if (!lot) return;
+  $('#auc-go', box).onclick = () => { audio.select(); startBidding(sess, lot, black); };
+  $('#auc-pass', box).onclick = () => {
+    audio.tap();
+    const res = settleWithoutYou(sess, lot, black);
+    sess.cur++;
+    persist();
+    showAtelier(tab);
+    if (res) toast(`LOT ${sess.cur}`, `${res.rival.name}が ${fmt(res.price)} コインで落札`, 'AUCTION');
+  };
 }
 
-function startBidding(lot, black) {
+// 競り：幕と照明の会場。ライバルは上限まで競り上げ、ハンマーの時間が切れたら最高額で落札
+function startBidding(sess, lot, black) {
   const HAM = 4; // ハンマーの時間（入札のたびに戻る）
   const tab = black ? 'auction2' : 'auction';
-  const st = { price: r100(lot.est * 0.45), leader: null, hammer: HAM, over: false, you: false, log: [] };
-  const rivals = (black ? BLACK_RIVALS : RIVALS).map((r) => ({ ...r, max: r100(lot.est * rnd(...r.cap)), next: rnd(0.3, 1.2), out: false }));
-  const node = el(`<div class="screen auc-screen ${black ? 'black' : ''}">
-    <div class="auc-top"><span class="en">${black ? 'BLACK AUCTION' : 'AUCTION'}</span></div>
-    ${lotHead(lot, true)}
-    <div class="auc-price"><small>現在の価格</small><b id="ap">0</b><span id="al"></span></div>
-    <div class="auc-ham"><i id="ah"></i><span id="ahl"></span></div>
-    <div class="auc-rivals" id="ar"></div>
-    <div class="auc-log" id="alog"></div>
+  const R = rivalsOf(black);
+  const st = { price: startPrice(lot), leader: null, hammer: HAM, over: false, you: false };
+  const rivals = R.map((r) => ({ ...r, max: rivalMax(sess, lot, r), next: rnd(0.3, 1.2), out: false }));
+  const node = el(`<div class="screen auc-hall ${black ? 'black' : ''}">
+    <div class="hall-curtain l"></div><div class="hall-curtain r"></div><div class="hall-spot"></div>
+    <div class="auc-top"><span class="en">${black ? 'BLACK AUCTION' : 'AUCTION'}</span><small>LOT ${sess.cur + 1} / ${sess.lots.length}</small></div>
+    <div class="hall-stage">${lotArt(lot, 160)}<div class="hall-ped"></div></div>
+    <div class="auc-name">${lotName(lot)}</div>
+    <div class="rv-tags">${lotTags(lot)}</div>
+    <div class="auc-board"><small>現在の価格</small><b id="ap">0</b><span id="al"></span></div>
+    <div class="auc-ham"><div class="gavel" id="gv"><i></i><b></b></div><div class="ham-bar"><i id="ah"></i></div><span id="ahl"></span></div>
+    <div class="seats hall" id="ar">${R.map((r) => rivalSeat(sess, lot, r)).join('')}</div>
     <div class="auc-bids" id="ab"></div>
-    <button class="btn small" id="aq">降りる</button>
+    <div class="hall-foot"><span>所持コイン <b>${fmt(save.coins)}</b></span><button class="btn small" id="aq">見送る</button></div>
   </div>`);
   show(node);
-  const bids = [0.05, 0.1, 0.2];
-  const price = $('#ap', node), lead = $('#al', node), hamBar = $('#ah', node), hamLbl = $('#ahl', node);
-  const log = (t, c) => { st.log.unshift({ t, c }); st.log.length = Math.min(st.log.length, 4); $('#alog', node).innerHTML = st.log.map((x) => `<div style="color:${x.c}">${x.t}</div>`).join(''); };
-  const renderRivals = () => { $('#ar', node).innerHTML = rivals.map((r) => `<span class="${r.out ? 'out' : ''} ${st.leader === r ? 'lead' : ''}" style="--rc:${r.color}">${r.name}</span>`).join(''); };
+  const bids = [[0.05, '小刻み'], [0.1, '強気'], [0.25, '勝負']];
+  const price = $('#ap', node), lead = $('#al', node), hamBar = $('#ah', node), hamLbl = $('#ahl', node), gavel = $('#gv', node);
+  const seat = (r) => $(`.seat[data-r="${r.id}"]`, node);
+  const bubble = (r, t) => {
+    const s = seat(r);
+    const b = $('.seat-bub', s);
+    b.textContent = t;
+    s.classList.remove('raise'); void s.offsetWidth; s.classList.add('raise');
+  };
+  const renderSeats = () => rivals.forEach((r) => { const s = seat(r); s.classList.toggle('out', r.out); s.classList.toggle('lead', st.leader === r); });
   const renderBids = () => {
-    $('#ab', node).innerHTML = bids.map((k, i) => { const v = r100(st.price * (1 + k)); return `<button class="btn gold" data-i="${i}" ${st.over || st.leader === 'you' || v > save.coins ? 'disabled' : ''}>+${k * 100}%<span class="sub">${fmt(v)}</span></button>`; }).join('');
-    $('#ab', node).querySelectorAll('button').forEach((b) => (b.onclick = () => { if (st.over || st.leader === 'you') return; const v = r100(st.price * (1 + bids[+b.dataset.i])); if (v > save.coins) return; audio.coin(); haptic(); if (!st.you) { lot.joined = true; persist(); } st.you = true; place('you', v); for (const r of rivals) r.next = Math.min(r.next, rnd(0.4, 1.3)); }));
+    $('#ab', node).innerHTML = bids.map(([k, n], i) => { const v = r100(st.price * (1 + k)); return `<button class="btn gold" data-i="${i}" ${st.over || st.leader === 'you' || v > save.coins ? 'disabled' : ''}>${n}<span class="sub">+${Math.round(k * 100)}%　${fmt(v)}</span></button>`; }).join('');
+    $('#ab', node).querySelectorAll('button').forEach((b) => (b.onclick = () => {
+      if (st.over || st.leader === 'you') return;
+      const k = bids[+b.dataset.i][0];
+      const v = r100(st.price * (1 + k));
+      if (v > save.coins) return;
+      audio.coin(); haptic();
+      if (!st.you) { lot.joined = true; persist(); $('#aq', node).textContent = '降りる'; }
+      st.you = true;
+      place('you', v);
+      // 大きく競り上げると、上限が近いライバルは気圧されて降りることがある
+      for (const r of rivals) {
+        if (r.out) continue;
+        if (v >= r.max || (k >= 0.25 && v > r.max * 0.85 && Math.random() < 0.5)) { r.out = true; bubble(r, v >= r.max ? '降りた' : '気圧された…'); }
+        else r.next = Math.min(r.next, rnd(0.4, 1.3));
+      }
+      renderSeats();
+    }));
   };
   const place = (who, v) => {
     st.price = v; st.leader = who; st.hammer = HAM;
     price.textContent = fmt(v);
     price.classList.remove('bump'); void price.offsetWidth; price.classList.add('bump');
-    if (who === 'you') { lead.textContent = 'あなたが最高額'; lead.style.color = '#5dff9a'; log(`あなた　${fmt(v)}`, '#5dff9a'); }
-    else { lead.textContent = `${who.name}が最高額`; lead.style.color = who.color; log(`${who.name}　${fmt(v)}`, who.color); audio.tap(); }
-    renderRivals(); renderBids();
+    if (who === 'you') { lead.textContent = 'あなたが最高額'; lead.style.color = '#5dff9a'; }
+    else { lead.textContent = `${who.name}が最高額`; lead.style.color = who.color; audio.tap(); }
+    renderSeats(); renderBids();
   };
   price.textContent = fmt(st.price);
   lead.textContent = '開始価格';
-  renderRivals(); renderBids();
+  renderSeats(); renderBids();
   let last = performance.now(), phase = 0;
   const frame = (now) => {
     if (!node.isConnected || st.over) return;
@@ -657,28 +723,42 @@ function startBidding(lot, black) {
       r.next -= dt;
       if (r.next > 0) continue;
       r.next = rnd(...r.wait);
-      const v = r100(st.price * (1 + rnd(...r.step)));
+      const k = rnd(...r.step);
+      const v = r100(st.price * (1 + k));
       // 上限を超えるか、成金は相場を超えると降りやすい
-      if (v > r.max || (r.rash && st.price > lot.est * 0.85 && Math.random() < 0.5)) { r.out = true; log(`${r.name}が降りた`, '#8a86a0'); renderRivals(); continue; }
+      if (v > r.max || (r.rash && st.price > lot.est * 0.85 && Math.random() < 0.5)) { r.out = true; bubble(r, '降りた'); renderSeats(); continue; }
+      bubble(r, `+${Math.round(k * 100)}%`);
       place(r, v);
     }
+    // 誰も競らなくなったら、ハンマーを早める
+    if (st.leader && st.leader !== 'you' && rivals.every((r) => r.out || r === st.leader) && !st.you) st.hammer = Math.min(st.hammer, 1.2);
     st.hammer -= dt;
     hamBar.style.transform = `scaleX(${Math.max(0, st.hammer / HAM)})`;
     const ph = st.hammer > 2.6 ? 0 : st.hammer > 1.3 ? 1 : st.hammer > 0 ? 2 : 3;
     if (ph !== phase) {
       phase = ph;
-      hamLbl.textContent = ['', 'ONCE…', 'TWICE…', 'SOLD!'][ph];
+      hamLbl.textContent = ['', 'GOING ONCE…', 'GOING TWICE…', 'SOLD!'][ph];
+      if (ph) { gavel.classList.remove('hit'); void gavel.offsetWidth; gavel.classList.add('hit'); }
       if (ph === 1 || ph === 2) audio.countTick();
     }
     if (st.hammer <= 0 && st.leader) { finish(); return; }
-    if (st.hammer <= 0) st.hammer = HAM; // 誰も入札していないときは待つ
+    if (st.hammer <= 0) {
+      // 開始価格で誰も入らなければ流れる
+      if (rivals.every((r) => r.out || r.max <= st.price)) { st.over = true; lot.state = 'unsold'; sess.cur++; persist(); showAtelier(tab); toast(`LOT ${sess.cur}`, '入札がなく流れました', 'AUCTION'); return; }
+      st.hammer = HAM;
+    }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
   $('#aq', node).onclick = () => {
     audio.tap();
-    if (!st.you) { showAtelier(tab); return; } // まだ入札していなければ、出品はそのまま
-    st.over = true; lot.state = 'lost'; persist(); showAtelier(tab);
+    st.over = true;
+    // 見送る・降りる：残りのライバルどうしで決まる
+    const res = settleWithoutYou(sess, lot, black, st.you ? st.price : startPrice(lot));
+    sess.cur++;
+    persist();
+    showAtelier(tab);
+    if (res) toast(`LOT ${sess.cur}`, `${res.rival.name}が ${fmt(res.price)} コインで落札`, 'AUCTION');
   };
   function finish() {
     st.over = true;
@@ -686,20 +766,23 @@ function startBidding(lot, black) {
     const won = st.leader === 'you';
     audio.bigWin(); haptic();
     let r = null;
-    if (won) { save.coins -= st.price; r = awardLot(lot); lot.state = 'won'; lot.paid = st.price; save.stats.auctionWins = (save.stats.auctionWins || 0) + 1; }
-    else lot.state = 'lost';
+    lot.price = st.price;
+    if (won) { save.coins -= st.price; r = awardLot(lot); lot.state = 'won'; save.stats.auctionWins = (save.stats.auctionWins || 0) + 1; }
+    else { lot.state = 'lost'; lot.winner = st.leader.id; sess.rivals[st.leader.id].left -= st.price; }
+    sess.cur++;
     persist();
     metaAch();
     refreshCoinPill();
     setTimeout(() => {
-      const tags = won ? [r.isNew ? '<span class="ctag2 t-new">NEW</span>' : '', r.bestUp ? '<span class="ctag2 t-evo">最高品質 更新</span>' : '', r.ctUp ? '<span class="ctag2 t-pair">最大カラット 更新</span>' : ''].join('') : '';
-      const ov = el(`<div class="screen dim reveal-screen">
-        <div class="rays"></div>
-        <div class="big-title prism-text">SOLD</div>
+      const tags = won && r ? [r.isNew ? '<span class="ctag2 t-new">NEW</span>' : '', r.bestUp ? '<span class="ctag2 t-evo">最高品質 更新</span>' : '', r.ctUp ? '<span class="ctag2 t-pair">最大カラット 更新</span>' : ''].join('') : '';
+      const ov = el(`<div class="screen reveal-screen auc-sold ${black ? 'black' : ''} ${won ? 'won' : ''}">
+        <div class="rays-clip"><div class="rays"></div></div>
+        <div class="sold-stamp">SOLD</div>
         <div class="sub-title">${won ? `${fmt(st.price)} コインで落札` : `${st.leader.name}が ${fmt(st.price)} コインで落札`}</div>
-        ${lotHead(lot, true)}
+        <div class="hall-stage">${lotArt(lot, 160)}<div class="hall-ped"></div></div>
+        <div class="auc-name">${lotName(lot)}</div>
         <div class="rv-tags">${tags}</div>
-        <button class="btn big primary" id="aok">閉じる</button>
+        <button class="btn big primary" id="aok">${sess.cur < sess.lots.length ? `次の品へ（LOT ${sess.cur + 1}）` : '閉じる'}</button>
       </div>`);
       $('#screens').appendChild(ov);
       guard($('#aok', ov), 600);
