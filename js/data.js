@@ -1,6 +1,7 @@
 // =====================================================================
 //  ジュエルのデータ
 // =====================================================================
+import { MINES as BIZ_MINES, SHOPS as BIZ_SHOPS } from './biz-data.js';
 
 export const GEMS = {
   // ---------- 武器になるジュエル ----------
@@ -765,6 +766,13 @@ export const ACHIEVEMENTS = [
   { id: 'bizFactory', meta: true, name: 'カッティング・ハウス', t: '経営で工場を手に入れる', coins: 500, check: (r, s) => s.biz && Object.keys(s.biz.factories).length >= 1 },
   { id: 'bizShop', meta: true, name: 'ブティック・オープン', t: '経営で直営店を出す', coins: 1000, check: (r, s) => s.biz && Object.keys(s.biz.shops || {}).length >= 1 },
   { id: 'bizBoss', meta: true, name: 'マネジメント', t: '経営で人を雇う', coins: 500, check: (r, s) => s.biz && ['mines', 'factories', 'shops'].some((t) => Object.values(s.biz[t] || {}).some((o) => o.boss)) },
+  { id: 'bizCert', meta: true, name: 'ペディグリー', t: '経営で石に鑑定書を付ける', coins: 1000, check: (r, s) => s.biz && ((s.biz.stat || {}).cert || 0) > 0 },
+  { id: 'bizOrder', meta: true, name: 'オン・オーダー', t: '経営で注文を納める', coins: 1000, check: (r, s) => s.biz && ((s.biz.stat || {}).order || 0) >= 1 },
+  { id: 'bizOrder30', meta: true, name: 'プリファード・サプライヤー', t: '経営で注文を30件納める', coins: 5000, check: (r, s) => s.biz && ((s.biz.stat || {}).order || 0) >= 30 },
+  { id: 'bizAuction', meta: true, name: 'ゴーイング・ゴーン', t: '経営のオークションで石が落札される', coins: 2000, check: (r, s) => s.biz && ((s.biz.stat || {}).auction || 0) >= 1 },
+  { id: 'bizSight', meta: true, name: 'サイトホルダー', t: '経営のサイトでダイヤの原石の箱を買う', coins: 3000, check: (r, s) => s.biz && ((s.biz.stat || {}).sight || 0) >= 1 },
+  { id: 'bizAllMines', meta: true, name: 'グローバル・クレーム', t: '経営ですべての鉱区を手に入れる', coins: 10000, check: (r, s) => s.biz && Object.keys(BIZ_MINES).every((id) => s.biz.mines[id]) },
+  { id: 'bizAllShops', meta: true, name: 'ワールド・ブティック', t: '経営ですべての直営店を出す', coins: 10000, check: (r, s) => s.biz && Object.keys(BIZ_SHOPS).every((id) => (s.biz.shops || {})[id]) },
   { id: 'bizDiv', meta: true, name: 'ディビデンド', t: '経営の配当を受け取る', coins: 200, check: (r, s) => s.biz && s.biz.divTotal >= 1 },
   { id: 'bizRank3', meta: true, name: 'ジュエル・マーチャント', t: '会社のランクを「宝石商」にする', coins: 1000, check: (r, s) => s.biz && s.biz.rank >= 3 },
   { id: 'bizRank5', meta: true, name: 'トレーディング・ハウス', t: '会社のランクを「宝石商社」にする', coins: 5000, check: (r, s) => s.biz && s.biz.rank >= 5 },

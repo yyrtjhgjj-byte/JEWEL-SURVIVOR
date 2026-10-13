@@ -519,6 +519,25 @@ const TRACKS3 = {
 
 const TRACKS = {
   ...TRACKS3,
+  // 経営：ゆったりした跳ねるリズムに、鐘の旋律と撥弦のアルペジオ
+  business: {
+    bpm: 104,
+    bell: true,
+    chords: [F, Em, Dm, C, F, G, Am, G],
+    bass: [0, null, null, 7, null, null, 12, null, 0, null, 7, null, 10, null, 7, null],
+    arp: 2, arpPluck: true,
+    melody: [
+      [77, null, 76, 74, 72, null, 69, null],
+      [71, null, 72, 74, 76, null, null, 79],
+      [77, null, 74, null, 72, 74, 77, null],
+      [76, null, null, null, 72, null, 67, null],
+      [69, 72, 77, null, 76, null, 77, 79],
+      [81, null, 79, null, 77, null, 74, null],
+      [76, null, 72, 76, 81, null, 79, 76],
+      [74, null, null, 71, 74, null, 79, null],
+    ],
+    drums: true, kick: [0, 6, 10], snare: [4, 12], hat: [2, 6, 10, 14],
+  },
   // 第2章の最後：奏者のフルート（ラン開始から、奏者を倒すまで）
   pipers: {
     bpm: 80,

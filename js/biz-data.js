@@ -48,8 +48,8 @@ export const RANKS = [
   { name: '宝石商', need: 500e3, k: 0.75, off: 12, std: 300e3 },
   { name: '卸問屋', need: 5e6, k: 1, off: 14, std: 1e6 },
   { name: '宝石商社', need: 50e6, k: 1.3, off: 16, std: 3e6 },
-  { name: '国際商社', need: 800e6, k: 1.6, off: 20, std: 10e6 },
-  { name: '宝石財閥', need: 12e9, k: 2, off: 24, std: 30e6 },
+  { name: '国際商社', need: 1e9, k: 1.6, off: 20, std: 10e6 },
+  { name: '宝石財閥', need: 18e9, k: 2, off: 24, std: 30e6 },
 ];
 
 // ランクごとの目安：鉱区の Lv1 の産出の値打ち（$/時）と、元が取れるまでの時間（産出の値打ちで何時間分か）。
@@ -198,19 +198,32 @@ export const SHOP_LV = [{ rate: 1, slots: 4, cost: 0 }, { rate: 1.8, slots: 6, c
 // 直営店が 1 時間に売れる量（相場での値打ち）。その店のランクの鉱区 Lv1 の産出の値打ち × SHOP_CAP × rate
 export const SHOP_CAP = 0.8;
 
-// 鑑定所：fee 値打ちに対する費用、min 1 件にかかる時間（分）
+// 鑑定所：fee 値打ちに対する費用、min 1 件にかかる時間（分）。鑑定書を付けられるのは品質 LAB_MIN（A）以上
 export const LABS = {
-  carlsbad: { r: 3, fee: 0.03, min: 20 },
-  lucerne: { r: 4, fee: 0.04, min: 12 },
+  carlsbad: { r: 3, fee: 0.05, min: 20 },
+  lucerne: { r: 4, fee: 0.06, min: 12 },
 };
-// オークション：every 開催の間隔（時間）、min 出品できる最低品質
+export const LAB_MIN = 2;
+// オークション：every 開催の間隔（時間）、min 出品できる最低品質、cap 1 回に出品できる量（相場での値打ち。そのランクの鉱区 Lv1 の産出の何時間分か）、
+// top 落札値が上に寄る
 export const AUCTIONS = {
-  hongkong: { r: 4, every: 4, min: 3 },
-  newyork: { r: 5, every: 4, min: 3 },
-  geneva: { r: 5, every: 6, min: 3, top: true },
+  hongkong: { r: 4, every: 4, min: 3, cap: 0.6 },
+  newyork: { r: 5, every: 4, min: 3, cap: 0.6 },
+  geneva: { r: 5, every: 6, min: 3, cap: 1, top: true },
 };
-// サイト（ダイヤの原石の箱）：every 間隔（時間）
-export const SIGHTS = { gaborone: { r: 5, every: 8 } };
+// 落札値は相場の lo〜hi 倍（SS・鑑定書・top で上に寄る）
+export const AUCTION_MUL = { lo: 1.3, hi: 3 };
+// サイト（ダイヤの原石の箱）：every 間隔（時間）、price 値段（ランク 5 の鉱区 Lv1 の産出の何時間分か）、
+// value 中身の値打ち（標準の腕で磨いた場合）の値段に対する倍率の平均と、ばらつき
+export const SIGHTS = { gaborone: { r: 5, every: 8, price: 3, value: 1.6, spread: 0.45 } };
+// 注文：every 届く間隔（時間）、max 同時に受けられる数、reward 報酬（相場に対する倍率の幅）、h 期限（時間）の幅、
+// size 1 件の量（自社の鉱区がその石を産む量の何時間分か）の幅、share 品質ごとの割合の目安（A 以上・S 以上が産出に占める割合）
+export const ORDERS = { every: 3, max: 3, reward: [1.5, 2], h: [12, 24], size: [2, 6], share: { 2: 0.25, 3: 0.08 } };
+// 注文の依頼主（地名 ＋ 業種）
+export const CLIENT_PLACES = ['paris', 'london', 'newyork', 'geneva', 'dubai', 'hongkong', 'shanghai', 'singapore', 'tokyo', 'antwerp'];
+export const CLIENT_KINDS = ['老舗ジュエラー', '宝飾ブランド', '百貨店', '個人のコレクター', '時計メーカー', 'ホテル', '王室御用達の宝飾店'];
+// ツーソンの宝石ショー：開く曜日（0 日曜〜6 土曜）
+export const SHOW_DAYS = [0, 6];
 
 // 人を雇う値段（その施設の値段に対する倍率）とランク
 export const STAFF = { r: 2, mine: 0.5, factory: 0.5, shop: 0.4 };

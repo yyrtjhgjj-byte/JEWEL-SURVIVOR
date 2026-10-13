@@ -105,6 +105,9 @@ async function fullSave(p) {
     B.catchUp(st, now - 600e3);
     for (const id in st.mines) B.ship(st, id, 'kofu', now - 600e3);
     B.catchUp(st, now);
+    for (const k of Object.keys(st.stock).filter((k) => B.parseKey(k).g >= 3).slice(0, 3)) B.consign(st, 'geneva', k, now);
+    for (const k of Object.keys(st.stock).filter((k) => B.labOk(k)).slice(0, 3)) B.sendLab(st, 'lucerne', k, now);
+    B.buySight(st, 'gaborone', now);
     sv.biz = st;
     sv.unlocked = all(D.CHAR_IDS);
     sv.seen = { weapons: all(D.WEAPON_IDS), passives: all(D.PASSIVE_IDS), enemies: all(Object.keys(D.ENEMIES)), evos: all(D.WEAPON_IDS) };
@@ -176,7 +179,7 @@ async function fullSave(p) {
       await p.evaluate(() => document.querySelector('[data-act="mtab"][data-t="all"]')?.click());
       await check('biz-market-all');
       await p.evaluate(() => document.querySelector('.bz-sheet [data-act="close"]')?.click());
-      for (const id of ['tokyo', 'ratnapura', 'minas', 'jaipur', 'bangkok', 'paris']) {
+      for (const id of ['tokyo', 'ratnapura', 'minas', 'jaipur', 'bangkok', 'paris', 'geneva', 'carlsbad', 'gaborone', 'tucson', 'newyork']) {
         await p.evaluate((id) => document.querySelector(`.bzpin[data-p="${id}"]`)?.click(), id);
         await check('biz-' + id);
         // 施設の種類のタブ（本社なら会社・在庫のタブも）を順に押す。押すとタブの数が変わることがある
@@ -184,7 +187,7 @@ async function fullSave(p) {
           if (!(await p.evaluate((i) => { const b = document.querySelectorAll('.bz-sheet .bs-tabs button')[i]; if (b) b.click(); return !!b; }, i))) break;
           await check(`biz-${id}-tab#${i}`);
         }
-        await p.evaluate(() => document.querySelector('.bz-sheet [data-act="pickShelf"], .bz-sheet [data-act="pickShip"]')?.click());
+        await p.evaluate(() => document.querySelector('.bz-sheet [data-act="pickShelf"], .bz-sheet [data-act="pickShip"], .bz-sheet [data-act="pickConsign"]')?.click());
         await check(`biz-${id}-pick`);
         await p.evaluate(() => document.querySelector('.bz-sheet [data-act="close"]')?.click());
       }

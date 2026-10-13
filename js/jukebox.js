@@ -23,6 +23,7 @@ export function trackList() {
     { id: 'boss', name: 'ボス戦', en: 'BOSS BATTLE', color: '#ff3ddc', open: heard('boss') || bossSeen() },
     { id: 'final', name: '最終ボス戦', en: 'FINAL BOSS', color: '#ff5f7a', open: heard('final') || anyCleared() },
     { id: 'result', name: 'リザルト', en: 'RESULT', color: '#ffd24a', open: true },
+    { id: 'business', name: '経営', en: 'BUSINESS', color: '#4ade9a', open: heard('business') || !!save.biz, lock: '🔒 経営を開くと解放' },
   ];
   for (const ch of CHAPTERS) {
     list.push({ sec: ch.name });

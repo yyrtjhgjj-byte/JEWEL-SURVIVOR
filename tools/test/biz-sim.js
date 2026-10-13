@@ -1,10 +1,12 @@
 // 経営のバランスを、決まった遊び方で回して確かめる（ブラウザ不要）
-// 使い方：node tools/test/biz-sim.js [日数=30] [確認の間隔（分）=45] [1 ランの平均コイン=1500]
-// 遊び方：起きている 16 時間は間隔ごとに開いて、出荷・棚に並べる・売却・いちばん得な買い物・人を雇う。寝ている 8 時間は放置。毎日配当を受け取る
+// 使い方：node tools/test/biz-sim.js [日数=30] [確認の間隔（分）=45] [1 ランの平均コイン=1500]（OFF=lab,auction などで仕組みを外す）
+// 遊び方：起きている 16 時間は間隔ごとに開いて、出荷・注文・出品・鑑定・サイト・棚に並べる・売却・いちばん得な買い物・人を雇う。寝ている 8 時間は放置。毎日配当を受け取る
 (async () => {
   const B = await import('../../js/biz.js');
   const D = await import('../../js/biz-data.js');
   const DAYS = +(process.argv[2] || 30), GAP = +(process.argv[3] || 45), AVG = +(process.argv[4] || 1500);
+  // OFF=lab,auction,order,sight,shop で、その仕組みを使わない遊び方にする（効き方を比べる）
+  const OFF = (process.env.OFF || '').split(',');
   const H = 3600e3;
   let now = Date.UTC(2026, 0, 1, 7);
   const st = B.newBiz(now);
@@ -68,8 +70,16 @@
       if (fs.length) { fs.sort((a, b) => B.queueWork(st.factories[a]) / B.factCap(st, a) - B.queueWork(st.factories[b]) / B.factCap(st, b)); B.ship(st, id, fs[0], now); }
       if (B.storeTotal(st.mines[id]) > 0 && !fs.length) B.sellRough(st, id);
     }
+    // 注文を納め、品質 S 以上をオークションへ、A 以上を鑑定へ
+    if (!OFF.includes('order')) for (const o of [...st.orders.list]) B.deliver(st, o.id, now);
+    if (!OFF.includes('auction')) for (const id in D.AUCTIONS) if (B.aucOpen(st, id)) for (const k of Object.keys(st.stock)) if (B.parseKey(k).g >= D.AUCTIONS[id].min) B.consign(st, id, k, now);
+    const lab = Object.keys(D.LABS).reverse().find((id) => B.labOpen(st, id));
+    if (lab && !OFF.includes('lab')) for (const k of Object.keys(st.stock)) if (B.labOk(k)) B.sendLab(st, lab, k, now);
+    // サイト：資金に余裕があれば箱を買い、ダイヤを磨ける工場へ
+    const dfac = Object.keys(st.factories).find((f) => B.canCut(f, 'diamond'));
+    if (dfac && !OFF.includes('sight') && B.sightReady(st, 'gaborone', now) && st.cash > B.sightPrice(st, 'gaborone') * 3) { B.buySight(st, 'gaborone', now); B.ship(st, 'gaborone', dfac, now); }
     // 直営店の棚に並べてから、残りを卸す
-    for (const id in st.shops) B.autoShelf(st, id);
+    if (!OFF.includes('shop')) for (const id in st.shops) B.autoShelf(st, id);
     for (const k of Object.keys(st.stock)) { const b = B.bestExchange(st, (ex) => B.sellPrice(st, k, ex)); B.sellLot(st, k, b.id); }
     // 人を雇う：資金の 5% 以下で雇えるなら雇う（鉱山長と店長）
     if (st.rank >= D.STAFF.r) {
@@ -100,6 +110,7 @@
   console.log(rows.join('\n'));
   console.log('rank reached (day):', JSON.stringify(rankAt));
   const shops = Object.entries(st.shops).map(([id, sh]) => `${id} Lv${sh.lv} $${(sh.sales / 1e6).toFixed(1)}M`).join(', ');
+  console.log('stat:', JSON.stringify(st.stat));
   console.log('shops:', shops || 'none', ' bosses:', Object.values(st.mines).filter((m) => m.boss).length, 'mines', Object.values(st.shops).filter((m) => m.boss).length, 'shops');
   if (process.env.LOG) console.log(log.slice(0, +process.env.LOG).join('\n'));
 })();
