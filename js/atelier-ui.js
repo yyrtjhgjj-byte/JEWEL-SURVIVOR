@@ -14,6 +14,7 @@ import {
 } from './atelier.js';
 import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast } from './ui.js';
 import { showHub } from './menu.js';
+import { mountLiveGem } from './gem-gl.js';
 import { currentSession, awardLot, rivalsOf, rivalMax, startPrice, settleWithoutYou, wantLabel } from './auction.js';
 import { BEASTS, BEAST_IDS, BEAST_COST, jewelStock, beastLevel, beastValue, beastStats, raiseBeast, beastIcon } from './beasts.js';
 
@@ -504,6 +505,8 @@ function gemDetail(id) {
   $('#screens').appendChild(ov);
   $('#ok', ov).onclick = () => { audio.tap(); ov.remove(); };
   ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  // 持っている宝石は、その場で描いて揺らす
+  if (has) mountLiveGem($('.gd-top img', ov), id);
 }
 
 
@@ -669,6 +672,8 @@ function startBidding(sess, lot, black) {
     <div class="hall-foot"><span>所持コイン <b>${fmt(save.coins)}</b></span><button class="btn small" id="aq">見送る</button></div>
   </div>`);
   show(node);
+  // 宝石の品は、その場で描いて揺らす（落札の画面に移っても続ける）
+  if (lot.kind !== 'bundle') mountLiveGem($('.hall-stage .lot-art img', node), lot.gem);
   const bids = [[0.05, '小刻み'], [0.1, '強気'], [0.25, '勝負']];
   const price = $('#ap', node), lead = $('#al', node), hamBar = $('#ah', node), hamLbl = $('#ahl', node), gavel = $('#gv', node);
   const seat = (r) => $(`.seat[data-r="${r.id}"]`, node);
@@ -781,6 +786,7 @@ function startBidding(sess, lot, black) {
         <button class="btn big primary" id="aok">${sess.cur < sess.lots.length ? `次の品へ（LOT ${sess.cur + 1}）` : '閉じる'}</button>
       </div>`);
       $('#screens').appendChild(ov);
+      if (lot.kind !== 'bundle') mountLiveGem($('.hall-stage .lot-art img', ov), lot.gem);
       guard($('#aok', ov), 600);
       $('#aok', ov).onclick = () => { audio.tap(); showAtelier(tab); };
     }, 900);

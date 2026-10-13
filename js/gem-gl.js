@@ -3,7 +3,7 @@
 //  カットを平面の集合（凸多面体）で作り、屈折・内部反射（全反射）・フレネル・
 //  波長ごとの屈折率（分散）・色の吸収を計算する。不透明な石はカボション・カット面・
 //  丸く磨いた石の描き方を持つ。
-//  ホームとジュエル選択の宝石はその場で描き（mountLiveGem）、ほかのアイコンは
+//  ホーム・ジュエル選択・コレクションのカード・オークションの宝石はその場で描き（mountLiveGem）、ほかのアイコンは
 //  同じ計算で書き出した画像（img/gems/*.webp。tools/gem-bake.html と tools/test/gem-bake.js）を使う
 // =====================================================================
 
@@ -248,10 +248,10 @@ void stone(vec2 q, vec3 n, vec3 r, out vec3 alb, out vec3 emit, out float tr){
     emit = vec3(.55, .85, 1.9) * gl; tr = .55;
   } else if (uKind == 2) {
     float st = fbm(vec2(x * 1.5 + y * .4, (y - x * .3) * 7.), 5, 31.);
-    alb = mix(vec3(.06, .07, .07), vec3(.2, .22, .2), st);
+    alb = mix(vec3(.06, .07, .08), vec3(.19, .21, .23), st);
     float pch = smoothstep(.38, .62, fbm(q * 2.2, 4, 41.)) * (.6 + .4 * st);
     float fl = pow(clamp(dot(n, normalize(vec3(.3, -.25, .92))), 0., 1.), 3.);
-    emit = spectral(.58 - fbm(q * 1.6, 3, 51.) * .5) * pch * fl * 2.4;
+    emit = spectral(.72 - fbm(q * 1.6, 3, 51.) * .34) * pch * fl * 2.4;
   } else if (uKind == 3) {
     alb = mix(vec3(.04, .55, .55), vec3(.25, .8, .74), fbm(q * 3., 5, 61.));
     float rv = 1. - abs(fbm(q * 2.4, 5, 71.) * 2. - 1.);
