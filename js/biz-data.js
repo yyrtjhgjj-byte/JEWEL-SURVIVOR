@@ -248,6 +248,12 @@ export const MARKET_EVENTS = {
   synth: { mul: [0.8, 0.88], h: [12, 24], gems: ['diamond', 'ruby', 'sapphire', 'emerald'] },
 };
 
+// 名石：鉱区ごとに 1 時間あたり rate の確率で見つかる（設備の段階ごとに lvBoost ずつ上がる。最初の 1 つは first 倍）。
+// 大きさはその宝石の 1 個の目安 × size、SS は ss の割合。同時に待てるのは max 個まで。
+// 宝物庫に飾ると 1 つにつき配当の上限 +vaultBonus（vaultCap 個まで）。オークションでは相場の sell 倍
+export const FIND = { rate: 0.004, lvBoost: 0.25, first: 60, size: [2, 6], ss: 0.25, max: 5, vaultCap: 50, vaultBonus: 0.01, sell: [1.5, 2.5] };
+export const FIND_WORDS = ['星', '雫', '炎', '月', '光', '心', '夜明け', '女王', '王冠', '瞳', '薔薇', '泉'];
+
 // 施設の種類（地図のピンの優先順と名前）
 export const FAC_KINDS = [
   { id: 'hq', name: '本社' },

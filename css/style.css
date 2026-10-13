@@ -1421,6 +1421,35 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .bs-gt img { width: 28px; height: 28px; flex: none; }
 .bs-lot { padding-left: 34px; }
 .bs-lot .bs-sn small { font-size: 11px; }
+/* 経営の知らせの板（留守中のまとめ・名石） */
+.bz-modal { position: absolute; inset: 0; z-index: 6; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.bz-modal[hidden] { display: none; }
+.bm-back { position: absolute; inset: 0; background: rgba(3, 3, 8, 0.72); }
+.bm-card { position: relative; width: 100%; max-width: 380px; max-height: calc(100% - 20px); overflow-y: auto; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 16px; background: rgba(14, 13, 24, 0.98); border: 1px solid var(--line2); border-radius: 18px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7); }
+.bm-card > * { flex-shrink: 0; }
+.bm-label { font: 700 11px var(--font-jp); letter-spacing: 0.2em; color: var(--gold); text-align: center; }
+.bm-time { font: 700 22px var(--font-jp); text-align: center; }
+.bm-sub { font: 12px var(--font-jp); color: var(--muted); text-align: center; text-wrap: balance; }
+.bm-card .btn { width: 100%; }
+.bm-find { border-color: rgba(255, 197, 61, 0.6); box-shadow: 0 0 40px rgba(255, 197, 61, 0.18), 0 12px 40px rgba(0, 0, 0, 0.7); }
+.bm-gem { display: flex; justify-content: center; margin: 4px 0; }
+.bm-gem img, .bm-gem canvas { width: 168px; height: 168px; }
+.bm-name { font: 700 20px var(--font-jp); text-align: center; letter-spacing: 0.06em; overflow-wrap: anywhere; text-wrap: balance; }
+.bm-stats { display: flex; align-items: center; justify-content: center; gap: 10px; font: 700 13px var(--font); }
+.bm-acts { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.bm-res { display: flex; flex-direction: column; align-items: center; gap: 2px; font: 700 13px var(--font-jp); color: var(--muted); }
+.bm-res b { font: 700 24px var(--font); color: var(--gold); }
+.bm-later { background: none; border: 0; padding: 4px; color: var(--muted); font: 12px var(--font-jp); text-decoration: underline; cursor: pointer; }
+.bz-findchip { position: absolute; right: 10px; top: calc(var(--safe-t) + 108px); z-index: 3; display: flex; align-items: center; gap: 6px; padding: 7px 12px; background: rgba(14, 13, 24, 0.92); border: 1px solid var(--gold); border-radius: 12px; color: var(--gold); box-shadow: 0 0 12px rgba(255, 197, 61, 0.45); cursor: pointer; }
+.bz-findchip[hidden] { display: none; }
+.bz-findchip small { font: 700 11px var(--font-jp); }
+.bz-findchip b { font: 700 14px var(--font); }
+.bs-vault { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; margin-top: 6px; }
+.bv-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px; background: var(--panel); border: 1px solid var(--line2); border-radius: 12px; color: var(--text); cursor: pointer; }
+.bv-item img { width: 48px; height: 48px; }
+.bv-item { min-width: 0; }
+.bv-item b { font: 700 11px var(--font-jp); text-align: center; overflow-wrap: anywhere; text-wrap: balance; }
+.bv-item small { font: 10.5px var(--font-jp); color: var(--muted); }
 /* 経営のチュートリアル：押す場所だけ明るくし、まわりは押せない板で覆う */
 #bztut { position: absolute; inset: 0; z-index: 30; pointer-events: none; }
 .tut-block { position: absolute; pointer-events: auto; }

@@ -773,6 +773,8 @@ export const ACHIEVEMENTS = [
   { id: 'bizSight', meta: true, name: 'サイトホルダー', t: '経営のサイトでダイヤの原石の箱を買う', coins: 3000, check: (r, s) => s.biz && ((s.biz.stat || {}).sight || 0) >= 1 },
   { id: 'bizAllMines', meta: true, name: 'グローバル・クレーム', t: '経営ですべての鉱区を手に入れる', coins: 10000, check: (r, s) => s.biz && Object.keys(BIZ_MINES).every((id) => s.biz.mines[id]) },
   { id: 'bizAllShops', meta: true, name: 'ワールド・ブティック', t: '経営ですべての直営店を出す', coins: 10000, check: (r, s) => s.biz && Object.keys(BIZ_SHOPS).every((id) => (s.biz.shops || {})[id]) },
+  { id: 'bizFind', meta: true, name: 'ネームド・ストーン', t: '経営で名石を見つける', coins: 500, check: (r, s) => s.biz && ((s.biz.stat || {}).finds || 0) >= 1 },
+  { id: 'bizVault10', meta: true, name: 'トレジャリー', t: '経営の宝物庫に名石を10飾る', coins: 3000, check: (r, s) => s.biz && (s.biz.vault || []).length >= 10 },
   { id: 'bizDiv', meta: true, name: 'ディビデンド', t: '経営の配当を受け取る', coins: 200, check: (r, s) => s.biz && s.biz.divTotal >= 1 },
   { id: 'bizRank3', meta: true, name: 'ジュエル・マーチャント', t: '会社のランクを「宝石商」にする', coins: 1000, check: (r, s) => s.biz && s.biz.rank >= 3 },
   { id: 'bizRank5', meta: true, name: 'トレーディング・ハウス', t: '会社のランクを「宝石商社」にする', coins: 5000, check: (r, s) => s.biz && s.biz.rank >= 5 },

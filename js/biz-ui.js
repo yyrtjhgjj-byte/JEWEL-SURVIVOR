@@ -7,13 +7,14 @@ import { audio } from './audio.js';
 import { fmt, todayStr } from './util.js';
 import { show, el, $, coinPill, refreshCoinPill, haptic, getApp, toast } from './ui.js';
 import { gemIcon, coinIcon } from './render.js';
+import { mountLiveGem } from './gem-gl.js';
 import { GEMS } from './data.js';
 import { gradeBadge } from './atelier-ui.js';
 import { refreshNav } from './menu.js';
 import * as B from './biz.js';
 import {
   PLACES, MINES, FACTORIES, EXCHANGES, SHOPS, SHOP_LV, STAFF, BOSS_SHIP, RANKS, MINE_LV, STORE_LV, FACT_LV, CREW, BIZ_GEMS, BIZ_GEM_IDS, FAC_KINDS, FAC_TABLE,
-  LABS, AUCTIONS, SIGHTS, ORDERS, CLIENT_KINDS,
+  LABS, AUCTIONS, SIGHTS, ORDERS, CLIENT_KINDS, FIND,
 } from './biz-data.js';
 import { worldSvg, projX, projY, MAP_W, MAP_H } from './biz-map.js';
 
@@ -73,6 +74,9 @@ export function showBiz() {
   let first = false;
   if (!save.biz) { save.biz = B.newBiz(now); first = true; persist(); }
   const st = save.biz;
+  B.migrateBiz(st);
+  // 前に見ていたときの控え（留守中のまとめに使う）
+  const mark = st.away;
   B.catchUp(st, now);
   B.updateRank(st);
   // チュートリアル：まだ小さい会社なら案内する（途中の手順は持っているものに合わせて飛ばす）
@@ -85,12 +89,14 @@ export function showBiz() {
       ${coinPill()}
     </div>
     <button class="bz-goal" id="bzgoal" hidden></button>
+    <button class="bz-findchip" id="bzfind" hidden><small>名石</small><b id="bzfindn"></b></button>
     <div class="bz-map" id="bzmap"><div class="bz-world" id="bzworld">${worldSvg()}<svg class="bz-routes" id="bzroutes" viewBox="0 0 ${MAP_W} ${MAP_H}" preserveAspectRatio="none" aria-hidden="true"></svg><div class="bz-pins" id="bzpins"></div></div></div>
     <div class="bz-tools"><button id="bzzoom" aria-label="拡大"></button><button id="bzmk">${icon('market')}<span>相場</span></button><button id="bzhq">${icon('hq')}<span>本社</span></button></div>
     <div class="bz-sheet" id="bzsheet"></div>
+    <div class="bz-modal" id="bzmodal" hidden></div>
   </div>`);
   show(node);
-  ui = { node, st, zoom: (st.view && st.view.z) || 1, sheet: null, touching: false, ships: '', t: 0, lastSave: now };
+  ui = { node, st, zoom: (st.view && st.view.z) || 1, sheet: null, touching: false, ships: '', t: 0, lastSave: now, modals: [], modal: null, findLater: false };
   layoutMap(true);
   renderPins();
   renderTop();
@@ -100,6 +106,8 @@ export function showBiz() {
   $('#bzmk', node).onclick = () => { audio.tap(); openSheet(null, 'market'); };
   $('#bzdiv', node).onclick = () => { audio.tap(); openSheet('tokyo', 'hq'); };
   $('#bzgoal', node).onclick = onGoal;
+  $('#bzfind', node).onclick = () => { audio.tap(); ui.findLater = false; checkFinds(); };
+  $('#bzmodal', node).addEventListener('click', onModalClick);
   const map = $('#bzmap', node);
   let saveT = 0;
   map.addEventListener('scroll', () => {
@@ -114,12 +122,20 @@ export function showBiz() {
   sh.addEventListener('click', onSheetClick);
   if (st.tut >= 0) startTut();
   else if (first) openSheet('ratnapura', 'mine');
+  // 留守中のまとめ（15 分以上空けて、何か起きていたとき）
+  if (mark && st.tut < 0) {
+    const a = B.awaySince(st, mark, now);
+    if (a.gone >= 15 * 60e3 && (a.mined > 0.01 || a.earned > 0.5 || a.finds || a.events.length || a.orders)) queueModal({ kind: 'away', a, rank: st.rank });
+  }
+  st.away = B.awayMark(st, now);
+  checkFinds();
   const tick = () => {
     if (!ui || ui.node !== node || !node.isConnected) { if (ui && ui.node === node) ui = null; return; }
     const t = Date.now();
     B.catchUp(st, t);
     afterChange(false);
     tutCheck();
+    st.away = B.awayMark(st, t);
     if (t - ui.lastSave > 15000) { ui.lastSave = t; persist(); }
     setTimeout(tick, 1000);
   };
@@ -290,6 +306,7 @@ function afterChange(acted) {
   if (st.ships.map((s) => s.id).join(',') !== ui.ships) renderRoutes();
   if (ui.sheet && (acted || !ui.touching)) renderSheet();
   if (acted) { persist(); refreshCoinPill(); refreshNav(); metaAch(); tutCheck(); }
+  checkFinds();
 }
 
 // ---------------------------------------------------------------- シート
@@ -646,11 +663,106 @@ function ordersPanel() {
     ${list.length < ORDERS.max ? `<div class="bs-note">次の注文まで あと ${minf((st.orders.next - now) / 60e3)}</div>` : ''}`;
 }
 
+// ---------------------------------------------------------------- 知らせの板（留守中のまとめ・名石の発見・宝物庫の名石）
+// 地図とシートの上に重ねる。順番待ちは ui.modals、いま出しているのは ui.modal
+function queueModal(m) { ui.modals.push(m); if (!ui.modal) nextModal(); }
+function nextModal() {
+  const box = $('#bzmodal', ui.node);
+  ui.modal = ui.modals.shift() || null;
+  if (!ui.modal) { box.hidden = true; box.innerHTML = ''; return; }
+  renderModal();
+  box.hidden = false;
+}
+// 名石の値と見た目（見つけたばかりの石・宝物庫の石）
+function findCard(f, label, acts) {
+  const st = ui.st, v = B.findValue(st, f), P = PLACES[f.mine];
+  return `<div class="bm-card bm-find">
+    <div class="bm-label">${label}</div>
+    <div class="bm-gem"><img src="${gemIcon(f.gem)}" alt=""></div>
+    <b class="bm-name">${f.name}</b>
+    <small class="bm-sub">${P.name}（${P.country}）の${GEMS[f.gem].jp}</small>
+    <div class="bm-stats">${gradeBadge(f.g)}<span>${f.ct.toFixed(2)} ct</span><span>相場 ${usd(v)}</span></div>
+    ${acts}
+  </div>`;
+}
+function renderModal() {
+  const st = ui.st, M = ui.modal, box = $('#bzmodal', ui.node);
+  let html = '';
+  if (M.kind === 'away') {
+    const a = M.a, rows = [];
+    if (a.mined > 0.01) rows.push(['掘った原石', `${ctf(a.mined)} ct`]);
+    if (a.cut > 0.01) rows.push(['磨いた宝石', `${nf(a.cut)} 個`]);
+    if (a.earned > 0.5) rows.push(['売上', usd(a.earned)]);
+    if (a.finds > 0) rows.push(['見つかった名石', `${a.finds} 個`]);
+    if (a.auction > 0) rows.push(['オークションの落札', `${a.auction} 件`]);
+    if (a.orders > 0) rows.push(['届いた注文', `${a.orders} 件`]);
+    if (a.rank > 0) rows.push(['会社のランク', RANKS[st.rank - 1].name]);
+    html = `<div class="bm-card bm-away">
+      <div class="bm-label">留守の間に</div>
+      <b class="bm-time">${minf(a.gone / 60e3)}</b>
+      ${a.capped ? `<small class="bm-sub">進んだのは放置の上限の ${RANKS[M.rank - 1].off} 時間ぶん（会社のランクで伸びます）</small>` : ''}
+      <div class="bs-rows">${rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
+      ${a.events.length ? `<div class="bs-sub">出来事</div><div class="bs-evs">${a.events.map((e) => `<div><span>${EV_TEXT[e.k](e)}</span><b class="${e.mul > 1 ? 'up' : 'dn'}">${GEMS[e.g].jp} ${pct(e.mul - 1)}</b></div>`).join('')}</div>` : ''}
+      <button class="btn primary" data-m="next">OK</button>
+    </div>`;
+  } else if (M.kind === 'find' || M.kind === 'vault') {
+    const f = (M.kind === 'find' ? st.finds : st.vault).find((x) => x.id === M.id);
+    if (!f && !M.res) { nextModal(); return; }
+    const ff = f || M.res.f;
+    const acts = M.res
+      ? `<div class="bm-res">相場の ×${M.res.m.toFixed(2)} で落札<b>${usd(M.res.v)}</b></div><button class="btn primary" data-m="next">OK</button>`
+      : M.kind === 'find'
+        ? `<div class="bm-acts">
+            <button class="btn primary" data-m="keep" ${B.vaultFull(st) ? 'disabled' : ''}>宝物庫に飾る<span class="sub">${B.vaultFull(st) ? '宝物庫がいっぱい' : `配当の上限 +${Math.round(FIND.vaultBonus * 100)}%`}</span></button>
+            <button class="btn" data-m="sell">オークションに出す<span class="sub">相場の ×${FIND.sell[0]}〜${FIND.sell[1]}</span></button>
+          </div><button class="bm-later" data-m="later">あとで決める</button>`
+        : `<div class="bm-acts"><button class="btn" data-m="sell">オークションに出す<span class="sub">相場の ×${FIND.sell[0]}〜${FIND.sell[1]}</span></button><button class="btn" data-m="next">閉じる</button></div>`;
+    html = findCard(ff, M.kind === 'find' ? '名石発見' : '宝物庫', acts);
+  }
+  box.innerHTML = `<div class="bm-back"></div>${html}`;
+  const img = $('.bm-gem img', box);
+  if (img) mountLiveGem(img, (M.res ? M.res.f : (M.kind === 'find' ? st.finds : st.vault).find((x) => x.id === M.id)).gem);
+}
+function onModalClick(e) {
+  const b = e.target.closest('[data-m]');
+  if (!b || b.disabled || !ui.modal) return;
+  const st = ui.st, M = ui.modal;
+  switch (b.dataset.m) {
+    case 'next': audio.tap(); nextModal(); break;
+    case 'later': audio.tap(); ui.findLater = true; nextModal(); break;
+    case 'keep':
+      if (B.keepFind(st, M.id)) { audio.levelUp(); haptic(); nextModal(); afterChange(true); }
+      break;
+    case 'sell': {
+      const r = B.sellFind(st, M.id);
+      if (r) { M.res = r; audio.bigWin(); haptic(); renderModal(); afterChange(true); }
+      break;
+    }
+    default:
+  }
+}
+// 見つかった名石があれば、順に知らせる（チュートリアルの間と「あとで」を選んだあとは出さない）
+function checkFinds() {
+  const st = ui.st;
+  $('#bzfind', ui.node).hidden = !st.finds.length;
+  $('#bzfindn', ui.node).textContent = st.finds.length;
+  if (ui.modal || ui.findLater || (st.tut != null && st.tut >= 0) || !st.finds.length) return;
+  queueModal({ kind: 'find', id: st.finds[0].id });
+}
+
+// 本社の宝物庫の欄
+function vaultPanel() {
+  const st = ui.st, list = st.vault;
+  return `<div class="bs-rows"><div><span>飾っている名石</span><b>${list.length} / ${FIND.vaultCap}</b></div><div><span>配当の上限</span><b>+${Math.round(B.vaultBonus(st) * 100)}%</b></div></div>
+    ${list.length ? `<div class="bs-vault">${list.map((f) => `<button class="bv-item" data-act="vaultOpen" data-id="${f.id}"><img src="${gemIcon(f.gem)}" alt=""><b>${f.name}</b><small>${GEMS[f.gem].jp}・${f.ct.toFixed(2)} ct</small>${gradeBadge(f.g)}</button>`).join('')}</div>` : '<div class="bs-note">鉱区でときどき名石が見つかります。飾ると配当の上限が上がります</div>'}`;
+}
+
 function hqSheet() {
   const st = ui.st, S = ui.sheet;
   const ready = st.orders.list.filter((o) => B.orderReady(st, o, Date.now())).length;
-  const tabs = `<div class="bs-tabs sm"><button class="${S.tab === 'co' ? 'on' : ''}" data-act="tab" data-t="co">会社</button><button class="${S.tab === 'stock' ? 'on' : ''}" data-act="tab" data-t="stock">在庫</button><button class="${S.tab === 'order' ? 'on' : ''}" data-act="tab" data-t="order">注文${ready ? `<i class="bs-cnt">${ready}</i>` : ''}</button></div>`;
+  const tabs = `<div class="bs-tabs sm"><button class="${S.tab === 'co' ? 'on' : ''}" data-act="tab" data-t="co">会社</button><button class="${S.tab === 'stock' ? 'on' : ''}" data-act="tab" data-t="stock">在庫</button><button class="${S.tab === 'order' ? 'on' : ''}" data-act="tab" data-t="order">注文${ready ? `<i class="bs-cnt">${ready}</i>` : ''}</button><button class="${S.tab === 'vault' ? 'on' : ''}" data-act="tab" data-t="vault">宝物庫</button></div>`;
   if (S.tab === 'order') return tabs + ordersPanel();
+  if (S.tab === 'vault') return tabs + vaultPanel();
   if (S.tab === 'stock') {
     // 在庫は宝石ごとにまとめ、いちばん高く売れる取引所の値で出す
     const by = {};
@@ -728,6 +840,7 @@ function onSheetClick(e) {
     case 'shelve': ok = B.shelve(st, d.id, d.k) > 0; sound = 'select'; break;
     case 'unshelve': ok = B.unshelve(st, d.id, d.k); break;
     case 'mtab': ui.sheet.mtab = d.t; break;
+    case 'vaultOpen': audio.tap(); queueModal({ kind: 'vault', id: +d.id }); return;
     case 'open': ui.sheet.open = ui.sheet.open === d.g ? null : d.g; break;
     case 'sellGem': { let v = 0; for (const k of Object.keys(st.stock)) if (k.split('|')[0] === d.g) v += B.sellLot(st, k, d.ex); ok = v > 0; sound = 'coin'; break; }
     case 'tut': st.tut = 0; closeSheet(); startTut(); return;

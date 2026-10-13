@@ -6,7 +6,7 @@
 import {
   BIZ_GEMS, BIZ_GEM_IDS, GRADE_MUL, RANKS, TIER, PLACES, MINES, MINE_LV, STORE_LV, FACTORIES, FACT_LV, CREW, EXCHANGES,
   SHOPS, SHOP_LV, SHOP_CAP, STAFF, BOSS_SHIP, MARKET_EVENTS,
-  LABS, LAB_MIN, AUCTIONS, AUCTION_MUL, SIGHTS, ORDERS, CLIENT_PLACES, CLIENT_KINDS, SHOW_SEASON,
+  LABS, LAB_MIN, AUCTIONS, AUCTION_MUL, SIGHTS, ORDERS, CLIENT_PLACES, CLIENT_KINDS, SHOW_SEASON, FIND, FIND_WORDS,
 } from './biz-data.js';
 
 const HOUR = 3600e3;
@@ -65,22 +65,22 @@ export const canCut = (fid, gem) => (FACTORIES[fid].only ? FACTORIES[fid].only.i
 export const queueWork = (f) => f.queue.reduce((s, e) => s + e.ct * refVal(e.k.split('|')[0]), 0);
 
 // ---------------------------------------------------------------- 状態
-export const BIZ_VER = 4;
+export const BIZ_VER = 5;
 export function newBiz(now) {
   const st = {
     v: BIZ_VER, cash: 12000, last: now, rank: 1, view: null, rng: (now ^ 0x9e3779b9) >>> 0, tut: 0, goals: {},
     mines: {}, factories: {}, ships: [], stock: {}, shops: {},
     market: null,
-    labs: [], auctions: {}, orders: { list: [], next: now }, sight: { next: 0, store: {} },
+    labs: [], auctions: {}, orders: { list: [], next: now }, sight: { next: 0, store: {} }, finds: [], vault: [],
     div: { day: '', paid: 0 },
     spent: 0, earned: 0, invested: 0, divTotal: 0, n: 0,
-    stat: { cert: 0, auction: 0, order: 0, sight: 0 },
+    stat: { cert: 0, auction: 0, order: 0, sight: 0, finds: 0, mined: 0, cut: 0 },
   };
   newMarket(st, now);
   return st;
 }
 // 古い形の状態を今の形にする（v1：相場・直営店・人を雇う より前、v2：鑑定・オークション・サイト・注文 より前、
-// v3：タイの工場がバンコクにあったころ。実際の研磨と加熱処理の中心のチャンタブリーへ移す）
+// v3：タイの工場がバンコクにあったころ。実際の研磨と加熱処理の中心のチャンタブリーへ移す、v4：名石と宝物庫 より前）
 export function migrateBiz(st) {
   if (st.v >= BIZ_VER) return;
   if (st.v < 2) {
@@ -100,6 +100,10 @@ export function migrateBiz(st) {
     for (const sh of st.ships) if (sh.to === 'bangkok') sh.to = 'chanthaburi';
     for (const id in st.mines) if (st.mines[id].to === 'bangkok') st.mines[id].to = 'chanthaburi';
   }
+  if (st.v < 5) {
+    st.finds = []; st.vault = [];
+    Object.assign(st.stat, { finds: 0, mined: 0, cut: 0 });
+  }
   st.v = BIZ_VER;
 }
 
@@ -108,6 +112,8 @@ export function catchUp(st, now) {
   migrateBiz(st);
   if (!(now > st.last)) { st.last = Math.min(st.last, now); return; }
   const cap = RANKS[st.rank - 1].off * HOUR;
+  // 上限を超えて捨てた時間は lost に足す（留守中のまとめで知らせる）
+  if (now - st.last > cap) st.lost = (st.lost || 0) + (now - st.last - cap);
   let t = Math.max(st.last, now - cap);
   // 捨てた時間が長いときも、相場は最後の 1 日分だけ動かす
   const M = st.market;
@@ -126,7 +132,12 @@ function step(st, t, sec) {
     const m = st.mines[id];
     const free = storeCap(st, id) - storeTotal(m);
     const amt = Math.min(mineOut(st, id) * (sec / 3600), free, m.reserve);
-    if (amt > 1e-9) produce(id, m, amt);
+    if (amt <= 1e-9) continue;
+    produce(st, id, m, amt);
+    // 名石：掘っている鉱区からときどき見つかる
+    // 最初の 1 つは見つかりやすく、4 時間分掘っても出なければ必ず出す
+    const p = FIND.rate * (1 + FIND.lvBoost * (m.lv - 1)) * (st.stat.finds ? 1 : FIND.first) * (sec / 3600);
+    if (st.finds.length < FIND.max && (rand(st) < p || (!st.stat.finds && st.stat.mined >= mineBaseOut(id) * 4))) newFind(st, id, t);
   }
   // 鉱山長：倉庫が BOSS_SHIP までたまったら、決めた工場へ出荷
   for (const id in st.mines) {
@@ -193,7 +204,8 @@ function step(st, t, sec) {
 }
 
 // 鉱区の倉庫に原石 amt ct を足す（宝石の割合と品質の分布どおり）
-function produce(id, m, amt) {
+function produce(st, id, m, amt) {
+  st.stat.mined += amt;
   const M = MINES[id], sum = mixTotal(M.mix), dist = gradeDist(mineQ(id, m.lv));
   for (const [g, w] of Object.entries(M.mix)) {
     for (let q = 0; q < 5; q++) {
@@ -237,6 +249,7 @@ function cut(st, fid, gem, g, origin, ctRough, t) {
     : f.boss && EXCHANGES[f.out] && exOpen(st, f.out, t) ? (k, c) => sellNew(st, k, c, f.out) : (k, c) => addStock(st, k, c);
   put(lotKey(gem, g, origin, treat ? 1 : 0), ct * (1 - u));
   if (u) put(lotKey(gem, g + 1, origin, treat ? 1 : 0), ct * u);
+  st.stat.cut += ct / BIZ_GEMS[gem].size;
 }
 export function addStock(st, k, ct) {
   if (ct <= 0) return;
@@ -283,7 +296,7 @@ function spawnEvent(st, t) {
   if (st.market.events.some((e) => e.g === g)) return;
   const mul = E.mul[0] + rand(st) * (E.mul[1] - E.mul[0]);
   const h = Math.round(E.h[0] + rand(st) * (E.h[1] - E.h[0]));
-  st.market.events.push({ k, p, g, mul: r4(mul), until: t + h * HOUR });
+  st.market.events.push({ k, p, g, mul: r4(mul), from: t, until: t + h * HOUR });
 }
 function hourly(st, t) {
   const M = st.market;
@@ -433,7 +446,7 @@ export function buyMine(st, id) {
   const first = !Object.keys(st.mines).length;
   st.mines[id] = { lv: 1, sl: 0, reserve: reserveFull(id), store: {}, ex: 0, boss: false, to: null };
   // 最初の鉱区は、1 時間分の原石がたまった状態から始める（すぐに出荷を試せるように）
-  if (first) produce(id, st.mines[id], mineOut(st, id));
+  if (first) produce(st, id, st.mines[id], mineOut(st, id));
   return true;
 }
 export function upgradeMine(st, id) { const c = mineUpCost(st, id); if (!c || !pay(st, c)) return false; st.mines[id].lv++; return true; }
@@ -690,6 +703,52 @@ export function deliver(st, id, now) {
   return o.reward;
 }
 
+// ---------------------------------------------------------------- 名石と宝物庫
+// 名石は 1 個ずつ名前の付いた大きな石（鑑定書付き。産地の上乗せも付く）。見つかると finds に入り、
+// 宝物庫に飾る（配当の上限が上がる）か、オークションに出す（相場の FIND.sell 倍）かを選ぶ
+function newFind(st, mine, t) {
+  const gem = pickW(st, MINES[mine].mix), G = BIZ_GEMS[gem];
+  const ct = Math.round(G.size * span(st, FIND.size) * 100) / 100;
+  const g = rand(st) < FIND.ss ? 4 : 3;
+  st.finds.push({ id: ++st.n, gem, mine, ct, g, name: `${PLACES[mine].name}の${pick(st, FIND_WORDS)}`, t });
+  st.stat.finds++;
+}
+export const findKey = (f) => lotKey(f.gem, f.g, f.mine, 0, 1);
+export const findValue = (st, f) => lotValue(st, findKey(f), { n: 1, ct: f.ct });
+export const vaultFull = (st) => st.vault.length >= FIND.vaultCap;
+export function keepFind(st, id) {
+  const i = st.finds.findIndex((f) => f.id === id);
+  if (i < 0 || vaultFull(st)) return false;
+  st.vault.push(st.finds.splice(i, 1)[0]);
+  return true;
+}
+// オークションに出す（見つけたばかりの石でも、宝物庫の石でも）。落札値と倍率を返す
+export function sellFind(st, id) {
+  let list = st.finds, i = list.findIndex((f) => f.id === id);
+  if (i < 0) { list = st.vault; i = list.findIndex((f) => f.id === id); }
+  if (i < 0) return null;
+  const f = list.splice(i, 1)[0];
+  const m = Math.round((FIND.sell[0] + (FIND.sell[1] - FIND.sell[0]) * Math.pow(rand(st), 1.3)) * 100) / 100;
+  const v = findValue(st, f) * m;
+  income(st, v);
+  st.stat.auction++;
+  return { f, v, m };
+}
+
+// ---------------------------------------------------------------- 留守中のまとめ
+// 経営の画面を見ている間は控え（awayMark）を取り続け、次に開いたときに差（awaySince）をまとめて見せる
+export const awayMark = (st, now) => ({ t: now, earned: st.earned, mined: st.stat.mined, cut: st.stat.cut, finds: st.stat.finds, auction: st.stat.auction, orders: st.orders.list.map((o) => o.id), lost: st.lost || 0, rank: st.rank });
+export function awaySince(st, m, now) {
+  return {
+    gone: now - m.t, capped: (st.lost || 0) - m.lost > 60e3,
+    earned: st.earned - m.earned, mined: st.stat.mined - m.mined, cut: st.stat.cut - m.cut,
+    finds: st.stat.finds - m.finds, auction: st.stat.auction - m.auction,
+    orders: st.orders.list.filter((o) => !m.orders.includes(o.id)).length,
+    events: st.market.events.filter((e) => (e.from || 0) > m.t),
+    rank: st.rank - m.rank,
+  };
+}
+
 // ---------------------------------------------------------------- 目標（会社の沿革）
 // 次にやることを 1 つずつ示す。達成して受け取るとコイン。進み具合は受け取った目標の id（save.biz.goals）
 // n は [今, 必要]、go はその目標のための地名とシートの種類（目標を押すと開く）
@@ -703,6 +762,7 @@ export const GOALS = [
   { id: 'div1', t: '配当を受け取る', coins: 150, go: ['tokyo', 'hq'], n: (st) => [st.divTotal > 0 ? 1 : 0, 1] },
   { id: 'mine3', t: '鉱区を 3 つにする', coins: 200, n: (st) => [cnt(st.mines), 3] },
   { id: 'mineup', t: '鉱区の設備を強化する', coins: 200, n: (st) => [Object.values(st.mines).some((m) => m.lv >= 2) ? 1 : 0, 1] },
+  { id: 'find1', t: '鉱区で名石を見つける', coins: 300, n: (st) => [Math.min(st.stat.finds || 0, 1), 1] },
   rankGoal(2, 300),
   { id: 'boss1', t: '人を雇う（鉱山長・工場長・店長）', coins: 300, n: (st) => [anyBoss(st) ? 1 : 0, 1] },
   { id: 'shop1', t: '直営店を出す', coins: 400, go: ['tokyo', 'shop'], n: (st) => [cnt(st.shops), 1] },
@@ -713,6 +773,7 @@ export const GOALS = [
   { id: 'order1', t: '本社に届いた注文を納める', coins: 600, go: ['tokyo', 'hq', 'order'], n: (st) => [Math.min(st.stat.order || 0, 1), 1] },
   { id: 'fact4', t: '工場を 4 つにする', coins: 700, n: (st) => [cnt(st.factories), 4] },
   rankGoal(4, 1500),
+  { id: 'vault3', t: '宝物庫に名石を 3 つ飾る', coins: 1500, go: ['tokyo', 'hq', 'vault'], n: (st) => [(st.vault || []).length, 3] },
   { id: 'auction1', t: 'オークションで石を落札させる', coins: 1500, go: ['hongkong', 'auction'], n: (st) => [Math.min(st.stat.auction || 0, 1), 1] },
   rankGoal(5, 3000),
   { id: 'sight1', t: 'ハボローネのサイトで原石の箱を買う', coins: 2000, go: ['gaborone', 'sight'], n: (st) => [Math.min(st.stat.sight || 0, 1), 1] },
@@ -720,6 +781,7 @@ export const GOALS = [
   rankGoal(6, 6000),
   { id: 'mine20', t: '鉱区を 20 にする', coins: 4000, n: (st) => [cnt(st.mines), 20] },
   rankGoal(7, 12000),
+  { id: 'vault10', t: '宝物庫に名石を 10 飾る', coins: 8000, go: ['tokyo', 'hq', 'vault'], n: (st) => [(st.vault || []).length, 10] },
 ];
 export const goalNow = (st) => GOALS.find((g) => !(st.goals || {})[g.id]) || null;
 export const goalDone = (st, g) => { const [a, b] = g.n(st); return a >= b; };
@@ -738,6 +800,7 @@ export function companyValue(st) {
   for (const k in st.stock) v += lotValue(st, k, st.stock[k], 0.6);
   for (const id in st.shops) for (const k in st.shops[id].shelf) v += lotValue(st, k, st.shops[id].shelf[k], 0.6);
   for (const j of st.labs) v += lotValue(st, j.k, j, 0.6);
+  for (const f of st.finds.concat(st.vault)) v += findValue(st, f) * 0.5;
   for (const id in st.auctions) for (const l of st.auctions[id].lots) v += lotValue(st, l.k, l, 0.6);
   const rough = (items) => { let s = 0; for (const k in items) { const [gem, g] = k.split('|'); s += items[k] * refVal(gem) * GRADE_MUL[+g] * 0.2; } return s; };
   for (const id in st.mines) v += rough(st.mines[id].store);
@@ -756,7 +819,9 @@ export function updateRank(st) {
 
 // ---------------------------------------------------------------- 配当と出資
 // avgRun：1 ランで得るコインの平均（save.stats から）。today：日付（ui.js の todayStr と同じ形）
-export const divCap = (st, avgRun) => Math.round(Math.max(300, avgRun || 0) * RANKS[st.rank - 1].k);
+// 宝物庫の名石 1 つにつき、配当の上限が FIND.vaultBonus 増える
+export const vaultBonus = (st) => Math.min((st.vault || []).length, FIND.vaultCap) * FIND.vaultBonus;
+export const divCap = (st, avgRun) => Math.round(Math.max(300, avgRun || 0) * RANKS[st.rank - 1].k * (1 + vaultBonus(st)));
 // 1 コインあたりの $。そのランクの標準的な稼ぎで、1 日の上限におよそ 8 時間で届く
 export const divRate = (st, avgRun) => (RANKS[st.rank - 1].std * 8) / divCap(st, avgRun);
 // 出資は配当の 1/3 の有利さ（行って帰るだけで増えないように）
@@ -792,6 +857,6 @@ export function bizAlerts(st, avgRun, today) {
   const pay = divPayable(st, avgRun, today), left = divLeft(st, avgRun, today);
   const div = !claimed && pay > 0 && pay >= Math.min(left, Math.ceil(divCap(st, avgRun) * 0.2));
   const order = st.orders.list.filter((o) => orderReady(st, o, st.last)).length;
-  const g = goalNow(st), goal = !!(g && goalDone(st, g));
-  return { full, nofund, div, order, goal, any: !!(full || nofund || div || order || goal) };
+  const g = goalNow(st), goal = !!(g && goalDone(st, g)), finds = st.finds.length;
+  return { full, nofund, div, order, goal, finds, any: !!(full || nofund || div || order || goal || finds) };
 }
