@@ -6,6 +6,7 @@ import {
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA100_COST, GACHA100_UR, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK, charmLbText, charmLbMax,
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickaxeIcon } from './render.js';
+import { mountLiveGem } from './gem-gl.js';
 import { diagCrashes, diagLaunches, clearDiag } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter } from './stages.js';
@@ -246,6 +247,8 @@ export function showTitle() {
   tap('#t-rank', showRank);
   tap('#t-howto', showHowTo);
   loginBonus();
+  // 宝石をその場で描く（最初の 1 回はシェーダーの準備に少しかかるので、画面を出してから）
+  setTimeout(() => mountLiveGem($('.title-hero img', node), cid), 80);
 }
 
 // ------------------------------------------------------------------ ログインボーナス
@@ -326,6 +329,7 @@ export function showCharSelect() {
       </div>
       <div class="lore">${unlocked ? g.lore : '🔒 解放条件：' + (c.unlock || '???')}</div>`;
     $('#go', node).disabled = !unlocked;
+    if (unlocked) mountLiveGem($('.sc-gem', node), sel);
   };
   CHAR_IDS.forEach((id) => {
     const cell = el(`<button class="char-cell ${save.unlocked[id] ? '' : 'locked'} ${id === sel ? 'sel' : ''}" style="--c:${gemColor(id)}">

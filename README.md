@@ -87,6 +87,8 @@ js/enemies.js         新種の敵とボスの行動
 js/hazards.js         ステージギミック（柱・溶岩・吹雪・暗闇・泡・門・お茶会・黒い星・流れ星・混沌の泡・つむじ風・濁流・鼎・舞の輪）
 js/data.js            ジュエル・ジュエルパワー・武器・敵・工房・実績
 js/render.js          宝石／敵／キャラの手続き型描画
+js/gem-gl.js          宝石の光線追跡（WebGL2）。ホームとジュエル選択の宝石をその場で描き、アイコンの画像も書き出す
+img/gems/             宝石のアイコン（js/gem-gl.js で書き出した画像）
 js/fx.js              パーティクル・ダメージ表示・雷
 js/audio.js           WebAudio 効果音＋BGMシーケンサー
 js/ui.js              各画面（タイトル・レベルアップ・宝箱・ガチャ・図鑑・リザルト）
@@ -98,6 +100,7 @@ js/artifact-art.js    秘宝の絵
 js/input.js           フローティング仮想スティック
 sw.js                 オフラインキャッシュ
 tools/icon.html       アイコン生成
+tools/gem-bake.html   宝石のアイコンの書き出し（tools/test/gem-bake.js から使う）
 tools/artifact-preview.html  秘宝の絵の一覧
 tools/test/           Playwright のテスト（ボット・DPS計測・クリア確認）
 CLAUDE.md             開発引き継ぎ資料（AI 向け）
