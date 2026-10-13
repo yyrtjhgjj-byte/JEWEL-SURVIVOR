@@ -97,7 +97,9 @@ async function fullSave(p) {
     const now = Date.now(), st = B.newBiz(now - 6 * 3600e3);
     st.rank = 7; st.cash = 9e12;
     for (const id in BD.MINES) { B.buyMine(st, id); for (let i = 0; i < 3; i++) B.upgradeMine(st, id); }
-    for (const id in BD.FACTORIES) { B.buyFactory(st, id); for (let i = 0; i < 4; i++) B.upgradeFactory(st, id); }
+    for (const id in BD.FACTORIES) { B.buyFactory(st, id); for (let i = 0; i < 4; i++) B.upgradeFactory(st, id); B.hireBoss(st, 'factory', id); }
+    for (const id in BD.MINES) B.hireBoss(st, 'mine', id);
+    for (const id in BD.SHOPS) { B.buyShop(st, id); B.hireBoss(st, 'shop', id); }
     B.catchUp(st, now - 3600e3);
     for (const id in st.mines) B.ship(st, id, BD.MINES[id].mix.diamond ? 'surat' : 'idar', now - 3600e3);
     B.catchUp(st, now - 600e3);
@@ -169,7 +171,12 @@ async function fullSave(p) {
       await back();
       // 経営（地図のピンから各施設のシート）
       await nav('biz'); await check('biz');
-      for (const id of ['tokyo', 'ratnapura', 'minas', 'jaipur', 'bangkok']) {
+      await p.evaluate(() => document.querySelector('#bzmk')?.click());
+      await check('biz-market');
+      await p.evaluate(() => document.querySelector('[data-act="mtab"][data-t="all"]')?.click());
+      await check('biz-market-all');
+      await p.evaluate(() => document.querySelector('.bz-sheet [data-act="close"]')?.click());
+      for (const id of ['tokyo', 'ratnapura', 'minas', 'jaipur', 'bangkok', 'paris']) {
         await p.evaluate((id) => document.querySelector(`.bzpin[data-p="${id}"]`)?.click(), id);
         await check('biz-' + id);
         // 施設の種類のタブ（本社なら会社・在庫のタブも）を順に押す。押すとタブの数が変わることがある
@@ -177,6 +184,8 @@ async function fullSave(p) {
           if (!(await p.evaluate((i) => { const b = document.querySelectorAll('.bz-sheet .bs-tabs button')[i]; if (b) b.click(); return !!b; }, i))) break;
           await check(`biz-${id}-tab#${i}`);
         }
+        await p.evaluate(() => document.querySelector('.bz-sheet [data-act="pickShelf"], .bz-sheet [data-act="pickShip"]')?.click());
+        await check(`biz-${id}-pick`);
         await p.evaluate(() => document.querySelector('.bz-sheet [data-act="close"]')?.click());
       }
       await nav('archive'); await check('hub-archive');

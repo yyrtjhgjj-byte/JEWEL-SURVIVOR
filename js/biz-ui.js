@@ -11,11 +11,11 @@ import { GEMS } from './data.js';
 import { gradeBadge } from './atelier-ui.js';
 import { refreshNav } from './menu.js';
 import * as B from './biz.js';
-import { PLACES, MINES, FACTORIES, EXCHANGES, RANKS, MINE_LV, STORE_LV, FACT_LV, CREW, BIZ_GEMS, FAC_KINDS, FAC_TABLE } from './biz-data.js';
+import { PLACES, MINES, FACTORIES, EXCHANGES, SHOPS, SHOP_LV, STAFF, BOSS_SHIP, RANKS, MINE_LV, STORE_LV, FACT_LV, CREW, BIZ_GEMS, BIZ_GEM_IDS, FAC_KINDS, FAC_TABLE } from './biz-data.js';
 import { worldSvg, projX, projY, MAP_W, MAP_H } from './biz-map.js';
 
 // 今の版で使える施設の種類
-const KINDS_ON = ['hq', 'mine', 'factory', 'exchange'];
+const KINDS_ON = ['hq', 'mine', 'factory', 'exchange', 'shop'];
 
 // ---------------------------------------------------------------- 表記
 export function usd(n) {
@@ -40,6 +40,7 @@ const ICON = {
   lab: '<circle cx="10.5" cy="10.5" r="5.5"/><path d="M14.6 14.6L20 20"/>',
   auction: '<path d="M13.5 4.5l6 6M10.5 7.5l6 6M12 6l-4.5 4.5M4 20l6.5-6.5"/>',
   sight: '<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>',
+  market: '<path d="M4 19.5h16"/><path d="M5 15l4.5-4.5 3.5 3 6-6.5"/><path d="M15 7h4v4"/>',
 };
 const icon = (k) => `<svg viewBox="0 0 24 24" class="bz-ico" aria-hidden="true">${ICON[k]}</svg>`;
 const kindName = (k) => FAC_KINDS.find((x) => x.id === k).name;
@@ -58,7 +59,7 @@ function facsAt(pid) {
 }
 const facRank = (k, pid) => (k === 'hq' ? 1 : FAC_TABLE[k][pid].r);
 const placeRank = (pid) => Math.min(...facsAt(pid).map((k) => facRank(k, pid)));
-const owns = (st, k, pid) => (k === 'hq' ? true : k === 'mine' ? !!st.mines[pid] : k === 'factory' ? !!st.factories[pid] : false);
+const owns = (st, k, pid) => (k === 'hq' ? true : k === 'mine' ? !!st.mines[pid] : k === 'factory' ? !!st.factories[pid] : k === 'shop' ? !!st.shops[pid] : false);
 const PLACE_IDS = Object.keys(PLACES).filter((pid) => facsAt(pid).length);
 
 // ---------------------------------------------------------------- 画面
@@ -79,7 +80,7 @@ export function showBiz() {
       ${coinPill()}
     </div>
     <div class="bz-map" id="bzmap"><div class="bz-world" id="bzworld">${worldSvg()}<svg class="bz-routes" id="bzroutes" viewBox="0 0 ${MAP_W} ${MAP_H}" preserveAspectRatio="none" aria-hidden="true"></svg><div class="bz-pins" id="bzpins"></div></div></div>
-    <div class="bz-tools"><button id="bzzoom" aria-label="拡大"></button><button id="bzhq">${icon('hq')}<span>本社</span></button></div>
+    <div class="bz-tools"><button id="bzzoom" aria-label="拡大"></button><button id="bzmk">${icon('market')}<span>相場</span></button><button id="bzhq">${icon('hq')}<span>本社</span></button></div>
     <div class="bz-sheet" id="bzsheet"></div>
   </div>`);
   show(node);
@@ -90,6 +91,7 @@ export function showBiz() {
   renderRoutes();
   $('#bzzoom', node).onclick = () => { audio.tap(); ui.zoom = ui.zoom === 1 ? 2 : 1; layoutMap(false); renderPins(); };
   $('#bzhq', node).onclick = () => { audio.tap(); openSheet('tokyo', 'hq'); };
+  $('#bzmk', node).onclick = () => { audio.tap(); openSheet(null, 'market'); };
   $('#bzdiv', node).onclick = () => { audio.tap(); openSheet('tokyo', 'hq'); };
   const map = $('#bzmap', node);
   let saveT = 0;
@@ -141,8 +143,12 @@ function pinState(pid) {
   let alert = false;
   if (st.mines[pid] && st.mines[pid].reserve > 1 && B.storeTotal(st.mines[pid]) >= B.storeCap(st, pid) * 0.98) alert = true;
   if (st.factories[pid] && st.factories[pid].nofund) alert = true;
-  const work = (st.factories[pid] && st.factories[pid].queue.length > 0) || (st.mines[pid] && st.mines[pid].reserve > 1 && !alert);
-  return { ks, lock, own, alert, work, main: ks[0] };
+  const shop = st.shops[pid], shelf = shop ? Object.keys(shop.shelf).length : 0;
+  if (shop && !shop.boss && !shelf && Object.keys(st.stock).length) alert = true;
+  const work = (st.factories[pid] && st.factories[pid].queue.length > 0) || (st.mines[pid] && st.mines[pid].reserve > 1 && !alert) || shelf > 0;
+  // 相場の出来事が起きている地名（上げは金、下げは青の印）
+  const ev = st.market.events.find((e) => e.p === pid);
+  return { ks, lock, own, alert, work, main: ks[0], ev: ev ? (ev.mul >= 1 ? 'up' : 'dn') : '' };
 }
 function renderPins() {
   const box = $('#bzpins', ui.node);
@@ -161,7 +167,7 @@ function renderPins() {
   }
   box.innerHTML = pos.map((p) => {
     const s = pinState(p.pid);
-    const cls = ['bzpin', `k-${s.main}`, s.lock ? 'lock' : '', s.own ? 'own' : '', s.alert ? 'alert' : '', s.work ? 'work' : ''].join(' ');
+    const cls = ['bzpin', `k-${s.main}`, s.lock ? 'lock' : '', s.own ? 'own' : '', s.alert ? 'alert' : '', s.work ? 'work' : '', s.ev ? `ev-${s.ev}` : ''].join(' ');
     return `<button class="${cls}" data-p="${p.pid}" style="left:${p.x}px;top:${p.y}px;--dx:${p.dx.toFixed(1)}px;--dy:${p.dy.toFixed(1)}px">
       <span class="bp-ic">${icon(s.main)}${s.ks.length > 1 ? `<i class="bp-more">${s.ks.length}</i>` : ''}</span><span class="bp-nm">${PLACES[p.pid].name}</span></button>`;
   }).join('');
@@ -174,6 +180,8 @@ function refreshPins() {
     b.classList.toggle('own', s.own);
     b.classList.toggle('alert', s.alert);
     b.classList.toggle('work', s.work);
+    b.classList.toggle('ev-up', s.ev === 'up');
+    b.classList.toggle('ev-dn', s.ev === 'dn');
   }
 }
 
@@ -236,8 +244,8 @@ function afterChange(acted) {
 
 // ---------------------------------------------------------------- シート
 function openSheet(pid, kind) {
-  const ks = facsAt(pid);
-  ui.sheet = { pid, kind: kind && ks.includes(kind) ? kind : ks.find((k) => owns(ui.st, k, pid) && k !== 'hq') || ks[0], pick: null, tab: 'co' };
+  const ks = pid ? facsAt(pid) : [kind];
+  ui.sheet = { pid, kind: kind && ks.includes(kind) ? kind : ks.find((k) => owns(ui.st, k, pid) && k !== 'hq') || ks[0], pick: null, tab: 'co', mtab: 'own' };
   ui.sheetHtml = '';
   const sh = $('#bzsheet', ui.node);
   sh.scrollTop = 0;
@@ -250,10 +258,10 @@ function closeSheet() {
 }
 function renderSheet() {
   const sh = $('#bzsheet', ui.node), S = ui.sheet;
-  const P = PLACES[S.pid], ks = facsAt(S.pid);
+  const P = S.pid ? PLACES[S.pid] : null, ks = S.pid ? facsAt(S.pid) : [];
   const top = sh.scrollTop;
-  const body = { hq: hqSheet, mine: mineSheet, factory: factorySheet, exchange: exchangeSheet }[S.kind](S.pid);
-  const html = `<div class="bs-head"><div><b>${P.name}</b><small>${P.country}</small></div><button class="bs-x" data-act="close" aria-label="閉じる">×</button></div>
+  const body = { hq: hqSheet, mine: mineSheet, factory: factorySheet, exchange: exchangeSheet, shop: shopSheet, market: marketSheet }[S.kind](S.pid);
+  const html = `<div class="bs-head">${P ? `<div><b>${P.name}</b><small>${P.country}</small></div>` : '<div><b>相場</b></div>'}<button class="bs-x" data-act="close" aria-label="閉じる">×</button></div>
     ${ks.length > 1 ? `<div class="bs-tabs">${ks.map((k) => `<button class="${k === S.kind ? 'on' : ''}" data-act="kind" data-k="${k}">${icon(k)}${kindName(k)}</button>`).join('')}</div>` : ''}
     <div class="bs-body">${body}</div>`;
   if (html === ui.sheetHtml) return;
@@ -291,6 +299,18 @@ const gemChips = (mix) => {
   return `<div class="bs-gems">${Object.entries(mix).map(([g, w]) => `<span><img src="${gemIcon(g)}" alt="">${GEMS[g].jp}<small>${Math.round((w / sum) * 100)}%</small></span>`).join('')}</div>`;
 };
 const specChips = (list) => `<div class="bs-gems">${list.map((g) => `<span><img src="${gemIcon(g)}" alt="">${GEMS[g].jp}</span>`).join('')}</div>`;
+// 切り替えのボタンの列（on の値が選ばれている）
+const seg = (act, id, items, on) => `<div class="bs-seg">${items.map(([v, label]) => `<button class="${v === on ? 'on' : ''}" data-act="${act}" data-id="${id}" data-v="${v}">${label}</button>`).join('')}</div>`;
+// 人を雇う行（まだ雇っていないとき）
+const BOSS_NAME = { mine: '鉱山長', factory: '工場長', shop: '店長' };
+const BOSS_DO = { mine: `倉庫が ${Math.round(BOSS_SHIP * 100)}% たまると自動で出荷`, factory: '磨き上がった石を、決めた取引所でそのまま売る', shop: '空いた段に自動で並べる' };
+function bossRow(kind, id, o) {
+  if (o.boss) return '';
+  const st = ui.st;
+  if (st.rank < STAFF.r) return `<div><span>${BOSS_NAME[kind]}<small>会社のランク ${STAFF.r} から</small></span></div>`;
+  return `<div><span>${BOSS_NAME[kind]}<small>${BOSS_DO[kind]}</small></span>${btn('boss', '雇う', B.staffCost(kind, id), `data-kind="${kind}" data-id="${id}"`)}</div>`;
+}
+const pct = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v * 100))}%`;
 
 function mineSheet(pid) {
   const st = ui.st, M = MINES[pid], m = st.mines[pid];
@@ -330,13 +350,20 @@ function mineSheet(pid) {
       ${nl ? `<div><span>設備：${nl.name}<small>産出 ×${nl.out}</small></span>${btn('upMine', '強化', B.mineUpCost(st, pid), `data-id="${pid}"`)}</div>` : '<div><span>設備：最大</span></div>'}
       ${ns ? `<div><span>倉庫：${ns.h} 時間分<small>今 ${STORE_LV[m.sl].h} 時間分</small></span>${btn('upStore', '広げる', B.storeUpCost(st, pid), `data-id="${pid}"`)}</div>` : '<div><span>倉庫：最大</span></div>'}
       <div><span>探鉱<small>埋蔵量 +30 日分（手掘りの産出で）</small></span>${btn('explore', '探す', B.exploreCost(st, pid), `data-id="${pid}"`)}</div>
-    </div>`;
+      ${bossRow('mine', pid, m)}
+    </div>${m.boss ? mineBoss(pid, m) : ''}`;
+}
+// 鉱山長の出荷先
+function mineBoss(pid, m) {
+  const st = ui.st, fs = Object.keys(st.factories).filter((fid) => Object.keys(MINES[pid].mix).some((g) => B.canCut(fid, g)));
+  return `<div class="bs-h">鉱山長の出荷先</div>
+    ${fs.length ? `<div class="bs-pick">${fs.map((fid) => `<button class="bs-prow ${m.to === fid ? 'on' : ''}" data-act="mineTo" data-id="${pid}" data-f="${fid}"><span>${icon('factory')}${PLACES[fid].name}</span><small>${minf(B.shipMin(pid, fid))}</small></button>`).join('')}</div>` : '<div class="bs-note">この鉱区の石を磨ける工場がありません</div>'}`;
 }
 const exName = (id) => (EXCHANGES[id].name ? `${PLACES[id].name}・${EXCHANGES[id].name}` : PLACES[id].name);
 
 function factorySheet(pid) {
   const st = ui.st, F = FACTORIES[pid], f = st.factories[pid];
-  const head = `<div class="bs-sub">得意な石</div>${specChips(F.spec)}${F.only ? '<div class="bs-note">ダイヤモンドだけを磨く工場</div>' : ''}`;
+  const head = `<div class="bs-sub">得意な石</div>${specChips(F.spec)}${F.only ? '<div class="bs-note">ダイヤモンドだけを磨く工場</div>' : ''}${F.heat ? '<div class="bs-note">加熱処理が得意</div>' : ''}`;
   const rows = (skill) => `<div><span>腕前</span><b>${Math.round(skill * 100)}</b></div><div><span>手間賃</span><b>石の値打ちの ${Math.round(F.fee * 100)}%</b></div>`;
   if (!f) {
     if (F.r > st.rank) return head + lockLine(F.r);
@@ -356,11 +383,29 @@ function factorySheet(pid) {
     </div>
     ${f.nofund ? '<div class="bs-note warn">資金が足りず、研磨が止まっています</div>' : ''}
     ${Object.keys(q).length ? `<div class="bs-gems">${Object.entries(q).map(([g, ct]) => `<span><img src="${gemIcon(g)}" alt="">${GEMS[g].jp}<small>${ctf(ct)} ct</small></span>`).join('')}</div>` : ''}
+    ${cutPanel(pid, f)}
     <div class="bs-h">強化</div>
     <div class="bs-ups">
       ${nl ? `<div><span>処理の速さ Lv ${f.lv + 1}<small>×${nl.cap}</small></span>${btn('upFact', '強化', B.factUpCost(st, pid), `data-id="${pid}"`)}</div>` : '<div><span>処理の速さ：最大</span></div>'}
       ${nc ? `<div><span>職人 ${f.crew + 1} 人目<small>腕前 +${Math.round((nc.skill - CREW[f.crew].skill) * 100)}</small></span>${btn('crew', '雇う', B.crewCost(st, pid), `data-id="${pid}"`)}</div>` : '<div><span>職人：最大</span></div>'}
-    </div>`;
+      ${bossRow('factory', pid, f)}
+    </div>${f.boss ? factBoss(pid, f) : ''}`;
+}
+// 磨き方と処理。歩留まりと品質の上振れは、得意でも処理できる石でもない石での値
+function cutPanel(pid, f) {
+  const plain = BIZ_GEM_IDS.find((g) => B.canCut(pid, g) && !FACTORIES[pid].spec.includes(g) && !BIZ_GEMS[g].treat) || FACTORIES[pid].spec[0];
+  const c = B.cutParams(ui.st, pid, plain);
+  return `<div class="bs-h">磨き方</div>
+    ${seg('policy', pid, [['yield', '歩留まり重視'], ['normal', 'ふつう'], ['shine', '輝き重視']], f.policy || 'normal')}
+    <div class="bs-rows"><div><span>歩留まり</span><b>×${c.yieldMul.toFixed(2)}</b></div><div><span>品質が 1 段上がる</span><b>${Math.round(c.up * 100)}%</b></div></div>
+    ${FACTORIES[pid].only ? '' : `<div class="bs-sub">処理（加熱・含浸）</div>${seg('treat', pid, [['0', 'しない'], ['1', 'する']], f.treat ? '1' : '0')}`}`;
+}
+// 工場長の売り先
+function factBoss(pid, f) {
+  const st = ui.st, exs = Object.keys(EXCHANGES).filter((id) => B.exOpen(st, id));
+  return `<div class="bs-h">工場長の売り先</div>
+    <div class="bs-pick"><button class="bs-prow ${f.out === 'stock' ? 'on' : ''}" data-act="factOut" data-id="${pid}" data-v="stock"><span>${icon('hq')}在庫にためる</span></button>
+    ${exs.map((ex) => `<button class="bs-prow ${f.out === ex ? 'on' : ''}" data-act="factOut" data-id="${pid}" data-v="${ex}"><span>${icon('exchange')}${exName(ex)}</span><small>相場の ${Math.round(EXCHANGES[ex].mul * 100)}%</small></button>`).join('')}</div>`;
 }
 
 function stockRows(exId) {
@@ -381,6 +426,72 @@ function exchangeSheet(pid) {
     <div class="bs-rows"><div><span>買い取り</span><b>相場の ${Math.round(E.mul * 100)}%${E.spec ? '（得意な石は +8%）' : ''}</b></div></div>
     <div class="bs-acts">${btn('sellAll', 'すべて売る', null, `data-ex="${pid}" ${r.total > 0 ? '' : 'disabled'}`, 'primary')}<span class="bs-total">${usd(r.total)}</span></div>
     ${r.html}`;
+}
+
+function shopSheet(pid) {
+  const st = ui.st, S0 = SHOPS[pid], sh = st.shops[pid];
+  const head = `<div class="bs-sub">好まれる石</div>${specChips(S0.likes)}${S0.min ? `<div class="bs-note">品質 ${['C', 'B', 'A', 'S', 'SS'][S0.min]} 以上の石だけ</div>` : ''}${S0.big ? '<div class="bs-note">大きい石が好まれる</div>' : ''}`;
+  const rate = `<div><span>売値</span><b>相場の ${Math.round(S0.mul * 100)}%（好まれる石は +10%）</b></div>`;
+  if (!sh) {
+    if (S0.r > st.rank) return head + lockLine(S0.r);
+    return `${head}<div class="bs-rows">${rate}<div><span>1 時間に売れる量</span><b>${usd(B.shopCapAt(pid, 1))} まで</b></div></div>
+      <div class="bs-acts">${btn('buyShop', '出店する', B.shopPrice(pid), `data-id="${pid}"`, 'primary')}</div>`;
+  }
+  const cap = B.slotCap(st, pid), slots = B.shopSlots(st, pid);
+  const keys = Object.keys(sh.shelf);
+  const rows = keys.map((k) => {
+    const p = B.parseKey(k), e = sh.shelf[k], v = B.lotValue(st, k, e);
+    return `<div class="bs-slot"><img src="${gemIcon(p.gem)}" alt=""><span class="bs-sn">${GEMS[p.gem].jp}<small>${e.n < 10 ? e.n.toFixed(1) : fmt(e.n)} 個・${usd(v * B.shopMul(pid, p.gem))}</small>${bar(v / cap)}</span>${gradeBadge(p.g)}<button class="btn small" data-act="unshelve" data-id="${pid}" data-k="${k}">下げる</button></div>`;
+  }).join('');
+  const empty = slots - keys.length;
+  let pick = '';
+  if (ui.sheet.pick === 'shelf') {
+    const cand = Object.keys(st.stock).filter((k) => B.shopOk(pid, k) && st.stock[k].n >= 0.005)
+      .map((k) => ({ k, p: B.parseKey(k), s: st.stock[k], v: B.lotValue(st, k, st.stock[k]) })).sort((a, b) => (B.shopLikes(pid, b.p.gem) - B.shopLikes(pid, a.p.gem)) || b.v - a.v);
+    pick = `<div class="bs-stock">${cand.length ? cand.map((r) => `<div class="bs-srow"><img src="${gemIcon(r.p.gem)}" alt=""><span class="bs-sn">${GEMS[r.p.gem].jp}${B.shopLikes(pid, r.p.gem) ? '<em class="bs-like">♥</em>' : ''}<small>${PLACES[r.p.origin] ? PLACES[r.p.origin].name : ''}${r.p.treat ? '・処理' : ''}</small></span>${gradeBadge(r.p.g)}<span class="bs-sc">${r.s.n < 10 ? r.s.n.toFixed(1) : fmt(r.s.n)} 個</span><button class="btn small" data-act="shelve" data-id="${pid}" data-k="${r.k}" ${empty > 0 || sh.shelf[r.k] ? '' : 'disabled'}>並べる</button></div>`).join('') : '<div class="bs-note">並べられる石の在庫はありません</div>'}</div>`;
+  }
+  const nl = sh.lv < SHOP_LV.length ? SHOP_LV[sh.lv] : null;
+  return `${head}
+    <div class="bs-rows">${rate}
+      <div><span>1 時間に売れる量</span><b>${usd(B.shopCap(st, pid))} まで</b></div>
+      <div><span>累計の売上</span><b>${usd(sh.sales)}</b></div>
+    </div>
+    <div class="bs-h">棚 ${keys.length} / ${slots} 段</div>
+    <div class="bs-slots">${rows}${empty > 0 ? `<div class="bs-slot empty"><span>空き ${empty} 段</span></div>` : ''}</div>
+    <div class="bs-acts"><button class="btn small ${ui.sheet.pick === 'shelf' ? '' : 'primary'}" data-act="pickShelf">${ui.sheet.pick === 'shelf' ? '閉じる' : '在庫から並べる'}</button></div>${pick}
+    <div class="bs-h">強化</div>
+    <div class="bs-ups">
+      ${nl ? `<div><span>店を広げる<small>棚 ${nl.slots} 段・売れる量 ×${nl.rate}</small></span>${btn('upShop', '強化', B.shopUpCost(st, pid), `data-id="${pid}"`)}</div>` : '<div><span>店：最大</span></div>'}
+      ${bossRow('shop', pid, sh)}
+    </div>`;
+}
+
+// 相場の出来事の文
+const EV_TEXT = {
+  rain: (e) => `${PLACES[e.p].name}で大雨`,
+  strike: (e) => `${PLACES[e.p].name}でストライキ`,
+  vein: (e) => `${PLACES[e.p].name}で大きな鉱脈`,
+  buzz: (e) => `${PLACES[e.p].name}で${GEMS[e.g].jp}が話題`,
+  bridal: () => 'ブライダルの季節',
+  synth: (e) => `合成${GEMS[e.g].jp}の流通`,
+};
+function marketSheet() {
+  const st = ui.st, M = st.market, S = ui.sheet, now = Date.now();
+  const evs = M.events.filter((e) => e.until > now);
+  const own = new Set(Object.keys(st.mines).flatMap((id) => Object.keys(MINES[id].mix)));
+  for (const k in st.stock) own.add(k.split('|')[0]);
+  const list = (S.mtab === 'own' ? BIZ_GEM_IDS.filter((g) => own.has(g)) : BIZ_GEM_IDS).map((g) => ({ g, v: B.idxOf(st, g) })).sort((a, b) => b.v - a.v);
+  const rows = list.map(({ g, v }) => {
+    const prev = M.prev[g] || v, tags = [];
+    if (M.trend[g]) tags.push(`<em class="${M.trend[g] > 1 ? 'up' : 'dn'}">流行 ${pct(M.trend[g] - 1)}</em>`);
+    for (const e of evs) if (e.g === g) tags.push(`<em class="${e.mul > 1 ? 'up' : 'dn'}">出来事 ${pct(e.mul - 1)}</em>`);
+    if ((M.press[g] || 0) >= 0.01) tags.push(`<em class="dn">売りすぎ ${pct(-M.press[g])}</em>`);
+    const arrow = v > prev * 1.005 ? '<i class="up">▲</i>' : v < prev * 0.995 ? '<i class="dn">▼</i>' : '<i></i>';
+    return `<div class="bs-mrow"><img src="${gemIcon(g)}" alt=""><span class="bs-sn">${GEMS[g].jp}<small>${tags.join('')}</small></span><b class="${v >= 1 ? 'up' : 'dn'}">${pct(v - 1)}</b>${arrow}</div>`;
+  }).join('');
+  return `${evs.length ? `<div class="bs-sub">出来事</div><div class="bs-evs">${evs.map((e) => `<div><span>${EV_TEXT[e.k](e)}</span><b class="${e.mul > 1 ? 'up' : 'dn'}">${GEMS[e.g].jp} ${pct(e.mul - 1)}</b><small>あと ${minf((e.until - now) / 60e3)}</small></div>`).join('')}</div>` : ''}
+    <div class="bs-tabs sm"><button class="${S.mtab === 'own' ? 'on' : ''}" data-act="mtab" data-t="own">自社の石</button><button class="${S.mtab === 'all' ? 'on' : ''}" data-act="mtab" data-t="all">すべて</button></div>
+    ${rows ? `<div class="bs-market">${rows}</div>` : '<div class="bs-note">鉱区を持つと、その石の相場が出ます</div>'}`;
 }
 
 function hqSheet() {
@@ -451,6 +562,17 @@ function onSheetClick(e) {
     case 'buyFact': ok = B.buyFactory(st, d.id); sound = 'buy'; break;
     case 'upFact': ok = B.upgradeFactory(st, d.id); sound = 'buy'; break;
     case 'crew': ok = B.hireCrew(st, d.id); sound = 'buy'; break;
+    case 'boss': ok = B.hireBoss(st, d.kind, d.id); sound = 'buy'; break;
+    case 'mineTo': ok = B.setMineTo(st, d.id, d.f); break;
+    case 'factOut': ok = B.setFactOut(st, d.id, d.v); break;
+    case 'policy': ok = B.setPolicy(st, d.id, d.v); break;
+    case 'treat': ok = B.setTreat(st, d.id, d.v === '1'); break;
+    case 'buyShop': ok = B.buyShop(st, d.id); sound = 'buy'; break;
+    case 'upShop': ok = B.upgradeShop(st, d.id); sound = 'buy'; break;
+    case 'pickShelf': ui.sheet.pick = ui.sheet.pick === 'shelf' ? null : 'shelf'; break;
+    case 'shelve': ok = B.shelve(st, d.id, d.k) > 0; sound = 'select'; break;
+    case 'unshelve': ok = B.unshelve(st, d.id, d.k); break;
+    case 'mtab': ui.sheet.mtab = d.t; break;
     case 'sell': ok = B.sellLot(st, d.k, d.ex) > 0; sound = 'coin'; break;
     case 'sellAll': { let v = 0; for (const k of Object.keys(st.stock)) v += B.sellLot(st, k, d.ex); ok = v > 0; sound = 'coin'; break; }
     case 'div': {

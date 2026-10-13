@@ -48,8 +48,8 @@ export const RANKS = [
   { name: '宝石商', need: 500e3, k: 0.75, off: 12, std: 300e3 },
   { name: '卸問屋', need: 5e6, k: 1, off: 14, std: 1e6 },
   { name: '宝石商社', need: 50e6, k: 1.3, off: 16, std: 3e6 },
-  { name: '国際商社', need: 600e6, k: 1.6, off: 20, std: 10e6 },
-  { name: '宝石財閥', need: 6e9, k: 2, off: 24, std: 30e6 },
+  { name: '国際商社', need: 800e6, k: 1.6, off: 20, std: 10e6 },
+  { name: '宝石財閥', need: 12e9, k: 2, off: 24, std: 30e6 },
 ];
 
 // ランクごとの目安：鉱区の Lv1 の産出の値打ち（$/時）と、元が取れるまでの時間（産出の値打ちで何時間分か）。
@@ -193,8 +193,10 @@ export const SHOPS = {
   london: { r: 5, name: 'ボンド・ストリート', mul: 1.7, rate: 5, likes: ['sapphire', 'emerald', 'alexandrite'], min: 3 },
   paris: { r: 6, name: 'ヴァンドーム広場', mul: 1.8, rate: 5, likes: ['diamond', 'ruby', 'emerald', 'redberyl'], min: 3 },
 };
-// 直営店の強化（1 時間に売れる数の倍率と棚の数、店の値段に対する強化の値段）
-export const SHOP_LV = [{ rate: 1, shelf: 12, cost: 0 }, { rate: 1.8, shelf: 20, cost: 1.5 }, { rate: 3, shelf: 32, cost: 4 }, { rate: 5, shelf: 48, cost: 10 }];
+// 直営店の強化：rate 1 時間に売れる量の倍率、slots 棚の段数（1 段に 1 種類の石を並べる）、cost 店の値段に対する強化の値段
+export const SHOP_LV = [{ rate: 1, slots: 4, cost: 0 }, { rate: 1.8, slots: 6, cost: 1.5 }, { rate: 3, slots: 8, cost: 4 }, { rate: 5, slots: 10, cost: 10 }];
+// 直営店が 1 時間に売れる量（相場での値打ち）。その店のランクの鉱区 Lv1 の産出の値打ち × SHOP_CAP × rate
+export const SHOP_CAP = 0.8;
 
 // 鑑定所：fee 値打ちに対する費用、min 1 件にかかる時間（分）
 export const LABS = {
@@ -212,6 +214,18 @@ export const SIGHTS = { gaborone: { r: 5, every: 8 } };
 
 // 人を雇う値段（その施設の値段に対する倍率）とランク
 export const STAFF = { r: 2, mine: 0.5, factory: 0.5, shop: 0.4 };
+// 鉱山長は倉庫がこの割合までたまると出荷する
+export const BOSS_SHIP = 0.25;
+
+// 相場の出来事：mul 相場の倍率の幅、h 続く時間の幅、at どこで起きるか（mine 鉱区の石・shop 直営店の街の好み・gems 決まった石）
+export const MARKET_EVENTS = {
+  rain: { mul: [1.2, 1.3], h: [6, 14], at: 'mine' },
+  strike: { mul: [1.25, 1.4], h: [8, 16], at: 'mine' },
+  vein: { mul: [0.75, 0.85], h: [10, 20], at: 'mine' },
+  buzz: { mul: [1.3, 1.45], h: [6, 12], at: 'shop' },
+  bridal: { mul: [1.15, 1.25], h: [12, 24], gems: ['diamond'] },
+  synth: { mul: [0.8, 0.88], h: [12, 24], gems: ['diamond', 'ruby', 'sapphire', 'emerald'] },
+};
 
 // 施設の種類（地図のピンの優先順と名前）
 export const FAC_KINDS = [
