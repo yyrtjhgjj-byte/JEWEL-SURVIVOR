@@ -5,7 +5,7 @@
 //  新しい要素はハブのカード（HUBS）に足す
 // =====================================================================
 import { SHOP, UPPER_SHOP, ACHIEVEMENTS, ENEMIES } from './data.js';
-import { gemIcon, roughIcon, shopIcon, pickaxeIcon, coinIcon, enemyIcon } from './render.js';
+import { gemIcon, roughIcon, shopIcon, pickaxeIcon, gavelIcon, enemyIcon } from './render.js';
 import { fmt } from './util.js';
 import { audio } from './audio.js';
 import { save } from './save.js';
@@ -16,7 +16,7 @@ import { rankState, rankClass } from './rank.js';
 import { diagCrashes } from './diag.js';
 import {
   show, el, $, showTitle, showShop, showGacha, showZukan, showSettings, showRank, showExchange,
-  coinPill, rankStyle, rankColor, checkUpperShop, lastBackupText,
+  coinPill, rankStyle, rankColor, checkUpperShop, lastBackupText, homeGem,
 } from './ui.js';
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox, trackList } from './jukebox.js';
@@ -33,7 +33,7 @@ let navEl = null;
 let navCat = null;
 
 function navIcon(id) {
-  if (id === 'home') return `<img src="${gemIcon(save.selected, 64)}" alt="">`;
+  if (id === 'home') return `<img src="${gemIcon(homeGem, 64)}" alt="">`;
   if (id === 'power') return `<img src="${shopIcon('might', 64)}" alt="">`;
   if (id === 'jewel') return `<img src="${roughIcon('large', ROUGH.large.color, 64)}" alt="">`;
   if (id === 'archive') return `<img src="${enemyIcon('boss3', 24)}" alt="">`;
@@ -98,8 +98,8 @@ const HUBS = {
     return [
       { id: 'polish', en: 'POLISH', jp: '研磨', c: '#e0b8ff', wide: true, icon: img(roughIcon('mystic', ROUGH.mystic.color, 120)), s: `原石 ${rough} 個`, badge: rough ? String(rough > 99 ? '99+' : rough) : '', go: () => showAtelier('polish') },
       { id: 'mining', en: 'MINING', jp: '採掘', c: '#c9a36a', icon: img(pickaxeIcon(96)), s: `ジェムダスト ${fmt(save.dust || 0)}`, go: showGacha },
-      { id: 'auction', en: 'AUCTION', jp: 'オークション', c: '#ffd24a', icon: img(coinIcon(96)), s: lot ? `開催中 LOT ${sess.cur + 1} / ${sess.lots.length}` : 'この回は終了', badge: lot && sess.cur === 0 ? 'NEW' : '', go: () => showAtelier('auction') },
-      { id: 'collection', en: 'COLLECTION', jp: 'コレクション', c: '#ff4d6d', icon: img(gemIcon(save.selected, 96)), s: `${collectionCount()} / ${COLLECTION_IDS.length} 種`, go: () => showAtelier('collection') },
+      { id: 'auction', en: 'AUCTION', jp: 'オークション', c: '#ffd24a', icon: img(gavelIcon(96)), s: lot ? `開催中 LOT ${sess.cur + 1} / ${sess.lots.length}` : 'この回は終了', badge: lot && sess.cur === 0 ? 'NEW' : '', go: () => showAtelier('auction') },
+      { id: 'collection', en: 'COLLECTION', jp: 'コレクション', c: '#ff4d6d', icon: img(gemIcon('ruby', 96)), s: `${collectionCount()} / ${COLLECTION_IDS.length} 種`, go: () => showAtelier('collection') },
       { id: 'beasts', en: 'BEASTS', jp: '百獣', c: '#7fd0ff', icon: img(beastIcon(beasts[0] || 'sapphire', 96)), s: `召喚 ${beasts.length} / ${BEAST_IDS.length}`, go: () => showAtelier('beasts') },
     ];
   } },

@@ -419,6 +419,90 @@ export function pickaxeIcon(size = 120) {
   return u;
 }
 
+// オークションの木槌（ガベル）と、打ちつける台
+export function gavelIcon(size = 120) {
+  const key = 'gavel:' + size;
+  let u = iconCache.get(key);
+  if (u) return u;
+  const c = iconBegin(size * 2, size * 2);
+  const ctx = c.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.translate(size / 2, size / 2);
+  const s = size;
+  ctx.lineJoin = 'round';
+  const wood = (x0, y0, x1, y1) => {
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, '#e0a868');
+    g.addColorStop(0.45, '#9a5f2c');
+    g.addColorStop(1, '#4a2a12');
+    return g;
+  };
+  // 台：丸い木の台（側面と上面）と金の縁
+  const bx = s * 0.08, by = s * 0.3, rx = s * 0.34, ry = s * 0.1, th = s * 0.08;
+  ctx.beginPath();
+  ctx.ellipse(bx, by + th, rx, ry, 0, 0, Math.PI);
+  ctx.lineTo(bx - rx, by);
+  ctx.ellipse(bx, by, rx, ry, 0, Math.PI, 0, true);
+  ctx.closePath();
+  ctx.fillStyle = wood(bx - rx, 0, bx + rx, 0);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(20,12,6,0.9)';
+  ctx.lineWidth = s * 0.012;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(bx, by, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = wood(bx, by - ry, bx, by + ry);
+  ctx.fill();
+  ctx.strokeStyle = '#f1c35a';
+  ctx.lineWidth = s * 0.016;
+  ctx.stroke();
+  // 木槌：柄と頭を右上から振り下ろす向きに
+  ctx.save();
+  ctx.translate(-s * 0.04, -s * 0.06);
+  ctx.rotate(-0.62);
+  // 柄
+  ctx.beginPath();
+  ctx.roundRect(-s * 0.035, -s * 0.02, s * 0.07, s * 0.5, s * 0.03);
+  ctx.fillStyle = wood(-s * 0.035, 0, s * 0.035, 0);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(20,12,6,0.9)';
+  ctx.lineWidth = s * 0.012;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.roundRect(-s * 0.045, s * 0.4, s * 0.09, s * 0.1, s * 0.035);
+  ctx.fillStyle = '#5a3416';
+  ctx.fill();
+  ctx.stroke();
+  // 頭（横向きの円柱）と金の帯
+  const hw = s * 0.5, hh = s * 0.2;
+  ctx.beginPath();
+  ctx.roundRect(-hw / 2, -hh / 2 - s * 0.06, hw, hh, s * 0.05);
+  ctx.fillStyle = wood(0, -hh / 2 - s * 0.06, 0, hh / 2 - s * 0.06);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#f1c35a';
+  for (const x of [-hw / 2 + s * 0.06, hw / 2 - s * 0.1]) {
+    ctx.beginPath();
+    ctx.rect(x, -hh / 2 - s * 0.06, s * 0.04, hh);
+    ctx.fill();
+  }
+  // 端の面（明るい木口）
+  ctx.fillStyle = 'rgba(255,220,170,0.28)';
+  ctx.beginPath();
+  ctx.roundRect(-hw / 2 + s * 0.01, -hh / 2 - s * 0.05, s * 0.03, hh - s * 0.02, s * 0.015);
+  ctx.fill();
+  // 上面の照り
+  ctx.fillStyle = 'rgba(255,240,215,0.35)';
+  ctx.beginPath();
+  ctx.roundRect(-hw / 2 + s * 0.06, -hh / 2 - s * 0.045, hw - s * 0.12, s * 0.035, s * 0.02);
+  ctx.fill();
+  ctx.restore();
+  sparkle(ctx, s * 0.32, s * 0.2, s * 0.05, '#ffffff');
+  u = iconEnd(c);
+  iconCache.set(key, u);
+  return u;
+}
+
 // コイン報酬のアイコン（3枚重ねの金貨）
 export function coinIcon(size = 72) {
   const key = 'coin:' + size;
