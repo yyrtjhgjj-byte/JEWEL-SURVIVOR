@@ -433,7 +433,7 @@ function stockRows(exId) {
 function exchangeSheet(pid) {
   const st = ui.st, E = EXCHANGES[pid];
   if (E.r > st.rank) return lockLine(E.r);
-  if (E.show && !B.exOpen(st, pid)) return `<div class="bs-note">宝石ショーの日（毎週 土曜・日曜）だけ開きます</div><div class="bs-rows"><div><span>買い取り</span><b>相場の ${Math.round(E.mul * 100)}%</b></div></div>`;
+  if (E.show && !B.exOpen(st, pid)) return `<div class="bs-note">毎年の宝石ショーの時期（1 月末〜2 月中旬）だけ開きます</div><div class="bs-rows"><div><span>買い取り</span><b>相場の ${Math.round(E.mul * 100)}%</b></div></div>`;
   const r = stockRows(pid);
   return `${E.spec ? `<div class="bs-sub">高く買う石</div>${specChips(E.spec)}` : ''}
     <div class="bs-rows"><div><span>買い取り</span><b>相場の ${Math.round(E.mul * 100)}%${E.spec ? '（得意な石は +8%）' : ''}</b></div></div>

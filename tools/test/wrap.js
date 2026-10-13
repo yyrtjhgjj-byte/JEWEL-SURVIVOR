@@ -179,7 +179,7 @@ async function fullSave(p) {
       await p.evaluate(() => document.querySelector('[data-act="mtab"][data-t="all"]')?.click());
       await check('biz-market-all');
       await p.evaluate(() => document.querySelector('.bz-sheet [data-act="close"]')?.click());
-      for (const id of ['tokyo', 'ratnapura', 'minas', 'jaipur', 'bangkok', 'paris', 'geneva', 'carlsbad', 'gaborone', 'tucson', 'newyork']) {
+      for (const id of ['tokyo', 'ratnapura', 'minas', 'jaipur', 'chanthaburi', 'gdansk', 'paris', 'geneva', 'carlsbad', 'gaborone', 'tucson', 'newyork']) {
         await p.evaluate((id) => document.querySelector(`.bzpin[data-p="${id}"]`)?.click(), id);
         await check('biz-' + id);
         // 施設の種類のタブ（本社なら会社・在庫のタブも）を順に押す。押すとタブの数が変わることがある

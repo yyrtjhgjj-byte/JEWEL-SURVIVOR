@@ -6,7 +6,7 @@
 import {
   BIZ_GEMS, BIZ_GEM_IDS, GRADE_MUL, RANKS, TIER, PLACES, MINES, MINE_LV, STORE_LV, FACTORIES, FACT_LV, CREW, EXCHANGES,
   SHOPS, SHOP_LV, SHOP_CAP, STAFF, BOSS_SHIP, MARKET_EVENTS,
-  LABS, LAB_MIN, AUCTIONS, AUCTION_MUL, SIGHTS, ORDERS, CLIENT_PLACES, CLIENT_KINDS, SHOW_DAYS,
+  LABS, LAB_MIN, AUCTIONS, AUCTION_MUL, SIGHTS, ORDERS, CLIENT_PLACES, CLIENT_KINDS, SHOW_SEASON,
 } from './biz-data.js';
 
 const HOUR = 3600e3;
@@ -65,7 +65,7 @@ export const canCut = (fid, gem) => (FACTORIES[fid].only ? FACTORIES[fid].only.i
 export const queueWork = (f) => f.queue.reduce((s, e) => s + e.ct * refVal(e.k.split('|')[0]), 0);
 
 // ---------------------------------------------------------------- 状態
-export const BIZ_VER = 3;
+export const BIZ_VER = 4;
 export function newBiz(now) {
   const st = {
     v: BIZ_VER, cash: 12000, last: now, rank: 1, view: null, rng: (now ^ 0x9e3779b9) >>> 0,
@@ -79,7 +79,8 @@ export function newBiz(now) {
   newMarket(st, now);
   return st;
 }
-// 古い形の状態を今の形にする（v1：相場・直営店・人を雇う より前、v2：鑑定・オークション・サイト・注文 より前）
+// 古い形の状態を今の形にする（v1：相場・直営店・人を雇う より前、v2：鑑定・オークション・サイト・注文 より前、
+// v3：タイの工場がバンコクにあったころ。実際の研磨と加熱処理の中心のチャンタブリーへ移す）
 export function migrateBiz(st) {
   if (st.v >= BIZ_VER) return;
   if (st.v < 2) {
@@ -92,6 +93,12 @@ export function migrateBiz(st) {
   if (st.v < 3) {
     st.labs = []; st.auctions = {}; st.orders = { list: [], next: st.last }; st.sight = { next: 0, store: {} };
     st.stat = { cert: 0, auction: 0, order: 0, sight: 0 };
+  }
+  if (st.v < 4 && st.factories.bangkok) {
+    st.factories.chanthaburi = st.factories.bangkok;
+    delete st.factories.bangkok;
+    for (const sh of st.ships) if (sh.to === 'bangkok') sh.to = 'chanthaburi';
+    for (const id in st.mines) if (st.mines[id].to === 'bangkok') st.mines[id].to = 'chanthaburi';
   }
   st.v = BIZ_VER;
 }
@@ -293,8 +300,12 @@ export function lotValue(st, k, s, mul = 1) {
   }
   return v;
 }
-// ツーソンは宝石ショーの日（SHOW_DAYS の曜日）だけ開く
-export const showOpen = (t) => SHOW_DAYS.includes(new Date(t).getDay());
+// ツーソンは毎年の宝石ショーの期間（SHOW_SEASON）だけ開く
+export function showOpen(t) {
+  const d = new Date(t), md = (d.getMonth() + 1) * 100 + d.getDate();
+  const { from, to } = SHOW_SEASON;
+  return md >= from[0] * 100 + from[1] && md <= to[0] * 100 + to[1];
+}
 export const exOpen = (st, id, t = st.last) => EXCHANGES[id].r <= st.rank && (!EXCHANGES[id].show || showOpen(t));
 export function exMul(id, gem, size) {
   const E = EXCHANGES[id];
