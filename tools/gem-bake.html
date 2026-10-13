@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>宝石の画像の書き出し</title>
+<style>body{margin:0;background:#07070d;color:#ddd;font-family:sans-serif}.g{display:flex;flex-wrap:wrap;gap:6px;padding:10px}.g img{width:128px;height:128px;background:radial-gradient(#1d1830,#0b0a12);border-radius:10px}</style>
+</head><body>
+<div class="g" id="g"></div>
+<script type="module">
+// js/gem-gl.js の計算で、宝石のアイコン（img/gems/*.webp）を書き出す。
+// 書き出しは tools/test/gem-bake.js が window.bake を呼んで保存する。このページを開くだけでも一覧で見られる
+import { GEM_LOOK, bakeGem } from '../js/gem-gl.js';
+window.bake = (id, size) => bakeGem(id, size);
+window.gemIds = Object.keys(GEM_LOOK);
+const g = document.getElementById('g');
+// 書き出しの script から開いたとき（?bake）は一覧を描かない
+if (!location.search.includes('bake')) for (const id of window.gemIds) {
+  const im = document.createElement('img');
+  im.src = bakeGem(id, 128);
+  im.title = id;
+  g.appendChild(im);
+}
+window.ready = true;
+</script>
+</body></html>

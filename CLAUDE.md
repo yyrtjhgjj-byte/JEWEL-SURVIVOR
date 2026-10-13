@@ -45,6 +45,7 @@
 - 大きい背景の光（.rays）を入れるスクロールする画面は `.rays-clip` で包む（スクロールの範囲が光の分だけ広がるため）。はみ出しうる画面の中央寄せは前後の余白 auto で行う（justify-content: center だと上側に届かない）。
 - コイン報酬のアイコンは coinIcon。ユーザーランクは称号の素材の見た目（`.rk-mat` ＋ `.rk-acrylic` / `.rk-glass` / `.rk-crystal`。タイトル左上のチップ・詳細の板・称号の段で共通）。
 - ステージのカード（ステージ選択・図鑑）の背景は scene-art.js の風景（`has-scene` と `--scene`。ui.js の paintScenes が、描き済みはすぐ、まだのものは 1 枚ずつ間をあけて描いて貼る）。カードを選んだときは作り直さず選択の枠だけ付け替える（markSel。作り直すと風景がちらつく）。
+- 宝石の絵は光線追跡（gem-gl.js。カットを平面の集合で作り、屈折・全反射・分散・吸収を計算する。不透明な石はカボション・カット面・丸く磨いた石の描き方）。アイコン（gemIcon）は書き出した画像 `img/gems/<id>.webp` を返す。ホームとジュエル選択の宝石は mountLiveGem でその場で描く（画像の横にキャンバスを置いて入れ替える。キャンバスと WebGL はアプリで 1 つを使い回し、画像が画面から外れると止まる。WebGL が使えないときは画像のまま）。ゲーム中の弾などの小さな宝石は gem-art.js の絵（gemSprite）。見た目を変えたら tools/test/gem-bake.js で書き出し直して画像もコミットする。
 - ジュエル選択の宝石は額装（case-art.js。奥のベルベット `showcaseBack` は宝石の色の彩度を大きく落としてうっすら乗せる、手前の枠 `showcaseFront` は共通の 1 枚。宝石は gemIcon の img を間に置き、影の位置は `CASE_GEM` と CSS の `.sc-gem` で合わせる）。
 - 実績はメダル（ui.js の medalTier で報酬から 銅・銀・金・虹、`.medal`）。図鑑の敵はモンスターカード（`.mon`。未遭遇はシルエット、ボスは金の額縁）、武器・チャームは属性の色の縁取り（`.gemcard`）。
 
@@ -53,7 +54,7 @@
 
 ## 3. 構成
 
-素の JavaScript（ES Modules）＋ Canvas 2D。ビルドも依存パッケージもなし。絵も音もすべてコードで生成（アイコン PNG だけ tools/icon.html から書き出す）。iPhone の Safari（ホーム画面に追加した PWA）向け。
+素の JavaScript（ES Modules）＋ Canvas 2D。ビルドも依存パッケージもなし。絵も音もすべてコードで生成（アプリのアイコン PNG は tools/icon.html、宝石のアイコン img/gems/*.webp は js/gem-gl.js の計算で書き出す）。iPhone の Safari（ホーム画面に追加した PWA）向け。
 
 公開 URL：`https://yyrtjhgjj-byte.github.io/JEWEL-SURVIVOR/`（この環境からは開けない。デプロイの成否は GitHub Actions で確認する）
 
@@ -69,6 +70,8 @@
 | js/hazards.js | ステージのギミック |
 | js/elements.js | 属性（効果の説明文 `ELEMENTS` もここ） |
 | js/render.js / gem-art.js / artifact-art.js / shop-art.js / scene-art.js / case-art.js | スプライト・アイコン・ステージの風景・ジュエル選択の額装の絵（キャッシュ付き） |
+| js/gem-gl.js | 宝石の光線追跡（WebGL2）。見た目の数値 `GEM_LOOK`、その場で描く `mountLiveGem`、画像の書き出し `bakeGem` |
+| img/gems/ | 宝石のアイコン（gem-gl.js で書き出した画像。tools/gem-bake.html と tools/test/gem-bake.js） |
 | js/fx.js | パーティクル・ダメージ数字・揺れ・フラッシュ |
 | js/audio.js | WebAudio の効果音と BGM |
 | js/ui.js | 全画面（タイトル〜リザルト、HUD、バナー） |
@@ -236,7 +239,7 @@
 - 毎フレーム描くものに shadowBlur を使わない（ぼかしは絵を 1 度だけ作って使い回す）。
 
 **宝石を追加するとき**
-1. data.js の `GEMS` と gem-art.js の `GEM_CUT`（基本はその宝石で一般的なカット。見た目の好みが優先）
+1. data.js の `GEMS`、gem-gl.js の `GEM_LOOK`（基本はその宝石で一般的なカット。見た目の好みが優先）と画像の書き出し（tools/test/gem-bake.js。sw.js の宝石の一覧にも足す）、ゲーム中の小さな絵の gem-art.js の `GEM_CUT`
 2. チャームなら `PASSIVES`、武器なら `WEAPONS`・weapons.js の LOGIC・`CHARACTERS`
 3. elements.js の `GEM_ELEMENT`
 4. atelier.js の `MASTERY_BONUS` と `ABUNDANCE`
@@ -249,7 +252,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v117`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v118`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
@@ -296,6 +299,7 @@ node tools/test/wbench.js                          # 武器の潜在火力（進
 node tools/test/sim.js out.jsonl 4 ruby:void:0:none:1:3:view   # ランのシミュレーション（キャラ:ステージ:ヒート:工房 none/half/max:無敵:回数:view）
 node tools/test/clear.js                           # 全ステージの最終ボス撃破〜リザルト
 SIZES=375x667 node tools/test/wrap.js              # 折り返しとボタンの見切れ
+node tools/test/gem-bake.js [ruby,opal]            # 宝石のアイコンを書き出す（img/gems。省くと全部）
 ```
 
 - テストは変えた箇所に絞る。clear.js はステージ・ボスを変えたときだけ、wrap.js は文字や画面を変えたときだけ（SE の画面のみ）。

@@ -1,11 +1,12 @@
 // =====================================================================
-//  絵：ぜんぶ コードで かく（画像ファイル不要）
+//  絵：ぜんぶ コードで かく（宝石のアイコンだけは、js/gem-gl.js の計算で書き出した画像）
 // =====================================================================
 import { GEMS } from './data.js';
 import { TAU, mix, rgba } from './util.js';
 import { drawArtifact } from './artifact-art.js';
 import { drawShopIcon } from './shop-art.js';
 import { drawCutGem } from './gem-art.js';
+import { gemImage } from './gem-gl.js';
 import { diagCanvas } from './diag.js';
 
 const RES = 2; // スプライトの 解像度倍率
@@ -546,19 +547,9 @@ export function coinIcon(size = 72) {
   return u;
 }
 
-export function gemIcon(id, size = 72) {
-  const key = id + ':' + size;
-  let u = iconCache.get(key);
-  if (u) return u;
-  const g = GEMS[id];
-  const c = iconBegin(size * 2, size * 2);
-  const ctx = c.getContext('2d');
-  ctx.scale(2, 2);
-  ctx.translate(size / 2, size / 2);
-  drawCutGem(ctx, size * 0.36, g, id);
-  u = iconEnd(c);
-  iconCache.set(key, u);
-  return u;
+// 宝石のアイコン：光線追跡で書き出した画像（js/gem-gl.js）。大きさによらず同じ画像を縮めて使う
+export function gemIcon(id) {
+  return gemImage(id);
 }
 
 // キラキラ（加算合成用）
