@@ -22,7 +22,7 @@ function makeCanvas(w, h) {
 // iOS の Safari はキャンバスのメモリに上限があり、捨てたキャンバスもしばらく数えられたままになるので、作っては捨てるを繰り返さない。
 // 使い終わったら 1×1 に縮めてメモリを手放す
 const iconCanvas = makeCanvas(1, 1);
-function iconBegin(w, h) {
+export function iconBegin(w, h) {
   iconCanvas.width = Math.ceil(w);
   iconCanvas.height = Math.ceil(h);
   return iconCanvas;

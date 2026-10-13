@@ -38,7 +38,9 @@
 - 高さ上限つきのスクロールパネル（.gem-detail / .exch / .at-sum）の子は `flex-shrink: 0`。
 - 品質・レア度の色：SS/UR 虹 ／ S/SSR 金 ／ A/SR 紫 ／ B/R 青 ／ C/N 緑（レベルアップのカードだけ N は白）。良い順の並びは howto.js の `RARITY_ORDER`（遊び方とレベルアップ画面に出る。色を変えたらここも直す）。レベルアップのカードのレア度は計算で決めるが、持っている武器の進化用チャーム（新規）は UR、リミットブレイクは R に固定。
 - 大きい背景の光（.rays）を入れるスクロールする画面は `.rays-clip` で包む（スクロールの範囲が光の分だけ広がるため）。はみ出しうる画面の中央寄せは前後の余白 auto で行う（justify-content: center だと上側に届かない）。
-- コイン報酬のアイコンは coinIcon。タイトル左上のランクは称号の素材の見た目（`.rank-chip.rk-acrylic` / `.rk-glass` / `.rk-crystal`）。
+- コイン報酬のアイコンは coinIcon。ユーザーランクは称号の素材の見た目（`.rk-mat` ＋ `.rk-acrylic` / `.rk-glass` / `.rk-crystal`。タイトル左上のチップ・詳細の板・称号の段で共通）。
+- ステージのカード（ステージ選択・図鑑）の背景は scene-art.js の風景（`has-scene` と `--scene`。ui.js の paintScenes が 1 枚ずつ間をあけて描いて貼る）。
+- 実績はメダル（ui.js の medalTier で報酬から 銅・銀・金・虹、`.medal`）。図鑑の敵はモンスターカード（`.mon`。未遭遇はシルエット、ボスは金の額縁）、武器・チャームは属性の色の縁取り（`.gemcard`）。
 
 **音**
 - 大きい音（爆発・MIRACLE）は audio.js の `voice('loud', 3, …)` で同時数を抑える。アイテムのボムは `bomb(true)` で必ず鳴らし、灼熱鉱脈の噴火は `bomb(false, 2)`。
@@ -60,7 +62,7 @@
 | js/enemies.js | 特殊な敵とボスの AI |
 | js/hazards.js | ステージのギミック |
 | js/elements.js | 属性（効果の説明文 `ELEMENTS` もここ） |
-| js/render.js / gem-art.js / artifact-art.js / shop-art.js | スプライトとアイコンの絵（キャッシュ付き） |
+| js/render.js / gem-art.js / artifact-art.js / shop-art.js / scene-art.js | スプライト・アイコン・ステージの風景の絵（キャッシュ付き） |
 | js/fx.js | パーティクル・ダメージ数字・揺れ・フラッシュ |
 | js/audio.js | WebAudio の効果音と BGM |
 | js/ui.js | 全画面（タイトル〜リザルト、HUD、バナー） |
@@ -239,7 +241,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v109`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v110`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh

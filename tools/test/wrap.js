@@ -26,6 +26,8 @@ function findOrphans(label) {
     const b = blockOf(n);
     if (!b || !b.offsetParent || b.closest('#hud')) continue;
     if (b.closest('.ztext, .zevo, .lore, .gd-lore, .gd-fr, .gd-trivia, .gd-desc, .howto-body')) continue; // 図鑑・ジュエル選択の長い説明文は、ふつうの折り返しでよい（ユーザーの判断）
+    // 傾けた帯（図鑑のボスのリボン）は、文字の位置が斜めにずれて折り返しに見えるので数えない
+    if (b.closest('.mon-rib')) continue;
     if (!groups.has(b)) groups.set(b, []);
     groups.get(b).push(n);
   }

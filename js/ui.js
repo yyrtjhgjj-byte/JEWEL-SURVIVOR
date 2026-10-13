@@ -11,13 +11,14 @@ import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from '
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter } from './stages.js';
 import { fmt, fmtTime, pick } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
-import { rankClass, rankNeed, rankCoinMul, rankState } from './rank.js';
+import { rankClass, rankNeed, rankCoinMul, rankState, RANK_CLASSES } from './rank.js';
 import { HOWTO, HOWTO_INTRO, RARITY_ORDER } from './howto.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox } from './jukebox.js';
+import { stageScene } from './scene-art.js';
 import { BREAK_TIME, trainDummyHp } from './game.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -155,21 +156,31 @@ const rankStyle = (lv) => `rk-${rankClass(lv).en.toLowerCase()}`;
 const rankColor = (lv) => { const c = rankClass(lv).color; return c === 'prism' ? '#e6c8ff' : c; };
 function rankChip() {
   const r = rankState();
-  return `<button class="rank-chip ${rankStyle(r.lv)}" id="t-rank" style="--rk:${rankColor(r.lv)}"><small>RANK</small><b>${r.lv}</b><i style="width:${(r.xp / rankNeed(r.lv)) * 100}%"></i></button>`;
+  return `<button class="rank-chip rk-mat ${rankStyle(r.lv)}" id="t-rank" style="--rk:${rankColor(r.lv)}"><small>RANK</small><b>${r.lv}</b><i style="width:${(r.xp / rankNeed(r.lv)) * 100}%"></i></button>`;
 }
 function showRank() {
   const r = rankState();
   const cls = rankClass(r.lv);
   const need = rankNeed(r.lv);
   const pct = (m) => ((m - 1) * 100).toFixed(1);
-  const ov = el(`<div class="screen dim at-over">
-    <div class="panel rank-card" style="--rk:${rankColor(r.lv)}">
+  const idx = RANK_CLASSES.indexOf(cls);
+  const next = RANK_CLASSES[idx + 1];
+  // 称号の段：アクリル・グラス・クリスタルを素材の板で並べ、今の称号に枠を付ける
+  let from = 1;
+  const ladder = RANK_CLASSES.map((c, i) => {
+    const range = c.max === Infinity ? `${from}〜` : `${from}〜${c.max}`;
+    from = c.max + 1;
+    return `<div class="rkp-step rk-mat rk-${c.en.toLowerCase()} ${i === idx ? 'now' : i > idx ? 'future' : ''}">${c.name}<small>RANK ${range}</small></div>`;
+  }).join('');
+  const ov = el(`<div class="screen dim at-over rank-over">
+    <div class="rank-plate rk-mat ${rankStyle(r.lv)}" style="--rk:${rankColor(r.lv)}">
       <div class="label">USER RANK</div>
-      <div class="rk-head"><b class="rk-num">${r.lv}</b><div><div class="rk-cls ${rankStyle(r.lv)}">${cls.name}</div><div class="rk-en">${cls.en}</div></div></div>
-      <div class="rk-bar"><i style="width:${(r.xp / need) * 100}%"></i></div>
-      <div class="rk-next">次のランクまで <b>${fmt(need - r.xp)}</b> EXP</div>
+      <div class="rkp-ring" style="--p:${((r.xp / need) * 100).toFixed(1)}"><b class="rkp-num">${r.lv}</b></div>
+      <div class="rkp-cls">${cls.name}<span>${cls.en}</span></div>
+      <div class="rk-next">次のランクまで <b>${fmt(need - r.xp)}</b> EXP${next ? `<br>${next.name}まで あと <b>${cls.max + 1 - r.lv}</b> ランク` : ''}</div>
+      <div class="rkp-ladder">${ladder}</div>
       <div class="rrow2"><span>獲得コイン</span><b>+${pct(rankCoinMul(r.lv))}%<span class="up">→ +${pct(rankCoinMul(r.lv + 1))}%</span></b></div>
-      <button class="btn" id="ok" style="margin-top:8px">閉じる</button>
+      <button class="btn" id="ok">閉じる</button>
     </div></div>`);
   $('#screens').appendChild(ov);
   $('#ok', ov).onclick = () => { audio.tap(); ov.remove(); };
@@ -310,7 +321,13 @@ export function showCharSelect() {
     const aw = save.awaken[sel] || 0;
     $('#detail', node).innerHTML = `
       <div class="char-detail">
-        <img src="${gemIcon(sel, 160)}" style="${unlocked ? `filter:drop-shadow(0 0 18px ${gemColor(sel)})` : 'filter:grayscale(1) brightness(.3)'}">
+        <div class="showcase ${unlocked ? '' : 'locked'}" style="--c:${gemColor(sel)}">
+          <div class="sc-rays"></div><div class="sc-spot"></div>
+          <div class="sc-ped"></div>
+          <img class="sc-gem" src="${gemIcon(sel, 200)}">
+          <i class="sc-spark" style="left:22%;top:30%"></i><i class="sc-spark" style="left:74%;top:20%;animation-delay:.8s"></i><i class="sc-spark" style="left:66%;top:58%;animation-delay:1.5s"></i>
+          ${aw ? `<span class="sc-aw">★${aw}</span>` : ''}
+        </div>
         <div>
           <div class="name">${unlocked ? g.jp : '???'}</div>
           <div class="sub"><span class="en">${g.en}</span>${wordTag(sel)}</div>
@@ -351,6 +368,25 @@ export const upperLv = (id) => ((save.upgrades2Off || {})[id] ? 0 : (save.upgrad
 function stageRec(id) { return save.stages[id] || {}; }
 export function stageUnlocked(st) {
   return st.no === 1 || !!stageRec(STAGES[st.no - 2].id).cleared;
+}
+// ステージのカードに風景を貼る。描いていない風景は 1 枚ずつ間をあけて描く（画面を開くのが遅くならないように）
+function paintScenes(cards) {
+  const todo = [];
+  for (const [card, st] of cards) {
+    card.classList.add('has-scene');
+    todo.push([card, st]);
+  }
+  const step = () => {
+    const it = todo.shift();
+    if (!it) return;
+    const [card, st] = it;
+    if (card.isConnected) {
+      const u = stageScene(st.id, st.no);
+      if (u) card.style.setProperty('--scene', `url(${u})`);
+    }
+    if (todo.length) setTimeout(step, 16);
+  };
+  step();
 }
 export function showStageSelect() {
   let sel = STAGE_BY_ID[save.selectedStage] && stageUnlocked(STAGE_BY_ID[save.selectedStage]) ? save.selectedStage : 'wastes';
@@ -551,6 +587,7 @@ export function showStageSelect() {
       }
       return;
     }
+    const scenes = [];
     if (ch === 'boss') {
       // BOSS モード：ステージごとに、そのステージのボスたちを並べる
       for (const c of CHAPTERS) {
@@ -565,9 +602,11 @@ export function showStageSelect() {
             ${ok ? `<div class="rush-boss">${bosses.map((id) => `<img src="${enemyIcon(ENEMIES[id].sprite || id, Math.min(ENEMIES[id].r, 40), ENEMIES[id].tint)}">`).join('')}</div>` : `<div class="st-desc">🔒 STAGE ${st.no} をクリアで解放</div>`}
           </button>`);
           if (ok) card.onclick = () => { rsel = st.id; save.rushStage = st.id; audio.cardFlip(st.no); render(); renderRush(); };
+          if (ok) scenes.push([card, st]);
           list.appendChild(card);
         }
       }
+      paintScenes(scenes);
       return;
     }
     for (const st of STAGES.filter((x) => x.chapter === ch)) {
@@ -580,8 +619,10 @@ export function showStageSelect() {
         ${open ? `<div class="st-meta"><span>${st.hazardText}</span><span>${fmtTime(st.time)}</span>${rec.best ? `<span>最長 ${fmtTime(rec.best)}</span>` : ''}</div>` : ''}
       </button>`);
       if (open) card.onclick = () => { sel = st.id; audio.cardFlip(st.no); render(); renderOpts(); };
+      if (open) scenes.push([card, st]);
       list.appendChild(card);
     }
+    paintScenes(scenes);
   };
   render();
   renderOpts();
@@ -931,8 +972,8 @@ export function showZukan(tab = 'gems', ch = 1) {
       const g = GEMS[w.gem];
       const seen = save.seen.weapons[id] || save.unlocked[id];
       const evoSeen = save.seen.evos[id];
-      zl.appendChild(el(`<div class="zitem ${seen ? '' : 'unk'}">
-        <img src="${gemIcon(w.gem, 96)}">
+      zl.appendChild(el(`<div class="zitem gemcard ${seen ? '' : 'unk'}" style="--ec:${elemColor(w.gem)}">
+        <div class="gem-ped"><img src="${gemIcon(w.gem, 96)}"></div>
         <div><div class="zname">${g.jp}<span class="en">${g.en}</span></div>${wordTag(w.gem)}
           <div class="ztext"><b>${seen ? w.name : '???'}</b> — ${seen ? w.desc : '未発見'}</div>
           <div class="ztext">${seen ? g.lore : ''}</div>
@@ -945,8 +986,8 @@ export function showZukan(tab = 'gems', ch = 1) {
       const g = GEMS[p.gem];
       const seen = save.seen.passives[id];
       const evoFor = WEAPON_IDS.filter((w) => WEAPONS[w].evo.with === id).map((w) => WEAPONS[w].name);
-      zl.appendChild(el(`<div class="zitem ${seen ? '' : 'unk'}">
-        <img src="${gemIcon(p.gem, 96)}">
+      zl.appendChild(el(`<div class="zitem gemcard ${seen ? '' : 'unk'}" style="--ec:${elemColor(p.gem)}">
+        <div class="gem-ped"><img src="${gemIcon(p.gem, 96)}"></div>
         <div><div class="zname">${g.jp}<span class="en">${g.en}</span></div>${wordTag(p.gem)}
           <div class="ztext">${seen ? `${p.t}（最大Lv${p.max}）` : '未発見'}</div>
           <div class="ztext">${seen ? g.lore || '' : ''}</div>
@@ -958,52 +999,94 @@ export function showZukan(tab = 'gems', ch = 1) {
     const sub = el(`<div class="tabs">${CHAPTERS.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${c.name}</button>`).join('')}</div>`);
     sub.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showZukan('enemies', +b.dataset.c); }));
     zl.appendChild(sub);
+    const grid = el('<div class="mon-grid"></div>');
+    zl.appendChild(grid);
     for (const id of Object.keys(ENEMIES)) {
       const e = ENEMIES[id];
       if (e.prop || e.segment || e.dummy || enemyChapter(id) !== ch) continue;
       const seen = save.seen.enemies[id];
       const icon = enemyIcon(e.sprite || id, Math.min(e.r, 40), e.tint);
-      zl.appendChild(el(`<div class="zitem ${seen ? '' : 'unk'}">
-        <img src="${icon}">
-        <div><div class="zname">${seen ? e.name : '???'}${seen && e.kana ? `<span class="en">${e.kana}</span>` : ''} ${e.boss ? '<span class="rarbadge r-SSR">BOSS</span>' : ''}</div>
-          <div class="ztext">${seen ? e.desc : '未遭遇'}</div>
-          <div class="ztext muted">撃破数 <b style="color:#fff">${fmt(save.kills[id] || 0)}</b></div>
-        </div></div>`));
+      const card = el(`<button class="mon ${seen ? '' : 'unk'} ${e.boss ? 'boss' : ''}" style="--mc:${e.tint || e.color || '#7a64a8'}">
+        ${e.boss ? '<i class="mon-rib">BOSS</i>' : ''}
+        <div class="mon-art"><img src="${icon}"></div>
+        <div class="mon-name">${seen ? e.name : '???'}</div>
+        <div class="mon-kill">${seen ? `撃破 ${fmt(save.kills[id] || 0)}` : '未遭遇'}</div>
+      </button>`);
+      if (seen) card.onclick = () => { audio.tap(); monsterDetail(id, icon); };
+      grid.appendChild(card);
     }
   } else if (tab === 'arts') {
     for (const a of ARTIFACTS) {
       const ok = artifactUnlocked(a.id);
       const ach = ACHIEVEMENTS.find((x) => x.id === a.ach);
-      zl.appendChild(el(`<div class="zitem ${ok ? '' : 'unk'}">
-        <img src="${artifactIcon(a.id, 96)}" style="${ok ? '' : 'filter:grayscale(1) brightness(.4)'}">
+      zl.appendChild(el(`<div class="zitem artcard ${ok ? '' : 'unk'}">
+        <div class="art-frame"><img src="${artifactIcon(a.id, 96)}" style="${ok ? '' : 'filter:grayscale(1) brightness(.4)'}"></div>
         <div><div class="zname">${a.no}　${ok ? a.name : '???'}<span class="en">${a.en}</span></div>
           <div class="ztext">${ok ? a.desc : '未解放'}</div>
           ${ok ? '' : `<div class="zevo">解放条件：${ach ? ach.t : '???'}</div>`}
         </div></div>`));
     }
   } else if (tab === 'stages') {
+    const scenes = [];
     for (const st of STAGES) {
       const rec = stageRec(st.id);
       const open = stageUnlocked(st);
       const bosses = st.events.filter((e) => e.type === 'boss').map((e) => (save.seen.enemies[e.enemy] ? ENEMIES[e.enemy].name : '???'));
-      zl.appendChild(el(`<div class="zitem ${open ? '' : 'unk'}" style="border-left:3px solid ${st.pal.accent}">
+      const item = el(`<div class="zitem ${open ? '' : 'unk'}" style="border-left:3px solid ${st.pal.accent}">
         <div><div class="zname">STAGE ${st.no}　${open ? st.name : '???'}${open ? `<span class="en">${st.en}</span>` : ''}</div>
           <div class="ztext">${open ? st.desc : '未解放'}</div>
           <div class="ztext muted">ギミック：${open ? st.hazardText : '???'} ／ ボス：${open ? bosses.join(' → ') : '???'}</div>
           <div class="zevo">${rec.cleared ? `クリア済み ・ 最高HEAT ${rec.heat || 0} ・ 最長 ${fmtTime(rec.best || 0)}` : rec.best ? `最長 ${fmtTime(rec.best)}` : '未挑戦'}</div>
-        </div></div>`));
+        </div></div>`);
+      if (open) scenes.push([item, st]);
+      zl.appendChild(item);
     }
+    paintScenes(scenes);
   } else {
+    // 実績はメダル（報酬の大きさで 銅・銀・金・虹。キャラの解放つきは銀以上）。上に達成率の輪とメダルごとの数
     const done = ACHIEVEMENTS.filter((a) => save.achievements[a.id]).length;
-    zl.appendChild(el(`<div class="hint">${done} / ${ACHIEVEMENTS.length} 達成</div>`));
+    const tiers = [['bronze', '銅'], ['silver', '銀'], ['gold', '金'], ['prism', '虹']];
+    const cnt = tiers.map(() => [0, 0]);
+    for (const a of ACHIEVEMENTS) { const t = medalTier(a); cnt[t][1]++; if (save.achievements[a.id]) cnt[t][0]++; }
+    zl.appendChild(el(`<div class="panel ach-head">
+      <div class="ach-ring" style="--p:${((done / ACHIEVEMENTS.length) * 100).toFixed(1)}"><b>${done}</b><small>/ ${ACHIEVEMENTS.length}</small></div>
+      <div class="ach-tiers">${tiers.map(([k, n], i) => `<div><span class="medal sm m-${k}"></span><b>${n}</b><i>${cnt[i][0]} / ${cnt[i][1]}</i></div>`).join('')}</div>
+    </div>`));
     for (const a of ACHIEVEMENTS) {
       const ok = save.achievements[a.id];
-      zl.appendChild(el(`<div class="zitem ${ok ? 'done' : ''}">
-        <div class="trophy">${ok ? '◆' : '◇'}</div>
+      const k = tiers[medalTier(a)][0];
+      zl.appendChild(el(`<div class="zitem ach ${ok ? 'done' : ''} t-${k}">
+        <span class="medal m-${k} ${ok ? '' : 'off'}"></span>
         <div><div class="zname">${a.name}</div><div class="ztext">${a.t}</div>
         <div class="zevo">報酬 ${fmt(a.coins)} コイン${a.unlock ? ` ＋ ${GEMS[a.unlock].jp} 解放` : ''}</div></div></div>`));
     }
   }
+}
+
+// 宝石の属性の色（図鑑の縁取り）
+function elemColor(gem) {
+  const k = elemOf(gem);
+  return k ? ELEMENTS[k].color : '#c8c0e8';
+}
+// 図鑑の敵の詳細
+function monsterDetail(id, icon) {
+  const e = ENEMIES[id];
+  const ov = el(`<div class="screen dim at-over">
+    <div class="panel mon-detail ${e.boss ? 'boss' : ''}" style="--mc:${e.tint || e.color || '#7a64a8'}">
+      <div class="mon-art big"><img src="${icon}"></div>
+      <div class="zname">${e.name}${e.kana ? `<span class="en">${e.kana}</span>` : ''}${e.boss ? '<span class="rarbadge r-SSR">BOSS</span>' : ''}</div>
+      <div class="ztext">${e.desc}</div>
+      <div class="ztext muted">撃破数 <b style="color:#fff">${fmt(save.kills[id] || 0)}</b></div>
+      <button class="btn" id="ok">閉じる</button>
+    </div></div>`);
+  $('#screens').appendChild(ov);
+  $('#ok', ov).onclick = () => { audio.tap(); ov.remove(); };
+  ov.onclick = (ev) => { if (ev.target === ov) ov.remove(); };
+}
+// 実績のメダルの段階：0 銅 ／ 1 銀 ／ 2 金 ／ 3 虹
+function medalTier(a) {
+  const t = a.coins >= 10000 ? 3 : a.coins >= 2500 ? 2 : a.coins >= 500 ? 1 : 0;
+  return a.unlock ? Math.max(1, t) : t;
 }
 
 // ================================================================== 設定
