@@ -20,7 +20,7 @@ import { BEASTS, BEAST_IDS, BEAST_COST, jewelStock, beastLevel, beastValue, beas
 
 const TAU = Math.PI * 2;
 
-function gradeBadge(g, big) {
+export function gradeBadge(g, big) {
   const G = GRADES[g];
   return `<span class="grade ${G.color === 'rainbow' ? 'g-rainbow' : ''} ${big ? 'big' : ''}" style="${G.color === 'rainbow' ? '' : `color:${G.color};border-color:${G.color}`}">${G.id}</span>`;
 }

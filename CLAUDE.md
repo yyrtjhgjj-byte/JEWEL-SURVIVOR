@@ -79,6 +79,7 @@
 | js/atelier.js / atelier-ui.js / auction.js / beasts.js | 宝石の研磨・コレクション・オークション・百獣（atelier-ui.js の showAtelier(tab) が各画面） |
 | js/artifacts.js / rank.js | 秘宝、ユーザーランク |
 | js/jukebox.js | ジュークボックス（BGM を聴く画面） |
+| js/biz-data.js / biz.js / biz-map.js / biz-ui.js | 経営（地名と施設の定義・放置の計算・世界地図・画面）。biz.js は DOM もセーブも読まないので Node から動かせる（tools/test/biz-sim.js） |
 | js/diag.js | 動作の記録（落ちたら次の起動で直前の様子を残す。設定画面で見る・コピーする） |
 | js/howto.js | 遊び方の本文（基本のまとめ `HOWTO_INTRO` と項目別の `HOWTO`） |
 | js/gem-facts.js | 実在の宝石の情報（研磨コレクションの詳細画面） |
@@ -252,7 +253,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v121`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v122`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
@@ -301,6 +302,7 @@ node tools/test/clear.js                           # 全ステージの最終ボ
 SIZES=375x667 node tools/test/wrap.js              # 折り返しとボタンの見切れ
 node tools/test/gem-bake.js [ruby,opal]            # 宝石のアイコンと百獣の絵を書き出す（img/gems・img/beasts。省くと全部）
 node tools/test/gem-bake.js all beasts             # 百獣の絵だけ書き出す
+node tools/test/biz-sim.js 40 120 1500             # 経営のバランス（日数、開く間隔（分）、1 ランの平均コイン。ブラウザ不要）
 ```
 
 - テストは変えた箇所に絞る。clear.js はステージ・ボスを変えたときだけ、wrap.js は文字や画面を変えたときだけ（SE の画面のみ）。

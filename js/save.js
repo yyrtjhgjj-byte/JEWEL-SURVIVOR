@@ -10,7 +10,7 @@ function defaults() {
     awaken: {}, // キャラの かくせい（ガチャのダブり）
     selected: 'ruby',
     best: { time: 0, kills: 0, level: 0, damage: 0, coins: 0 },
-    stats: { runs: 0, kills: 0, clears: 0, gacha: 0, polished: 0, polishSS: 0 },
+    stats: { runs: 0, kills: 0, clears: 0, gacha: 0, polished: 0, polishSS: 0, runCoins: 0 }, // runCoins：ランで得たコインの累計（経営の配当の上限に使う）
     achievements: {},
     seen: { weapons: {}, passives: {}, enemies: {}, evos: {} },
     kills: {},
@@ -38,6 +38,7 @@ function defaults() {
     beasts: {}, // 百獣 { gemId: レベル }（beasts.js）
     migrated: {}, // 一度だけ行う移行処理の済み印（main.js の migrateSave）
     tabs: { zukan: 'gems', zukanCh: 1 }, // 図鑑で最後に開いていたタブと敵の章
+    biz: null, // 経営（biz.js の newBiz。最初に開いたときに作る）
   };
 }
 
