@@ -56,14 +56,14 @@ function buildNav() {
   }));
 }
 
-// show() から呼ぶ。cat が無ければ隠す。メニューのある画面ではタイトルの曲に戻す（ジュークボックスは除く）
+// show() から呼ぶ。cat が無ければ隠す。メニューのある画面ではタイトルの曲に戻す（ジュークボックスは除く。経営は経営の曲）
 export function syncNav(cat, node) {
   if (!navEl) buildNav();
   navCat = cat || null;
   navEl.classList.toggle('hidden', !navCat);
   if (!navCat) return;
   refreshNav();
-  if (!(node && node.classList.contains('jukebox-screen'))) audio.playBgm('title');
+  if (!(node && node.classList.contains('jukebox-screen'))) audio.playBgm(node && node.classList.contains('biz-screen') ? 'business' : 'title');
 }
 
 // 光るカテゴリ・アイコン・印（宝石：磨いていない原石の数、経営：配当・満杯の倉庫・止まった工場）を描き直す

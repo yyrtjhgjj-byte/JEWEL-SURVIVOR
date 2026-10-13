@@ -1405,3 +1405,16 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .bzpin.ev-up .bp-ic::before, .bzpin.ev-dn .bp-ic::before { position: absolute; left: -8px; top: -8px; font-size: 10px; line-height: 1; text-shadow: 0 0 4px #000, 0 0 2px #000; }
 .bzpin.ev-up .bp-ic::before { content: '▲'; color: #ffd24a; }
 .bzpin.ev-dn .bp-ic::before { content: '▼'; color: #7fb2ff; }
+.bzpin.news .bp-ic { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 197, 61, 0.7); }
+.bs-tag { font-style: normal; font: 700 10px var(--font); color: var(--gold); margin-left: 5px; }
+.bs-cnt { display: inline-block; min-width: 16px; height: 16px; margin-left: 5px; border-radius: 8px; background: var(--gold); color: #1a1405; font: 700 10px/16px var(--font); font-style: normal; text-align: center; }
+.bs-order { display: flex; flex-direction: column; gap: 6px; padding: 9px 10px; margin-bottom: 6px; background: var(--panel); border: 1px solid var(--line2); border-radius: 12px; }
+.bo-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.bo-h b { font: 700 13px var(--font-jp); word-break: keep-all; }
+.bo-h small { font: 11px var(--font-jp); color: var(--muted); white-space: nowrap; }
+.bo-b { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font: 700 12.5px var(--font-jp); }
+.bo-b img { width: 26px; height: 26px; }
+.bo-b small { margin-left: auto; font: 600 11px var(--font-jp); color: var(--muted); }
+.bo-f { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.bo-f .bs-sv { font-size: 16px; }
+.bo-f .btn { min-width: 96px; flex: none; }
