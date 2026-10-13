@@ -216,9 +216,13 @@ function showHowToDetail() {
   node.querySelectorAll('summary').forEach((s) => s.addEventListener('click', () => audio.tap()));
 }
 
+// ホームの宝石：全種（武器・チャーム）から、ホームを開くたびに選び直す（直前と同じものは避ける）。下のメニューのホームのアイコンも同じ宝石
+export let homeGem = 'ruby';
 export function showTitle() {
   audio.playBgm('title');
-  const cid = save.selected;
+  const ids = Object.keys(GEMS).filter((id) => id !== homeGem);
+  homeGem = pick(ids);
+  const cid = homeGem;
   const g = GEMS[cid];
   const node = el(`
     <div class="screen title-screen" data-nav="home">
