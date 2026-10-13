@@ -1,6 +1,6 @@
 // 経営のバランスを、決まった遊び方で回して確かめる（ブラウザ不要）
 // 使い方：node tools/test/biz-sim.js [日数=30] [確認の間隔（分）=45] [1 ランの平均コイン=1500]
-// 遊び方：起きている 16 時間は間隔ごとに開いて、出荷・売却・いちばん得な買い物をする。寝ている 8 時間は放置。毎日配当を受け取る
+// 遊び方：起きている 16 時間は間隔ごとに開いて、出荷・棚に並べる・売却・いちばん得な買い物・人を雇う。寝ている 8 時間は放置。毎日配当を受け取る
 (async () => {
   const B = await import('../../js/biz.js');
   const D = await import('../../js/biz-data.js');
@@ -48,6 +48,16 @@
         if (cc) o.push({ cost: cc, gain: work * 0.1, act: () => B.hireCrew(st, id), what: 'crew ' + id });
       }
     }
+    // 直営店：卸との差（相場の約 85%）が増える売り上げ
+    for (const id in D.SHOPS) {
+      if (D.SHOPS[id].r > st.rank) continue;
+      const sh = st.shops[id];
+      if (!sh) o.push({ cost: B.shopPrice(id), gain: B.shopCapAt(id, 1) * 0.85, act: () => B.buyShop(st, id), what: 'shop ' + id });
+      else {
+        const c = B.shopUpCost(st, id);
+        if (c) o.push({ cost: c, gain: (B.shopCapAt(id, sh.lv + 1) - B.shopCapAt(id, sh.lv)) * 0.85, act: () => B.upgradeShop(st, id), what: 'shopup ' + id });
+      }
+    }
     return o.filter((x) => x.cost > 0).sort((a, b) => b.gain / b.cost - a.gain / a.cost);
   }
   function visit() {
@@ -58,7 +68,14 @@
       if (fs.length) { fs.sort((a, b) => B.queueWork(st.factories[a]) / B.factCap(st, a) - B.queueWork(st.factories[b]) / B.factCap(st, b)); B.ship(st, id, fs[0], now); }
       if (B.storeTotal(st.mines[id]) > 0 && !fs.length) B.sellRough(st, id);
     }
+    // 直営店の棚に並べてから、残りを卸す
+    for (const id in st.shops) B.autoShelf(st, id);
     for (const k of Object.keys(st.stock)) { const b = B.bestExchange(st, (ex) => B.sellPrice(st, k, ex)); B.sellLot(st, k, b.id); }
+    // 人を雇う：資金の 5% 以下で雇えるなら雇う（鉱山長と店長）
+    if (st.rank >= D.STAFF.r) {
+      for (const id in st.mines) if (!st.mines[id].boss && B.staffCost('mine', id) < st.cash * 0.05) B.hireBoss(st, 'mine', id);
+      for (const id in st.shops) if (!st.shops[id].boss && B.staffCost('shop', id) < st.cash * 0.05) B.hireBoss(st, 'shop', id);
+    }
     // 買い物：手間賃の分を少し残して、得な順に
     for (let i = 0; i < 20; i++) {
       const o = options()[0];
@@ -82,5 +99,7 @@
   }
   console.log(rows.join('\n'));
   console.log('rank reached (day):', JSON.stringify(rankAt));
+  const shops = Object.entries(st.shops).map(([id, sh]) => `${id} Lv${sh.lv} $${(sh.sales / 1e6).toFixed(1)}M`).join(', ');
+  console.log('shops:', shops || 'none', ' bosses:', Object.values(st.mines).filter((m) => m.boss).length, 'mines', Object.values(st.shops).filter((m) => m.boss).length, 'shops');
   if (process.env.LOG) console.log(log.slice(0, +process.env.LOG).join('\n'));
 })();

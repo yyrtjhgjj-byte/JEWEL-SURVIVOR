@@ -763,6 +763,8 @@ export const ACHIEVEMENTS = [
   // 経営
   { id: 'biz1', meta: true, name: 'ファースト・クレーム', t: '経営で鉱区を手に入れる', coins: 300, check: (r, s) => s.biz && Object.keys(s.biz.mines).length >= 1 },
   { id: 'bizFactory', meta: true, name: 'カッティング・ハウス', t: '経営で工場を手に入れる', coins: 500, check: (r, s) => s.biz && Object.keys(s.biz.factories).length >= 1 },
+  { id: 'bizShop', meta: true, name: 'ブティック・オープン', t: '経営で直営店を出す', coins: 1000, check: (r, s) => s.biz && Object.keys(s.biz.shops || {}).length >= 1 },
+  { id: 'bizBoss', meta: true, name: 'マネジメント', t: '経営で人を雇う', coins: 500, check: (r, s) => s.biz && ['mines', 'factories', 'shops'].some((t) => Object.values(s.biz[t] || {}).some((o) => o.boss)) },
   { id: 'bizDiv', meta: true, name: 'ディビデンド', t: '経営の配当を受け取る', coins: 200, check: (r, s) => s.biz && s.biz.divTotal >= 1 },
   { id: 'bizRank3', meta: true, name: 'ジュエル・マーチャント', t: '会社のランクを「宝石商」にする', coins: 1000, check: (r, s) => s.biz && s.biz.rank >= 3 },
   { id: 'bizRank5', meta: true, name: 'トレーディング・ハウス', t: '会社のランクを「宝石商社」にする', coins: 5000, check: (r, s) => s.biz && s.biz.rank >= 5 },
