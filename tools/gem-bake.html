@@ -9,7 +9,7 @@
 import { GEM_LOOK, bakeGem } from '../js/gem-gl.js';
 import { BEAST_IDS } from '../js/beasts.js';
 import { bakeBeast } from './beast-art.js';
-window.bake = (id, size) => bakeGem(id, size);
+window.bake = (id, size, rockT, rockS) => bakeGem(id, size, rockT, rockS);
 window.bakeBeast = (id, size) => bakeBeast(id, size);
 window.gemIds = Object.keys(GEM_LOOK);
 window.beastIds = BEAST_IDS;
