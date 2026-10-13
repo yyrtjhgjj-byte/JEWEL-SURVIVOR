@@ -75,6 +75,8 @@ export function showBiz() {
   const st = save.biz;
   B.catchUp(st, now);
   B.updateRank(st);
+  // チュートリアル：まだ小さい会社なら案内する（途中の手順は持っているものに合わせて飛ばす）
+  if (st.tut == null) st.tut = st.rank === 1 && Object.keys(st.mines).length <= 1 ? 0 : -1;
   const node = el(`<div class="screen biz-screen" data-nav="biz">
     <div class="bz-top">
       <div class="bz-rank"><b id="bzrk"></b><span class="bz-rbar"><i id="bzrb"></i></span></div>
@@ -108,12 +110,14 @@ export function showBiz() {
   sh.addEventListener('pointerup', up);
   sh.addEventListener('pointercancel', up);
   sh.addEventListener('click', onSheetClick);
-  if (first) openSheet('ratnapura', 'mine');
+  if (st.tut >= 0) startTut();
+  else if (first) openSheet('ratnapura', 'mine');
   const tick = () => {
     if (!ui || ui.node !== node || !node.isConnected) { if (ui && ui.node === node) ui = null; return; }
     const t = Date.now();
     B.catchUp(st, t);
     afterChange(false);
+    tutCheck();
     if (t - ui.lastSave > 15000) { ui.lastSave = t; persist(); }
     setTimeout(tick, 1000);
   };
@@ -177,7 +181,7 @@ function renderPins() {
     return `<button class="${cls}" data-p="${p.pid}" style="left:${p.x}px;top:${p.y}px;--dx:${p.dx.toFixed(1)}px;--dy:${p.dy.toFixed(1)}px">
       <span class="bp-ic">${icon(s.main)}${s.ks.length > 1 ? `<i class="bp-more">${s.ks.length}</i>` : ''}</span><span class="bp-nm">${PLACES[p.pid].name}</span></button>`;
   }).join('');
-  box.querySelectorAll('.bzpin').forEach((b) => (b.onclick = () => { audio.tap(); openSheet(b.dataset.p); }));
+  box.querySelectorAll('.bzpin').forEach((b) => (b.onclick = () => { audio.tap(); openSheet(b.dataset.p); tutCheck(); }));
 }
 function refreshPins() {
   for (const b of $('#bzpins', ui.node).querySelectorAll('.bzpin')) {
@@ -246,7 +250,7 @@ function afterChange(acted) {
   renderTop();
   if (st.ships.map((s) => s.id).join(',') !== ui.ships) renderRoutes();
   if (ui.sheet && (acted || !ui.touching)) renderSheet();
-  if (acted) { persist(); refreshCoinPill(); refreshNav(); metaAch(); }
+  if (acted) { persist(); refreshCoinPill(); refreshNav(); metaAch(); tutCheck(); }
 }
 
 // ---------------------------------------------------------------- シート
@@ -641,7 +645,8 @@ function hqSheet() {
       <div><span>累計の売上</span><b>${usd(st.earned)}</b></div>
       <div><span>累計の配当</span><b>${fmt(st.divTotal)} コイン</b></div>
       <div><span>累計の出資</span><b>${fmt(st.invested)} コイン</b></div>
-    </div>`;
+    </div>
+    <div class="bs-acts"><button class="btn small" data-act="tut">チュートリアルをもう一度</button></div>`;
 }
 
 // ---------------------------------------------------------------- 操作
@@ -676,6 +681,7 @@ function onSheetClick(e) {
     case 'shelve': ok = B.shelve(st, d.id, d.k) > 0; sound = 'select'; break;
     case 'unshelve': ok = B.unshelve(st, d.id, d.k); break;
     case 'mtab': ui.sheet.mtab = d.t; break;
+    case 'tut': st.tut = 0; closeSheet(); startTut(); return;
     case 'lab': ok = B.sendLab(st, d.id, d.k, now); sound = 'select'; break;
     case 'pickConsign': ui.sheet.pick = ui.sheet.pick === 'consign' ? null : 'consign'; break;
     case 'consign': ok = B.consign(st, d.id, d.k, now) > 0; sound = 'select'; break;
@@ -703,6 +709,122 @@ function onSheetClick(e) {
   if (!ok) { audio.tap(); return; }
   if (sound === 'buy') { audio.levelUp(); haptic(); } else if (sound === 'coin') audio.coin(); else if (sound === 'win') audio.bigWin(); else if (sound === 'select') audio.select(); else audio.tap();
   afterChange(true);
+}
+
+// ---------------------------------------------------------------- チュートリアル
+// 初めての流れ（鉱区 → 工場 → 出荷 → 売る → 配当）を、押す場所だけ明るくして 1 つずつ案内する。
+// 進み具合は save.biz.tut（-1 で終わり）。手順ごとに done で次へ進み、skip か押せない的なら飛ばす
+const tst = () => ui.st;
+const stockN = () => Object.values(tst().stock).reduce((a, s) => a + s.n, 0);
+const roughAt = (pid) => (tst().mines[pid] ? B.storeTotal(tst().mines[pid]) : 0);
+const inFlight = () => tst().ships.some((s) => s.to === 'ratnapura') || !!(tst().factories.ratnapura && tst().factories.ratnapura.queue.length);
+const onSheet = (pid, kind) => !!(ui.sheet && ui.sheet.pid === pid && (!kind || ui.sheet.kind === kind));
+// 案内のためにシートを開く（違う地名・種類なら開き直す）
+function ensureSheet(pid, kind, pick) {
+  if (!onSheet(pid)) openSheet(pid, kind);
+  else if (kind && ui.sheet.kind !== kind) { ui.sheet.kind = kind; ui.sheet.pick = null; }
+  if (pick) ui.sheet.pick = pick;
+  renderSheet();
+}
+// 地図をその地名が真ん中に来るように動かす
+function centerOn(pid) {
+  const map = $('#bzmap', ui.node), P = PLACES[pid];
+  map.scrollLeft = (projX(P.lon) / MAP_W) * ui.w - map.clientWidth / 2;
+  map.scrollTop = (projY(P.lat) / MAP_H) * ui.h - map.clientHeight * 0.4;
+}
+const TUT = [
+  { t: 'ラトナプラの鉱区を開きます', sel: '.bzpin[data-p="ratnapura"]', prep: () => { closeSheet(); centerOn('ratnapura'); }, done: () => onSheet('ratnapura'), skip: () => !!(tst().mines.ratnapura && tst().factories.ratnapura) },
+  { t: '開拓権を買うと、原石が掘れて倉庫にたまります', sel: '[data-act="buyMine"]', prep: () => ensureSheet('ratnapura', 'mine'), done: () => !!tst().mines.ratnapura },
+  { t: '原石は工場で磨くと宝石になります。同じラトナプラの工場を開きます', sel: '[data-act="kind"][data-k="factory"]', prep: () => ensureSheet('ratnapura'), done: () => onSheet('ratnapura', 'factory'), skip: () => !!tst().factories.ratnapura },
+  { t: '工場を買います', sel: '[data-act="buyFact"]', prep: () => ensureSheet('ratnapura', 'factory'), done: () => !!tst().factories.ratnapura },
+  { t: '鉱区に戻って、たまった原石を工場へ出荷します', sel: '[data-act="kind"][data-k="mine"]', prep: () => ensureSheet('ratnapura'), done: () => onSheet('ratnapura', 'mine'), skip: () => roughAt('ratnapura') < 0.01 },
+  { t: '「工場へ出荷」を押します', sel: '[data-act="pickShip"]', prep: () => ensureSheet('ratnapura', 'mine'), done: () => ui.sheet && ui.sheet.pick === 'ship', skip: () => roughAt('ratnapura') < 0.01 },
+  { t: 'ラトナプラの工場へ送ります', sel: '[data-act="ship"][data-f="ratnapura"]', prep: () => ensureSheet('ratnapura', 'mine', 'ship'), done: () => inFlight(), skip: () => roughAt('ratnapura') < 0.01 && !inFlight() },
+  { t: '原石が工場に届くと、順に磨かれて宝石の在庫になります', sel: null, wait: true, done: () => !inFlight() && stockN() > 0.01, skip: () => !inFlight() && stockN() < 0.01 },
+  { t: '磨いた宝石は取引所で売ります。東京を開きます', sel: '.bzpin[data-p="tokyo"]', prep: () => { closeSheet(); centerOn('tokyo'); }, done: () => onSheet('tokyo'), skip: () => stockN() < 0.01 },
+  { t: '取引所を開きます', sel: '[data-act="kind"][data-k="exchange"]', prep: () => ensureSheet('tokyo'), done: () => onSheet('tokyo', 'exchange'), skip: () => stockN() < 0.01 },
+  { t: '在庫の宝石をすべて売ります', sel: '[data-act="sellAll"]', prep: () => ensureSheet('tokyo', 'exchange'), done: () => stockN() < 0.01 },
+  { t: '本社では、会社の資金を配当でコインに換えられます（1 日に上限があります）', sel: '[data-act="kind"][data-k="hq"]', prep: () => ensureSheet('tokyo'), done: () => onSheet('tokyo', 'hq') },
+  { t: '鉱区や工場を増やして、会社を大きくしましょう。会社のランクが上がると、新しい場所が開きます', sel: null, ok: true },
+];
+let tut = null;
+function startTut() {
+  if (!ui || tst().tut == null || tst().tut < 0) return;
+  const app = document.getElementById('app');
+  const el0 = document.createElement('div');
+  el0.id = 'bztut';
+  el0.innerHTML = '<div class="tut-block"></div><div class="tut-block"></div><div class="tut-block"></div><div class="tut-block"></div><div class="tut-hole"></div><div class="tut-bub"><p></p><div class="tut-row"><span class="tut-n"></span><span><button class="tut-skip">スキップ</button><button class="btn small primary tut-ok">OK</button></span></div></div>';
+  app.appendChild(el0);
+  tut = { el: el0, i: -1, node: ui.node };
+  $('.tut-skip', el0).onclick = () => { audio.tap(); endTut(); };
+  $('.tut-ok', el0).onclick = () => { audio.tap(); tst().tut++; tutCheck(); };
+  tutCheck();
+  requestAnimationFrame(tutFrame);
+}
+function endTut() {
+  if (!tut) return;
+  tst().tut = -1;
+  tut.el.remove();
+  tut = null;
+  persist();
+}
+// 手順を進める：終わった手順・飛ばす手順を越えて、新しい手順に入ったら準備する
+function tutCheck() {
+  if (!tut) return;
+  const st = tst();
+  for (;;) {
+    if (st.tut >= TUT.length) { endTut(); return; }
+    const s = TUT[st.tut];
+    if (s.ok) break;
+    const tgt = s.sel && $(s.sel, ui.node);
+    if ((s.skip && s.skip()) || s.done() || (tgt && tgt.disabled && st.tut !== tut.i)) { st.tut++; continue; }
+    break;
+  }
+  if (st.tut !== tut.i) {
+    tut.i = st.tut;
+    const s = TUT[st.tut];
+    if (s.prep) s.prep();
+    $('p', tut.el).textContent = s.t;
+    $('.tut-n', tut.el).textContent = `${st.tut + 1} / ${TUT.length}`;
+    $('.tut-ok', tut.el).style.display = s.ok ? '' : 'none';
+    $('.tut-skip', tut.el).style.display = s.ok ? 'none' : '';
+    persist();
+    requestAnimationFrame(() => { const tgt = s.sel && $(s.sel, ui.node); if (tgt && tgt.closest('#bzsheet')) tgt.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
+  }
+  // 最初の出荷は、届いたらすぐに磨き上げる（待たずに続きへ進めるように）
+  const s = TUT[st.tut];
+  if (s.wait) {
+    for (const sh of st.ships) if (sh.to === 'ratnapura' && sh.arrive > Date.now() + 3000) { sh.arrive = Date.now() + 3000; }
+    const f = st.factories.ratnapura;
+    if (f && f.queue.length && !st.ships.some((x) => x.to === 'ratnapura')) { B.finishQueue(st, 'ratnapura', Date.now()); afterChange(true); }
+  }
+}
+// 明るくする枠と、まわりを押せなくする板・吹き出しの位置を毎フレーム合わせる
+function tutFrame() {
+  if (!tut) return;
+  if (!ui || ui.node !== tut.node || !tut.node.isConnected) { tut.el.remove(); tut = null; return; }
+  const s = TUT[tut.i], W = innerWidth, H = innerHeight;
+  const tgt = s && s.sel && $(s.sel, ui.node);
+  let r = null;
+  if (tgt) { const b = tgt.getBoundingClientRect(); if (b.width) r = { l: b.left - 6, t: b.top - 6, r: b.right + 6, b: b.bottom + 6 }; }
+  const [bt, bb, bl, br] = tut.el.querySelectorAll('.tut-block');
+  const hole = $('.tut-hole', tut.el), bub = $('.tut-bub', tut.el);
+  const set = (e, x, y, w, h) => { e.style.cssText = `left:${x}px;top:${y}px;width:${Math.max(0, w)}px;height:${Math.max(0, h)}px`; };
+  if (r) {
+    set(bt, 0, 0, W, r.t); set(bb, 0, r.b, W, H - r.b); set(bl, 0, r.t, r.l, r.b - r.t); set(br, r.r, r.t, W - r.r, r.b - r.t);
+    set(hole, r.l, r.t, r.r - r.l, r.b - r.t);
+    hole.classList.remove('none');
+    const below = (r.t + r.b) / 2 < H * 0.5;
+    bub.style.top = below ? `${r.b + 12}px` : '';
+    bub.style.bottom = below ? '' : `${H - r.t + 12}px`;
+  } else {
+    set(bt, 0, 0, W, H); set(bb, 0, 0, 0, 0); set(bl, 0, 0, 0, 0); set(br, 0, 0, 0, 0);
+    set(hole, W / 2, H / 2, 0, 0);
+    hole.classList.add('none');
+    bub.style.top = `${H * 0.38}px`;
+    bub.style.bottom = '';
+  }
+  requestAnimationFrame(tutFrame);
 }
 
 // ---------------------------------------------------------------- メニューの印

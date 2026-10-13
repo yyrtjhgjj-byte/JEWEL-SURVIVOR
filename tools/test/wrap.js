@@ -174,6 +174,8 @@ async function fullSave(p) {
       await back();
       // 経営（地図のピンから各施設のシート）
       await nav('biz'); await check('biz');
+      // 新しいセーブではチュートリアルが出る（吹き出しを確かめてから閉じる）
+      if (await p.$('#bztut')) { await check('biz-tutorial'); await p.click('.tut-skip'); }
       await p.evaluate(() => document.querySelector('#bzmk')?.click());
       await check('biz-market');
       await p.evaluate(() => document.querySelector('[data-act="mtab"][data-t="all"]')?.click());

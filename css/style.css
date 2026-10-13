@@ -1405,6 +1405,19 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .bzpin.ev-up .bp-ic::before, .bzpin.ev-dn .bp-ic::before { position: absolute; left: -8px; top: -8px; font-size: 10px; line-height: 1; text-shadow: 0 0 4px #000, 0 0 2px #000; }
 .bzpin.ev-up .bp-ic::before { content: '▲'; color: #ffd24a; }
 .bzpin.ev-dn .bp-ic::before { content: '▼'; color: #7fb2ff; }
+/* 経営のチュートリアル：押す場所だけ明るくし、まわりは押せない板で覆う */
+#bztut { position: absolute; inset: 0; z-index: 30; pointer-events: none; }
+.tut-block { position: absolute; pointer-events: auto; }
+.tut-hole { position: absolute; border-radius: 14px; border: 2px solid #4ade9a; box-shadow: 0 0 0 9999px rgba(3, 3, 8, 0.66), 0 0 18px rgba(74, 222, 154, 0.6); pointer-events: none; animation: tutPulse 1.4s ease-in-out infinite; }
+.tut-hole.none { border: 0; animation: none; }
+.tut-bub { position: absolute; left: 16px; right: 16px; max-width: 420px; margin: 0 auto; pointer-events: auto; background: var(--panel); border: 1px solid #4ade9a; border-radius: 14px; padding: 12px 14px 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6); }
+.tut-bub p { margin: 0; font: 700 14px/1.6 var(--font-jp); color: var(--text); text-wrap: pretty; }
+.tut-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.tut-row > span { display: flex; align-items: center; gap: 8px; }
+.tut-n { font: 600 11px var(--font); color: var(--muted); }
+.tut-skip { background: none; border: 0; padding: 4px; color: var(--muted); font: 12px var(--font-jp); text-decoration: underline; cursor: pointer; }
+.tut-ok { min-width: 88px; }
+@keyframes tutPulse { 50% { border-color: #c9ffe2; box-shadow: 0 0 0 9999px rgba(3, 3, 8, 0.66), 0 0 28px rgba(74, 222, 154, 0.9); } }
 .bzpin.news .bp-ic { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 197, 61, 0.7); }
 .bs-tag { font-style: normal; font: 700 10px var(--font); color: var(--gold); margin-left: 5px; }
 .bs-cnt { display: inline-block; min-width: 16px; height: 16px; margin-left: 5px; border-radius: 8px; background: var(--gold); color: #1a1405; font: 700 10px/16px var(--font); font-style: normal; text-align: center; }

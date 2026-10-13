@@ -68,7 +68,7 @@ export const queueWork = (f) => f.queue.reduce((s, e) => s + e.ct * refVal(e.k.s
 export const BIZ_VER = 4;
 export function newBiz(now) {
   const st = {
-    v: BIZ_VER, cash: 12000, last: now, rank: 1, view: null, rng: (now ^ 0x9e3779b9) >>> 0,
+    v: BIZ_VER, cash: 12000, last: now, rank: 1, view: null, rng: (now ^ 0x9e3779b9) >>> 0, tut: 0,
     mines: {}, factories: {}, ships: [], stock: {}, shops: {},
     market: null,
     labs: [], auctions: {}, orders: { list: [], next: now }, sight: { next: 0, store: {} },
@@ -126,15 +126,7 @@ function step(st, t, sec) {
     const m = st.mines[id];
     const free = storeCap(st, id) - storeTotal(m);
     const amt = Math.min(mineOut(st, id) * (sec / 3600), free, m.reserve);
-    if (amt <= 1e-9) continue;
-    const M = MINES[id], sum = mixTotal(M.mix), dist = gradeDist(mineQ(id, m.lv));
-    for (const [g, w] of Object.entries(M.mix)) {
-      for (let q = 0; q < 5; q++) {
-        const k = `${g}|${q}`;
-        m.store[k] = (m.store[k] || 0) + (amt * w * dist[q]) / sum;
-      }
-    }
-    m.reserve -= amt;
+    if (amt > 1e-9) produce(id, m, amt);
   }
   // 鉱山長：倉庫が BOSS_SHIP までたまったら、決めた工場へ出荷
   for (const id in st.mines) {
@@ -198,6 +190,30 @@ function step(st, t, sec) {
   const M = st.market, dec = Math.exp((-sec * 1000) / PRESS_TAU);
   for (const g in M.press) { M.press[g] *= dec; if (M.press[g] < 0.002) delete M.press[g]; }
   while (M.nextH <= t) { hourly(st, M.nextH); M.nextH += HOUR; }
+}
+
+// 鉱区の倉庫に原石 amt ct を足す（宝石の割合と品質の分布どおり）
+function produce(id, m, amt) {
+  const M = MINES[id], sum = mixTotal(M.mix), dist = gradeDist(mineQ(id, m.lv));
+  for (const [g, w] of Object.entries(M.mix)) {
+    for (let q = 0; q < 5; q++) {
+      const k = `${g}|${q}`;
+      m.store[k] = (m.store[k] || 0) + (amt * w * dist[q]) / sum;
+    }
+  }
+  m.reserve -= amt;
+}
+// 工場の待ちの原石を、手間賃を払える分だけすぐに磨き上げる（チュートリアルの最初の出荷で使う）
+export function finishQueue(st, fid, t) {
+  const f = st.factories[fid];
+  while (f && f.queue.length) {
+    const e = f.queue[0], [gem, g, origin] = e.k.split('|');
+    const fee = FACTORIES[fid].fee * e.ct * refVal(gem) * GRADE_MUL[+g];
+    if (st.cash < fee) break;
+    st.cash -= fee;
+    cut(st, fid, gem, +g, origin, e.ct, t);
+    f.queue.shift();
+  }
 }
 
 // 研磨：歩留まりと品質の上振れは、腕前・得意・方針・処理で決まる
@@ -414,7 +430,10 @@ export const reserveFull = (id) => mineBaseOut(id) * 24 * 45;
 
 export function buyMine(st, id) {
   if (st.mines[id] || MINES[id].r > st.rank || !pay(st, minePrice(id))) return false;
+  const first = !Object.keys(st.mines).length;
   st.mines[id] = { lv: 1, sl: 0, reserve: reserveFull(id), store: {}, ex: 0, boss: false, to: null };
+  // 最初の鉱区は、1 時間分の原石がたまった状態から始める（すぐに出荷を試せるように）
+  if (first) produce(id, st.mines[id], mineOut(st, id));
   return true;
 }
 export function upgradeMine(st, id) { const c = mineUpCost(st, id); if (!c || !pay(st, c)) return false; st.mines[id].lv++; return true; }
