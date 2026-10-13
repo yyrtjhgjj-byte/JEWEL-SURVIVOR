@@ -16,8 +16,7 @@ import { HOWTO, HOWTO_INTRO, RARITY_ORDER } from './howto.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
-import { showAtelier } from './atelier-ui.js';
-import { showJukebox } from './jukebox.js';
+import { syncNav, refreshNav, showHub } from './menu.js';
 import { stageScene, stageSceneCached } from './scene-art.js';
 import { showcaseBack, showcaseFront } from './case-art.js';
 import { BREAK_TIME, trainDummyHp } from './game.js';
@@ -29,13 +28,16 @@ function el(html) {
   return t.content.firstElementChild;
 }
 const screens = () => $('#screens');
+// 画面を切り替える。data-nav（カテゴリ）のある画面では下のメニューを出す（menu.js）
 function show(node) {
   const s = screens();
   s.innerHTML = '';
+  if (node.dataset.nav) node.classList.add('has-nav');
   s.appendChild(node);
+  syncNav(node.dataset.nav, node);
   return node;
 }
-function clearScreens() { screens().innerHTML = ''; }
+function clearScreens() { screens().innerHTML = ''; syncNav(null); }
 function guard(node, ms = 450) {
   node.style.pointerEvents = 'none';
   setTimeout(() => { node.style.pointerEvents = ''; }, ms);
@@ -122,7 +124,7 @@ export function elemTag(gemId) {
 const coinIco = '<i class="coin-ico"></i>';
 // 桁が多いときは数字を小さくして、画面からはみ出さないようにする
 const coinLen = () => (save.coins >= 1e6 ? 'l2' : save.coins >= 1e5 ? 'l1' : '');
-function coinPill() { return `<div class="coinpill ${coinLen()}" id="coinpill">${coinIco}<span>${fmt(save.coins)}</span></div>`; }
+export function coinPill() { return `<div class="coinpill ${coinLen()}" id="coinpill">${coinIco}<span>${fmt(save.coins)}</span></div>`; }
 function refreshCoinPill() {
   const p = $('#coinpill span');
   if (!p) return;
@@ -153,13 +155,13 @@ function countUp(elm, target, dur, fmtFn, tick = true) {
 // ================================================================== タイトル
 // ------------------------------------------------------------------ ユーザーランク
 // 称号の素材ごとの見た目（rk-acrylic ／ rk-glass ／ rk-crystal）
-const rankStyle = (lv) => `rk-${rankClass(lv).en.toLowerCase()}`;
-const rankColor = (lv) => { const c = rankClass(lv).color; return c === 'prism' ? '#e6c8ff' : c; };
+export const rankStyle = (lv) => `rk-${rankClass(lv).en.toLowerCase()}`;
+export const rankColor = (lv) => { const c = rankClass(lv).color; return c === 'prism' ? '#e6c8ff' : c; };
 function rankChip() {
   const r = rankState();
   return `<button class="rank-chip rk-mat ${rankStyle(r.lv)}" id="t-rank" style="--rk:${rankColor(r.lv)}"><small>RANK</small><b>${r.lv}</b><i style="width:${(r.xp / rankNeed(r.lv)) * 100}%"></i></button>`;
 }
-function showRank() {
+export function showRank() {
   const r = rankState();
   const cls = rankClass(r.lv);
   const need = rankNeed(r.lv);
@@ -192,7 +194,7 @@ function showRank() {
 // 最初は基本のまとめ。一番下の「もっと詳しく」で項目ごとの説明へ
 function showHowTo() {
   const node = el(`
-    <div class="screen howto-screen">
+    <div class="screen howto-screen" data-nav="home">
       ${topbar('HOW TO PLAY', '遊び方', '<div style="width:44px"></div>')}
       <div class="howto-list">
         <div class="panel howto-intro">${HOWTO_INTRO.map((s) => `<div class="hi-row"><b>${s.t}</b><p>${s.b}</p></div>`).join('')}</div>
@@ -205,7 +207,7 @@ function showHowTo() {
 }
 function showHowToDetail() {
   const node = el(`
-    <div class="screen howto-screen">
+    <div class="screen howto-screen" data-nav="home">
       ${topbar('HOW TO PLAY', '遊び方', '<div style="width:44px"></div>')}
       <div class="howto-list">${HOWTO.map((s) => `<details class="panel howto"><summary>${s.t}</summary><div class="howto-body">${s.b}</div></details>`).join('')}</div>
     </div>`);
@@ -219,8 +221,8 @@ export function showTitle() {
   const cid = save.selected;
   const g = GEMS[cid];
   const node = el(`
-    <div class="screen title-screen">
-      <div class="title-top">${rankChip()}${coinPill()}<button class="iconbtn" id="t-set" aria-label="設定">⚙</button></div>
+    <div class="screen title-screen" data-nav="home">
+      <div class="title-top">${rankChip()}${coinPill()}</div>
       <div class="logo">
         <div class="main">JEWEL<br>SURVIVOR</div>
         <div class="line"></div>
@@ -231,18 +233,7 @@ export function showTitle() {
       </div>
       <div class="title-menu">
         <button class="btn big primary" id="t-play">START</button>
-        <div class="title-row">
-          <button class="btn" id="t-shop">WORKSHOP<span class="sub">工房</span></button>
-          <button class="btn" id="t-atelier">ATELIER<span class="sub">研磨</span>${totalRough() ? `<b class="badge">${totalRough()}</b>` : ''}</button>
-        </div>
-        <div class="title-row">
-          <button class="btn" id="t-gacha">MINING<span class="sub">採掘</span></button>
-          <button class="btn" id="t-zukan">ARCHIVE<span class="sub">図鑑・実績</span></button>
-        </div>
-        <div class="title-row mini">
-          <button class="btn" id="t-howto">HOW TO PLAY<span class="sub">遊び方</span></button>
-          <button class="btn" id="t-juke">JUKEBOX<span class="sub">BGM</span></button>
-        </div>
+        <button class="btn howto-btn" id="t-howto">HOW TO PLAY<span class="sub">遊び方</span></button>
       </div>
     </div>`);
   show(node);
@@ -250,12 +241,6 @@ export function showTitle() {
   tap('#t-play', showCharSelect);
   tap('#t-rank', showRank);
   tap('#t-howto', showHowTo);
-  tap('#t-juke', showJukebox);
-  tap('#t-shop', showShop);
-  tap('#t-gacha', showGacha);
-  tap('#t-zukan', () => showZukan());
-  tap('#t-atelier', () => showAtelier());
-  tap('#t-set', () => showSettings(showTitle));
   loginBonus();
 }
 
@@ -293,9 +278,8 @@ function loginBonus() {
   setTimeout(() => audio.bigWin(), 300);
   $('#lok', node).onclick = () => {
     audio.unlock(); audio.chestOpen(); haptic(); node.remove();
-    // タイトルの研磨のバッジ（未研磨の原石数）を更新
-    const at = $('#t-atelier');
-    if (at) { let bd = $('.badge', at); if (!bd) { bd = el('<b class="badge"></b>'); at.appendChild(bd); } bd.textContent = totalRough(); }
+    // 下のメニューの「宝石」の印（未研磨の原石数）を更新
+    refreshNav();
   };
 }
 
@@ -668,25 +652,28 @@ function shopEffect(it, lv, max, eff = 1) {
 }
 
 // upper = true で上位工房（工房をすべて最大にすると解放）
+// 上位工房：工房の強化をすべて最大にすると開く（返金しても閉じない）。開いているかを返す
+export function checkUpperShop() {
+  if (!save.upperShop && SHOP.every((it) => (save.upgrades[it.id] || 0) >= it.max)) {
+    save.upperShop = true;
+    persist();
+  }
+  return !!save.upperShop;
+}
 export function showShop(upper = false) {
   const up = upper ? save.upgrades2 : save.upgrades;
   const upOff = upper ? save.upgrades2Off : save.upgradesOff;
   const ITEMS = upper ? UPPER_SHOP : SHOP; // 上位工房は専用の強化（data.js の UPPER_SHOP）
   const costOf = (it, lv) => (upper ? it.cost[lv] : shopCost(it, lv));
-  if (!upper && !save.upperShop && SHOP.every((it) => (save.upgrades[it.id] || 0) >= it.max)) {
-    save.upperShop = true;
-    persist();
-  }
+  checkUpperShop();
   const node = el(`
-    <div class="screen">
+    <div class="screen" data-nav="power">
       ${upper ? topbar('MASTERWORKS', '上位工房') : topbar('WORKSHOP', '工房 — 永続強化')}
-      ${upper ? '' : `<button class="btn upper-shop-btn" id="upper" ${save.upperShop ? '' : 'disabled'}>MASTERWORKS<span class="sub">${save.upperShop ? '上位工房' : '上位工房 — 工房の強化をすべて最大にすると解放'}</span></button>`}
       <div class="shop-list" id="list"></div>
       <div class="refund-row"><button class="btn small" id="refund"></button><span>最大まで上げた強化は ON／OFF を切り替えられます</span></div>
     </div>`);
   show(node);
-  $('#back', node).onclick = () => { audio.tap(); if (upper) showShop(false); else showTitle(); };
-  if (!upper) $('#upper', node).onclick = () => { if (!save.upperShop) return; audio.select(); showShop(true); };
+  $('#back', node).onclick = () => { audio.tap(); showHub('power'); };
   const list = $('#list', node);
   // 実際に払ったコイン（値段を変えても、払った分だけ返す。main.js で旧セーブから引き継ぐ）
   const paid = save.shopPaid || (save.shopPaid = { front: 0, upper: 0 });
@@ -770,7 +757,7 @@ const RANK_COLOR = { R: '#7fd0ff', SR: '#c78bff', SSR: '#ffd24a', UR: '#ffffff' 
 
 export function showGacha() {
   const node = el(`
-    <div class="screen gacha-screen">
+    <div class="screen gacha-screen" data-nav="jewel">
       ${topbar('MINING', '採掘')}
       <div class="altar" id="altar"><div class="ring"></div><div class="ring r2"></div><img class="core" src="${pickaxeIcon(160)}"></div>
       <div id="gres" class="center-col"></div>
@@ -783,7 +770,7 @@ export function showGacha() {
       <div class="odds">UR 3%：秘石 ／ SSR 10%：大原石 ／ SR 27%：原石 ／ R 60%：原石の欠片 ×2<br>掘るたびにジェムダスト（UR 10 ／ SSR 5 ／ SR 2 ／ R 1）が貯まり、交換所で秘石・大原石・覚醒と交換できます</div>
     </div>`);
   show(node);
-  $('#back', node).onclick = () => { audio.tap(); showTitle(); };
+  $('#back', node).onclick = () => { audio.tap(); showHub('jewel'); };
   const btns = $('#gbtns', node);
   const altar = $('#altar', node);
   const upd = () => {
@@ -912,7 +899,7 @@ function gachaCardHTML(r, big) {
 }
 
 // ------------------------------------------------------------------ 交換所
-function showExchange(onClose) {
+export function showExchange(onClose) {
   const ov = el(`<div class="screen dim at-over">
     <div class="panel exch">
       <div class="exch-head"><span>EXCHANGE <small>交換所</small></span><span class="dustv">ジェムダスト <b id="xd"></b></span></div>
@@ -953,25 +940,25 @@ function showExchange(onClose) {
 }
 
 // ================================================================== 図鑑
+// 図鑑（tab が 'trophy' なら実績の画面。タブは出さない）
 export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
-  save.tabs.zukan = tab;
+  if (tab !== 'trophy') save.tabs.zukan = tab;
   if (tab === 'enemies') save.tabs.zukanCh = ch;
   persist();
   const node = el(`
-    <div class="screen">
-      ${topbar(tab === 'trophy' ? 'RECORDS' : 'ARCHIVE', tab === 'trophy' ? '実績' : '図鑑', '<div style="width:44px"></div>')}
+    <div class="screen" data-nav="archive">
+      ${tab === 'trophy' ? topbar('RECORDS', '実績', '<div style="width:44px"></div>') : `${topbar('LIBRARY', '図鑑', '<div style="width:44px"></div>')}
       <div class="tabs">
         <button class="tab ${tab === 'gems' ? 'on' : ''}" data-t="gems">武器</button>
         <button class="tab ${tab === 'charms' ? 'on' : ''}" data-t="charms">チャーム</button>
         <button class="tab ${tab === 'enemies' ? 'on' : ''}" data-t="enemies">敵</button>
         <button class="tab ${tab === 'arts' ? 'on' : ''}" data-t="arts">秘宝</button>
         <button class="tab ${tab === 'stages' ? 'on' : ''}" data-t="stages">ステージ</button>
-        <button class="tab ${tab === 'trophy' ? 'on' : ''}" data-t="trophy">実績</button>
-      </div>
+      </div>`}
       <div class="zlist" id="zl"></div>
     </div>`);
   show(node);
-  $('#back', node).onclick = () => { audio.tap(); showTitle(); };
+  $('#back', node).onclick = () => { audio.tap(); showHub('archive'); };
   node.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showZukan(b.dataset.t); }));
   const zl = $('#zl', node);
   if (tab === 'gems') {
@@ -1098,7 +1085,7 @@ function medalTier(a) {
 }
 
 // ================================================================== 設定
-function lastBackupText() {
+export function lastBackupText() {
   if (!save.lastBackup) return '最終：なし';
   const d = Math.floor((Date.now() - save.lastBackup) / 86400000);
   return '最終：' + (d <= 0 ? '今日' : `${d}日前`);
@@ -1201,9 +1188,10 @@ function setupDiag(node) {
   $('#dgclear', node).onclick = () => { audio.tap(); clearDiag(); draw(); };
 }
 
-export function showSettings(back, asOverlay) {
+// 設定。focus にバックアップ（sec-backup）や動作の記録（sec-diag）の id を渡すと、そこまで送って開く
+export function showSettings(back, asOverlay, focus) {
   const node = el(`
-    <div class="screen ${asOverlay ? 'dim' : ''}">
+    <div class="screen ${asOverlay ? 'dim' : ''}" ${asOverlay ? '' : 'data-nav="more"'}>
       ${topbar('SETTINGS', '設定', '<div style="width:44px"></div>')}
       <div class="panel">
         <div class="setting"><span>BGM</span><input type="range" min="0" max="1" step="0.05" value="${save.settings.bgm}" id="bgm"></div>
@@ -1213,7 +1201,7 @@ export function showSettings(back, asOverlay) {
         <div class="setting"><span>振動（iOS 18以降）</span><button class="switch ${save.settings.haptic ? 'on' : ''}" data-k="haptic"></button></div>
         ${asOverlay ? '' : '<div class="setting"><span>セーブデータ削除</span><button class="btn small" id="reset">RESET</button></div>'}
       </div>
-      ${asOverlay ? '' : `<div class="panel backup">
+      ${asOverlay ? '' : `<div class="panel backup" id="sec-backup">
         <div class="bk-head"><span>バックアップ</span><small id="bklast">${lastBackupText()}</small></div>
         <div class="bk-btns">
           <button class="btn small" id="bkout">書き出す</button>
@@ -1222,7 +1210,7 @@ export function showSettings(back, asOverlay) {
         </div>
         <div class="bk-note">書き出したファイルは共有メニューの「"ファイル"に保存」で iCloud Drive に保存できます。</div>
       </div>
-      <div class="panel backup">
+      <div class="panel backup" id="sec-diag">
         <div class="bk-head"><span>動作の記録</span><small id="dghead"></small></div>
         <div class="dg-list" id="dglist"></div>
         <div class="bk-btns">
@@ -1234,6 +1222,7 @@ export function showSettings(back, asOverlay) {
       <div class="credit" style="margin-top:14px">Safari の共有メニュー →「ホーム画面に追加」で全画面プレイできます</div>
     </div>`);
   if (asOverlay) screens().appendChild(node); else show(node);
+  if (focus && $('#' + focus, node)) node.scrollTop = $('#' + focus, node).offsetTop - 70;
   $('#back', node).onclick = () => { audio.tap(); persist(); if (asOverlay) node.remove(); if (back) back(); };
   $('#bgm', node).oninput = (e) => { save.settings.bgm = +e.target.value; audio.applyVolume(); };
   $('#sfx', node).oninput = (e) => { save.settings.sfx = +e.target.value; audio.applyVolume(); audio.coin(); };
