@@ -54,7 +54,7 @@
 
 ## 3. 構成
 
-素の JavaScript（ES Modules）＋ Canvas 2D。ビルドも依存パッケージもなし。絵も音もすべてコードで生成（アプリのアイコン PNG は tools/icon.html、宝石のアイコン img/gems/*.webp は js/gem-gl.js の計算で書き出す）。iPhone の Safari（ホーム画面に追加した PWA）向け。
+素の JavaScript（ES Modules）＋ Canvas 2D。ビルドも依存パッケージもなし。絵も音もすべてコードで生成（アプリのアイコン PNG は tools/icon.html、宝石のアイコン img/gems/*.webp は js/gem-gl.js、百獣の絵 img/beasts/*.webp は tools/beast-art.js の計算で書き出す）。iPhone の Safari（ホーム画面に追加した PWA）向け。
 
 公開 URL：`https://yyrtjhgjj-byte.github.io/JEWEL-SURVIVOR/`（この環境からは開けない。デプロイの成否は GitHub Actions で確認する）
 
@@ -71,7 +71,7 @@
 | js/elements.js | 属性（効果の説明文 `ELEMENTS` もここ） |
 | js/render.js / gem-art.js / artifact-art.js / shop-art.js / scene-art.js / case-art.js | スプライト・アイコン・ステージの風景・ジュエル選択の額装の絵（キャッシュ付き） |
 | js/gem-gl.js | 宝石の光線追跡（WebGL2）。見た目の数値 `GEM_LOOK`、その場で描く `mountLiveGem`、画像の書き出し `bakeGem` |
-| img/gems/ | 宝石のアイコン（gem-gl.js で書き出した画像。tools/gem-bake.html と tools/test/gem-bake.js） |
+| img/gems/ / img/beasts/ | 宝石のアイコンと百獣の絵（書き出した画像。tools/gem-bake.html・tools/beast-art.js・tools/test/gem-bake.js） |
 | js/fx.js | パーティクル・ダメージ数字・揺れ・フラッシュ |
 | js/audio.js | WebAudio の効果音と BGM |
 | js/ui.js | 全画面（タイトル〜リザルト、HUD、バナー） |
@@ -190,7 +190,7 @@
 - キャラ：初期はルビー・サファイア・ガーネット。ほかは実績（`ACHIEVEMENTS` の `unlock`）かステージクリアで解放。
 - 秘宝（artifacts.js）：ステージ選択で持ち込み＋中ボスの秘宝の宝箱。解放は実績。
 - 研磨工房（atelier.js）：原石を研磨して宝石のコレクションに。練度に応じた永続ボーナス。次に出る宝石は `save.nextGem` に先に決めておく（研磨の途中で落ちても変わらない）。研磨のコインは完了時に払う。所持数 `have`（百獣で消費）と研磨数 `n`（練度に使い、減らさない）は別。GEM DATA（gem-facts.js）は実際の宝石学の情報だけ。研磨のチュートリアル（atelier-ui.js の startPolish(tier, true)）は原石もコインも使わない練習で、一度も開いていないと枠が虹色（`save.seen.polishTut`）。本番の研磨は、始める前なら「やめる」で戻れる。
-- 百獣（beasts.js）：同じ宝石 10 個で動物の彫刻を召喚・強化。動物の名前・実績名（『ルビー』など二重鉤括弧ごと）はユーザーの指定。絵は `shape` を宝石の色のローポリで塗る（目は描かない）。
+- 百獣（beasts.js）：同じ宝石 10 個で動物の彫刻を召喚・強化。動物の名前・実績名（『ルビー』など二重鉤括弧ごと）はユーザーの指定。絵は `shape`（横向きの型）を厚みのある立体にふくらませ、三角形ごとに面の向きをそろえたカットした宝石の置物として、宝石と同じ光線追跡で書き出した画像（tools/beast-art.js → img/beasts。台座は黒い磨いた石。透明な石は後ろからの光で色を透かし、ラブラドライトは暗い灰色に青緑のひらめき）。beastIcon は画像の URL を返す。形や材質を変えたら書き出し直す。
 - オークション（auction.js・atelier-ui.js）：ランを終えるたびに新しい開催（refreshLot）。1 回の開催は 3 点（宝石 2・原石の詰め合わせ 1）を順に競り、品ごとに参加か見送りを選ぶ。ライバル 3 人は開催ごとの予算（`rivals[id].left`。落札で減り、あとの品に響く）と品ごとの欲しがり具合（`lot.want`）を持ち、どちらも画面に出す。参加しない・降りた品は settleWithoutYou でライバルどうしの結果を決める。入札後にアプリが落ちた品（`lot.joined`）は、次に開いたとき（currentSession）降りた扱いで先へ進める。セーブの形は `{ v: 2, lots, cur, rivals }`（`v` が違えば作り直す）。裏オークション（`save.auction2`、`AUCTION_KINDS.black`）は別枠の開催で、品質・カラットの高い宝石と秘石の多い詰め合わせが出る。ライバルの名前は裏の世界の住人（`BLACK_RIVALS`）。
 - 競りの会場と落札の画面は `isolation: isolate` で重なりを閉じている（中の z-index が後から重ねる画面の上に描かれるため）。
 - ジュークボックス（jukebox.js）：ステージの曲はそのステージを解放すると、ボス戦などの曲は一度流れると聴ける（audio.playBgm が `save.seen.bgm` に記録）。未解放の曲はステージ名を出さない。BGM を足したら `trackList()` にも足す。
@@ -252,7 +252,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v118`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v119`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
@@ -299,7 +299,8 @@ node tools/test/wbench.js                          # 武器の潜在火力（進
 node tools/test/sim.js out.jsonl 4 ruby:void:0:none:1:3:view   # ランのシミュレーション（キャラ:ステージ:ヒート:工房 none/half/max:無敵:回数:view）
 node tools/test/clear.js                           # 全ステージの最終ボス撃破〜リザルト
 SIZES=375x667 node tools/test/wrap.js              # 折り返しとボタンの見切れ
-node tools/test/gem-bake.js [ruby,opal]            # 宝石のアイコンを書き出す（img/gems。省くと全部）
+node tools/test/gem-bake.js [ruby,opal]            # 宝石のアイコンと百獣の絵を書き出す（img/gems・img/beasts。省くと全部）
+node tools/test/gem-bake.js all beasts             # 百獣の絵だけ書き出す
 ```
 
 - テストは変えた箇所に絞る。clear.js はステージ・ボスを変えたときだけ、wrap.js は文字や画面を変えたときだけ（SE の画面のみ）。

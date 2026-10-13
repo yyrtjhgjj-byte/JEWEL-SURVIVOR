@@ -1,5 +1,5 @@
 // オフラインでも あそべるように キャッシュする
-const CACHE = 'jewel-survivor-v118';
+const CACHE = 'jewel-survivor-v119';
 const ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/game.js', './js/weapons.js', './js/data.js', './js/render.js', './js/fx.js',
@@ -8,6 +8,8 @@ const ASSETS = [
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
   // 宝石のアイコン（js/gem-gl.js で書き出した画像）。宝石を足したらここにも足す
   ...['diamond', 'topaz', 'ruby', 'sapphire', 'garnet', 'alexandrite', 'redberyl', 'emerald', 'aquamarine', 'citrine', 'peridot', 'iolite', 'kyanite', 'tourmaline', 'titanite', 'milkyquartz', 'opal', 'moonstone', 'labradorite', 'turquoise', 'amber', 'rhodochrosite', 'jasper', 'coral', 'nephrite', 'prase', 'angelite', 'obsidian', 'coal', 'granite'].map((id) => `./img/gems/${id}.webp`),
+  // 百獣の絵（tools/beast-art.js で書き出した画像）
+  ...['ruby', 'sapphire', 'garnet', 'labradorite', 'angelite', 'peridot', 'diamond'].map((id) => `./img/beasts/${id}.webp`),
 ];
 
 self.addEventListener('install', (e) => {
