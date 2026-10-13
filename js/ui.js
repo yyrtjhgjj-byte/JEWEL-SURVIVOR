@@ -322,7 +322,7 @@ export function showCharSelect() {
     $('#detail', node).innerHTML = `
       <div class="char-detail">
         <div class="showcase ${unlocked ? '' : 'locked'}" style="--c:${gemColor(sel)}">
-          <div class="sc-rays"></div><div class="sc-spot"></div>
+          <div class="sc-spot"></div>
           <div class="sc-ped"></div>
           <img class="sc-gem" src="${gemIcon(sel, 200)}">
           <i class="sc-spark" style="left:22%;top:30%"></i><i class="sc-spark" style="left:74%;top:20%;animation-delay:.8s"></i><i class="sc-spark" style="left:66%;top:58%;animation-delay:1.5s"></i>

@@ -184,14 +184,11 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .pause-elems b { font-family: var(--font-jp); margin-right: 4px; }
 .pause-elems i { font-style: normal; font-size: 11px; margin-left: 4px; color: var(--text); }
 .char-detail .row { font-family: var(--font-jp); font-size: 12.5px; color: var(--muted); line-height: 1.6; }
-/* ジュエル選択の展示ケース：スポットライトと台座、うしろで回る光 */
+/* ジュエル選択の展示ケース：スポットライトと台座 */
 .showcase { position: relative; width: 120px; height: 148px; flex: none; border-radius: 12px; overflow: hidden; isolation: isolate;
   background: radial-gradient(ellipse 70% 40% at 50% 100%, color-mix(in srgb, var(--c) 34%, transparent), transparent), linear-gradient(180deg, #08070f, #17141f 70%, #0d0b14);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07), inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 14px rgba(0,0,0,0.5); }
 .showcase::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(120deg, rgba(255,255,255,0.1) 0 14%, transparent 14% 100%); }
-.sc-rays { position: absolute; left: 50%; top: 66px; width: 220px; height: 220px; margin: -110px 0 0 -110px; z-index: -1; opacity: 0.75;
-  background: repeating-conic-gradient(color-mix(in srgb, var(--c) 40%, transparent) 0 7deg, transparent 7deg 22deg);
-  -webkit-mask: radial-gradient(circle, #000 0, transparent 52%); mask: radial-gradient(circle, #000 0, transparent 52%); animation: spin 22s linear infinite; }
 .sc-spot { position: absolute; left: 50%; top: -6px; width: 118px; height: 150px; margin-left: -59px; z-index: -1; background: linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0) 88%); clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%); }
 .sc-ped { position: absolute; left: 50%; bottom: 10px; width: 82px; height: 28px; margin-left: -41px; border-radius: 0 0 8px 8px; background: linear-gradient(90deg, #17141f, #4d4762 42%, #6a6386 50%, #26222f); }
 .sc-ped::before { content: ''; position: absolute; left: -2px; right: -2px; top: -8px; height: 16px; border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #d8d2ee, #77708f 45%, #2a2636); box-shadow: 0 0 16px color-mix(in srgb, var(--c) 70%, transparent), inset 0 -2px 3px rgba(0,0,0,0.4); }
@@ -200,7 +197,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 @keyframes scTwinkle { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
 .sc-aw { position: absolute; right: 7px; top: 6px; font-family: var(--font); font-weight: 700; font-size: 12px; color: var(--gold); text-shadow: 0 0 6px rgba(255,197,61,0.8); }
 .showcase.locked .sc-gem { filter: brightness(0) drop-shadow(0 0 1px rgba(255,255,255,0.5)); animation: none; }
-.showcase.locked .sc-rays, .showcase.locked .sc-spark { display: none; }
+.showcase.locked .sc-spark { display: none; }
 .showcase.locked .sc-ped::before { box-shadow: inset 0 -2px 3px rgba(0,0,0,0.4); }
 .char-detail .row b { color: var(--text); font-weight: 700; }
 .lore { font-family: var(--font-jp); font-size: 13px; line-height: 1.7; margin-top: 10px; color: #c9c6dc; }
