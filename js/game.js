@@ -2176,7 +2176,7 @@ export class Game {
       passives: this.passives.map((x) => ({ id: x.id, level: x.level, lbN: x.lbN })),
       arts: [...this.arts], revives: this.revives, revBuff: this.revBuff, rerolls: this.rerolls, skips: this.skips, banishes: this.banishes, banished: [...this.banished],
       roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
-      hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big })),
+      hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big, ...(m.plus ? { plus: m.plus } : {}) })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
       endlessBoss: this.endlessBoss || null, cleared: this.cleared, hurt: this.hurt, rushKills: this.rushKills, rushNextT: this.rushNextT, rushFrom: this.rushFrom,
       bossList: this.enemies.filter((e) => e.alive && e.boss && e.ai !== 'piper').map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1, woke: !!e.azWoke })),
