@@ -10,16 +10,16 @@
 // 見た目の数値。mode：trace（透明）・cab（カボション）・facet（不透明なカット面）・tumble（丸く磨いた石）
 // t：長さ 1 進んだときに残る光の割合（RGB）、d：濃さ、pleo：横向きに進むときの色（多色性）、bi：バイカラーのもう一方の色
 // fog・fogD：乳白（中で散る光の色と濃さ）、kind：シェーダーの石の番号、ri：屈折率（不透明な石）
-// exp・fire：その石だけの明るさ・ファイア（省くと 1.2・1.6）、spin0：置く向き（度。旧アイコンの向きに合わせる）、spark：小さく鋭い照明（分散の強い石）
+// exp・fire：その石だけの明るさ・ファイア（省くと 1.2・1.6）、spin0：置く向き（度。旧アイコンの向きに合わせる）、spark：小さく鋭い照明（分散の強い石）、fill：照明のあいだの暗い空の明るさの倍率（中が黒く沈む石の地の色を見せる）
 const T = (cut, ior, disp, t, d, ex) => ({ mode: 'trace', cut, ior, disp, t, d, ...ex });
 const C = (cut, kind, ri) => ({ mode: 'cab', cut, kind, ri });
 export const GEM_LOOK = {
-  diamond: T('brilliant', 2.42, 0.044, [0.98, 0.985, 1.0], 1, { exp: 0.6, fire: 2, spark: true }),
+  diamond: T('brilliant', 2.42, 0.044, [0.98, 0.985, 1.0], 1, { exp: 0.6, fire: 0.7, spark: true }),
   topaz: T('brilliant', 1.62, 0.014, [1.0, 0.7, 0.12], 1.0),
   ruby: T('oval', 1.77, 0.018, [0.95, 0.07, 0.2], 1.2),
   sapphire: T('oval', 1.77, 0.018, [0.12, 0.25, 0.95], 1.2),
   garnet: T('cushion', 1.76, 0.027, [0.82, 0.04, 0.16], 1.25),
-  alexandrite: T('cushion', 1.75, 0.015, [0.2, 0.86, 0.6], 0.9, { exp: 1.5 }),
+  alexandrite: T('cushion', 1.75, 0.015, [0.12, 0.66, 0.42], 1.5, { pleo: [0.72, 0.16, 0.32], fill: 8 }),
   redberyl: T('cushion', 1.57, 0.014, [0.95, 0.12, 0.4], 1.0),
   emerald: T('step', 1.58, 0.014, [0.1, 0.8, 0.38], 1.1),
   aquamarine: T('step', 1.58, 0.014, [0.55, 0.95, 0.97], 1.0),
@@ -540,7 +540,8 @@ function createRenderer(canvas) {
     gl.uniform4fv(uni.uL, L);
     gl.uniform2fv(uni.uLc, Lc);
     gl.uniform1i(uni.uNL, E.L.length);
-    gl.uniform4f(uni.uEnv, E.sky0, E.sky1, E.floor, 0);
+    const fill = g.fill || 1;
+    gl.uniform4f(uni.uEnv, E.sky0 * fill, E.sky1 * fill, E.floor * fill, 0);
     gl.uniform2f(uni.uHead, Math.cos(E.head * D2R), Math.cos(E.head * 1.4 * D2R));
     gl.uniform1i(uni.uMode, MODE[g.mode]);
     gl.uniform1i(uni.uKind, g.kind || 0);
