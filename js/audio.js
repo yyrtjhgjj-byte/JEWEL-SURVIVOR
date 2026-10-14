@@ -146,6 +146,12 @@ class AudioEngine {
     this.tone(freq * 2.76, 0.5, { type: 'sine', vol: vol * 0.3, when, bus, attack: 0.004 });
     this.tone(freq * 5.4, 0.22, { type: 'sine', vol: vol * 0.12, when, bus, attack: 0.004 });
   }
+  // チェレスタ（オルゴール風）：整数倍の倍音だけを重ね、短めに減衰させる（旋律の音が重なって濁らないように）
+  celesta(freq, { vol = 0.08, when = 0, bus } = {}) {
+    this.tone(freq, 0.55, { type: 'sine', vol, when, bus, attack: 0.003 });
+    this.tone(freq * 2, 0.3, { type: 'sine', vol: vol * 0.28, when, bus, attack: 0.003 });
+    this.tone(freq * 4, 0.12, { type: 'sine', vol: vol * 0.07, when, bus, attack: 0.003 });
+  }
   // 銅鑼
   gong({ when = 0, bus } = {}) {
     this.tone(72, 1.9, { type: 'sine', vol: 0.3, when, bus, slide: 62, attack: 0.01 });
@@ -392,13 +398,14 @@ class AudioEngine {
     }
     // 銅鑼（gong 小節ごとの頭）
     if (tr.gong && s16 === 0 && bar % tr.gong === 0) this.gong({ when, bus: b });
-    // メロディ（8分）。flute / pluck / bell で音色を変える
+    // メロディ（8分）。flute / pluck / bell / celesta で音色を変える
     if (s16 % 2 === 0 && tr.melody) {
       const mel = tr.melody[bar];
       const n = mel && mel[s16 / 2];
       if (n && tr.flute) this.flute(mtof(n), tr.noteLen || 0.4, { when, bus: b, vol: 0.09 });
       else if (n && tr.pluck) this.pluck(mtof(n), { when, bus: b, vol: 0.11, dur: tr.noteLen || 0.7 });
       else if (n && tr.bell) this.bell(mtof(n), { when, bus: b, vol: 0.075 });
+      else if (n && tr.celesta) this.celesta(mtof(n), { when, bus: b, vol: 0.09 });
       else if (n) {
         this.tone(mtof(n), 0.22, { type: 'sawtooth', vol: 0.035, when, bus: b, detune: 6 });
         this.tone(mtof(n), 0.24, { type: 'sine', vol: 0.06, when, bus: b });
@@ -519,12 +526,12 @@ const TRACKS3 = {
 
 const TRACKS = {
   ...TRACKS3,
-  // 経営：ゆったりした跳ねるリズムに、鐘の旋律と撥弦のアルペジオ
+  // 経営：ゆったりした跳ねるリズムに、チェレスタの旋律と撥弦のアルペジオ
   business: {
     bpm: 104,
-    bell: true,
+    celesta: true,
     chords: [F, Em, Dm, C, F, G, Am, G],
-    bass: [0, null, null, 7, null, null, 12, null, 0, null, 7, null, 10, null, 7, null],
+    bass: [0, null, null, 7, null, null, 12, null, 0, null, 7, null, 12, null, 7, null],
     arp: 2, arpPluck: true,
     melody: [
       [77, null, 76, 74, 72, null, 69, null],
