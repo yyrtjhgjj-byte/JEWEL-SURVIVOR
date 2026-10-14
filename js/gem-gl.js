@@ -417,7 +417,7 @@ void main(){
   for (int sy = 0; sy < 2; sy++) for (int sx = 0; sx < 2; sx++) {
     if (sx >= uSS || sy >= uSS) continue;
     vec2 px = gl_FragCoord.xy + (vec2(sx, sy) + .5) / float(uSS) - .5;
-    vec2 uv = (px / uRes * 2. - 1.) * uSpan;
+    vec2 uv = (px / uRes * 2. - 1.) * uSpan * uRes / min(uRes.x, uRes.y);
     vec3 ro = Rt * vec3(uv, 10.), rd = Rt * vec3(0, 0, -1);
     vec3 c; bool hit;
     if (uMode == 0) {
@@ -433,18 +433,18 @@ void main(){
 // 仕上げ：明るいところのにじみと十字のきらめき（前の結果は α を掛けた色）
 const FS_POST = `#version 300 es
 precision highp float;
-out vec4 o; uniform sampler2D uT; uniform vec2 uRes; uniform float uBloom, uStar;
+out vec4 o; uniform sampler2D uT; uniform vec2 uRes; uniform float uBloom, uStar, uLight;
 float lum(vec3 c){ return dot(c, vec3(.2126, .7152, .0722)); }
 vec3 br(vec2 uv, float th){ vec4 c = texture(uT, uv); return c.rgb * smoothstep(th, 1., lum(c.rgb)); }
 void main(){
   vec2 uv = gl_FragCoord.xy / uRes; vec4 c = texture(uT, uv);
   vec3 bl = vec3(0); float ws = 0.;
   for (int r = 1; r <= 4; r++) for (int a = 0; a < 8; a++) {
-    float rad = float(r * r) * 1.6 * uRes.x / 520., an = float(a) * .785398 + float(r) * .37;
+    float rad = float(r * r) * 1.6 * min(uRes.x, uRes.y) / 520., an = float(a) * .785398 + float(r) * .37;
     float w = 1. / float(r); bl += br(uv + vec2(cos(an), sin(an)) * rad / uRes, .86) * w; ws += w;
   }
   bl /= ws;
-  vec3 st = vec3(0); float L = uRes.x / 520.;
+  vec3 st = vec3(0); float L = min(uRes.x, uRes.y) / 520.;
   for (int k = 1; k <= 16; k++) {
     float w = pow(1. - float(k) / 17., 2.); vec2 dx = vec2(float(k) * 2.2 * L, 0) / uRes, dy = vec2(0, float(k) * 2.2 * L) / uRes;
     st += (br(uv + dx, .975) + br(uv - dx, .975) + br(uv + dy, .975) + br(uv - dy, .975)) * w;
@@ -452,6 +452,8 @@ void main(){
   vec3 add = bl * uBloom * 1.1 + st * uStar * .1;
   vec3 col = c.rgb + add;
   float a = clamp(max(c.a + lum(add) * 1.2, max(col.r, max(col.g, col.b))), 0., 1.);
+  // 明るい背景に重ねるとき（uLight）は、石の外のにじみを足さない（白の上では灰色の輪になるため）
+  a = mix(a, c.a, uLight);
   o = vec4(min(col, vec3(a)), a);
 }`;
 
@@ -487,14 +489,14 @@ function createRenderer(canvas) {
   }
   const uni = {}, upost = {};
   for (const n of UNIFORMS) uni[n] = gl.getUniformLocation(prog, n);
-  for (const n of ['uT', 'uRes', 'uBloom', 'uStar']) upost[n] = gl.getUniformLocation(post, n);
+  for (const n of ['uT', 'uRes', 'uBloom', 'uStar', 'uLight']) upost[n] = gl.getUniformLocation(post, n);
   const buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
   const tex = gl.createTexture(), fbo = gl.createFramebuffer();
-  let texW = 0, look = null;
+  let texW = 0, texH = 0, look = null;
 
   // 宝石を切り替えたときに、形・色・照明を送る
   const load = (id) => {
@@ -536,14 +538,18 @@ function createRenderer(canvas) {
     look = g;
   };
 
-  // W×W で描く。rockT・rockS は置いた向きからのずれ（度）
-  const draw = (W, rockT = 0, rockS = 0, ss = 1) => {
+  // W×W（o.h があれば W×H）で描く。rockT・rockS は置いた向きからのずれ（度）
+  // o（鑑賞画面）：yaw・pitch は画面の縦軸・横軸まわりの回転（度）、zoom は拡大の倍率、exp・fire・glint は明るさ・ファイア・きらめき、
+  // light は明るい背景に重ねるとき、h は縦の大きさ（宝石は短い辺に合わせて写る）。省くと石ごとの値（アイコンと同じ見た目）
+  const draw = (W, rockT = 0, rockS = 0, ss = 1, o = null) => {
     const g = look;
-    if (canvas.width !== W || canvas.height !== W) { canvas.width = W; canvas.height = W; }
-    if (texW !== W) {
+    const H = o && o.h ? o.h : W;
+    if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+    if (texW !== W || texH !== H) {
       texW = W;
+      texH = H;
       gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, W, W, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -554,14 +560,19 @@ function createRenderer(canvas) {
     const clear = g.mode === 'trace';
     const tilt = (clear || g.mode === 'facet' ? 12 : 18) + rockT;
     const spin = (g.spin0 != null ? g.spin0 : PORTRAIT.includes(g.cut) ? 90 : 0) + rockS;
-    const exp = g.exp || 1.2;
+    const exp = o && o.exp != null ? o.exp : g.exp || 1.2;
+    const glint = o && o.glint != null ? o.glint : GLINT;
     gl.useProgram(prog);
+    if (clear) {
+      const d = g.disp * (o && o.fire != null ? o.fire : g.fire == null ? 1.6 : g.fire);
+      gl.uniform3f(uni.uIor, g.ior - d * 0.42, g.ior, g.ior + d * 0.58);
+    }
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-    gl.viewport(0, 0, W, W);
-    gl.uniform2f(uni.uRes, W, W);
-    gl.uniform1f(uni.uSpan, SPAN);
+    gl.viewport(0, 0, W, H);
+    gl.uniform2f(uni.uRes, W, H);
+    gl.uniform1f(uni.uSpan, o && o.zoom ? SPAN / o.zoom : SPAN);
     gl.uniform1f(uni.uExp, clear ? exp : exp / 1.2);
-    gl.uniformMatrix3fv(uni.uR, false, rotMat(tilt, spin));
+    gl.uniformMatrix3fv(uni.uR, false, o ? viewMat(o.yaw || 0, o.pitch || 0, rotMat(tilt, spin)) : rotMat(tilt, spin));
     gl.uniform1i(uni.uSS, ss);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -570,13 +581,14 @@ function createRenderer(canvas) {
     const cutStone = clear || g.mode === 'facet';
     gl.useProgram(post);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, W, W);
+    gl.viewport(0, 0, W, H);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.uniform1i(upost.uT, 0);
-    gl.uniform2f(upost.uRes, W, W);
-    gl.uniform1f(upost.uBloom, GLINT * (cutStone ? 1 : 0.5));
-    gl.uniform1f(upost.uStar, cutStone ? GLINT : 0);
+    gl.uniform2f(upost.uRes, W, H);
+    gl.uniform1f(upost.uBloom, glint * (cutStone ? 1 : 0.5));
+    gl.uniform1f(upost.uStar, cutStone ? glint : 0);
+    gl.uniform1f(upost.uLight, o && o.light ? 1 : 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
@@ -587,6 +599,16 @@ function createRenderer(canvas) {
 function rotMat(tiltDeg, spinDeg) {
   const t = tiltDeg * D2R, s = spinDeg * D2R, ct = Math.cos(t), st = Math.sin(t), cs = Math.cos(s), ss = Math.sin(s);
   return new Float32Array([cs, ss * ct, ss * st, -ss, cs * ct, cs * st, 0, -st, ct]);
+}
+
+// 置いた向き M のあと、画面の縦軸まわりに yaw（右へ）、横軸まわりに pitch（下へ）回す。列優先
+function viewMat(yawDeg, pitchDeg, M) {
+  const y = yawDeg * D2R, p = pitchDeg * D2R, cy = Math.cos(y), sy = Math.sin(y), cp = Math.cos(p), sp = Math.sin(p);
+  // V = Rx(p)·Ry(y)（行優先で書く）
+  const V = [cy, 0, sy, -sp * -sy, cp, -sp * cy, cp * -sy, sp, cp * cy];
+  const out = new Float32Array(9);
+  for (let c = 0; c < 3; c++) for (let r = 0; r < 3; r++) out[c * 3 + r] = V[r * 3] * M[c * 3] + V[r * 3 + 1] * M[c * 3 + 1] + V[r * 3 + 2] * M[c * 3 + 2];
+  return out;
 }
 
 // ---------------------------------------------------------------- その場で描く宝石
@@ -620,6 +642,9 @@ function tick(now) {
   if (!L.img || !L.img.isConnected) { stopLive(); return; }
   L.raf = requestAnimationFrame(tick);
   if (document.hidden || now - L.last < 30) return;
+  // 鑑賞画面（ctl）：動いていないあいだは描かない。止まったら 1 度だけ細かく描く
+  const f = L.ctl && L.shown ? L.ctl.frame(now) : null;
+  if (L.ctl && L.shown && !f) { L.last = 0; return; }
   // 遅ければ解像度を下げ、速ければ 4 点で滑らかに
   if (L.last) {
     const dt = now - L.last;
@@ -628,11 +653,22 @@ function tick(now) {
     if (L.fast > 60) { if (L.scale < 1) L.scale = Math.min(1, L.scale + 0.1); else L.ss = 2; L.fast = 0; }
   }
   L.last = now;
-  const css = (L.shown ? L.canvas : L.img).clientWidth;
+  const box = L.shown ? L.canvas : L.img;
+  const css = box.clientWidth;
   if (!css) return;
-  const W = Math.max(48, Math.round(css * Math.min(2, window.devicePixelRatio || 1) * L.scale));
-  const t = (now - L.t0) / 1000;
-  L.r.draw(W, 10 * Math.sin(t * 0.9), 14 * Math.cos(t * 0.6), L.ss);
+  const still = f && f.still;
+  const k = Math.min(2, window.devicePixelRatio || 1) * (still ? 1 : L.scale);
+  const W = Math.max(48, Math.round(css * k));
+  if (L.ctl) {
+    // 鑑賞画面は置き場所いっぱいの長方形に描く
+    const v = f || L.ctl.frame(now, true);
+    v.o.h = Math.max(48, Math.round((box.clientHeight || css) * k));
+    L.r.draw(W, v.rockT, v.rockS, still ? (L.scale < 1 ? 1 : 2) : L.ss, v.o);
+    if (still) L.last = 0;
+  } else {
+    const t = (now - L.t0) / 1000;
+    L.r.draw(W, 10 * Math.sin(t * 0.9), 14 * Math.cos(t * 0.6), L.ss);
+  }
   if (!L.shown) {
     L.shown = true;
     L.canvas.hidden = false;
@@ -640,8 +676,10 @@ function tick(now) {
   }
 }
 
-// img（書き出した画像）の宝石を、その場で描く宝石に置き換える
-export function mountLiveGem(img, id) {
+// img（書き出した画像）の宝石を、その場で描く宝石に置き換える。
+// ctl（鑑賞画面）：ctl.frame(now, force) が描く値 { rockT, rockS, o, still } を返す（描かなくてよいときは null。force なら必ず返す）。
+// 別の img に付け直すと外れる
+export function mountLiveGem(img, id, ctl = null) {
   if (broken || !img || !GEM_LOOK[id]) return;
   if (!live) {
     const canvas = document.createElement('canvas');
@@ -653,10 +691,11 @@ export function mountLiveGem(img, id) {
       e.preventDefault();
       const back = live && live.img;
       const backId = live && live.id;
+      const backCtl = live && live.ctl;
       dropLive();
-      if (back && back.isConnected) setTimeout(() => mountLiveGem(back, backId), 500);
+      if (back && back.isConnected) setTimeout(() => mountLiveGem(back, backId, backCtl), 500);
     });
-    live = { canvas, r, img: null, id: null, raf: 0, last: 0, t0: 0, scale: 1, ss: 1, slow: 0, fast: 0, shown: false };
+    live = { canvas, r, img: null, id: null, ctl: null, raf: 0, last: 0, t0: 0, scale: 1, ss: 1, slow: 0, fast: 0, shown: false };
   }
   if (live.img && live.img !== img) live.img.hidden = false;
   if (live.raf) cancelAnimationFrame(live.raf);
@@ -666,14 +705,20 @@ export function mountLiveGem(img, id) {
   c.setAttribute('aria-hidden', 'true');
   c.hidden = true;
   img.after(c);
+  // 鑑賞画面に出入りするときは大きさが大きく変わるので、画質の調整をやり直す
+  if (ctl || live.ctl) { live.scale = 1; live.ss = 1; live.slow = live.fast = 0; }
   live.img = img;
   live.id = id;
+  live.ctl = ctl;
   live.shown = false;
   live.last = 0;
   live.t0 = performance.now();
   live.r.load(id);
   live.raf = requestAnimationFrame(tick);
 }
+
+// その場で描く宝石が使えるか（WebGL2 が無い・作れなかった端末では false）
+export const liveGemOk = () => !broken;
 
 // ---------------------------------------------------------------- 画像の書き出し（tools/gem-bake.html から使う）
 let baker = null;

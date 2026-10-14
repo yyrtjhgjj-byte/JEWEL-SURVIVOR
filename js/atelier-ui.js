@@ -14,7 +14,8 @@ import {
 } from './atelier.js';
 import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast } from './ui.js';
 import { showHub } from './menu.js';
-import { mountLiveGem } from './gem-gl.js';
+import { mountLiveGem, liveGemOk } from './gem-gl.js';
+import { openGemView, LOUPE } from './gem-view.js';
 import { currentSession, awardLot, rivalsOf, rivalMax, startPrice, settleWithoutYou, wantLabel } from './auction.js';
 import { BEASTS, BEAST_IDS, BEAST_COST, jewelStock, beastLevel, beastValue, beastStats, raiseBeast, beastIcon } from './beasts.js';
 
@@ -492,7 +493,7 @@ function gemDetail(id) {
   const ov = el(`<div class="screen dim at-over">
     <div class="panel gem-detail" style="--c:${gemColor(id)}">
       <div class="gd-top">
-        <img src="${gemIcon(id, 120)}" style="${has ? `filter:drop-shadow(0 0 16px ${gemColor(id)})` : 'filter:grayscale(1) brightness(.35)'}">
+        <div class="gd-art"><img src="${gemIcon(id, 120)}" style="${has ? `filter:drop-shadow(0 0 16px ${gemColor(id)})` : 'filter:grayscale(1) brightness(.35)'}">${has ? `<button class="gd-loupe" aria-label="鑑賞モード">${LOUPE}</button>` : ''}</div>
         <div>
           <div class="gd-name">${g.jp}</div>
           <div class="gd-en">${g.en}</div>
@@ -513,8 +514,14 @@ function gemDetail(id) {
   $('#screens').appendChild(ov);
   $('#ok', ov).onclick = () => { audio.tap(); ov.remove(); };
   ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
-  // 持っている宝石は、その場で描いて揺らす
-  if (has) mountLiveGem($('.gd-top img', ov), id);
+  // 持っている宝石は、その場で描いて揺らす。虫眼鏡（と宝石）を押すと鑑賞モード
+  if (!has) return;
+  const img = $('.gd-top img', ov);
+  mountLiveGem(img, id);
+  const loupe = $('.gd-loupe', ov);
+  if (!liveGemOk()) { loupe.remove(); return; }
+  $('.gd-art', ov).classList.add('can-view');
+  $('.gd-art', ov).onclick = () => { audio.select(); openGemView(id, () => mountLiveGem(img, id)); };
 }
 
 
