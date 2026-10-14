@@ -36,7 +36,7 @@ export function showAtelier(tab = 'polish') {
   const [en, jp] = ATELIER_TITLE[tab];
   const node = el(`
     <div class="screen" data-nav="jewel">
-      ${topbar(en, jp)}
+      ${topbar(en, jp, undefined, tab === 'auction2' ? 'auction' : tab)}
       <div id="at"></div>
     </div>`);
   show(node);

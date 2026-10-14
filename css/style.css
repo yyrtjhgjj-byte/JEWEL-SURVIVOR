@@ -131,6 +131,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .topbar h2 { margin: 0; text-align: center; flex: 1; line-height: 1.1; }
 .topbar h2 .en { display: block; font-size: 22px; font-weight: 700; letter-spacing: 0.3em; }
 .topbar h2 .jp { display: block; font-family: var(--font-jp); font-size: 11px; color: var(--muted); letter-spacing: 0.2em; font-weight: 500; }
+.topbar.has-help h2 { min-width: 0; }
+.topbar.has-help h2 .en { font-size: 19px; letter-spacing: 0.18em; white-space: nowrap; }
+.topbar.has-help h2 .en.long { font-size: 16px; letter-spacing: 0.1em; }
 .coinpill {
   border: 1px solid rgba(255,197,61,0.35); border-radius: 999px; padding: 6px 12px;
   font-weight: 700; font-size: 16px; color: #ffe39a; background: rgba(255,197,61,0.07);
@@ -1055,16 +1058,66 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 @media (max-height: 700px) { .title-hero img, .title-hero canvas { width: 84px; height: 84px; } }
 .howto-screen { justify-content: flex-start; overflow-y: auto; }
 .howto-list { width: min(520px, 100%); display: flex; flex-direction: column; gap: 8px; padding-bottom: 30px; }
-.howto { padding: 0; }
-.howto summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; font-family: var(--font-jp); font-weight: 700; font-size: 15px; }
-.howto summary::-webkit-details-marker { display: none; }
-.howto summary::after { content: '＋'; color: var(--muted); font-weight: 400; }
-.howto[open] summary::after { content: '−'; }
-.howto-body { padding: 0 16px 12px; }
-.howto-body ul { margin: 0; padding-left: 1.1em; }
-.howto-body li { font-family: var(--font-jp); font-size: 13px; line-height: 1.75; color: #d8d4e8; margin-bottom: 4px; }
-.howto-body li::marker { color: var(--muted); }
 .howto-screen .topbar h2 .en { letter-spacing: 0.16em; white-space: nowrap; font-size: 20px; }
+
+/* ヘルプの ?（上の帯・画面の右上・交換所の見出し） */
+.help-btn { width: 36px; height: 36px; border-radius: 10px; font: 700 20px/1 var(--font); color: #cfc9ef; }
+.help-btn.sm { width: 30px; height: 30px; border-radius: 9px; font-size: 17px; align-self: center; }
+.help-btn.corner { position: absolute; top: calc(var(--safe-t) + 12px); right: calc(var(--safe-r) + 14px); z-index: 2; }
+.exch-head { gap: 8px; }
+.exch-head > span:first-child { flex: 1; }
+
+/* 遊び方の一覧：ひとまわりの流れと、見出しごとの項目のカード */
+.howto-list > * { flex-shrink: 0; }
+.hp-loop { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
+.hl-step { display: flex; align-items: flex-start; gap: 12px; }
+.hl-step i { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 700 15px var(--font); font-style: normal; color: #fff; background: linear-gradient(135deg, #b45cff, #3d8bff); }
+.hl-step b { display: block; font: 700 14.5px var(--font-jp); }
+.hl-step p { margin: 1px 0 0; font: 12.5px/1.6 var(--font-jp); color: #d8d4e8; }
+.hp-group { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.hp-gh { display: flex; align-items: baseline; gap: 8px; font: 500 11px var(--font-jp); color: var(--muted); letter-spacing: 0.1em; padding-left: 2px; }
+.hp-gh span { font: 700 13px var(--font); color: var(--text); letter-spacing: 0.24em; }
+.hp-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.hp-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 92px; padding: 10px 6px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line2); color: var(--text); font: 700 12px/1.35 var(--font-jp); text-align: center; word-break: keep-all; text-wrap: balance; cursor: pointer; }
+.hp-tile:active { transform: scale(0.96); }
+.hp-tic { width: 44px; height: 44px; object-fit: contain; }
+
+/* 遊び方の項目 */
+.hp-topic { display: flex; flex-direction: column; }
+.hp-head { display: flex; align-items: center; gap: 14px; }
+.hp-head .hp-ic { width: 56px; height: 56px; object-fit: contain; flex: none; filter: drop-shadow(0 0 12px rgba(180, 92, 255, 0.35)); }
+.hp-head b { display: block; font: 900 21px var(--font-jp); letter-spacing: 0.06em; word-break: keep-all; text-wrap: balance; }
+.hp-head small { display: block; font: 700 11px var(--font); color: var(--muted); letter-spacing: 0.24em; }
+.hp-lead { margin: 12px 0 4px; font: 500 14px/1.7 var(--font-jp); color: var(--text); }
+.hp-part { padding: 14px 0 4px; border-top: 1px solid var(--line); margin-top: 10px; border-radius: 4px; transition: background 0.6s; }
+.hp-part.focus { background: rgba(180, 92, 255, 0.1); box-shadow: 0 0 0 8px rgba(180, 92, 255, 0.1); }
+.hp-part h3 { margin: 0 0 6px; font: 700 14px var(--font-jp); color: #e0b8ff; letter-spacing: 0.06em; display: flex; align-items: center; gap: 8px; }
+.hp-part h3::before { content: ''; width: 3px; height: 14px; border-radius: 2px; background: linear-gradient(#b45cff, #3d8bff); }
+.hp-part p { margin: 0 0 8px; font: 13px/1.75 var(--font-jp); color: #d8d4e8; }
+.hp-topic p, .hp-row span, .hp-steps li, .hl-step p { text-wrap: pretty; }
+.hp-part .hp-note { font-size: 12px; color: var(--muted); }
+.hp-steps { list-style: none; margin: 2px 0 8px; padding: 0; counter-reset: hs; display: flex; flex-direction: column; gap: 6px; }
+.hp-steps li { counter-increment: hs; display: flex; align-items: flex-start; gap: 10px; font: 13px/1.6 var(--font-jp); color: #d8d4e8; }
+.hp-steps li::before { content: counter(hs); flex: none; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; font: 700 12px var(--font); color: #e0b8ff; border: 1px solid rgba(224, 184, 255, 0.5); }
+.hp-rows { display: flex; flex-direction: column; margin: 0 0 8px; }
+.hp-row { display: grid; grid-template-columns: 6.6em 1fr; gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+.hp-row:last-child { border-bottom: 0; }
+.hp-row.has-ic { grid-template-columns: 30px 6.2em 1fr; align-items: center; }
+.hp-row img { width: 30px; height: 30px; object-fit: contain; }
+.hp-row b { font: 700 12.5px/1.45 var(--font-jp); color: var(--text); word-break: keep-all; overflow-wrap: anywhere; }
+.hp-row span { font: 12.5px/1.6 var(--font-jp); color: #d8d4e8; }
+.hp-list { margin: 0 0 8px; padding-left: 1.1em; font: 13px/1.75 var(--font-jp); color: #d8d4e8; }
+
+/* ヘルプ（画面の上に重ねる） */
+.help-over { justify-content: center; z-index: 30; }
+.help-box { width: 100%; max-width: 520px; max-height: 100%; display: flex; flex-direction: column; background: rgba(14, 13, 24, 0.97); border: 1px solid var(--line2); border-radius: 18px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); overflow: hidden; }
+.help-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px; border-bottom: 1px solid var(--line); flex: none; }
+.help-bar .iconbtn { width: 36px; height: 36px; border-radius: 10px; font-size: 20px; }
+.help-bar span { font: 700 14px var(--font); letter-spacing: 0.3em; color: var(--muted); }
+.help-body { position: relative; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; padding: 14px 16px 16px; }
+.help-body > * { flex-shrink: 0; }
+.help-body .hp-group:first-child { margin-top: 0; }
+.hp-more { width: 100%; margin-top: 14px; }
 
 .howto-elems { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .howto-elems .he { border-left: 2px solid var(--ec); padding: 4px 0 4px 10px; }
@@ -1234,12 +1287,6 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 @keyframes jbeq { 0%, 100% { height: 25%; } 50% { height: 100%; } }
 
 /* 遊び方：最初のまとめ */
-.howto-intro { display: flex; flex-direction: column; padding: 4px 16px; flex-shrink: 0; }
-.howto-intro .hi-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
-.howto-intro .hi-row:last-child { border-bottom: 0; }
-.howto-intro .hi-row > b { display: block; font-family: var(--font-jp); font-size: 15px; margin-bottom: 3px; }
-.howto-intro p { margin: 0; font-family: var(--font-jp); font-size: 13px; line-height: 1.7; color: #d8d4e8; }
-.howto-list > #more { flex-shrink: 0; }
 
 /* レア度の色の並び（遊び方・レベルアップ画面） */
 .rar-order { white-space: nowrap; letter-spacing: 0.05em; }
@@ -1329,6 +1376,21 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .bz-tools button span { font: 700 9px var(--font-jp); }
 .bz-tools button[hidden] { display: none; }
 #bzhq { color: var(--gold); }
+#bzhelp { font: 700 21px/1 var(--font); color: #cfc9ef; }
+.bs-head .bs-back { flex: none; width: 32px; height: 32px; margin: 0 2px 0 -4px; background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; color: var(--text); font-size: 20px; line-height: 1; display: grid; place-items: center; cursor: pointer; }
+.bs-head .bs-back + div { flex: 1; min-width: 0; }
+.bs-head > div { flex: 1; min-width: 0; }
+.bs-head .bs-q { margin-top: 3px; }
+.bs-list { display: flex; flex-direction: column; gap: 5px; }
+.bs-lrow { display: grid; grid-template-columns: 1fr minmax(84px, auto) 12px; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 8px 10px; color: var(--text); text-align: left; cursor: pointer; }
+.bs-lrow.warn { border-color: rgba(255, 77, 109, 0.6); }
+.bs-ln { font: 700 13.5px var(--font-jp); word-break: keep-all; min-width: 0; }
+.bs-ln small { display: block; font-weight: 500; font-size: 10.5px; color: var(--muted); }
+.bs-ls { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font: 12px var(--font-jp); }
+.bs-ls .bs-bar { width: 84px; }
+.bs-ls small { color: var(--muted); font-size: 11px; }
+.bs-ls .bs-warn { font: 700 11.5px var(--font-jp); margin: 0; }
+.bs-lgo { color: var(--muted); font-size: 18px; }
 .bz-sheet { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 4; max-width: 560px; margin: 0 auto; max-height: 70%; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; background: rgba(14, 13, 24, 0.97); border: 1px solid var(--line2); border-radius: 18px; padding: 12px 14px 14px; box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6); transform: translateY(calc(100% + 24px)); transition: transform 0.25s ease; }
 .bz-sheet.open { transform: none; }
 .bz-sheet > * { flex-shrink: 0; }

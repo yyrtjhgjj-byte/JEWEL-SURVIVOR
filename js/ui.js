@@ -13,7 +13,7 @@ import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter } from 
 import { fmt, fmtTime, pick, todayStr } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState, RANK_CLASSES } from './rank.js';
-import { HOWTO, HOWTO_INTRO, RARITY_ORDER } from './howto.js';
+import { RARITY_ORDER, HOWTO_LOOP, HELP_GROUPS, helpTopicHTML, helpIndexHTML } from './howto.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
@@ -50,6 +50,14 @@ export function initUI(a) {
   app = a;
   setupHaptic();
   setupWordBreaks();
+  // ヘルプの ?：先に受けて、下の画面の押し方（バニッシュの選択など）には渡さない
+  screens().addEventListener('click', (e) => {
+    const b = e.target.closest('[data-help]');
+    if (!b) return;
+    e.stopPropagation();
+    audio.tap();
+    openHelp(b.dataset.help);
+  }, true);
 }
 
 // ------------------------------------------------------------------ 折り返し
@@ -137,9 +145,14 @@ function refreshCoinPill() {
   void pill.offsetWidth;
   pill.classList.add('bump');
 }
-function topbar(en, jp, right = coinPill()) {
-  return `<div class="topbar"><button class="iconbtn" id="back" aria-label="戻る">‹</button><h2><span class="en">${en}</span><span class="jp">${jp}</span></h2>${right}</div>`;
+// 画面の上の帯：戻る・（ヘルプ）・見出し・右（省くとコイン、null なら左と同じ幅の空き）
+// help はヘルプの項目（'topic' か 'topic#part'、'@group' で見出しごとの一覧）
+function topbar(en, jp, right = coinPill(), help = '') {
+  if (right === null) right = `<div style="width:${help ? 88 : 44}px;flex:none"></div>`;
+  return `<div class="topbar ${help ? 'has-help' : ''}"><button class="iconbtn" id="back" aria-label="戻る">‹</button>${help ? helpBtn(help) : ''}<h2><span class="en ${en.length > 10 ? 'long' : ''}">${en}</span><span class="jp">${jp}</span></h2>${right}</div>`;
 }
+// 四角に ? のボタン。押すと data-help の項目を開く（initUI でまとめて受ける）
+export const helpBtn = (help, cls = '') => `<button class="iconbtn help-btn ${cls}" data-help="${help}" aria-label="ヘルプ">?</button>`;
 function countUp(elm, target, dur, fmtFn, tick = true) {
   const t0 = performance.now();
   return new Promise((resolve) => {
@@ -192,29 +205,81 @@ export function showRank() {
 }
 
 // ------------------------------------------------------------------ 遊び方
-// 最初は基本のまとめ。一番下の「もっと詳しく」で項目ごとの説明へ
+// 一覧（ひとまわりの流れ ＋ 見出しごとの項目のカード）。カードを押すとその項目を同じ画面で開く
 function showHowTo() {
   const node = el(`
     <div class="screen howto-screen" data-nav="home">
-      ${topbar('HOW TO PLAY', '遊び方', '<div style="width:44px"></div>')}
-      <div class="howto-list">
-        <div class="panel howto-intro">${HOWTO_INTRO.map((s) => `<div class="hi-row"><b>${s.t}</b><p>${s.b}</p></div>`).join('')}</div>
-        <button class="btn" id="more">もっと詳しく</button>
-      </div>
+      ${topbar('HOW TO PLAY', '遊び方', null)}
+      <div class="howto-list" id="hlist"></div>
     </div>`);
   show(node);
-  $('#back', node).onclick = () => { audio.tap(); showTitle(); };
-  $('#more', node).onclick = () => { audio.tap(); showHowToDetail(); };
+  const box = $('#hlist', node);
+  let topic = null, y = 0;
+  const render = () => {
+    if (topic) {
+      box.innerHTML = `<div class="panel">${helpTopicHTML(topic)}</div>`;
+      node.scrollTop = 0;
+    } else {
+      box.innerHTML = `<div class="panel hp-loop">${HOWTO_LOOP.map((s, i) => `<div class="hl-step"><i>${i + 1}</i><div><b>${s.t}</b><p>${s.b}</p></div></div>`).join('')}</div>${helpIndexHTML()}`;
+      node.scrollTop = y;
+    }
+  };
+  box.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-topic]');
+    if (!t) return;
+    audio.select();
+    y = node.scrollTop;
+    topic = t.dataset.topic;
+    render();
+  });
+  $('#back', node).onclick = () => {
+    audio.tap();
+    if (topic) { topic = null; render(); } else showTitle();
+  };
+  render();
 }
-function showHowToDetail() {
-  const node = el(`
-    <div class="screen howto-screen" data-nav="home">
-      ${topbar('HOW TO PLAY', '遊び方', '<div style="width:44px"></div>')}
-      <div class="howto-list">${HOWTO.map((s) => `<details class="panel howto"><summary>${s.t}</summary><div class="howto-body">${s.b}</div></details>`).join('')}</div>
-    </div>`);
-  show(node);
-  $('#back', node).onclick = () => { audio.tap(); showHowTo(); };
-  node.querySelectorAll('summary').forEach((s) => s.addEventListener('click', () => audio.tap()));
+
+// ヘルプ（各画面の ?）：今の画面の上に重ねて項目を開く。下の「ほかの項目」で一覧へ、‹ で 1 つ前へ
+// spec：'topic'・'topic#part'（その見出しへ移って光らせる）・'@group'（その見出しの項目の一覧。'@' だけなら全部）
+export function openHelp(spec) {
+  const ov = el(`<div class="screen dim help-over">
+    <div class="help-box">
+      <div class="help-bar"><button class="iconbtn" id="hback" aria-label="戻る">‹</button><span>HELP</span><button class="iconbtn" id="hx" aria-label="閉じる">×</button></div>
+      <div class="help-body" id="hbody"></div>
+    </div>
+  </div>`);
+  screens().appendChild(ov);
+  const body = $('#hbody', ov);
+  const stack = [];
+  const go = (v) => {
+    stack.push(v);
+    $('#hback', ov).style.visibility = stack.length > 1 ? '' : 'hidden';
+    if (v[0] === '@') {
+      const g = v.slice(1);
+      const groups = g ? HELP_GROUPS.filter((x) => x.id === g) : HELP_GROUPS;
+      body.innerHTML = helpIndexHTML(groups) + (g ? '<button class="btn hp-more" data-all="1">ほかの項目</button>' : '');
+      body.scrollTop = 0;
+      return;
+    }
+    const [id, part] = v.split('#');
+    body.innerHTML = helpTopicHTML(id) + '<button class="btn hp-more" data-all="1">ほかの項目</button>';
+    body.scrollTop = 0;
+    const sec = part && $(`[data-part="${part}"]`, body);
+    if (sec) {
+      body.scrollTop = sec.offsetTop - 8;
+      sec.classList.add('focus');
+    }
+  };
+  body.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-topic]');
+    if (t) { audio.select(); go(t.dataset.topic); return; }
+    if (e.target.closest('[data-all]')) { audio.tap(); go('@'); }
+  });
+  $('#hback', ov).onclick = () => { audio.tap(); stack.pop(); go(stack.pop()); };
+  const close = () => { audio.tap(); ov.remove(); };
+  $('#hx', ov).onclick = close;
+  ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
+  go(spec);
 }
 
 // ホームの宝石：全種（武器・チャーム）から、ホームを開くたびに選び直す（直前と同じものは避ける）。下のメニューのホームのアイコンも同じ宝石
@@ -292,7 +357,7 @@ export function showCharSelect() {
   let sel = save.unlocked[save.selected] ? save.selected : 'ruby';
   const node = el(`
     <div class="screen">
-      ${topbar('SELECT', 'ジュエル選択')}
+      ${topbar('SELECT', 'ジュエル選択', undefined, 'jewels')}
       <div class="panel" id="detail"></div>
       <div class="char-grid" id="grid"></div>
       <div class="dock">
@@ -384,7 +449,7 @@ export function showStageSelect() {
   let sel = STAGE_BY_ID[save.selectedStage] && stageUnlocked(STAGE_BY_ID[save.selectedStage]) ? save.selectedStage : 'wastes';
   const node = el(`
     <div class="screen">
-      ${topbar('STAGE', 'ステージ選択')}
+      ${topbar('STAGE', 'ステージ選択', undefined, 'stages')}
       <div class="tabs" id="chtabs" style="align-self:stretch"></div>
       <div class="stage-list" id="list"></div>
       <div class="panel" id="opts"></div>
@@ -542,6 +607,7 @@ export function showStageSelect() {
   // カードを選ぶ：作り直さずに選択の枠だけ付け替える（作り直すと風景の背景がちらつく）
   const markSel = (card) => list.querySelectorAll('.stage-card').forEach((c) => c.classList.toggle('sel', c === card));
   const render = () => {
+    $('.help-btn', node).dataset.help = ch === 'boss' ? 'bossrush' : ch === 'train' ? 'training' : 'stages';
     $('#chtabs', node).innerHTML = CHAPTERS.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${c.name}</button>`).join('') +
       `<button class="tab ${ch === 'boss' ? 'on' : ''}" data-c="boss">BOSS</button>` +
       `<button class="tab ${ch === 'train' ? 'on' : ''}" data-c="train">TRAINING</button>`;
@@ -673,7 +739,7 @@ export function showShop(upper = false) {
   checkUpperShop();
   const node = el(`
     <div class="screen" data-nav="power">
-      ${upper ? topbar('MASTERWORKS', '上位工房') : topbar('WORKSHOP', '工房 — 永続強化')}
+      ${upper ? topbar('MASTERWORKS', '上位工房', undefined, 'workshop#upper') : topbar('WORKSHOP', '工房 — 永続強化', undefined, 'workshop')}
       <div class="shop-list" id="list"></div>
       <div class="refund-row"><button class="btn small" id="refund"></button><span>最大まで上げた強化は ON／OFF を切り替えられます</span></div>
     </div>`);
@@ -763,7 +829,7 @@ const RANK_COLOR = { R: '#7fd0ff', SR: '#c78bff', SSR: '#ffd24a', UR: '#ffffff' 
 export function showGacha() {
   const node = el(`
     <div class="screen gacha-screen" data-nav="jewel">
-      ${topbar('MINING', '採掘')}
+      ${topbar('MINING', '採掘', undefined, 'mining')}
       <div class="altar" id="altar"><div class="ring"></div><div class="ring r2"></div><img class="core" src="${pickaxeIcon(160)}"></div>
       <div id="gres" class="center-col"></div>
       <div class="rbtns" id="gbtns">
@@ -907,7 +973,7 @@ function gachaCardHTML(r, big) {
 export function showExchange(onClose) {
   const ov = el(`<div class="screen dim at-over">
     <div class="panel exch">
-      <div class="exch-head"><span>EXCHANGE <small>交換所</small></span><span class="dustv">ジェムダスト <b id="xd"></b></span></div>
+      <div class="exch-head"><span>EXCHANGE <small>交換所</small></span><span class="dustv">ジェムダスト <b id="xd"></b></span>${helpBtn('mining#exchange', 'sm')}</div>
       <div id="xl"></div>
       <button class="btn" id="xok">閉じる</button>
     </div></div>`);
@@ -952,7 +1018,7 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
   persist();
   const node = el(`
     <div class="screen" data-nav="archive">
-      ${tab === 'trophy' ? topbar('RECORDS', '実績', '<div style="width:44px"></div>') : `${topbar('LIBRARY', '図鑑', '<div style="width:44px"></div>')}
+      ${tab === 'trophy' ? topbar('RECORDS', '実績', null, 'records#ach') : `${topbar('LIBRARY', '図鑑', null, 'records#library')}
       <div class="tabs">
         <button class="tab ${tab === 'gems' ? 'on' : ''}" data-t="gems">武器</button>
         <button class="tab ${tab === 'charms' ? 'on' : ''}" data-t="charms">チャーム</button>
@@ -1197,7 +1263,7 @@ function setupDiag(node) {
 export function showSettings(back, asOverlay, focus) {
   const node = el(`
     <div class="screen ${asOverlay ? 'dim' : ''}" ${asOverlay ? '' : 'data-nav="more"'}>
-      ${topbar('SETTINGS', '設定', '<div style="width:44px"></div>')}
+      ${topbar('SETTINGS', '設定', null, 'save')}
       <div class="panel">
         <div class="setting"><span>BGM</span><input type="range" min="0" max="1" step="0.05" value="${save.settings.bgm}" id="bgm"></div>
         <div class="setting"><span>効果音</span><input type="range" min="0" max="1" step="0.05" value="${save.settings.sfx}" id="sfx"></div>
@@ -1500,6 +1566,7 @@ export function levelUp(g, done) {
   const node = el(`
     <div class="screen dim lvl-screen">
       <div class="rays-clip"><div class="rays"></div></div>
+      ${helpBtn('levelup', 'corner')}
       <div class="big-title prism-text">LEVEL UP</div>
       <div class="sub-title"><b>LV ${g.level - g.pendingLevels}</b>　強化を1つ選択</div>
       <div class="lvl-order">良い順 ${RARITY_ORDER}</div>
@@ -1797,6 +1864,7 @@ function elemSummary(g) {
 export function pauseMenu(g, onResume, onQuit) {
   const node = el(`
     <div class="screen dim" style="justify-content:center;gap:14px">
+      ${helpBtn('@', 'corner')}
       <div class="big-title" style="animation:none;color:#fff">PAUSED</div>
       <div class="panel" style="text-align:center">
         <div class="label">LOADOUT</div>

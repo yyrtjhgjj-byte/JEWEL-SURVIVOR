@@ -25,7 +25,7 @@ function findOrphans(label) {
     if (!n.data.trim()) continue;
     const b = blockOf(n);
     if (!b || !b.offsetParent || b.closest('#hud')) continue;
-    if (b.closest('.ztext, .zevo, .lore, .gd-lore, .gd-fr, .gd-trivia, .gd-desc, .howto-body')) continue; // 図鑑・ジュエル選択の長い説明文は、ふつうの折り返しでよい（ユーザーの判断）
+    if (b.closest('.ztext, .zevo, .lore, .gd-lore, .gd-fr, .gd-trivia, .gd-desc, .hp-part p, .hp-row span, .hp-steps li, .hp-lead, .hl-step p, .howto-elems')) continue; // 図鑑・ジュエル選択の長い説明文は、ふつうの折り返しでよい（ユーザーの判断）
     // 傾けた帯（図鑑のボスのリボン）は、文字の位置が斜めにずれて折り返しに見えるので数えない
     if (b.closest('.mon-rib')) continue;
     if (!groups.has(b)) groups.set(b, []);
@@ -208,7 +208,14 @@ async function fullSave(p) {
       await nav('more'); await check('hub-more');
       await p.click('#h-settings'); await check('settings'); await back();
       await nav('home');
-      await p.click('#t-howto'); await p.evaluate(() => document.querySelectorAll('.howto').forEach((d) => (d.open = true))); await check('howto'); await back();
+      // 遊び方：一覧と各項目
+      await p.click('#t-howto'); await check('howto');
+      for (const id of await p.$$eval('[data-topic]', (bs) => bs.map((b) => b.dataset.topic))) {
+        await p.click(`[data-topic="${id}"]`); await check('howto-' + id); await p.click('#back');
+      }
+      await back();
+      // ヘルプ（? の重ね画面）
+      await nav('power'); await p.click('.help-btn'); await check('help-power'); await p.click('#hx');
 
       // ラン中の画面
       await p.goto(BASE + '/?auto=ruby&god&build=ruby,sapphire,garnet,amber');
