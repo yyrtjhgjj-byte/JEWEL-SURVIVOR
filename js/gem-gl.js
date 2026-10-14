@@ -465,7 +465,7 @@ void main(){
 // 仕上げ：明るいところのにじみと十字のきらめき（前の結果は α を掛けた色）
 const FS_POST = `#version 300 es
 precision highp float;
-out vec4 o; uniform sampler2D uT; uniform vec2 uRes; uniform float uBloom, uStar, uLight;
+out vec4 o; uniform sampler2D uT; uniform vec2 uRes; uniform float uBloom, uStar;
 float lum(vec3 c){ return dot(c, vec3(.2126, .7152, .0722)); }
 vec3 br(vec2 uv, float th){ vec4 c = texture(uT, uv); return c.rgb * smoothstep(th, 1., lum(c.rgb)); }
 void main(){
@@ -484,8 +484,6 @@ void main(){
   vec3 add = bl * uBloom * 1.1 + st * uStar * .1;
   vec3 col = c.rgb + add;
   float a = clamp(max(c.a + lum(add) * 1.2, max(col.r, max(col.g, col.b))), 0., 1.);
-  // 明るい背景に重ねるとき（uLight）は、石の外のにじみを足さない（白の上では灰色の輪になるため）
-  a = mix(a, c.a, uLight);
   o = vec4(min(col, vec3(a)), a);
 }`;
 
@@ -521,7 +519,7 @@ function createRenderer(canvas) {
   }
   const uni = {}, upost = {};
   for (const n of UNIFORMS) uni[n] = gl.getUniformLocation(prog, n);
-  for (const n of ['uT', 'uRes', 'uBloom', 'uStar', 'uLight']) upost[n] = gl.getUniformLocation(post, n);
+  for (const n of ['uT', 'uRes', 'uBloom', 'uStar']) upost[n] = gl.getUniformLocation(post, n);
   const buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -572,7 +570,7 @@ function createRenderer(canvas) {
 
   // W×W（o.h があれば W×H）で描く。rockT・rockS は置いた向きからのずれ（度）
   // o（鑑賞画面）：yaw・pitch は画面の縦軸・横軸まわりの回転（度）、zoom は拡大の倍率、exp・fire・glint は明るさ・ファイア・きらめき、
-  // light は明るい背景に重ねるとき、h は縦の大きさ（宝石は短い辺に合わせて写る）。省くと石ごとの値（アイコンと同じ見た目）
+  // h は縦の大きさ（宝石は短い辺に合わせて写る）。省くと石ごとの値（アイコンと同じ見た目）
   const draw = (W, rockT = 0, rockS = 0, ss = 1, o = null) => {
     const g = look;
     const H = o && o.h ? o.h : W;
@@ -621,7 +619,6 @@ function createRenderer(canvas) {
     gl.uniform2f(upost.uRes, W, H);
     gl.uniform1f(upost.uBloom, glint * (cutStone ? 1 : 0.5));
     gl.uniform1f(upost.uStar, cutStone ? glint : 0);
-    gl.uniform1f(upost.uLight, o && o.light ? 1 : 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };

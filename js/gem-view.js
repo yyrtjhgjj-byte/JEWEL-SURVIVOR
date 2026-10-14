@@ -1,16 +1,13 @@
 // =====================================================================
 //  宝石の鑑賞画面（コレクションの宝石の詳細から開く）
 //  大きな宝石をその場で描き（gem-gl.js の mountLiveGem に ctl を渡す）、ドラッグで回す・2 本指で拡大・
-//  スライダーで明るさ・ファイア・きらめきを変える・背景を白黒で切り替える。値は保存しない
+//  スライダーで明るさ・ファイア・きらめきを変える。値は保存しない
 // =====================================================================
 import { GEMS } from './data.js';
 import { gemIcon } from './render.js';
 import { GEM_LOOK, mountLiveGem } from './gem-gl.js';
 import { el, $, topbar, gemColor } from './ui.js';
 import { audio } from './audio.js';
-
-// 背景の白黒だけは、アプリを閉じるまで覚えておく（続けて何個も見るときのため）
-let lightBg = false;
 
 const ZOOM_MAX = 3;
 const PITCH_MAX = 90;
@@ -32,11 +29,11 @@ export function openGemView(id, onClose) {
   const g = GEMS[id], look = GEM_LOOK[id];
   if (!g || !look) return;
   const clear = look.mode === 'trace';
-  const S = { yaw: 0, pitch: 0, zoom: 1, ...defaults(look), rock: true, light: lightBg, drag: false, vx: 0, vy: 0, clock: 0, at: 0, dirty: true, still: false };
+  const S = { yaw: 0, pitch: 0, zoom: 1, ...defaults(look), rock: true, drag: false, vx: 0, vy: 0, clock: 0, at: 0, dirty: true, still: false };
   const sliders = SLIDERS.filter(([k]) => k !== 'fire' || clear);
   const node = el(`
-    <div class="screen gem-view ${S.light ? 'light' : ''}" style="--c:${gemColor(id)}">
-      ${topbar(g.en, g.jp, '<button class="iconbtn gv-bg" id="gvbg" aria-label="背景の白黒"><i></i></button>', 'collection#view')}
+    <div class="screen gem-view" style="--c:${gemColor(id)}">
+      ${topbar(g.en, g.jp, null, 'collection#view')}
       <div class="gv-stage"><img class="gv-gem" src="${gemIcon(id)}" alt="" draggable="false"></div>
       <div class="gv-ctl">
         ${sliders.map(([k, name, lo, hi, st]) => `<label class="gv-sl"><span>${name}</span><input type="range" data-k="${k}" min="${lo}" max="${hi}" step="${st}"><output></output></label>`).join('')}
@@ -72,12 +69,6 @@ export function openGemView(id, onClose) {
     audio.tap();
     Object.assign(S, { yaw: 0, pitch: 0, zoom: 1, vx: 0, vy: 0, clock: 0, ...defaults(look), dirty: true });
     syncUi();
-  };
-  $('#gvbg', node).onclick = () => {
-    audio.tap();
-    S.light = lightBg = !S.light;
-    node.classList.toggle('light', S.light);
-    S.dirty = true;
   };
   const close = () => {
     node.remove();
@@ -167,7 +158,7 @@ export function openGemView(id, onClose) {
         still: S.still,
         rockT: 10 * Math.sin(S.clock * 0.9),
         rockS: 14 * Math.cos(S.clock * 0.6),
-        o: { yaw: S.yaw, pitch: S.pitch, zoom: S.zoom, exp: S.exp, fire: S.fire, glint: S.glint, light: S.light },
+        o: { yaw: S.yaw, pitch: S.pitch, zoom: S.zoom, exp: S.exp, fire: S.fire, glint: S.glint },
       };
     },
   };

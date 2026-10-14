@@ -1599,7 +1599,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .gd-loupe { position: absolute; right: -8px; bottom: -6px; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 1px solid var(--line2); background: linear-gradient(rgba(255,255,255,0.08), rgba(255,255,255,0.08)), #15131f; color: var(--text); display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.6); }
 .gd-loupe svg { width: 17px; height: 17px; }
 .gd-art.can-view:active .gd-loupe { transform: scale(0.9); }
-.screen.gem-view { --gv-bg: radial-gradient(circle at 50% 40%, #16151d, #000 70%); --fill: var(--c); background: var(--gv-bg); color: var(--text); overflow: hidden; padding-bottom: calc(var(--safe-b) + 12px); transition: background 0.2s; }
+.screen.gem-view { --gv-bg: radial-gradient(circle at 50% 40%, #16151d, #000 70%); --fill: var(--c); background: var(--gv-bg); color: var(--text); overflow: hidden; padding-bottom: calc(var(--safe-b) + 12px); }
 .gem-view .topbar { margin-bottom: 0; flex: none; }
 .gv-stage { position: relative; flex: 1 1 auto; min-height: 0; align-self: stretch; margin: 0 calc(-16px - var(--safe-r)) 0 calc(-16px - var(--safe-l)); touch-action: none; cursor: grab; }
 .gv-gem { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
@@ -1613,8 +1613,3 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .gv-sl input::-moz-range-thumb { width: 22px; height: 22px; border: none; border-radius: 50%; background: #fff; box-shadow: 0 1px 5px rgba(0,0,0,0.55); }
 .gv-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .gv-btns .btn.on { border-color: color-mix(in srgb, var(--fill) 75%, transparent); box-shadow: inset 0 0 14px color-mix(in srgb, var(--fill) 32%, transparent); }
-.gv-bg i { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--text); background: linear-gradient(90deg, #fff 50%, #050508 50%); }
-/* 白い背景（ワンタップで切り替え） */
-.screen.gem-view.light { --gv-bg: radial-gradient(circle at 50% 40%, #fff, #e4e4ea 75%); --text: #1d1b26; --muted: #6c6a7e; --panel: rgba(255,255,255,0.8); --line: rgba(0,0,0,0.08); --line2: rgba(0,0,0,0.16); --fill: color-mix(in srgb, var(--c) 55%, #2a2638); }
-.gem-view.light .help-btn { color: #5b5378; }
-.gem-view.light .gv-sl input::-webkit-slider-thumb { box-shadow: 0 0 0 1px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.3); }
