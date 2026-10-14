@@ -67,7 +67,9 @@
     // 出荷：磨ける工場のうち待ちが一番少ないところへ
     for (const id in st.mines) {
       const fs = Object.keys(st.factories).filter((f) => Object.keys(st.mines[id].store).some((k) => B.canCut(f, k.split('|')[0])));
-      if (fs.length) { fs.sort((a, b) => B.queueWork(st.factories[a]) / B.factCap(st, a) - B.queueWork(st.factories[b]) / B.factCap(st, b)); B.ship(st, id, fs[0], now); }
+      // 名ルートのある工場を先に（見つけていなくても、知っている人なら選ぶ）。あとは待ちが少ない順
+      const load = (f) => B.queueWork(st.factories[f]) / B.factCap(st, f) - (!OFF.includes('route') && B.routeOf(id, f) ? 1 : 0);
+      if (fs.length) { fs.sort((a, b) => load(a) - load(b)); B.ship(st, id, fs[0], now); }
       if (B.storeTotal(st.mines[id]) > 0 && !fs.length) B.sellRough(st, id);
     }
     // 名石：原石は精度 70%（品質 A）で磨き、宝物庫に 10 個までは飾り、それ以上はオークションに出す
@@ -77,6 +79,11 @@
     }
     // 案件：落盤は資金に余裕があれば直し、ほかは受ける
     if (st.deal && !OFF.includes('deal')) B.resolveDeal(st, st.deal.k !== 'cavein' || st.cash > st.deal.cost * 3, now);
+    // 来客：いちばん値打ちのある在庫を、2 番目の言い値で。言い返されたら受ける
+    if (st.vip && !OFF.includes('vip')) {
+      const ks = B.vipLots(st, st.vip).sort((a, b) => B.lotValue(st, b, st.stock[b]) - B.lotValue(st, a, st.stock[a]));
+      if (ks.length) { const r = B.vipAsk(st, ks[0], D.VIP.asks[1], now); if (r && r.r === 'counter') B.vipAnswer(st, true, now); }
+    }
     // 注文を納め、品質 S 以上をオークションへ、A 以上を鑑定へ
     if (!OFF.includes('order')) for (const o of [...st.orders.list]) B.deliver(st, o.id, now);
     if (!OFF.includes('auction')) for (const id in D.AUCTIONS) if (B.aucOpen(st, id)) for (const k of Object.keys(st.stock)) if (B.parseKey(k).g >= D.AUCTIONS[id].min) B.consign(st, id, k, now);
@@ -111,13 +118,15 @@
     for (let m = 0; m < 16 * 60; m += GAP) { now += GAP * 60e3; visit(); }
     coins += B.payDividend(st, AVG, day);
     const v = B.companyValue(st);
-    rows.push(`day ${String(d + 1).padStart(2)}  rank ${st.rank} ${D.RANKS[st.rank - 1].name.padEnd(5, '　')}  value $${(v / 1e6).toFixed(2)}M  cash $${(st.cash / 1e6).toFixed(2)}M  mines ${Object.keys(st.mines).length} facts ${Object.keys(st.factories).length}  earn/h $${(mineEarn() / 1e3).toFixed(0)}K  div ${st.div.paid}/${B.divCap(st, AVG)}  coins ${coins}`);
+    const bl = Object.keys(st.brand).map((g) => B.brandLv(st, g)).sort((x, y) => y - x).slice(0, 4).join('');
+    rows.push(`brand ${bl.padEnd(4)} routes ${String(Object.keys(st.routes).length).padStart(2)}  day ${String(d + 1).padStart(2)}  rank ${st.rank} ${D.RANKS[st.rank - 1].name.padEnd(5, '　')}  value $${(v / 1e6).toFixed(2)}M  cash $${(st.cash / 1e6).toFixed(2)}M  mines ${Object.keys(st.mines).length} facts ${Object.keys(st.factories).length}  earn/h $${(mineEarn() / 1e3).toFixed(0)}K  div ${st.div.paid}/${B.divCap(st, AVG)}  coins ${coins}`);
     now += 8 * H;
   }
   console.log(rows.join('\n'));
   console.log('rank reached (day):', JSON.stringify(rankAt));
   const shops = Object.entries(st.shops).map(([id, sh]) => `${id} Lv${sh.lv} $${(sh.sales / 1e6).toFixed(1)}M`).join(', ');
   console.log('stat:', JSON.stringify(st.stat));
+  console.log('routes:', Object.keys(st.routes).join(','), ' brand:', Object.keys(st.brand).map((g) => `${g}:${B.brandLv(st, g)}(${Math.round(st.brand[g])})`).sort().join(' '));
   console.log('shops:', shops || 'none', ' bosses:', Object.values(st.mines).filter((m) => m.boss).length, 'mines', Object.values(st.shops).filter((m) => m.boss).length, 'shops');
   if (process.env.LOG) console.log(log.slice(0, +process.env.LOG).join('\n'));
 })();

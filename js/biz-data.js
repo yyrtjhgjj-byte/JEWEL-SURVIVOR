@@ -48,8 +48,8 @@ export const RANKS = [
   { name: '宝石商', need: 500e3, k: 0.75, off: 12, std: 300e3 },
   { name: '卸問屋', need: 5e6, k: 1, off: 14, std: 1e6 },
   { name: '宝石商社', need: 50e6, k: 1.3, off: 16, std: 3e6 },
-  { name: '国際商社', need: 1e9, k: 1.6, off: 20, std: 10e6 },
-  { name: '宝石財閥', need: 18e9, k: 2, off: 24, std: 30e6 },
+  { name: '国際商社', need: 1.2e9, k: 1.6, off: 20, std: 10e6 },
+  { name: '宝石財閥', need: 24e9, k: 2, off: 24, std: 30e6 },
 ];
 
 // ランクごとの目安：鉱区の Lv1 の産出の値打ち（$/時）と、元が取れるまでの時間（産出の値打ちで何時間分か）。
@@ -277,3 +277,41 @@ export const FAC_KINDS = [
   { id: 'sight', name: 'サイト' },
 ];
 export const FAC_TABLE = { mine: MINES, factory: FACTORIES, exchange: EXCHANGES, shop: SHOPS, lab: LABS, auction: AUCTIONS, sight: SIGHTS };
+
+// 名ルート：実際の宝石の流れに沿った「鉱区（mine）→ 工場（fac）」。初めてその道で原石が届くと見つかり、
+// それからはその道で磨く石の歩留まりが ROUTE.yield 倍、品質が 1 段上がる見込みが ROUTE.up 増える。
+// hint はまだ見つけていないときの手がかり、d は見つけたときの説明（どちらも実際の話）
+export const ROUTE = { yield: 1.12, up: 0.1 };
+export const ROUTES = [
+  { id: 'ratna', mine: 'ratnapura', fac: 'ratnapura', name: '宝石の町', hint: 'スリランカの石は、掘った町で磨く', d: 'ラトナプラはシンハラ語で「宝石の町」。掘った石は町の工房で磨かれる' },
+  { id: 'burma', mine: 'mogok', fac: 'chanthaburi', name: '紅玉の道', hint: 'ミャンマーのルビーは、国境を越えて加熱の名所へ', d: 'モゴックのルビーの多くは、タイのチャンタブリーで加熱され、取引される' },
+  { id: 'moza', mine: 'montepuez', fac: 'chanthaburi', name: 'インド洋を渡る紅', hint: 'モザンビークのルビーも、行き先は同じ', d: 'モンテプエスのルビーは、タイの業者が買い付けて加熱することが多い' },
+  { id: 'mada', mine: 'ilakaka', fac: 'chanthaburi', name: 'サファイア・ラッシュ', hint: 'マダガスカルの町に集まる買い付け人は、どこから来たか', d: 'イラカカの採掘ラッシュには、タイやスリランカの買い付け人が押し寄せた' },
+  { id: 'zambia', mine: 'kafubu', fac: 'jaipur', name: '緑の都', hint: 'ザンビアのエメラルドは、インドの宝石の都へ', d: 'カフブのエメラルドの原石は、ジャイプルで磨かれるものが多い' },
+  { id: 'welo', mine: 'welo', fac: 'jaipur', name: '高原の遊色', hint: 'エチオピアのオパールは、エメラルドと同じ町で', d: 'ウェロのオパールの多くは、ジャイプルの工房で磨かれる' },
+  { id: 'surat', mine: 'jwaneng', fac: 'surat', name: 'ダイヤモンドの川', hint: 'ボツワナのダイヤは、世界のダイヤの大半を磨く町へ', d: '世界のダイヤモンドのおよそ 9 割は、インドのスーラトで研磨される' },
+  { id: 'sight', mine: 'gaborone', fac: 'surat', name: 'サイトホルダー', hint: 'ハボローネの箱を開けるのは、どこの職人か', d: 'サイトで原石の箱を買う業者の多くは、スーラトに工房を持つ' },
+  { id: 'arctic', mine: 'diavik', fac: 'antwerp', name: '北極の光', hint: 'カナダのダイヤは、ダイヤの都の熟練の手で', d: 'ディアヴィクの原石は、アントワープを通して世界へ売られてきた' },
+  { id: 'coral', mine: 'tosa', fac: 'torre', name: '血赤の海路', hint: '土佐の赤いサンゴは、地中海のサンゴ彫りの町へ', d: '土佐の血赤サンゴは、イタリアのトッレ・デル・グレコの彫刻師に珍重された' },
+  { id: 'amber', mine: 'gdansk', fac: 'gdansk', name: '琥珀の都', hint: 'バルト海の琥珀は、港町でそのまま', d: 'グダニスクは「琥珀の都」と呼ばれ、琥珀の工房が集まる' },
+  { id: 'idar', mine: 'minas', fac: 'idar', name: '海を渡った研磨師', hint: 'ブラジルの石と、ドイツの石の町の縁', d: 'イーダー・オーバーシュタインの研磨業は、ブラジルから届く石で大きくなった' },
+  { id: 'kofu', mine: 'minas', fac: 'kofu', name: '水晶の町', hint: '日本の水晶の町も、ブラジルの石を待っていた', d: '甲府の水晶研磨は、地元の水晶が尽きたあと、ブラジルの原石で続いた' },
+];
+
+// 宝石のブランド：その石を売った額（その時の会社のランクの標準的な手取りの何時間分か。biz.js の brandGain）で段階が上がり、
+// 1 段階ごとに売値が BRAND.mul 増える（ずっと続く）
+export const BRAND = { need: [1, 8, 40, 160, 800], mul: 0.04 };
+export const BRAND_NAMES = ['', '取扱あり', '評判', '定番', '名門', '至宝'];
+
+// 来客（直営店の VIP）：every 次の来客までの時間（時間）の幅、keep 待ってくれる時間（時間）、
+// want ほしい量（その店が 1 時間に売る量の何時間分か）。
+// 客の種類：budget 相場に対する予算の幅（画面に出す。本当の予算はこの中のどこか）、g 求める品質の下限、gems 好きな石（なければ店の好みから）
+export const VIP = { every: [3, 6], keep: 8, want: [3, 6], asks: [1.6, 2.2, 2.8, 3.6] };
+export const VIP_KINDS = [
+  { id: 'royal', name: '王室の使い', budget: [2.4, 3.8], g: 3 },
+  { id: 'star', name: '映画スター', budget: [2, 3], g: 2 },
+  { id: 'couple', name: '婚約したふたり', budget: [1.6, 2.3], g: 2, gems: ['diamond', 'ruby', 'sapphire', 'emerald'] },
+  { id: 'collector', name: '老コレクター', budget: [2, 3.2], g: 3 },
+  { id: 'tycoon', name: '大富豪', budget: [2.6, 4], g: 1 },
+  { id: 'founder', name: '若い起業家', budget: [1.7, 2.5], g: 1 },
+];
