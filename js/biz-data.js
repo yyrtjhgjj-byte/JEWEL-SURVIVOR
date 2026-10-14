@@ -252,6 +252,17 @@ export const MARKET_EVENTS = {
 // 大きさはその宝石の 1 個の目安 × size、SS は ss の割合。同時に待てるのは max 個まで。
 // 宝物庫に飾ると 1 つにつき配当の上限 +vaultBonus（vaultCap 個まで）。オークションでは相場の sell 倍
 export const FIND = { rate: 0.004, lvBoost: 0.25, first: 60, size: [2, 6], ss: 0.25, max: 5, vaultCap: 50, vaultBonus: 0.01, sell: [1.5, 2.5] };
+// 案件（選ぶ出来事）：every 次の案件までの時間（時間）の幅、keep 返事を待つ時間（時間）、w 種類ごとの出やすさ。
+// 金額は、その案件の施設の規模で決める：
+// bulkMul まとめ買いの相場に対する倍率、caveinStop 落盤で止まる時間・caveinCost 修理代（止まる間の産出の値打ちに対する割合）、
+// offerWork 売り込まれる原石の量（届く工場の処理の何時間分か）・offerValue その値打ちが値段の何倍か、loanFee 展示の謝礼（名石の値打ちに対する割合）、
+// prospectCost 鉱脈を調べる費用（探鉱の費用に対する割合）・prospectP 見つかる見込み、scoutCost 名工の値段（工場の値段に対する割合）・scoutSkill 腕前の上乗せ・scoutMax 1 つの工場の上限
+export const DEALS = {
+  every: [3, 6], keep: 24,
+  w: { bulk: 3, cavein: 2, offer: 3, loan: 2, prospect: 2, scout: 1 },
+  bulkMul: [1.1, 1.5], caveinStop: 12, caveinCost: 0.5, offerWork: [2, 5], offerValue: [1.2, 3], loanFee: 0.1, loanHours: 24,
+  prospectCost: 0.4, prospectP: 0.6, scoutCost: 0.6, scoutSkill: 0.05, scoutMax: 0.15,
+};
 export const FIND_WORDS = ['星', '雫', '炎', '月', '光', '心', '夜明け', '女王', '王冠', '瞳', '薔薇', '泉'];
 
 // 施設の種類（地図のピンの優先順と名前）

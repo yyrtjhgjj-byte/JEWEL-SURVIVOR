@@ -110,7 +110,8 @@ async function fullSave(p) {
     B.buySight(st, 'gaborone', now);
     // 名石：宝物庫にいくつかと、決めていない 1 つ（長い地名で折り返しを確かめる）。留守中のまとめも出す
     st.vault.push({ id: 9001, gem: 'tourmaline', mine: 'batalha', ct: 3.21, g: 4, name: 'サン・ジョゼ・ダ・バターリャの夜明け', t: now }, { id: 9002, gem: 'alexandrite', mine: 'minas', ct: 2.4, g: 3, name: 'ミナスジェライスの瞳', t: now });
-    st.finds.push({ id: 9003, gem: 'diamond', mine: 'jwaneng', ct: 4.2, g: 4, name: 'ジュワネングの王冠', t: now });
+    st.finds.push({ id: 9003, gem: 'diamond', mine: 'jwaneng', ct: 4.2, g: 4, name: 'ジュワネングの王冠', t: now }, { id: 9004, gem: 'tourmaline', mine: 'batalha', raw: 18.4, name: 'サン・ジョゼ・ダ・バターリャの女王', t: now });
+    st.deal = { id: 9005, k: 'offer', gem: 'emerald', ct: 1234.5, q: 0.3, price: 4.2e6, fid: 'idar', p: 'muzo', t: now, until: now + 20 * 3600e3, seen: false };
     st.tut = -1;
     st.away = B.awayMark(st, now - 5 * 3600e3);
     sv.biz = st;
@@ -180,7 +181,7 @@ async function fullSave(p) {
       // 経営（地図のピンから各施設のシート）
       await nav('biz'); await check('biz');
       // 留守中のまとめと名石の板（あれば中身を確かめて閉じる）
-      for (let i = 0; i < 3 && (await p.$('#bzmodal:not([hidden])')); i++) { await check('biz-modal#' + i); await p.evaluate(() => document.querySelector('#bzmodal [data-m="next"], #bzmodal [data-m="later"]')?.click()); }
+      for (let i = 0; i < 4 && (await p.$('#bzmodal:not([hidden])')); i++) { await check('biz-modal#' + i); await p.evaluate(() => document.querySelector('#bzmodal [data-m="next"], #bzmodal [data-m="later"], #bzmodal [data-m="dlater"]')?.click()); }
       // 新しいセーブではチュートリアルが出る（吹き出しを確かめてから閉じる）
       if (await p.$('#bztut')) { await check('biz-tutorial'); await p.click('.tut-skip'); }
       await p.evaluate(() => document.querySelector('#bzmk')?.click());

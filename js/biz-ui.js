@@ -5,16 +5,16 @@
 import { save, persist } from './save.js';
 import { audio } from './audio.js';
 import { fmt, todayStr } from './util.js';
-import { show, el, $, coinPill, refreshCoinPill, haptic, getApp, toast } from './ui.js';
-import { gemIcon, coinIcon } from './render.js';
+import { show, el, $, coinPill, refreshCoinPill, haptic, getApp, toast, gemColor } from './ui.js';
+import { gemIcon, coinIcon, roughIcon } from './render.js';
 import { mountLiveGem } from './gem-gl.js';
 import { GEMS } from './data.js';
-import { gradeBadge } from './atelier-ui.js';
+import { gradeBadge, polishMini } from './atelier-ui.js';
 import { refreshNav } from './menu.js';
 import * as B from './biz.js';
 import {
   PLACES, MINES, FACTORIES, EXCHANGES, SHOPS, SHOP_LV, STAFF, BOSS_SHIP, RANKS, MINE_LV, STORE_LV, FACT_LV, CREW, BIZ_GEMS, BIZ_GEM_IDS, FAC_KINDS, FAC_TABLE,
-  LABS, AUCTIONS, SIGHTS, ORDERS, CLIENT_KINDS, FIND,
+  LABS, AUCTIONS, SIGHTS, ORDERS, CLIENT_KINDS, FIND, DEALS,
 } from './biz-data.js';
 import { worldSvg, projX, projY, MAP_W, MAP_H } from './biz-map.js';
 
@@ -89,14 +89,14 @@ export function showBiz() {
       ${coinPill()}
     </div>
     <button class="bz-goal" id="bzgoal" hidden></button>
-    <button class="bz-findchip" id="bzfind" hidden><small>名石</small><b id="bzfindn"></b></button>
+    <div class="bz-chips"><button class="bz-findchip" id="bzfind" hidden><small>名石</small><b id="bzfindn"></b></button><button class="bz-findchip" id="bzdeal" hidden><small>案件</small><b>1</b></button></div>
     <div class="bz-map" id="bzmap"><div class="bz-world" id="bzworld">${worldSvg()}<svg class="bz-routes" id="bzroutes" viewBox="0 0 ${MAP_W} ${MAP_H}" preserveAspectRatio="none" aria-hidden="true"></svg><div class="bz-pins" id="bzpins"></div></div></div>
     <div class="bz-tools"><button id="bzzoom" aria-label="拡大"></button><button id="bzmk">${icon('market')}<span>相場</span></button><button id="bzhq">${icon('hq')}<span>本社</span></button></div>
     <div class="bz-sheet" id="bzsheet"></div>
     <div class="bz-modal" id="bzmodal" hidden></div>
   </div>`);
   show(node);
-  ui = { node, st, zoom: (st.view && st.view.z) || 1, sheet: null, touching: false, ships: '', t: 0, lastSave: now, modals: [], modal: null, findLater: false };
+  ui = { node, st, zoom: (st.view && st.view.z) || 1, sheet: null, touching: false, ships: '', t: 0, lastSave: now, modals: [], modal: null, findLater: false, dealLater: false };
   layoutMap(true);
   renderPins();
   renderTop();
@@ -107,6 +107,7 @@ export function showBiz() {
   $('#bzdiv', node).onclick = () => { audio.tap(); openSheet('tokyo', 'hq'); };
   $('#bzgoal', node).onclick = onGoal;
   $('#bzfind', node).onclick = () => { audio.tap(); ui.findLater = false; checkFinds(); };
+  $('#bzdeal', node).onclick = () => { audio.tap(); if (!ui.modal && ui.st.deal) queueModal({ kind: 'deal' }); };
   $('#bzmodal', node).addEventListener('click', onModalClick);
   const map = $('#bzmap', node);
   let saveT = 0;
@@ -257,6 +258,7 @@ function onGoal() {
     return;
   }
   audio.tap();
+  if (g.id === 'deal1' && st.deal && !ui.modal) { queueModal({ kind: 'deal' }); return; }
   // 目標のための場所を開く（まだ行けない地名なら何もしない）
   if (g.go && placeRank(g.go[0]) <= st.rank) {
     centerOn(g.go[0]);
@@ -397,7 +399,7 @@ function mineSheet(pid) {
   return `${head}
     <div class="bs-rows">
       <div><span>設備</span><b>${MINE_LV[m.lv - 1].name}</b></div>
-      <div><span>産出</span><b>${m.reserve > 1 ? `${ctf(out)} ct/時` : '枯渇'}</b></div>
+      <div><span>産出</span><b>${m.stop > Date.now() ? `落盤で停止中（あと ${minf((m.stop - Date.now()) / 60e3)}）` : m.reserve > 1 ? `${ctf(out)} ct/時` : '枯渇'}</b></div>
       <div class="bs-col"><span>倉庫 ${full ? '<em class="bs-warn">満杯</em>' : ''}</span>${bar(tot / cap, full ? 'warn' : '')}<b>${ctf(tot)} / ${ctf(cap)} ct</b></div>
       <div class="bs-col"><span>埋蔵量</span>${bar(m.reserve / B.reserveFull(pid))}<b>${m.reserve > 1 ? `あと ${days < 1 ? minf(days * 1440) : `${days.toFixed(1)} 日`}` : '枯渇'}</b></div>
     </div>
@@ -675,13 +677,24 @@ function nextModal() {
 }
 // 名石の値と見た目（見つけたばかりの石・宝物庫の石）
 function findCard(f, label, acts) {
-  const st = ui.st, v = B.findValue(st, f), P = PLACES[f.mine];
+  const st = ui.st, P = PLACES[f.mine];
+  if (f.raw) {
+    return `<div class="bm-card bm-find">
+      <div class="bm-label">名石の原石</div>
+      <div class="bm-gem"><img class="bm-rough" src="${roughIcon('mystic', gemColor(f.gem), 120)}" alt=""></div>
+      <b class="bm-name">${f.name}</b>
+      <small class="bm-sub">${P.name}（${P.country}）で見つかった${GEMS[f.gem].jp}の原石・${f.raw.toFixed(2)} ct</small>
+      ${acts}
+    </div>`;
+  }
+  const v = B.findValue(st, f);
   return `<div class="bm-card bm-find">
     <div class="bm-label">${label}</div>
     <div class="bm-gem"><img src="${gemIcon(f.gem)}" alt=""></div>
     <b class="bm-name">${f.name}</b>
-    <small class="bm-sub">${P.name}（${P.country}）の${GEMS[f.gem].jp}</small>
+    <small class="bm-sub">${P.name}（${P.country}）の${GEMS[f.gem].jp}${f.score != null ? `・研磨の精度 ${Math.round(f.score * 100)}%` : ''}</small>
     <div class="bm-stats">${gradeBadge(f.g)}<span>${f.ct.toFixed(2)} ct</span><span>相場 ${usd(v)}</span></div>
+    ${f.lent > Date.now() ? `<div class="bs-note">展示中（あと ${minf((f.lent - Date.now()) / 60e3)}）</div>` : ''}
     ${acts}
   </div>`;
 }
@@ -709,18 +722,32 @@ function renderModal() {
     const f = (M.kind === 'find' ? st.finds : st.vault).find((x) => x.id === M.id);
     if (!f && !M.res) { nextModal(); return; }
     const ff = f || M.res.f;
-    const acts = M.res
+    const acts = ff.raw
+      ? `<div class="bm-acts"><button class="btn primary" data-m="polish">磨く<span class="sub">研磨の精度で品質と大きさが決まる</span></button></div><button class="bm-later" data-m="later">あとで決める</button>`
+      : M.res
       ? `<div class="bm-res">相場の ×${M.res.m.toFixed(2)} で落札<b>${usd(M.res.v)}</b></div><button class="btn primary" data-m="next">OK</button>`
       : M.kind === 'find'
         ? `<div class="bm-acts">
             <button class="btn primary" data-m="keep" ${B.vaultFull(st) ? 'disabled' : ''}>宝物庫に飾る<span class="sub">${B.vaultFull(st) ? '宝物庫がいっぱい' : `配当の上限 +${Math.round(FIND.vaultBonus * 100)}%`}</span></button>
             <button class="btn" data-m="sell">オークションに出す<span class="sub">相場の ×${FIND.sell[0]}〜${FIND.sell[1]}</span></button>
           </div><button class="bm-later" data-m="later">あとで決める</button>`
-        : `<div class="bm-acts"><button class="btn" data-m="sell">オークションに出す<span class="sub">相場の ×${FIND.sell[0]}〜${FIND.sell[1]}</span></button><button class="btn" data-m="next">閉じる</button></div>`;
-    html = findCard(ff, M.kind === 'find' ? '名石発見' : '宝物庫', acts);
+        : `<div class="bm-acts"><button class="btn" data-m="sell" ${ff.lent > Date.now() ? 'disabled' : ''}>オークションに出す<span class="sub">相場の ×${FIND.sell[0]}〜${FIND.sell[1]}</span></button><button class="btn" data-m="next">閉じる</button></div>`;
+    html = findCard(ff, M.kind === 'find' ? '名石' : '宝物庫', acts);
+  } else if (M.kind === 'deal') {
+    const d = M.res ? M.res.d : st.deal;
+    if (!d) { nextModal(); return; }
+    if (!M.res) d.seen = true;
+    const u = DEAL_UI[d.k](d);
+    const body = M.res
+      ? `<div class="bm-res"><b class="bm-rt">${dealResult(d, M.res.r)}</b></div><button class="btn primary" data-m="next">OK</button>`
+      : `<div class="bm-acts">
+          <button class="btn primary" data-m="yes" ${u.yes[2] != null && st.cash < u.yes[2] ? 'disabled' : ''} ${u.yesOk === false ? 'disabled' : ''}>${u.yes[0]}<span class="sub">${u.yes[2] != null && st.cash < u.yes[2] ? '資金が足りません' : u.yes[1]}</span></button>
+          <button class="btn" data-m="no">${u.no[0]}${u.no[1] ? `<span class="sub">${u.no[1]}</span>` : ''}</button>
+        </div><button class="bm-later" data-m="dlater">あとで決める（あと ${minf((d.until - Date.now()) / 60e3)}）</button>`;
+    html = `<div class="bm-card bm-deal"><div class="bm-label">案件</div><b class="bm-time">${u.t}</b><p class="bm-body">${u.b}</p>${body}</div>`;
   }
   box.innerHTML = `<div class="bm-back"></div>${html}`;
-  const img = $('.bm-gem img', box);
+  const img = $('.bm-gem img:not(.bm-rough)', box);
   if (img) mountLiveGem(img, (M.res ? M.res.f : (M.kind === 'find' ? st.finds : st.vault).find((x) => x.id === M.id)).gem);
 }
 function onModalClick(e) {
@@ -730,6 +757,33 @@ function onModalClick(e) {
   switch (b.dataset.m) {
     case 'next': audio.tap(); nextModal(); break;
     case 'later': audio.tap(); ui.findLater = true; nextModal(); break;
+    case 'dlater': audio.tap(); ui.dealLater = true; nextModal(); break;
+    case 'polish': {
+      // 研磨のミニゲームで磨く（終わったら経営の画面に戻り、仕上がった名石を見せる）
+      const f = st.finds.find((x) => x.id === M.id);
+      if (!f) break;
+      audio.select();
+      polishMini({
+        tier: 'mystic', gemId: f.gem, en: 'MASTERPIECE', jp: f.name,
+        quit: () => showBiz(),
+        done: (score, grade) => {
+          B.polishFind(save.biz, f.id, score, grade);
+          persist();
+          if (grade >= 4) { audio.bigWin(); haptic(); } else if (grade >= 3) audio.levelUp(); else audio.chestOpen();
+          showBiz();
+        },
+      });
+      break;
+    }
+    case 'yes': case 'no': {
+      const d = st.deal, r = d && B.resolveDeal(st, b.dataset.m === 'yes', Date.now());
+      if (!r) { audio.tap(); break; }
+      M.res = { d, r };
+      if (r.yes && (r.v || r.hit || d.k === 'loan')) audio.coin(); else audio.select();
+      renderModal();
+      afterChange(true);
+      break;
+    }
     case 'keep':
       if (B.keepFind(st, M.id)) { audio.levelUp(); haptic(); nextModal(); afterChange(true); }
       break;
@@ -741,20 +795,42 @@ function onModalClick(e) {
     default:
   }
 }
-// 見つかった名石があれば、順に知らせる（チュートリアルの間と「あとで」を選んだあとは出さない）
+// 見つかった名石と届いた案件を、順に知らせる（チュートリアルの間と「あとで」を選んだあとは出さない）
 function checkFinds() {
   const st = ui.st;
   $('#bzfind', ui.node).hidden = !st.finds.length;
   $('#bzfindn', ui.node).textContent = st.finds.length;
-  if (ui.modal || ui.findLater || (st.tut != null && st.tut >= 0) || !st.finds.length) return;
-  queueModal({ kind: 'find', id: st.finds[0].id });
+  $('#bzdeal', ui.node).hidden = !st.deal;
+  if (ui.modal || (st.tut != null && st.tut >= 0)) return;
+  if (st.finds.length && !ui.findLater) queueModal({ kind: 'find', id: st.finds[0].id });
+  else if (st.deal && !st.deal.seen && !ui.dealLater) queueModal({ kind: 'deal' });
+}
+
+// 案件の文（題・本文・答えのボタン）と、答えたあとの結果
+const vaultName = (id) => { const f = ui.st.vault.find((x) => x.id === id); return f ? f.name : ''; };
+const DEAL_UI = {
+  bulk: (d) => { const v = B.dealBulkValue(ui.st, d); return { t: '大口の買い付け', b: `${PLACES[d.p].name}の${CLIENT_KINDS[d.who]}が、在庫の${GEMS[d.gem].jp}をまとめて買いたいと言っています`, yes: ['売る', `相場の ×${d.mul.toFixed(2)}・${usd(v)}`], yesOk: v > 0, no: ['断る'] }; },
+  cavein: (d) => ({ t: '落盤', b: `${PLACES[d.mine].name}の鉱区で落盤がありました`, yes: ['すぐ直す', usd(d.cost), d.cost], no: ['自分たちで直す', `${DEALS.caveinStop} 時間 採掘が止まる`] }),
+  offer: (d) => ({ t: '原石の売り込み', b: `${PLACES[d.p].name}の業者が、${GEMS[d.gem].jp}の原石 ${fmt(Math.round(d.ct))} ct を売りたいと言っています。品質は磨くまでわかりません`, yes: ['買う', `${usd(d.price)}・${PLACES[d.fid].name}の工場へ届く`, d.price], no: ['見送る'] }),
+  loan: (d) => ({ t: '展示の依頼', b: `${PLACES[d.p].name}の美術館が、宝物庫の「${vaultName(d.fid)}」を展示したいと言っています`, yes: ['貸し出す', `謝礼 ${usd(d.fee)}・${DEALS.loanHours} 時間 宝物庫を離れる`], no: ['断る'] }),
+  prospect: (d) => ({ t: '鉱脈の噂', b: `${PLACES[d.mine].name}の近くに、新しい鉱脈があるという噂です`, yes: ['調べる', `${usd(d.cost)}・見つかる見込み ${Math.round(DEALS.prospectP * 100)}%`, d.cost], no: ['見送る'] }),
+  scout: (d) => ({ t: '名工の移籍', b: `腕の良い職人が、${PLACES[d.fid].name}の工場で働きたいと言っています`, yes: ['雇う', `${usd(d.cost)}・腕前 +${Math.round(DEALS.scoutSkill * 100)}`, d.cost], no: ['見送る'] }),
+};
+function dealResult(d, r) {
+  if (!r.yes) return d.k === 'cavein' ? `${PLACES[d.mine].name}の採掘が ${DEALS.caveinStop} 時間止まります` : '見送りました';
+  if (d.k === 'bulk') return `${usd(r.v)} で売れました`;
+  if (d.k === 'cavein') return '修理しました';
+  if (d.k === 'offer') return `${PLACES[d.fid].name}の工場に届きました`;
+  if (d.k === 'loan') return `謝礼 ${usd(d.fee)} を受け取りました`;
+  if (d.k === 'prospect') return r.hit ? '鉱脈が見つかりました。埋蔵量 +30 日分' : '今回は見つかりませんでした';
+  return '名工が加わりました';
 }
 
 // 本社の宝物庫の欄
 function vaultPanel() {
   const st = ui.st, list = st.vault;
   return `<div class="bs-rows"><div><span>飾っている名石</span><b>${list.length} / ${FIND.vaultCap}</b></div><div><span>配当の上限</span><b>+${Math.round(B.vaultBonus(st) * 100)}%</b></div></div>
-    ${list.length ? `<div class="bs-vault">${list.map((f) => `<button class="bv-item" data-act="vaultOpen" data-id="${f.id}"><img src="${gemIcon(f.gem)}" alt=""><b>${f.name}</b><small>${GEMS[f.gem].jp}・${f.ct.toFixed(2)} ct</small>${gradeBadge(f.g)}</button>`).join('')}</div>` : '<div class="bs-note">鉱区でときどき名石が見つかります。飾ると配当の上限が上がります</div>'}`;
+    ${list.length ? `<div class="bs-vault">${list.map((f) => `<button class="bv-item" data-act="vaultOpen" data-id="${f.id}"><img src="${gemIcon(f.gem)}" alt=""><b>${f.name}</b><small>${f.lent > Date.now() ? '展示中' : `${GEMS[f.gem].jp}・${f.ct.toFixed(2)} ct`}</small>${gradeBadge(f.g)}</button>`).join('')}</div>` : '<div class="bs-note">鉱区でときどき名石が見つかります。飾ると配当の上限が上がります</div>'}`;
 }
 
 function hqSheet() {

@@ -6,7 +6,7 @@
 import {
   BIZ_GEMS, BIZ_GEM_IDS, GRADE_MUL, RANKS, TIER, PLACES, MINES, MINE_LV, STORE_LV, FACTORIES, FACT_LV, CREW, EXCHANGES,
   SHOPS, SHOP_LV, SHOP_CAP, STAFF, BOSS_SHIP, MARKET_EVENTS,
-  LABS, LAB_MIN, AUCTIONS, AUCTION_MUL, SIGHTS, ORDERS, CLIENT_PLACES, CLIENT_KINDS, SHOW_SEASON, FIND, FIND_WORDS,
+  LABS, LAB_MIN, AUCTIONS, AUCTION_MUL, SIGHTS, ORDERS, CLIENT_PLACES, CLIENT_KINDS, SHOW_SEASON, FIND, FIND_WORDS, DEALS, CLIENT_PLACES as DEAL_CITIES,
 } from './biz-data.js';
 
 const HOUR = 3600e3;
@@ -60,27 +60,27 @@ export const storeCap = (st, id) => mineOut(st, id) * STORE_LV[st.mines[id].sl].
 export const storeTotal = (m) => { let s = 0; for (const k in m.store) s += m.store[k]; return s; };
 // 処理量（1 時間に磨ける原石の値打ち）。Lv1 で同じランクの鉱区の Lv1 をおよそ磨き切れる
 export const factCap = (st, id) => TIER.earn[FACTORIES[id].r] * 1.6 * (FACTORIES[id].cap || 1) * FACT_LV[st.factories[id].lv - 1].cap;
-export const factSkill = (st, id) => FACTORIES[id].skill + CREW[st.factories[id].crew].skill;
+export const factSkill = (st, id) => FACTORIES[id].skill + CREW[st.factories[id].crew].skill + (st.factories[id].extra || 0);
 export const canCut = (fid, gem) => (FACTORIES[fid].only ? FACTORIES[fid].only.includes(gem) : gem !== 'diamond');
 export const queueWork = (f) => f.queue.reduce((s, e) => s + e.ct * refVal(e.k.split('|')[0]), 0);
 
 // ---------------------------------------------------------------- 状態
-export const BIZ_VER = 5;
+export const BIZ_VER = 6;
 export function newBiz(now) {
   const st = {
     v: BIZ_VER, cash: 12000, last: now, rank: 1, view: null, rng: (now ^ 0x9e3779b9) >>> 0, tut: 0, goals: {},
     mines: {}, factories: {}, ships: [], stock: {}, shops: {},
     market: null,
-    labs: [], auctions: {}, orders: { list: [], next: now }, sight: { next: 0, store: {} }, finds: [], vault: [],
+    labs: [], auctions: {}, orders: { list: [], next: now }, sight: { next: 0, store: {} }, finds: [], vault: [], deal: null, dealNext: now + HOUR,
     div: { day: '', paid: 0 },
     spent: 0, earned: 0, invested: 0, divTotal: 0, n: 0,
-    stat: { cert: 0, auction: 0, order: 0, sight: 0, finds: 0, mined: 0, cut: 0 },
+    stat: { cert: 0, auction: 0, order: 0, sight: 0, finds: 0, mined: 0, cut: 0, deals: 0 },
   };
   newMarket(st, now);
   return st;
 }
 // 古い形の状態を今の形にする（v1：相場・直営店・人を雇う より前、v2：鑑定・オークション・サイト・注文 より前、
-// v3：タイの工場がバンコクにあったころ。実際の研磨と加熱処理の中心のチャンタブリーへ移す、v4：名石と宝物庫 より前）
+// v3：タイの工場がバンコクにあったころ。実際の研磨と加熱処理の中心のチャンタブリーへ移す、v4：名石と宝物庫 より前、v5：案件 より前）
 export function migrateBiz(st) {
   if (st.v >= BIZ_VER) return;
   if (st.v < 2) {
@@ -104,6 +104,7 @@ export function migrateBiz(st) {
     st.finds = []; st.vault = [];
     Object.assign(st.stat, { finds: 0, mined: 0, cut: 0 });
   }
+  if (st.v < 6) { st.deal = null; st.dealNext = st.last + HOUR; st.stat.deals = 0; }
   st.v = BIZ_VER;
 }
 
@@ -130,6 +131,8 @@ function step(st, t, sec) {
   // 鉱区：倉庫が満杯か、埋蔵量が尽きると止まる
   for (const id in st.mines) {
     const m = st.mines[id];
+    // 落盤で止まっている間は掘れない（案件）
+    if (m.stop > t) continue;
     const free = storeCap(st, id) - storeTotal(m);
     const amt = Math.min(mineOut(st, id) * (sec / 3600), free, m.reserve);
     if (amt <= 1e-9) continue;
@@ -197,6 +200,9 @@ function step(st, t, sec) {
   }
   // 注文が届く
   if (t >= st.orders.next) rollOrders(st, t);
+  // 案件：返事を待つ時間が過ぎたら消え（何も起きない）、間をおいて次が来る
+  if (st.deal && t > st.deal.until) st.deal = null;
+  if (!st.deal && t >= st.dealNext) { newDeal(st, t); st.dealNext = t + span(st, DEALS.every) * HOUR; }
   // 売りすぎで下がった相場は、時間で戻る
   const M = st.market, dec = Math.exp((-sec * 1000) / PRESS_TAU);
   for (const g in M.press) { M.press[g] *= dec; if (M.press[g] < 0.002) delete M.press[g]; }
@@ -706,19 +712,31 @@ export function deliver(st, id, now) {
 // ---------------------------------------------------------------- 名石と宝物庫
 // 名石は 1 個ずつ名前の付いた大きな石（鑑定書付き。産地の上乗せも付く）。見つかると finds に入り、
 // 宝物庫に飾る（配当の上限が上がる）か、オークションに出す（相場の FIND.sell 倍）かを選ぶ
+// 名石は原石（raw に原石の ct）で見つかり、研磨のミニゲームで磨くと品質（g）と磨いた ct が決まる
 function newFind(st, mine, t) {
   const gem = pickW(st, MINES[mine].mix), G = BIZ_GEMS[gem];
-  const ct = Math.round(G.size * span(st, FIND.size) * 100) / 100;
-  const g = rand(st) < FIND.ss ? 4 : 3;
-  st.finds.push({ id: ++st.n, gem, mine, ct, g, name: `${PLACES[mine].name}の${pick(st, FIND_WORDS)}`, t });
+  const raw = Math.round(((G.size * span(st, FIND.size)) / G.y) * 100) / 100;
+  st.finds.push({ id: ++st.n, gem, mine, raw, name: `${PLACES[mine].name}の${pick(st, FIND_WORDS)}`, t });
   st.stat.finds++;
 }
+// 磨いた結果（score 精度 0〜1、grade 品質）。精度が高いほど大きく残る。磨いた石は待ちの先頭へ（すぐに飾るか出品するかを選ぶ）
+export function polishFind(st, id, score, grade) {
+  const i = st.finds.findIndex((f) => f.id === id), f = st.finds[i];
+  if (!f || !f.raw) return null;
+  f.ct = Math.round(f.raw * BIZ_GEMS[f.gem].y * (0.8 + 0.4 * score) * 100) / 100;
+  f.g = grade;
+  f.score = r4(score);
+  delete f.raw;
+  st.finds.splice(i, 1);
+  st.finds.unshift(f);
+  return f;
+}
 export const findKey = (f) => lotKey(f.gem, f.g, f.mine, 0, 1);
-export const findValue = (st, f) => lotValue(st, findKey(f), { n: 1, ct: f.ct });
+export const findValue = (st, f) => (f.raw ? 0 : lotValue(st, findKey(f), { n: 1, ct: f.ct }));
 export const vaultFull = (st) => st.vault.length >= FIND.vaultCap;
 export function keepFind(st, id) {
   const i = st.finds.findIndex((f) => f.id === id);
-  if (i < 0 || vaultFull(st)) return false;
+  if (i < 0 || vaultFull(st) || st.finds[i].raw) return false;
   st.vault.push(st.finds.splice(i, 1)[0]);
   return true;
 }
@@ -726,7 +744,7 @@ export function keepFind(st, id) {
 export function sellFind(st, id) {
   let list = st.finds, i = list.findIndex((f) => f.id === id);
   if (i < 0) { list = st.vault; i = list.findIndex((f) => f.id === id); }
-  if (i < 0) return null;
+  if (i < 0 || list[i].raw || list[i].lent > st.last) return null;
   const f = list.splice(i, 1)[0];
   const m = Math.round((FIND.sell[0] + (FIND.sell[1] - FIND.sell[0]) * Math.pow(rand(st), 1.3)) * 100) / 100;
   const v = findValue(st, f) * m;
@@ -749,6 +767,91 @@ export function awaySince(st, m, now) {
   };
 }
 
+// ---------------------------------------------------------------- 案件（選ぶ出来事）
+// 間をおいて 1 つずつ届き、選んだ答えでその場で結果が決まる。金額はランクの標準的な手取り（std）で決める
+const stdOf = (st) => RANKS[st.rank - 1].std;
+const gemStock = (st, gem) => Object.keys(st.stock).filter((k) => k.split('|')[0] === gem);
+function newDeal(st, t) {
+  const can = {
+    bulk: () => {
+      let best = null, bv = stdOf(st) * 0.5;
+      for (const gem of new Set(Object.keys(st.stock).map((k) => k.split('|')[0]))) {
+        const v = gemStock(st, gem).reduce((a, k) => a + lotValue(st, k, st.stock[k]), 0);
+        if (v > bv) { bv = v; best = gem; }
+      }
+      return best && { gem: best, mul: r4(span(st, DEALS.bulkMul)), p: pick(st, DEAL_CITIES), who: Math.floor(rand(st) * CLIENT_KINDS.length) };
+    },
+    cavein: () => {
+      const ms = Object.keys(st.mines).filter((id) => st.mines[id].reserve > 1 && !(st.mines[id].stop > t));
+      if (!ms.length) return null;
+      const mine = pick(st, ms), ev = TIER.earn[MINES[mine].r] * (MINES[mine].e || 1) * MINE_LV[st.mines[mine].lv - 1].out;
+      return { mine, cost: Math.round(ev * DEALS.caveinStop * DEALS.caveinCost) };
+    },
+    offer: () => {
+      const gem = pick(st, ownGems(st).length ? ownGems(st) : ['sapphire']);
+      const fs = Object.keys(st.factories).filter((f) => canCut(f, gem));
+      if (!fs.length) return null;
+      const fid = pick(st, fs), q = rand(st) * 0.5;
+      // 値打ちは届く工場の処理の何時間分か（工場が詰まりすぎないように）
+      const work = factCap(st, fid) * span(st, DEALS.offerWork);
+      const vpc = refVal(gem) * gradeDist(q).reduce((a, p, i) => a + p * GRADE_MUL[i], 0);
+      const src = Object.keys(MINES).filter((id) => MINES[id].mix[gem]);
+      return { gem, ct: Math.round((work / refVal(gem)) * 10) / 10, q: r4(q), price: Math.round((work * vpc) / refVal(gem) / span(st, DEALS.offerValue)), fid, p: pick(st, src.length ? src : ['bangkok']) };
+    },
+    loan: () => { const vs = st.vault.filter((f) => !(f.lent > t)); if (!vs.length) return null; const f = pick(st, vs); return { fid: f.id, fee: Math.round(Math.max(stdOf(st) * 0.2, findValue(st, f) * DEALS.loanFee)), p: pick(st, ['paris', 'london', 'newyork', 'tokyo', 'geneva', 'shanghai']) }; },
+    prospect: () => { const ms = Object.keys(st.mines); if (!ms.length) return null; const mine = pick(st, ms); return { mine, cost: Math.round(exploreCost(st, mine) * DEALS.prospectCost) }; },
+    scout: () => { const fs = Object.keys(st.factories).filter((f) => (st.factories[f].extra || 0) < DEALS.scoutMax); if (!fs.length) return null; const fid = pick(st, fs); return { fid, cost: Math.round(factPrice(fid) * DEALS.scoutCost) }; },
+  };
+  // 出せる種類の中から、出やすさの重みで選ぶ
+  const opts = {};
+  for (const k in DEALS.w) { const d = can[k](); if (d) opts[k] = d; }
+  const ks = Object.keys(opts);
+  if (!ks.length) return;
+  const k = pickW(st, Object.fromEntries(ks.map((x) => [x, DEALS.w[x]])));
+  st.deal = { id: ++st.n, k, t, until: t + DEALS.keep * HOUR, seen: false, ...opts[k] };
+}
+// まとめ買いで受け取れる額（今の在庫で）
+export const dealBulkValue = (st, d) => gemStock(st, d.gem).reduce((a, k) => a + lotValue(st, k, st.stock[k]) * d.mul, 0);
+// 答える（yes：受ける・お金を払う方、no：断る・払わない方）。結果を返す
+export function resolveDeal(st, yes, now) {
+  const d = st.deal;
+  if (!d) return null;
+  const res = { k: d.k, yes };
+  if (d.k === 'bulk' && yes) {
+    let v = 0;
+    for (const k of gemStock(st, d.gem)) { v += lotValue(st, k, st.stock[k]) * d.mul; delete st.stock[k]; }
+    if (v <= 0) return null;
+    income(st, v);
+    res.v = v;
+  } else if (d.k === 'cavein') {
+    if (yes) { if (st.cash < d.cost) return null; st.cash -= d.cost; } else if (st.mines[d.mine]) st.mines[d.mine].stop = now + DEALS.caveinStop * HOUR;
+  } else if (d.k === 'offer' && yes) {
+    const f = st.factories[d.fid];
+    if (!f || st.cash < d.price) return null;
+    st.cash -= d.price;
+    const dist = gradeDist(d.q);
+    for (let g = 0; g < 5; g++) f.queue.push({ k: `${d.gem}|${g}|${d.p}`, ct: d.ct * dist[g] });
+  } else if (d.k === 'loan' && yes) {
+    const f = st.vault.find((x) => x.id === d.fid);
+    if (!f) return null;
+    f.lent = now + DEALS.loanHours * HOUR;
+    income(st, d.fee);
+  } else if (d.k === 'prospect' && yes) {
+    if (st.cash < d.cost || !st.mines[d.mine]) return null;
+    st.cash -= d.cost;
+    res.hit = rand(st) < DEALS.prospectP;
+    if (res.hit) st.mines[d.mine].reserve += mineBaseOut(d.mine) * 24 * 30;
+  } else if (d.k === 'scout' && yes) {
+    const f = st.factories[d.fid];
+    if (!f || st.cash < d.cost) return null;
+    st.cash -= d.cost;
+    f.extra = Math.min(DEALS.scoutMax, (f.extra || 0) + DEALS.scoutSkill);
+  }
+  st.deal = null;
+  st.stat.deals++;
+  return res;
+}
+
 // ---------------------------------------------------------------- 目標（会社の沿革）
 // 次にやることを 1 つずつ示す。達成して受け取るとコイン。進み具合は受け取った目標の id（save.biz.goals）
 // n は [今, 必要]、go はその目標のための地名とシートの種類（目標を押すと開く）
@@ -762,7 +865,8 @@ export const GOALS = [
   { id: 'div1', t: '配当を受け取る', coins: 150, go: ['tokyo', 'hq'], n: (st) => [st.divTotal > 0 ? 1 : 0, 1] },
   { id: 'mine3', t: '鉱区を 3 つにする', coins: 200, n: (st) => [cnt(st.mines), 3] },
   { id: 'mineup', t: '鉱区の設備を強化する', coins: 200, n: (st) => [Object.values(st.mines).some((m) => m.lv >= 2) ? 1 : 0, 1] },
-  { id: 'find1', t: '鉱区で名石を見つける', coins: 300, n: (st) => [Math.min(st.stat.finds || 0, 1), 1] },
+  { id: 'find1', t: '鉱区で名石を見つけて磨く', coins: 300, n: (st) => [st.vault.length + st.finds.filter((f) => !f.raw).length + (st.stat.auction || 0) > 0 ? 1 : 0, 1] },
+  { id: 'deal1', t: '届いた案件に答える', coins: 300, n: (st) => [Math.min(st.stat.deals || 0, 1), 1] },
   rankGoal(2, 300),
   { id: 'boss1', t: '人を雇う（鉱山長・工場長・店長）', coins: 300, n: (st) => [anyBoss(st) ? 1 : 0, 1] },
   { id: 'shop1', t: '直営店を出す', coins: 400, go: ['tokyo', 'shop'], n: (st) => [cnt(st.shops), 1] },
@@ -820,7 +924,8 @@ export function updateRank(st) {
 // ---------------------------------------------------------------- 配当と出資
 // avgRun：1 ランで得るコインの平均（save.stats から）。today：日付（ui.js の todayStr と同じ形）
 // 宝物庫の名石 1 つにつき、配当の上限が FIND.vaultBonus 増える
-export const vaultBonus = (st) => Math.min((st.vault || []).length, FIND.vaultCap) * FIND.vaultBonus;
+// 展示に貸し出している名石（lent の時刻まで）は数えない
+export const vaultBonus = (st) => Math.min((st.vault || []).filter((f) => !(f.lent > st.last)).length, FIND.vaultCap) * FIND.vaultBonus;
 export const divCap = (st, avgRun) => Math.round(Math.max(300, avgRun || 0) * RANKS[st.rank - 1].k * (1 + vaultBonus(st)));
 // 1 コインあたりの $。そのランクの標準的な稼ぎで、1 日の上限におよそ 8 時間で届く
 export const divRate = (st, avgRun) => (RANKS[st.rank - 1].std * 8) / divCap(st, avgRun);
@@ -857,6 +962,6 @@ export function bizAlerts(st, avgRun, today) {
   const pay = divPayable(st, avgRun, today), left = divLeft(st, avgRun, today);
   const div = !claimed && pay > 0 && pay >= Math.min(left, Math.ceil(divCap(st, avgRun) * 0.2));
   const order = st.orders.list.filter((o) => orderReady(st, o, st.last)).length;
-  const g = goalNow(st), goal = !!(g && goalDone(st, g)), finds = st.finds.length;
-  return { full, nofund, div, order, goal, finds, any: !!(full || nofund || div || order || goal || finds) };
+  const g = goalNow(st), goal = !!(g && goalDone(st, g)), finds = st.finds.length, deal = !!(st.deal && !st.deal.seen);
+  return { full, nofund, div, order, goal, finds, deal, any: !!(full || nofund || div || order || goal || finds || deal) };
 }
