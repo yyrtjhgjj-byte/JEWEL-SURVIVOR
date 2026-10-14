@@ -244,7 +244,10 @@ function renderTop() {
   const today = todayStr();
   const left = B.divLeft(st, avgRun(), today);
   $('#bzdivv', ui.node).textContent = left ? fmt(B.divPayable(st, avgRun(), today)) : '済';
-  $('#bzdiv', ui.node).classList.toggle('ready', B.bizAlerts(st, avgRun(), today).div);
+  // メニューの「経営」に赤い印を付けた理由のところに、同じ赤い印を付ける
+  const al = B.bizAlerts(st, avgRun(), today);
+  $('#bzdiv', ui.node).classList.toggle('ready', al.div);
+  for (const [id, on] of [['bzdiv', al.div], ['bzmines', al.full], ['bzfacts', al.nofund], ['bzhq', al.order], ['bzgoal', al.goal], ['bzfind', al.finds], ['bzdeal', al.deal], ['bzvip', al.vip]]) $(`#${id}`, ui.node).classList.toggle('red-dot', !!on);
   $('#bzmk', ui.node).hidden = r < 2;
   // 持っている鉱区・工場の一覧（1 つ持ってから）
   $('#bzmines', ui.node).hidden = !Object.keys(st.mines).length;
