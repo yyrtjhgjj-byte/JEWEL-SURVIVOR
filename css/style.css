@@ -1547,6 +1547,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .bo-f .bs-sv { font-size: 16px; }
 .bo-f .btn { min-width: 96px; flex: none; }
 /* 経営：名ルート・ブランド・来客・地図の「+$」 */
+/* メニューの「経営」の赤い印と同じ印（その理由のところに付ける） */
+#bzdiv, .bz-tools button, .bz-findchip { position: relative; }
+.red-dot::after { content: ''; position: absolute; top: -4px; right: -4px; width: 11px; height: 11px; border-radius: 50%; background: #ff4d6d; box-shadow: 0 0 8px rgba(255, 77, 109, 0.7); pointer-events: none; }
 .bz-findchip.vip { border-color: #ff9ad2; color: #ffc4e6; box-shadow: 0 0 12px rgba(255, 122, 184, 0.45); }
 .bz-float { position: absolute; transform: translate(-50%, -30px); pointer-events: none; z-index: 2; font: 700 13px var(--font); color: var(--gold); white-space: nowrap; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0, 0, 0, 0.9); animation: bzFloat 1.8s ease-out forwards; }
 @keyframes bzFloat { 0% { opacity: 0; transform: translate(-50%, -22px) scale(0.8); } 15% { opacity: 1; transform: translate(-50%, -32px) scale(1); } 100% { opacity: 0; transform: translate(-50%, -64px); } }
