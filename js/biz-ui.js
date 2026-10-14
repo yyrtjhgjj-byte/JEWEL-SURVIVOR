@@ -96,7 +96,7 @@ export function showBiz() {
     <div class="bz-modal" id="bzmodal" hidden></div>
   </div>`);
   show(node);
-  ui = { node, st, zoom: (st.view && st.view.z) || 1, sheet: null, touching: false, ships: '', t: 0, lastSave: now, modals: [], modal: null, findLater: false, dealLater: false, vipLater: false, flow: {} };
+  ui = { coins: save.coins, cash: st.cash, node, st, zoom: (st.view && st.view.z) || 1, sheet: null, touching: false, ships: '', t: 0, lastSave: now, modals: [], modal: null, findLater: false, dealLater: false, vipLater: false, flow: {} };
   // 地図の「+$」は、開いてから入った売上だけ（留守の間の分はまとめの板で見せる）
   st.flow = {};
   layoutMap(true);
@@ -224,6 +224,14 @@ function refreshPins() {
   }
 }
 
+// 数字を一度だけ弾ませる
+function bump(e) {
+  if (!e) return;
+  e.classList.remove('bump');
+  void e.offsetWidth;
+  e.classList.add('bump');
+}
+
 // ---------------------------------------------------------------- 上の帯
 function renderTop() {
   const st = ui.st, r = st.rank;
@@ -232,6 +240,7 @@ function renderTop() {
   const prev = RANKS[r - 1].need, next = r < RANKS.length ? RANKS[r].need : 0;
   $('#bzrb', ui.node).style.width = next ? `${Math.max(0, Math.min(100, ((v - prev) / (next - prev)) * 100)).toFixed(1)}%` : '100%';
   $('#bzcash', ui.node).textContent = usd(st.cash);
+  ui.cash = st.cash;
   const today = todayStr();
   const left = B.divLeft(st, avgRun(), today);
   $('#bzdivv', ui.node).textContent = left ? fmt(B.divPayable(st, avgRun(), today)) : '済';
@@ -309,6 +318,8 @@ function animRoutes() {
 // 時間が進んだあと・操作のあと：数字・ピン・航路・シートを描き直す
 function afterChange(acted) {
   const st = ui.st;
+  // 操作で資金（$）が動いたら、資金の数字を弾ませる
+  if (acted && st.cash !== ui.cash) bump($('#bzcash', ui.node));
   const up = B.updateRank(st);
   if (up) {
     toast(RANKS[st.rank - 1].name, '会社のランクが上がりました', 'RANK UP');
@@ -318,7 +329,9 @@ function afterChange(acted) {
   renderTop();
   if (st.ships.map((s) => s.id).join(',') !== ui.ships) renderRoutes();
   if (ui.sheet && (acted || !ui.touching)) renderSheet();
-  if (acted) { persist(); refreshCoinPill(); refreshNav(); metaAch(); tutCheck(); }
+  if (acted) { persist(); refreshNav(); metaAch(); tutCheck(); }
+  // コインが動いたとき（配当・目標・実績）だけ、コインの数字を更新して弾ませる
+  if (save.coins !== ui.coins) { ui.coins = save.coins; refreshCoinPill(); }
   checkFinds();
 }
 
