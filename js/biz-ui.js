@@ -5,7 +5,7 @@
 import { save, persist } from './save.js';
 import { audio } from './audio.js';
 import { fmt, todayStr } from './util.js';
-import { show, el, $, coinPill, refreshCoinPill, haptic, getApp, toast, gemColor } from './ui.js';
+import { show, el, $, coinPill, refreshCoinPill, haptic, getApp, toast, gemColor, openHelp } from './ui.js';
 import { gemIcon, coinIcon, roughIcon } from './render.js';
 import { mountLiveGem } from './gem-gl.js';
 import { GEMS } from './data.js';
@@ -91,7 +91,7 @@ export function showBiz() {
     <button class="bz-goal" id="bzgoal" hidden></button>
     <div class="bz-chips"><button class="bz-findchip" id="bzfind" hidden><small>名石</small><b id="bzfindn"></b></button><button class="bz-findchip" id="bzdeal" hidden><small>案件</small><b>1</b></button></div>
     <div class="bz-map" id="bzmap"><div class="bz-world" id="bzworld">${worldSvg()}<svg class="bz-routes" id="bzroutes" viewBox="0 0 ${MAP_W} ${MAP_H}" preserveAspectRatio="none" aria-hidden="true"></svg><div class="bz-pins" id="bzpins"></div></div></div>
-    <div class="bz-tools"><button id="bzzoom" aria-label="拡大"></button><button id="bzmk">${icon('market')}<span>相場</span></button><button id="bzhq">${icon('hq')}<span>本社</span></button></div>
+    <div class="bz-tools"><button id="bzhelp" class="bz-help" aria-label="ヘルプ">?</button><button id="bzzoom" aria-label="拡大"></button><button id="bzmk">${icon('market')}<span>相場</span></button><button id="bzmines">${icon('mine')}<span>鉱区</span></button><button id="bzfacts">${icon('factory')}<span>工場</span></button><button id="bzhq">${icon('hq')}<span>本社</span></button></div>
     <div class="bz-sheet" id="bzsheet"></div>
     <div class="bz-modal" id="bzmodal" hidden></div>
   </div>`);
@@ -104,6 +104,9 @@ export function showBiz() {
   $('#bzzoom', node).onclick = () => { audio.tap(); ui.zoom = ui.zoom === 1 ? 2 : 1; layoutMap(false); renderPins(); };
   $('#bzhq', node).onclick = () => { audio.tap(); openSheet('tokyo', 'hq'); };
   $('#bzmk', node).onclick = () => { audio.tap(); openSheet(null, 'market'); };
+  $('#bzhelp', node).onclick = () => { audio.tap(); openHelp('biz'); };
+  $('#bzmines', node).onclick = () => { audio.tap(); openSheet(null, 'mines'); };
+  $('#bzfacts', node).onclick = () => { audio.tap(); openSheet(null, 'facts'); };
   $('#bzdiv', node).onclick = () => { audio.tap(); openSheet('tokyo', 'hq'); };
   $('#bzgoal', node).onclick = onGoal;
   $('#bzfind', node).onclick = () => { audio.tap(); ui.findLater = false; checkFinds(); };
@@ -230,6 +233,9 @@ function renderTop() {
   $('#bzdivv', ui.node).textContent = left ? fmt(B.divPayable(st, avgRun(), today)) : '済';
   $('#bzdiv', ui.node).classList.toggle('ready', B.bizAlerts(st, avgRun(), today).div);
   $('#bzmk', ui.node).hidden = r < 2;
+  // 持っている鉱区・工場の一覧（1 つ持ってから）
+  $('#bzmines', ui.node).hidden = !Object.keys(st.mines).length;
+  $('#bzfacts', ui.node).hidden = !Object.keys(st.factories).length;
   renderGoal();
 }
 
@@ -329,9 +335,11 @@ function renderSheet() {
   const sh = $('#bzsheet', ui.node), S = ui.sheet;
   const P = S.pid ? PLACES[S.pid] : null, ks = S.pid ? facsAt(S.pid) : [];
   const top = sh.scrollTop;
-  const body = { hq: hqSheet, mine: mineSheet, factory: factorySheet, exchange: exchangeSheet, shop: shopSheet, market: marketSheet, lab: labSheet, auction: auctionSheet, sight: sightSheet }[S.kind](S.pid);
-  const html = `<div class="bs-head">${P ? `<div><b>${P.name}</b><small>${P.country}</small></div>` : '<div><b>相場</b></div>'}<button class="bs-x" data-act="close" aria-label="閉じる">×</button></div>
+  const body = { hq: hqSheet, mine: mineSheet, factory: factorySheet, exchange: exchangeSheet, shop: shopSheet, market: marketSheet, lab: labSheet, auction: auctionSheet, sight: sightSheet, mines: minesSheet, facts: factsSheet }[S.kind](S.pid);
+  const back = S.back ? `<button class="bs-back" data-act="back" aria-label="一覧へ戻る">‹</button>` : '';
+  const html = `<div class="bs-head">${back}${P ? `<div><b>${P.name}</b><small>${P.country}</small></div>` : `<div><b>${LIST_TITLE[S.kind]}</b></div>`}<button class="help-btn sm iconbtn bs-q" data-act="help" aria-label="ヘルプ">?</button><button class="bs-x" data-act="close" aria-label="閉じる">×</button></div>
     ${ks.length > 1 ? `<div class="bs-tabs">${ks.map((k) => `<button class="${k === S.kind ? 'on' : ''}" data-act="kind" data-k="${k}">${icon(k)}${kindName(k)}</button>`).join('')}</div>` : ''}
+    ${S.kind === 'mines' || S.kind === 'facts' ? `<div class="bs-tabs">${[['mines', 'mine'], ['facts', 'factory']].map(([k, ic]) => `<button class="${k === S.kind ? 'on' : ''}" data-act="kind" data-k="${k}">${icon(ic)}${LIST_TITLE[k]}</button>`).join('')}</div>` : ''}
     <div class="bs-body">${body}</div>`;
   if (html === ui.sheetHtml) return;
   ui.sheetHtml = html;
@@ -547,6 +555,37 @@ function shopSheet(pid) {
       ${nl ? `<div><span>店を広げる<small>棚 ${nl.slots} 段・売れる量 ×${nl.rate}</small></span>${btn('upShop', '強化', B.shopUpCost(st, pid), `data-id="${pid}"`)}</div>` : '<div><span>店：最大</span></div>'}
       ${bossRow('shop', pid, sh)}
     </div>`;
+}
+
+// シートの種類 → 遊び方の経営の見出し
+const HELP_PART = { mine: 'mine', mines: 'mine', factory: 'factory', facts: 'factory', market: 'market', hq: 'hq' };
+// 持っている鉱区・工場の一覧。押すとその地名のシートを開く（左上の ‹ で一覧へ戻る）
+const LIST_TITLE = { market: '相場', mines: '鉱区', facts: '工場' };
+function listRow(pid, kind, state, warn, sub) {
+  return `<button class="bs-lrow ${warn ? 'warn' : ''}" data-act="goto" data-p="${pid}" data-k="${kind}"><span class="bs-ln">${PLACES[pid].name}<small>${sub}</small></span><span class="bs-ls">${state}</span><span class="bs-lgo">›</span></button>`;
+}
+function minesSheet() {
+  const st = ui.st, now = Date.now();
+  const ids = Object.keys(st.mines);
+  return `<div class="bs-list">${ids.map((pid) => {
+    const m = st.mines[pid], tot = B.storeTotal(m), cap = B.storeCap(st, pid);
+    const full = m.reserve > 1 && tot >= cap * 0.98;
+    const state = m.stop > now ? '<em class="bs-warn">落盤で停止中</em>' : m.reserve <= 1 ? '<em class="bs-warn">枯渇</em>' : full ? '<em class="bs-warn">倉庫が満杯</em>' : `${bar(tot / cap)}<small>倉庫 ${Math.round((tot / cap) * 100)}%</small>`;
+    const sub = `${MINE_LV[m.lv - 1].name}${m.boss && m.to ? `・出荷先 ${PLACES[m.to].name}` : ''}`;
+    return listRow(pid, 'mine', state, full || m.reserve <= 1, sub);
+  }).join('')}</div>`;
+}
+function factsSheet() {
+  const st = ui.st;
+  const ids = Object.keys(st.factories);
+  const POL = { yield: '歩留まり重視', normal: 'ふつう', shine: '輝き重視' };
+  return `<div class="bs-list">${ids.map((pid) => {
+    const f = st.factories[pid], work = B.queueWork(f), cap = B.factCap(st, pid);
+    const inbound = st.ships.filter((s) => s.to === pid).length;
+    const state = f.nofund ? '<em class="bs-warn">資金不足で停止</em>' : work > 0 ? `<small>あと ${minf((work / cap) * 60)}</small>` : `<small>${inbound ? `輸送中 ${inbound} 件` : '待ちなし'}</small>`;
+    const sub = `腕前 ${Math.round(B.factSkill(st, pid) * 100)}${st.rank >= 2 ? `・${POL[f.policy || 'normal']}${f.treat ? '・処理' : ''}` : ''}`;
+    return listRow(pid, 'factory', state, f.nofund, sub);
+  }).join('')}</div>`;
 }
 
 // 相場の出来事の文
@@ -893,6 +932,10 @@ function onSheetClick(e) {
   let ok = true, sound = 'tap';
   switch (d.act) {
     case 'close': audio.tap(); closeSheet(); return;
+    // ヘルプ：開いているシートの説明へ
+    case 'help': audio.tap(); openHelp(`biz#${HELP_PART[ui.sheet.kind] || 'sell'}`); return;
+    case 'goto': { audio.tap(); const from = ui.sheet.kind; centerOn(d.p); openSheet(d.p, d.k); ui.sheet.back = from; renderSheet(); return; }
+    case 'back': audio.tap(); openSheet(null, ui.sheet.back); return;
     case 'kind': ui.sheet.kind = d.k; ui.sheet.pick = null; $('#bzsheet', ui.node).scrollTop = 0; break;
     case 'tab': ui.sheet.tab = d.t; break;
     case 'pickShip': ui.sheet.pick = ui.sheet.pick === 'ship' ? null : 'ship'; break;

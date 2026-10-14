@@ -16,7 +16,7 @@ import { rankState, rankClass } from './rank.js';
 import { diagCrashes } from './diag.js';
 import {
   show, el, $, showTitle, showShop, showGacha, showZukan, showSettings, showRank, showExchange,
-  coinPill, rankStyle, rankColor, checkUpperShop, lastBackupText, homeGem,
+  coinPill, rankStyle, rankColor, checkUpperShop, lastBackupText, homeGem, helpBtn,
 } from './ui.js';
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox, trackList } from './jukebox.js';
@@ -133,11 +133,13 @@ const HUBS = {
   } },
 };
 
+// ハブの ? で開くヘルプ（見出しごとの項目の一覧）
+const HUB_HELP = { power: '@power', jewel: '@jewel', archive: '@more', more: 'save' };
 export function showHub(cat) {
   const H = HUBS[cat];
   const cards = H.cards();
   const node = el(`<div class="screen hub-screen" data-nav="${cat}">
-    <div class="topbar"><div style="width:44px"></div><h2><span class="en">${H.en}</span><span class="jp">${H.jp}</span></h2>${coinPill()}</div>
+    <div class="topbar">${helpBtn(HUB_HELP[cat])}<h2><span class="en">${H.en}</span><span class="jp">${H.jp}</span></h2>${coinPill()}</div>
     <div class="hub-grid">${cards.map((c) => `<button class="hub-card ${c.wide ? 'wide' : ''} ${c.locked ? 'locked' : ''}" id="h-${c.id}" style="--c:${c.c}">
       ${c.icon}<div class="hc-t"><div class="hc-en">${c.en}</div><div class="hc-jp">${c.jp}</div><div class="hc-s">${c.s}</div></div>
       ${c.badge ? `<b class="mn-badge">${c.badge}</b>` : ''}

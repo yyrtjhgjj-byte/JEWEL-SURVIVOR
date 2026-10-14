@@ -47,7 +47,7 @@ export function trackList() {
 export function showJukebox() {
   const node = el(`
     <div class="screen jukebox-screen" data-nav="archive">
-      ${topbar('JUKEBOX', 'ジュークボックス', '<div style="width:44px"></div>')}
+      ${topbar('JUKEBOX', 'ジュークボックス', null, 'records#jukebox')}
       <div class="panel jb-now">
         <div class="jb-disc" id="jbd"></div>
         <div class="jb-nb"><div class="label">NOW PLAYING</div><b id="jbn"></b></div>
