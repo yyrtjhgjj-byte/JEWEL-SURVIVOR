@@ -10,16 +10,16 @@
 // 見た目の数値。mode：trace（透明）・cab（カボション）・facet（不透明なカット面）・tumble（丸く磨いた石）
 // t：長さ 1 進んだときに残る光の割合（RGB）、d：濃さ、pleo：横向きに進むときの色（多色性）、bi：バイカラーのもう一方の色
 // fog・fogD：乳白（中で散る光の色と濃さ）、kind：シェーダーの石の番号、ri：屈折率（不透明な石）
-// exp・fire：その石だけの明るさ・ファイア（省くと 1.2・1.6）、spin0：置く向き（度。旧アイコンの向きに合わせる）
+// exp・fire：その石だけの明るさ・ファイア（省くと 1.2・1.6）、spin0：置く向き（度。旧アイコンの向きに合わせる）、spark：小さく鋭い照明（分散の強い石）
 const T = (cut, ior, disp, t, d, ex) => ({ mode: 'trace', cut, ior, disp, t, d, ...ex });
 const C = (cut, kind, ri) => ({ mode: 'cab', cut, kind, ri });
 export const GEM_LOOK = {
-  diamond: T('brilliant', 2.42, 0.044, [0.98, 0.985, 1.0], 1, { exp: 1.05, fire: 0.7 }),
+  diamond: T('brilliant', 2.42, 0.044, [0.98, 0.985, 1.0], 1, { exp: 0.6, fire: 2, spark: true }),
   topaz: T('brilliant', 1.62, 0.014, [1.0, 0.7, 0.12], 1.0),
   ruby: T('oval', 1.77, 0.018, [0.95, 0.07, 0.2], 1.2),
   sapphire: T('oval', 1.77, 0.018, [0.12, 0.25, 0.95], 1.2),
   garnet: T('cushion', 1.76, 0.027, [0.82, 0.04, 0.16], 1.25),
-  alexandrite: T('cushion', 1.75, 0.015, [0.12, 0.66, 0.42], 1.5, { pleo: [0.72, 0.16, 0.32] }),
+  alexandrite: T('cushion', 1.75, 0.015, [0.2, 0.86, 0.6], 0.9, { exp: 1.5 }),
   redberyl: T('cushion', 1.57, 0.014, [0.95, 0.12, 0.4], 1.0),
   emerald: T('step', 1.58, 0.014, [0.1, 0.8, 0.38], 1.1),
   aquamarine: T('step', 1.58, 0.014, [0.55, 0.95, 0.97], 1.0),
@@ -28,7 +28,7 @@ export const GEM_LOOK = {
   iolite: T('pear', 1.54, 0.017, [0.32, 0.24, 0.95], 1.7, { pleo: [0.55, 0.48, 0.85], spin0: 180 }),
   kyanite: T('baguette', 1.72, 0.02, [0.12, 0.32, 0.95], 1.1),
   tourmaline: T('baguette', 1.63, 0.017, [1.0, 0.3, 0.58], 1.0, { bi: [0.25, 0.85, 0.4] }),
-  titanite: T('trillion', 1.95, 0.051, [0.8, 0.88, 0.2], 0.9, { spin0: 180 }),
+  titanite: T('trillion', 1.95, 0.051, [0.8, 0.88, 0.2], 0.9, { spin0: 180, spark: true }),
   milkyquartz: T('point', 1.544, 0.013, [0.97, 0.965, 0.99], 0.4, { fogD: 3.4, fog: [0.92, 0.9, 1.05], spin0: -22 }),
   opal: C('cabOval', 0, 1.45),
   moonstone: C('cabOval', 1, 1.52),
@@ -49,6 +49,10 @@ const MODE = { trace: 0, cab: 1, facet: 2, tumble: 3 };
 // 画面の端から端までの広さ（宝石の半径が 1）。アイコンと、その場で描く宝石で同じにする
 const SPAN = 1.36;
 const GLINT = 0.6;
+// 透明な石の光線を出す波長の数（多いほどファイアの色がなめらかにつながる）
+const NW = 6;
+// 透明な石を見る近さ（目までの距離の逆数。宝石の半径が 1）
+const PERSP = 0.12;
 
 // 書き出した画像の場所
 export const gemImage = (id) => `img/gems/${id}.webp`;
@@ -156,6 +160,8 @@ function lightsOf(list, soft) {
 }
 const ring = (n, el, r, I, off = 0) => Array.from({ length: n }, (_, i) => ({ az: off + (i * 360) / n, el, r, I }));
 const ENV_FACET = { L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 2.6, 30, 7), ...ring(4, 18, 9, 3, 40)], 1.3), sky0: 0.016, sky1: 0.04, floor: 0.035, head: 16 };
+// 分散の強い石（spark）：小さな強い光をもっと小さく鋭くする（明るさの合計は同じ）。光が波長ごとに分かれて、ファイアが虹色に見える
+const ENV_SPARK = { ...ENV_FACET, L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 0.6, 565, 7), ...ring(4, 18, 9, 3, 40)], 1.3) };
 const ENV_CAB = { L: lightsOf([{ az: 135, el: 50, r: 15, I: 5.5 }, { az: 35, el: 36, r: 9, I: 3 }, { az: 250, el: 28, r: 8, I: 2.4 }, { az: 200, el: 18, r: 10, I: 1.2 }], 1.7), sky0: 0.03, sky1: 0.08, floor: 0.015, head: 8 };
 
 // ---------------------------------------------------------------- シェーダー
@@ -167,6 +173,7 @@ out vec4 o;
 uniform vec2 uRes; uniform float uSpan, uExp; uniform mat3 uR; uniform int uMode, uKind, uSS;
 uniform vec4 uP[112]; uniform int uN;
 uniform vec3 uIor, uSig, uSig2, uPleo; uniform float uPleoOn, uBiOn, uBiAt;
+uniform vec2 uCau; uniform int uNW; uniform float uPersp;
 uniform vec3 uAbc; uniform float uFogD; uniform vec3 uFogL;
 uniform vec4 uL[24]; uniform vec2 uLc[24]; uniform int uNL; uniform vec4 uEnv; uniform vec2 uHead;
 
@@ -196,42 +203,47 @@ vec3 vor3(vec3 x){ vec3 i = floor(x); float d1 = 9., d2 = 9., id = 0.;
   return vec3(d1, d2, id); }
 vec3 spectral(float h){ h = fract(h); return clamp(vec3(abs(h * 6. - 3.) - 1., 2. - abs(h * 6. - 2.), 2. - abs(h * 6. - 4.)), 0., 1.); }
 
-// 1 つの色の成分の光線：外から入り、中で反射を繰り返して、出た光を足す
-float trace(vec3 ro, vec3 rd, float ior, float sig, float sig2, float pleo, float fogL, out bool hit){
+// 1 つの波長の光線：外から入り、中で反射を繰り返して、出た光を足す（色の吸収は RGB でまとめて計算する）
+vec3 trace(vec3 ro, vec3 rd, vec3 rr, float ior, out bool hit){
   float tin = -1e9, tout = 1e9; int ni = -1;
   for (int i = 0; i < 112; i++) { if (i >= uN) break; vec4 p = uP[i]; float dn = dot(p.xyz, rd), dist = p.w - dot(p.xyz, ro);
-    if (abs(dn) < 1e-9) { if (dist < 0.) { hit = false; return 0.; } continue; }
+    if (abs(dn) < 1e-9) { if (dist < 0.) { hit = false; return vec3(0); } continue; }
     float t = dist / dn; if (dn < 0.) { if (t > tin) { tin = t; ni = i; } } else tout = min(tout, t); }
-  if (tin > tout || ni < 0) { hit = false; return 0.; }
+  if (tin > tout || ni < 0) { hit = false; return vec3(0); }
   hit = true;
   vec3 p = ro + rd * tin, n = uP[ni].xyz; float ci = -dot(n, rd), F = fres(ci, ior);
-  float outv = F * env(uR * (rd + 2. * ci * n));
+  vec3 outv = vec3(F * env(uR * (rr + 2. * dot(-n, rr) * n)));
   float k = 1. / ior, ct = sqrt(max(0., 1. - k * k * (1. - ci * ci)));
-  vec3 v = k * rd + (k * ci - ct) * n; float T = 1. - F;
+  vec3 v = k * rd + (k * ci - ct) * n; vec3 T = vec3(1. - F);
   for (int b = 0; b < 8; b++) {
-    if (T < .004) break;
+    if (max(T.x, max(T.y, T.z)) < .004) break;
     float tm = 1e9; int ei = -1;
     for (int i = 0; i < 112; i++) { if (i >= uN) break; vec4 q = uP[i]; float dn = dot(q.xyz, v); if (dn <= 1e-9) continue; float t = (q.w - dot(q.xyz, p)) / dn; if (t < tm) { tm = t; ei = i; } }
     if (ei < 0) break;
-    float s = sig;
-    if (uPleoOn > 0.) { float w = abs(v.z); s = sig * w + pleo * (1. - w); }
-    if (uBiOn > 0.) { vec3 m = p + v * tm * .5; s = mix(sig, sig2, clamp((m.x - uBiAt) / .18 + .5, 0., 1.)); }
+    vec3 s = uSig;
+    if (uPleoOn > 0.) { float w = abs(v.z); s = uSig * w + uPleo * (1. - w); }
+    if (uBiOn > 0.) { vec3 m = p + v * tm * .5; s = mix(uSig, uSig2, clamp((m.x - uBiAt) / .18 + .5, 0., 1.)); }
     // 乳白：中の細かな粒で光が散る（根元ほど濃く、先は澄む）。散った光は上からの照明で少し明るい
-    if (uFogD > 0.) { vec3 m = p + v * tm * .5; float tr = exp(-uFogD * mix(1., .25, smoothstep(-.7, .95, m.y)) * (.55 + 1.1 * vnoise3(m * 3.2 + 5.)) * tm); outv += T * (1. - tr) * fogL * (.7 + .3 * (uR * m).y); T *= tr; }
+    if (uFogD > 0.) { vec3 m = p + v * tm * .5; float tr = exp(-uFogD * mix(1., .25, smoothstep(-.7, .95, m.y)) * (.55 + 1.1 * vnoise3(m * 3.2 + 5.)) * tm); outv += T * (1. - tr) * uFogL * (.7 + .3 * (uR * m).y); T *= tr; }
     T *= exp(-s * tm); p += v * tm; n = uP[ei].xyz; ci = dot(n, v); F = fres(ci, 1. / ior);
     if (F < 1.) { k = ior; ct = sqrt(max(0., 1. - k * k * (1. - ci * ci))); outv += T * (1. - F) * env(uR * (k * v + (ct - k * ci) * n)); T *= F; }
     v -= 2. * ci * n; p -= n * 1e-5;
   }
   return outv + T * .02;
 }
+// 波長（0＝赤の端 700nm 〜 1＝紫の端 400nm）の色の重み（RGB）。足した重みで割って、全部の波長で白になるようにする
+vec3 wlRGB(float s){
+  float l = 700. - 300. * s;
+  return vec3(exp(-pow((l - 600.) / 42., 2.)) + .3 * exp(-pow((l - 425.) / 22., 2.)), exp(-pow((l - 545.) / 45., 2.)), exp(-pow((l - 452.) / 30., 2.)));
+}
 
 // 中の層（向き m、物体の座標）が照明を返す強さ。光の向きと見る向きの中間が m に近いほど強い。
-// 画面の座標で比べるので、石が傾くと光る場所と色が変わる。al は向きの合い具合（重み付きの平均）
+// 画面の座標で比べるので、石が傾くと光る場所と色が変わる。層は表と裏のどちらからも光を返す（裏から見たとき）。al は向きの合い具合（重み付きの平均）
 float layerFlash(vec3 m, float k, out float al){
   vec3 mw = normalize(uR * m); float s = 0., ws = 0., as = 0.;
   for (int i = 0; i < 24; i++) {
     if (i >= uNL) break;
-    float c = max(dot(normalize(uL[i].xyz + vec3(0, 0, 1)), mw), 0.), w = uL[i].w * (1. - uLc[i].x);
+    float c = abs(dot(normalize(uL[i].xyz + vec3(0, 0, 1)), mw)), w = uL[i].w * (1. - uLc[i].x);
     s += w * pow(c, k); ws += w; as += w * c;
   }
   al = as / max(ws, 1e-4);
@@ -323,8 +335,15 @@ vec4 cab(vec3 ro, vec3 rd){
   vec3 a2 = uAbc * uAbc;
   float qa = dot(rd * rd, 1. / a2), qb = 2. * dot(ro * rd, 1. / a2), qc = dot(ro * ro, 1. / a2) - 1.;
   float disc = qb * qb - 4. * qa * qc; if (disc < 0.) return vec4(0);
-  float t = (-qb - sqrt(disc)) / (2. * qa); vec3 h = ro + rd * t; if (h.z < 0.) return vec4(0);
-  vec3 n = normalize(h / a2); float cv = -dot(n, rd); vec3 r = rd + 2. * cv * n;
+  float t = (-qb - sqrt(disc)) / (2. * qa); vec3 h = ro + rd * t, n;
+  if (h.z < 0.) {
+    // 裏から見たとき：平らに磨いた底の面
+    if (rd.z <= 0.) return vec4(0);
+    h = ro + rd * (-ro.z / rd.z);
+    if (dot(h.xy * h.xy, 1. / a2.xy) > 1.) return vec4(0);
+    n = vec3(0, 0, -1);
+  } else n = normalize(h / a2);
+  float cv = -dot(n, rd); vec3 r = rd + 2. * cv * n;
   vec3 alb, emit; float tr; stone(h.xy, n, r, alb, emit, tr);
   float F = .04 + .96 * pow(1. - clamp(cv, 0., 1.), 5.);
   float spec = env(uR * r), E = irr(uR * n);
@@ -421,9 +440,22 @@ void main(){
     vec3 ro = Rt * vec3(uv, 10.), rd = Rt * vec3(0, 0, -1);
     vec3 c; bool hit;
     if (uMode == 0) {
-      c.r = trace(ro, rd, uIor.x, uSig.x, uSig2.x, uPleo.x, uFogL.x, hit); if (!hit) continue;
-      c.g = trace(ro, rd, uIor.y, uSig.y, uSig2.y, uPleo.y, uFogL.y, hit);
-      c.b = trace(ro, rd, uIor.z, uSig.z, uSig2.z, uPleo.z, uFogL.z, hit);
+      // 透明な石は近くから見る（目の位置から広がる光線）。面ごとに見る向きが少しずつ変わり、ファイアの中で色が移ろう
+      // 表の面で跳ね返る光だけは、遠くから見た向きで求める（テーブルに照明が大きく映り込まないように）
+      vec3 rr = rd;
+      if (uPersp > 0.) { ro = Rt * vec3(0, 0, 1. / uPersp); rd = Rt * normalize(vec3(uv * uPersp, -1.)); }
+      // 波長ごとに屈折率が少し違う（コーシーの式）ので、出ていく向きがずれて虹色に分かれる（ファイア）。
+      // 点ごとに波長を少しずらして、細かく描くほど色がなめらかにつながる
+      c = vec3(0); vec3 ws = vec3(0); float j = (float(sy * uSS + sx) + .5) / float(uSS * uSS);
+      for (int w = 0; w < 16; w++) {
+        if (w >= uNW) break;
+        float s = (float(w) + j) / float(uNW), lm = (700. - 300. * s) * .001;
+        vec3 wc = wlRGB(s);
+        c += trace(ro, rd, rr, uCau.x + uCau.y / (lm * lm), hit) * wc; ws += wc;
+        if (!hit) break;
+      }
+      if (!hit) continue;
+      c /= ws;
     } else { vec4 r = uMode == 1 ? cab(ro, rd) : uMode == 2 ? facet(ro, rd) : tumble(ro, rd); if (r.a < .5) continue; c = r.rgb; }
     acc += srgb(aces(c * uExp)); cov += 1.;
   }
@@ -458,7 +490,7 @@ void main(){
 }`;
 
 // ---------------------------------------------------------------- 描く道具（キャンバス 1 枚に 1 つ）
-const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL'];
+const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uCau', 'uNW', 'uPersp', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL'];
 
 function createRenderer(canvas) {
   const gl = canvas.getContext('webgl2', { premultipliedAlpha: true, antialias: false, alpha: true, depth: false, stencil: false, powerPreference: 'low-power' });
@@ -502,7 +534,7 @@ function createRenderer(canvas) {
   const load = (id) => {
     const g = GEM_LOOK[id] || GEM_LOOK.ruby;
     gl.useProgram(prog);
-    const E = g.mode === 'cab' || g.mode === 'tumble' ? ENV_CAB : ENV_FACET;
+    const E = g.mode === 'cab' || g.mode === 'tumble' ? ENV_CAB : g.spark ? ENV_SPARK : ENV_FACET;
     const L = new Float32Array(24 * 4), Lc = new Float32Array(24 * 2);
     E.L.forEach((l, i) => { L.set([...l.dir, l.I], i * 4); Lc.set([l.c0, l.c1], i * 2); });
     gl.uniform4fv(uni.uL, L);
@@ -529,8 +561,7 @@ function createRenderer(canvas) {
       gl.uniform1f(uni.uBiAt, 0.25);
       gl.uniform3fv(uni.uPleo, g.pleo ? sigmaOf(g.pleo, g.d) : s);
       gl.uniform1f(uni.uPleoOn, g.pleo ? 1 : 0);
-      const d = g.disp * (g.fire == null ? 1.6 : g.fire);
-      gl.uniform3f(uni.uIor, g.ior - d * 0.42, g.ior, g.ior + d * 0.58);
+      gl.uniform2fv(uni.uCau, cauchy(g, g.fire == null ? 1.6 : g.fire));
     } else {
       gl.uniform3fv(uni.uAbc, g.cut === 'cab' ? [0.92, 0.92, 0.62] : [1.0, 0.76, 0.62]);
       gl.uniform3f(uni.uIor, g.ri, g.ri, g.ri);
@@ -564,8 +595,9 @@ function createRenderer(canvas) {
     const glint = o && o.glint != null ? o.glint : GLINT;
     gl.useProgram(prog);
     if (clear) {
-      const d = g.disp * (o && o.fire != null ? o.fire : g.fire == null ? 1.6 : g.fire);
-      gl.uniform3f(uni.uIor, g.ior - d * 0.42, g.ior, g.ior + d * 0.58);
+      gl.uniform2fv(uni.uCau, cauchy(g, o && o.fire != null ? o.fire : g.fire == null ? 1.6 : g.fire));
+      gl.uniform1i(uni.uNW, o && o.nw ? o.nw : NW);
+      gl.uniform1f(uni.uPersp, o && o.persp != null ? o.persp : PERSP);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
     gl.viewport(0, 0, W, H);
@@ -593,6 +625,13 @@ function createRenderer(canvas) {
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
   return { gl, load, draw };
+}
+
+// 屈折率の波長による違い（コーシーの式 n = A + B / λ²、λ は µm）。disp は B 線（686.7nm）と G 線（430.8nm）の差で、
+// それに fire を掛けて強める。ior は黄の光（589nm）あたりの値
+function cauchy(g, fire) {
+  const d = g.disp * fire, B = d / (1 / 0.4308 ** 2 - 1 / 0.6867 ** 2);
+  return [g.ior - B / 0.589 ** 2, B];
 }
 
 // 縦軸まわりに spin、そのあと手前へ tilt（物体 → 画面）。列優先で渡す
@@ -722,14 +761,15 @@ export const liveGemOk = () => !broken;
 
 // ---------------------------------------------------------------- 画像の書き出し（tools/gem-bake.html から使う）
 let baker = null;
-export function bakeGem(id, size, rockT = 0, rockS = 0) {
+// o は draw と同じ（確かめるための比べる画像用。省くとアイコンと同じ）
+export function bakeGem(id, size, rockT = 0, rockS = 0, o = null) {
   if (!baker) {
     const canvas = document.createElement('canvas');
     baker = createRenderer(canvas);
     baker.canvas = canvas;
   }
   baker.load(id);
-  baker.draw(size * 2, rockT, rockS, 2);
+  baker.draw(size * 2, rockT, rockS, 2, o);
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const x = c.getContext('2d');
