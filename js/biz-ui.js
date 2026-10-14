@@ -14,7 +14,7 @@ import { refreshNav } from './menu.js';
 import * as B from './biz.js';
 import {
   PLACES, MINES, FACTORIES, EXCHANGES, SHOPS, SHOP_LV, STAFF, BOSS_SHIP, RANKS, MINE_LV, STORE_LV, FACT_LV, CREW, BIZ_GEMS, BIZ_GEM_IDS, FAC_KINDS, FAC_TABLE,
-  LABS, AUCTIONS, SIGHTS, ORDERS, CLIENT_KINDS, FIND, DEALS,
+  LABS, AUCTIONS, SIGHTS, ORDERS, CLIENT_KINDS, FIND, DEALS, ROUTE, ROUTES, BRAND, BRAND_NAMES, VIP, VIP_KINDS,
 } from './biz-data.js';
 import { worldSvg, projX, projY, MAP_W, MAP_H } from './biz-map.js';
 
@@ -89,14 +89,16 @@ export function showBiz() {
       ${coinPill()}
     </div>
     <button class="bz-goal" id="bzgoal" hidden></button>
-    <div class="bz-chips"><button class="bz-findchip" id="bzfind" hidden><small>名石</small><b id="bzfindn"></b></button><button class="bz-findchip" id="bzdeal" hidden><small>案件</small><b>1</b></button></div>
+    <div class="bz-chips"><button class="bz-findchip" id="bzfind" hidden><small>名石</small><b id="bzfindn"></b></button><button class="bz-findchip" id="bzdeal" hidden><small>案件</small><b>1</b></button><button class="bz-findchip vip" id="bzvip" hidden><small>来客</small><b>1</b></button></div>
     <div class="bz-map" id="bzmap"><div class="bz-world" id="bzworld">${worldSvg()}<svg class="bz-routes" id="bzroutes" viewBox="0 0 ${MAP_W} ${MAP_H}" preserveAspectRatio="none" aria-hidden="true"></svg><div class="bz-pins" id="bzpins"></div></div></div>
     <div class="bz-tools"><button id="bzhelp" class="bz-help" aria-label="ヘルプ">?</button><button id="bzzoom" aria-label="拡大"></button><button id="bzmk">${icon('market')}<span>相場</span></button><button id="bzmines">${icon('mine')}<span>鉱区</span></button><button id="bzfacts">${icon('factory')}<span>工場</span></button><button id="bzhq">${icon('hq')}<span>本社</span></button></div>
     <div class="bz-sheet" id="bzsheet"></div>
     <div class="bz-modal" id="bzmodal" hidden></div>
   </div>`);
   show(node);
-  ui = { node, st, zoom: (st.view && st.view.z) || 1, sheet: null, touching: false, ships: '', t: 0, lastSave: now, modals: [], modal: null, findLater: false, dealLater: false };
+  ui = { node, st, zoom: (st.view && st.view.z) || 1, sheet: null, touching: false, ships: '', t: 0, lastSave: now, modals: [], modal: null, findLater: false, dealLater: false, vipLater: false, flow: {} };
+  // 地図の「+$」は、開いてから入った売上だけ（留守の間の分はまとめの板で見せる）
+  st.flow = {};
   layoutMap(true);
   renderPins();
   renderTop();
@@ -111,6 +113,7 @@ export function showBiz() {
   $('#bzgoal', node).onclick = onGoal;
   $('#bzfind', node).onclick = () => { audio.tap(); ui.findLater = false; checkFinds(); };
   $('#bzdeal', node).onclick = () => { audio.tap(); if (!ui.modal && ui.st.deal) queueModal({ kind: 'deal' }); };
+  $('#bzvip', node).onclick = () => { audio.tap(); if (!ui.modal && ui.st.vip) queueModal({ kind: 'vip' }); };
   $('#bzmodal', node).addEventListener('click', onModalClick);
   const map = $('#bzmap', node);
   let saveT = 0;
@@ -138,6 +141,7 @@ export function showBiz() {
     const t = Date.now();
     B.catchUp(st, t);
     afterChange(false);
+    showFlow();
     tutCheck();
     st.away = B.awayMark(st, t);
     if (t - ui.lastSave > 15000) { ui.lastSave = t; persist(); }
@@ -179,7 +183,7 @@ function pinState(pid) {
   const ev = st.market.events.find((e) => e.p === pid);
   // 知らせ（金の輪）：オークションの結果が出た・納められる注文がある（本社）
   const au = st.auctions[pid];
-  const news = !!(au && au.last && !au.last.seen) || (pid === 'tokyo' && st.orders.list.some((o) => B.orderReady(st, o, Date.now())));
+  const news = !!(au && au.last && !au.last.seen) || (pid === 'tokyo' && st.orders.list.some((o) => B.orderReady(st, o, Date.now()))) || !!(st.vip && st.vip.shop === pid);
   return { ks, lock, own, alert, work, news, main: ks[0], ev: ev ? (ev.mul >= 1 ? 'up' : 'dn') : '' };
 }
 function renderPins() {
@@ -285,7 +289,8 @@ function renderRoutes() {
   ui.ships = ui.st.ships.map((s) => s.id).join(',');
   svg.innerHTML = ui.st.ships.map((s) => {
     const g = routeGeom(s);
-    return `<path d="M${g.x0},${g.y0}Q${g.cx},${g.cy} ${g.x1},${g.y1}" class="bz-route"/><circle r="0.7" class="bz-boat" data-s="${s.id}"/>`;
+    const gold = B.routeOn(ui.st, s.from, s.to) ? ' gold' : '';
+    return `<path d="M${g.x0},${g.y0}Q${g.cx},${g.cy} ${g.x1},${g.y1}" class="bz-route${gold}"/><circle r="0.7" class="bz-boat${gold}" data-s="${s.id}"/>`;
   }).join('');
 }
 function animRoutes() {
@@ -427,7 +432,7 @@ function mineSheet(pid) {
 function mineBoss(pid, m) {
   const st = ui.st, fs = Object.keys(st.factories).filter((fid) => Object.keys(MINES[pid].mix).some((g) => B.canCut(fid, g)));
   return `<div class="bs-h">鉱山長の出荷先</div>
-    ${fs.length ? `<div class="bs-pick">${fs.map((fid) => `<button class="bs-prow ${m.to === fid ? 'on' : ''}" data-act="mineTo" data-id="${pid}" data-f="${fid}"><span>${icon('factory')}${PLACES[fid].name}</span><small>${minf(B.shipMin(pid, fid))}</small></button>`).join('')}</div>` : '<div class="bs-note">この鉱区の石を磨ける工場がありません</div>'}`;
+    ${fs.length ? `<div class="bs-pick">${fs.map((fid) => { const rt = B.routeOn(st, pid, fid); return `<button class="bs-prow ${m.to === fid ? 'on' : ''} ${rt ? 'route' : ''}" data-act="mineTo" data-id="${pid}" data-f="${fid}"><span>${icon('factory')}<span class="bs-pn">${PLACES[fid].name}${rt ? `<em class="bs-rt">★ ${rt.name}</em>` : ''}</span></span><small>${minf(B.shipMin(pid, fid))}</small></button>`; }).join('')}</div>` : '<div class="bs-note">この鉱区の石を磨ける工場がありません</div>'}`;
 }
 const exName = (id) => (EXCHANGES[id].name ? `${PLACES[id].name}・${EXCHANGES[id].name}` : PLACES[id].name);
 // 出荷先の工場を選ぶ列（置き場 store の原石を磨ける工場だけ押せる）
@@ -435,7 +440,8 @@ function shipPick(pid, store) {
   const st = ui.st, fs = Object.keys(st.factories), tot = Object.values(store).reduce((a, b) => a + b, 0);
   return `<div class="bs-pick">${fs.length ? fs.map((fid) => {
     const can = Object.keys(store).some((k) => B.canCut(fid, k.split('|')[0]));
-    return `<button class="bs-prow" data-act="ship" data-id="${pid}" data-f="${fid}" ${can && tot > 0 ? '' : 'disabled'}><span>${icon('factory')}${PLACES[fid].name}</span><small>${can ? `${minf(B.shipMin(pid, fid))}` : '磨けない石'}</small></button>`;
+    const rt = B.routeOn(st, pid, fid);
+    return `<button class="bs-prow ${rt ? 'route' : ''}" data-act="ship" data-id="${pid}" data-f="${fid}" ${can && tot > 0 ? '' : 'disabled'}><span>${icon('factory')}<span class="bs-pn">${PLACES[fid].name}${rt ? `<em class="bs-rt">★ ${rt.name}</em>` : ''}</span></span><small>${can ? `${minf(B.shipMin(pid, fid))}` : '磨けない石'}</small></button>`;
   }).join('') : '<div class="bs-note">工場がありません</div>'}</div>`;
 }
 // 在庫の石の小さな説明（産地・処理・鑑定書）
@@ -558,7 +564,7 @@ function shopSheet(pid) {
 }
 
 // シートの種類 → 遊び方の経営の見出し
-const HELP_PART = { mine: 'mine', mines: 'mine', factory: 'factory', facts: 'factory', market: 'market', hq: 'hq' };
+const HELP_PART = { mine: 'mine', mines: 'mine', factory: 'factory', facts: 'factory', market: 'market', hq: 'hq', route: 'route', brand: 'brand', vault: 'finds', order: 'sell', shop: 'vip' };
 // 持っている鉱区・工場の一覧。押すとその地名のシートを開く（左上の ‹ で一覧へ戻る）
 const LIST_TITLE = { market: '相場', mines: '鉱区', facts: '工場' };
 function listRow(pid, kind, state, warn, sub) {
@@ -608,6 +614,8 @@ function marketSheet() {
     if (M.trend[g]) tags.push(`<em class="${M.trend[g] > 1 ? 'up' : 'dn'}">流行 ${pct(M.trend[g] - 1)}</em>`);
     for (const e of evs) if (e.g === g) tags.push(`<em class="${e.mul > 1 ? 'up' : 'dn'}">出来事 ${pct(e.mul - 1)}</em>`);
     if ((M.press[g] || 0) >= 0.01) tags.push(`<em class="dn">売りすぎ ${pct(-M.press[g])}</em>`);
+    const bl = B.brandLv(st, g);
+    if (bl) tags.push(`<em class="up">ブランド ${pct(bl * BRAND.mul)}</em>`);
     const arrow = v > prev * 1.005 ? '<i class="up">▲</i>' : v < prev * 0.995 ? '<i class="dn">▼</i>' : '<i></i>';
     return `<div class="bs-mrow"><img src="${gemIcon(g)}" alt=""><span class="bs-sn">${GEMS[g].jp}<small>${tags.join('')}</small></span><b class="${v >= 1 ? 'up' : 'dn'}">${pct(v - 1)}</b>${arrow}</div>`;
   }).join('');
@@ -785,9 +793,66 @@ function renderModal() {
         </div><button class="bm-later" data-m="dlater">あとで決める（あと ${minf((d.until - Date.now()) / 60e3)}）</button>`;
     html = `<div class="bm-card bm-deal"><div class="bm-label">案件</div><b class="bm-time">${u.t}</b><p class="bm-body">${u.b}</p>${body}</div>`;
   }
+  else if (M.kind === 'route') html = routeCard(M);
+  else if (M.kind === 'vip') { html = vipCard(M); if (html == null) { nextModal(); return; } }
   box.innerHTML = `<div class="bm-back"></div>${html}`;
   const img = $('.bm-gem img:not(.bm-rough)', box);
-  if (img) mountLiveGem(img, (M.res ? M.res.f : (M.kind === 'find' ? st.finds : st.vault).find((x) => x.id === M.id)).gem);
+  if (img && (M.kind === 'find' || M.kind === 'vault')) mountLiveGem(img, (M.res ? M.res.f : (M.kind === 'find' ? st.finds : st.vault).find((x) => x.id === M.id)).gem);
+}
+
+// 名ルートを見つけたときの板
+const placeChip = (pid, k) => `<span class="bm-place">${icon(k)}${PLACES[pid].name}</span>`;
+function routeCard(M) {
+  const r = ROUTES.find((x) => x.id === M.id);
+  const g = Object.keys((MINES[r.mine] || {}).mix || { diamond: 1 })[0];
+  return `<div class="bm-card bm-route">
+    <div class="bm-label">名ルート発見</div>
+    <div class="bm-gem"><img src="${gemIcon(g)}" alt=""></div>
+    <b class="bm-name">${r.name}</b>
+    <div class="bm-way">${placeChip(r.mine, MINES[r.mine] ? 'mine' : 'sight')}<i></i>${placeChip(r.fac, 'factory')}</div>
+    <p class="bm-body">${r.d}</p>
+    <div class="bm-bonus">この道で磨く石は、歩留まり +${Math.round((ROUTE.yield - 1) * 100)}%・品質が上がる見込み +${Math.round(ROUTE.up * 100)}%</div>
+    <button class="btn primary" data-m="next">OK</button>
+  </div>`;
+}
+
+// 来客の板：ほしい石・予算の目安・売る石を選んで、言い値を出す
+const shopName = (pid) => (SHOPS[pid].name ? `${PLACES[pid].name}・${SHOPS[pid].name}` : `${PLACES[pid].name}の店`);
+// 言い値 a のときの、即決・言い返し・帰ってしまう見込み（予算は目安の幅のどこかで、どこも同じくらい）
+function vipOdds(K, a) {
+  const [lo, hi] = K.budget, at = (x) => Math.max(0, Math.min(1, (hi - Math.max(lo, x)) / (hi - lo)));
+  const sold = at(a), reach = at(a / B.VIP_OVER);
+  return { sold, counter: reach - sold, left: 1 - reach };
+}
+function vipCard(M) {
+  const st = ui.st, v = M.res ? M.res.v : st.vip;
+  if (!v) return null;
+  if (!M.res) v.seen = true;
+  const K = VIP_KINDS.find((x) => x.id === v.kind);
+  const head = `<div class="bm-label">来客・${shopName(v.shop)}</div>
+    <b class="bm-time">${K.name}</b>
+    <p class="bm-body bm-want"><img src="${gemIcon(v.gem)}" alt="">${GEMS[v.gem].jp}${gradeBadge(v.g)}以上を ${fmt(v.n)} 個</p>
+    <div class="bs-rows"><div><span>予算の目安</span><b>相場の ×${K.budget[0]}〜${K.budget[1]}</b></div></div>`;
+  let body;
+  if (M.res) {
+    const r = M.res.r;
+    body = `<div class="bm-res">${r.r === 'sold' ? `相場の ×${r.m.toFixed(2)} で売れました<b>${usd(r.v)}</b>` : M.res.no ? '断りました' : '帰ってしまいました'}</div><button class="btn primary" data-m="next">OK</button>`;
+  } else if (v.counter) {
+    const q = B.vipQuote(st, v.counter.k);
+    body = `<div class="bm-res bm-say">「相場の ×${v.counter.m.toFixed(2)} なら買いましょう」<b>${q ? usd(q.value * v.counter.m) : ''}</b></div>
+      <div class="bm-acts"><button class="btn primary" data-m="vyes" ${q ? '' : 'disabled'}>売る</button><button class="btn" data-m="vno">断る</button></div>`;
+  } else {
+    const lots = B.vipLots(st, v).sort((a, b) => B.lotValue(st, b, st.stock[b]) - B.lotValue(st, a, st.stock[a]));
+    if (!lots.includes(M.k)) M.k = lots[0];
+    const q = M.k && B.vipQuote(st, M.k);
+    body = lots.length
+      ? `<div class="bs-sub">売る石</div><div class="bm-lots">${lots.slice(0, 5).map((k) => { const p = B.parseKey(k), qq = B.vipQuote(st, k); return `<button class="bm-lot ${k === M.k ? 'on' : ''}" data-m="vlot" data-k="${k}">${gradeBadge(p.g)}<span>${lotNote(p) || GEMS[p.gem].jp}<small>${nf(qq.n)} 個・相場 ${usd(qq.value)}</small></span></button>`; }).join('')}</div>
+        <div class="bs-sub">言い値</div>
+        <div class="bm-asks">${VIP.asks.map((a) => { const o = vipOdds(K, a); return `<button class="btn" data-m="vask" data-a="${a}">×${a}<span class="sub">${usd(q.value * a)}</span><span class="sub">即決 ${Math.round(o.sold * 100)}%${o.left > 0.005 ? `・帰る ${Math.round(o.left * 100)}%` : ''}</span></button>`; }).join('')}</div>`
+      : '<div class="bs-note">ほしい石の在庫がありません</div>';
+    body += `<button class="bm-later" data-m="vlater">あとで（あと ${minf((v.until - Date.now()) / 60e3)}）</button>`;
+  }
+  return `<div class="bm-card bm-vip">${head}${body}</div>`;
 }
 function onModalClick(e) {
   const b = e.target.closest('[data-m]');
@@ -826,6 +891,19 @@ function onModalClick(e) {
     case 'keep':
       if (B.keepFind(st, M.id)) { audio.levelUp(); haptic(); nextModal(); afterChange(true); }
       break;
+    // 来客
+    case 'vlater': audio.tap(); ui.vipLater = true; nextModal(); break;
+    case 'vlot': audio.tap(); M.k = b.dataset.k; renderModal(); break;
+    case 'vask': case 'vyes': case 'vno': {
+      const v0 = st.vip, now = Date.now();
+      const r = b.dataset.m === 'vask' ? B.vipAsk(st, M.k, +b.dataset.a, now) : B.vipAnswer(st, b.dataset.m === 'vyes', now);
+      if (!r) { audio.tap(); break; }
+      if (r.r !== 'counter') M.res = { r, v: v0, no: b.dataset.m === 'vno' };
+      if (r.r === 'sold') { audio.bigWin(); haptic(); } else if (r.r === 'counter') audio.select(); else audio.tap();
+      renderModal();
+      afterChange(true);
+      break;
+    }
     case 'sell': {
       const r = B.sellFind(st, M.id);
       if (r) { M.res = r; audio.bigWin(); haptic(); renderModal(); afterChange(true); }
@@ -840,9 +918,42 @@ function checkFinds() {
   $('#bzfind', ui.node).hidden = !st.finds.length;
   $('#bzfindn', ui.node).textContent = st.finds.length;
   $('#bzdeal', ui.node).hidden = !st.deal;
-  if (ui.modal || (st.tut != null && st.tut >= 0)) return;
+  $('#bzvip', ui.node).hidden = !st.vip;
+  if (st.tut != null && st.tut >= 0) return;
+  // 知らせ（名ルートの発見は板で、ブランドの段階は小さな知らせで）
+  while (st.news && st.news.length) {
+    const n = st.news.shift();
+    if (n.k === 'route') { queueModal({ kind: 'route', id: n.id }); audio.bigWin(); }
+    else if (n.k === 'brand') { toast(`${GEMS[n.gem].jp}のブランド「${BRAND_NAMES[n.lv]}」`, `売値 +${Math.round(n.lv * BRAND.mul * 100)}%`, 'BRAND UP'); audio.levelUp(); }
+  }
+  if (ui.modal) return;
   if (st.finds.length && !ui.findLater) queueModal({ kind: 'find', id: st.finds[0].id });
   else if (st.deal && !st.deal.seen && !ui.dealLater) queueModal({ kind: 'deal' });
+  else if (st.vip && !st.vip.seen && !ui.vipLater) queueModal({ kind: 'vip' });
+}
+
+// 地図の「+$」：売上が入った場所のピンから立ちのぼる（小さい額はたまるまで待つ）
+function showFlow() {
+  const st = ui.st, std = RANKS[st.rank - 1].std;
+  for (const pid in st.flow) ui.flow[pid] = (ui.flow[pid] || 0) + st.flow[pid];
+  st.flow = {};
+  const box = $('#bzpins', ui.node);
+  let n = 0;
+  for (const pid in ui.flow) {
+    const v = ui.flow[pid];
+    if (v < std * 0.01 || n >= 6) continue;
+    const pin = $(`.bzpin[data-p="${pid}"]`, box);
+    delete ui.flow[pid];
+    if (!pin) continue;
+    n++;
+    const f = document.createElement('div');
+    f.className = 'bz-float';
+    f.textContent = '+' + usd(v);
+    f.style.left = pin.style.left;
+    f.style.top = pin.style.top;
+    box.appendChild(f);
+    setTimeout(() => f.remove(), 1800);
+  }
 }
 
 // 案件の文（題・本文・答えのボタン）と、答えたあとの結果
@@ -865,6 +976,26 @@ function dealResult(d, r) {
   return '名工が加わりました';
 }
 
+// 本社の名ルートの欄：見つけた道と、まだの道の手がかり
+function routePanel() {
+  const st = ui.st, n = Object.keys(st.routes).length;
+  return `<div class="bs-rows"><div><span>見つけた名ルート</span><b>${n} / ${ROUTES.length}</b></div><div><span>その道で磨く石</span><b>歩留まり +${Math.round((ROUTE.yield - 1) * 100)}%・品質 +${Math.round(ROUTE.up * 100)}%</b></div></div>
+    <div class="bs-routes">${ROUTES.map((r) => st.routes[r.id]
+      ? `<div class="br-row on"><b>★ ${r.name}</b><span class="br-way">${placeChip(r.mine, MINES[r.mine] ? 'mine' : 'sight')}<i>→</i>${placeChip(r.fac, 'factory')}</span><small>${r.d}</small></div>`
+      : `<div class="br-row"><b>？？？</b><small>${r.hint}</small></div>`).join('')}</div>`;
+}
+// 本社のブランドの欄：売った石ごとの段階と、次の段階まで
+const MEDAL = ['', 'm-bronze', 'm-silver', 'm-gold', 'm-gold', 'm-prism'];
+function brandPanel() {
+  const st = ui.st;
+  const list = Object.keys(st.brand).filter((g) => B.brandPts(st, g) > 0).map((g) => ({ g, lv: B.brandLv(st, g), p: B.brandPts(st, g) })).sort((a, b) => b.lv - a.lv || b.p - a.p);
+  if (!list.length) return '<div class="bs-note">宝石を売ると、その石のブランドが育ちます</div>';
+  return `<div class="bs-brands">${list.map(({ g, lv, p }) => {
+    const need = BRAND.need[lv], prev = lv ? BRAND.need[lv - 1] : 0;
+    return `<div class="bb-row"><img src="${gemIcon(g)}" alt=""><span class="bs-sn">${GEMS[g].jp}<small>${lv ? `${BRAND_NAMES[lv]}・売値 +${Math.round(lv * BRAND.mul * 100)}%` : '—'}</small>${need ? bar((p - prev) / (need - prev)) : ''}</span>${lv ? `<span class="medal sm ${MEDAL[lv]}"></span>` : ""}</div>`;
+  }).join('')}</div>`;
+}
+
 // 本社の宝物庫の欄
 function vaultPanel() {
   const st = ui.st, list = st.vault;
@@ -875,9 +1006,11 @@ function vaultPanel() {
 function hqSheet() {
   const st = ui.st, S = ui.sheet;
   const ready = st.orders.list.filter((o) => B.orderReady(st, o, Date.now())).length;
-  const tabs = `<div class="bs-tabs sm"><button class="${S.tab === 'co' ? 'on' : ''}" data-act="tab" data-t="co">会社</button><button class="${S.tab === 'stock' ? 'on' : ''}" data-act="tab" data-t="stock">在庫</button><button class="${S.tab === 'order' ? 'on' : ''}" data-act="tab" data-t="order">注文${ready ? `<i class="bs-cnt">${ready}</i>` : ''}</button><button class="${S.tab === 'vault' ? 'on' : ''}" data-act="tab" data-t="vault">宝物庫</button></div>`;
+  const tabs = `<div class="bs-tabs sm"><button class="${S.tab === 'co' ? 'on' : ''}" data-act="tab" data-t="co">会社</button><button class="${S.tab === 'stock' ? 'on' : ''}" data-act="tab" data-t="stock">在庫</button><button class="${S.tab === 'order' ? 'on' : ''}" data-act="tab" data-t="order">注文${ready ? `<i class="bs-cnt">${ready}</i>` : ''}</button><button class="${S.tab === 'vault' ? 'on' : ''}" data-act="tab" data-t="vault">宝物庫</button><button class="${S.tab === 'route' ? 'on' : ''}" data-act="tab" data-t="route">ルート</button><button class="${S.tab === 'brand' ? 'on' : ''}" data-act="tab" data-t="brand">ブランド</button></div>`;
   if (S.tab === 'order') return tabs + ordersPanel();
   if (S.tab === 'vault') return tabs + vaultPanel();
+  if (S.tab === 'route') return tabs + routePanel();
+  if (S.tab === 'brand') return tabs + brandPanel();
   if (S.tab === 'stock') {
     // 在庫は宝石ごとにまとめ、いちばん高く売れる取引所の値で出す
     const by = {};
@@ -933,7 +1066,7 @@ function onSheetClick(e) {
   switch (d.act) {
     case 'close': audio.tap(); closeSheet(); return;
     // ヘルプ：開いているシートの説明へ
-    case 'help': audio.tap(); openHelp(`biz#${HELP_PART[ui.sheet.kind] || 'sell'}`); return;
+    case 'help': { audio.tap(); const S = ui.sheet; openHelp(`biz#${S.kind === 'hq' && HELP_PART[S.tab] ? HELP_PART[S.tab] : HELP_PART[S.kind] || 'sell'}`); return; }
     case 'goto': { audio.tap(); const from = ui.sheet.kind; centerOn(d.p); openSheet(d.p, d.k); ui.sheet.back = from; renderSheet(); return; }
     case 'back': audio.tap(); openSheet(null, ui.sheet.back); return;
     case 'kind': ui.sheet.kind = d.k; ui.sheet.pick = null; $('#bzsheet', ui.node).scrollTop = 0; break;
