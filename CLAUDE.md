@@ -278,7 +278,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v129`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v130`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
@@ -328,6 +328,7 @@ SIZES=375x667 node tools/test/wrap.js              # 折り返しとボタンの
 node tools/test/gem-bake.js [ruby,opal]            # 宝石のアイコンと百獣の絵を書き出す（img/gems・img/beasts。省くと全部）
 node tools/test/gem-bake.js all beasts             # 百獣の絵だけ書き出す
 node tools/test/biz-sim.js 40 120 1500             # 経営のバランス（日数、開く間隔（分）、1 ランの平均コイン。ブラウザ不要）
+node tools/test/biz-tut.js                         # 経営のチュートリアルを新しいセーブで最後まで通す（SHOT=<フォルダ> で手順ごとの画像）
 ```
 
 - テストは変えた箇所に絞る。clear.js はステージ・ボスを変えたときだけ、wrap.js は文字や画面を変えたときだけ（SE の画面のみ）。
@@ -338,4 +339,6 @@ node tools/test/biz-sim.js 40 120 1500             # 経営のバランス（日
 ## 8. 返事待ちの案と調整の目安
 
 - 返事待ちの案：合体（2 武器を合体して枠を空ける）、秘宝の縛り（経験値の宝石が爆弾になりレベルが上がらない代わりに、宝箱で必ず進化）、農場（おすすめは「作物を料理にして 1 ラン限りのバフとして持ち込む」＋おまけで「原石を植えて育てる」。育ち方・収穫物・置き場所をユーザーに決めてもらう）。
+- 経営の返事待ちの案：ライバルの会社（ほかの会社が鉱区を買い取りに来る・オークションで競ってくる）、上場（最上位のランクで会社を作り直す代わりに、配当の上限をずっと上げる）。
 - 主な調整値の場所：trashMul（雑魚の HP と自機の強さの連動）、`BOSS_HP`（ボスの HP の全体倍率）、`BOSS_TRASH`（ボス戦中の雑魚）、`BREAK_NEED` / `BREAK_GROW` / `BREAK_EASE` / `BREAK_TIME`（ブレイク）、xpFor（必要経験値）。いずれも game.js。
+- 経営の調整値：`RANKS`（ランクに要る総資産・配当の係数・放置の上限）、`TIER`（ランクごとの稼ぎの目安）、`FIND`（名石の出やすさ・宝物庫の上乗せ）、`DEALS`（案件の間隔と金額）、`SHOW_SEASON`（ツーソンの開く時期）。いずれも biz-data.js。名石の研磨の速さは biz-ui.js の polishMini に渡す `tier`。
