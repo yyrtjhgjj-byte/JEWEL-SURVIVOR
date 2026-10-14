@@ -1591,3 +1591,4 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .bb-row .bs-sn small { margin: 0; }
 .bs-tabs.sm { gap: 4px; }
 .bs-tabs.sm button { padding: 5px 9px; font-size: 11.5px; }
+.bz-cash b.bump { animation: bump 0.3s; }
