@@ -66,18 +66,22 @@ export function syncNav(cat, node) {
   if (!(node && node.classList.contains('jukebox-screen'))) audio.playBgm(node && node.classList.contains('biz-screen') ? 'business' : 'title');
 }
 
-// 光るカテゴリ・アイコン・印（宝石：磨いていない原石の数、経営：配当・満杯の倉庫・止まった工場）を描き直す
+// 光るカテゴリ・アイコン・印（宝石：磨いていない原石の数、経営：配当・満杯の倉庫・止まった工場）を、変わったところだけ描き直す
 export function refreshNav() {
   if (!navEl || !navCat) return;
   for (const b of navEl.querySelectorAll('button')) {
     const id = b.dataset.c;
     b.classList.toggle('on', id === navCat);
-    $('.mn-ic', b).innerHTML = navIcon(id);
-    const old = $('.mn-badge', b);
-    if (old) old.remove();
+    // アイコンと印は、中身が変わったときだけ書き換える（画像を作り直すと読み込み直しで一瞬消えるため）
+    const ic = $('.mn-ic', b), icon = navIcon(id);
+    if (ic.dataset.h !== icon) { ic.dataset.h = icon; ic.innerHTML = icon; }
     const n = id === 'jewel' ? totalRough() : 0;
-    if (n) b.appendChild(el(`<b class="mn-badge">${n > 99 ? '99+' : n}</b>`));
-    if (id === 'biz' && bizBadge()) b.appendChild(el('<b class="mn-badge dot"></b>'));
+    const badge = (n ? `<b class="mn-badge">${n > 99 ? '99+' : n}</b>` : '') + (id === 'biz' && bizBadge() ? '<b class="mn-badge dot"></b>' : '');
+    if (b.dataset.badge !== badge) {
+      b.dataset.badge = badge;
+      for (const old of b.querySelectorAll('.mn-badge')) old.remove();
+      if (badge) b.insertAdjacentHTML('beforeend', badge);
+    }
   }
 }
 
