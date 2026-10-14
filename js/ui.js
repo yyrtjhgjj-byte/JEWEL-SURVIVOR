@@ -282,12 +282,24 @@ export function openHelp(spec) {
   go(spec);
 }
 
-// ホームの宝石：全種（武器・チャーム）から、ホームを開くたびに選び直す（直前と同じものは避ける）。下のメニューのホームのアイコンも同じ宝石
+// ホームの宝石：全種（武器・チャーム）を袋に入れて、ホームを開くたびに 1 つずつ取り出す（全部出たら混ぜ直す）。
+// 袋はセーブに残すので、アプリを開き直しても偏らない。下のメニューのホームのアイコンも同じ宝石
 export let homeGem = 'ruby';
+function nextHomeGem() {
+  let bag = (save.homeBag || []).filter((id) => GEMS[id]);
+  if (!bag.length) {
+    bag = Object.keys(GEMS);
+    for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    // 混ぜ直した袋の最初が、直前と同じ宝石にならないように
+    if (bag[bag.length - 1] === homeGem) bag.unshift(bag.pop());
+  }
+  homeGem = bag.pop();
+  save.homeBag = bag;
+  persist();
+}
 export function showTitle() {
   audio.playBgm('title');
-  const ids = Object.keys(GEMS).filter((id) => id !== homeGem);
-  homeGem = pick(ids);
+  nextHomeGem();
   const cid = homeGem;
   const g = GEMS[cid];
   const node = el(`
