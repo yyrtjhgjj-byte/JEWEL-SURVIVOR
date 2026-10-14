@@ -147,10 +147,28 @@ function startPolish(tier, tut = false) {
   // コインは研磨が終わったとき（原石を消費するのと同時）に払う。途中でアプリが落ちてもコインだけ失わないように
   const gemId = tut ? 'diamond' : nextGem(tier);
   if (!tut) persist();
+  polishMini({
+    tier, gemId, tut, en: tut ? 'TUTORIAL' : 'POLISHING', jp: tut ? '研磨のチュートリアル' : R.name,
+    quit: () => showAtelier('polish'),
+    done: (score, grade) => {
+      if (tut) { tutorialResult(score, grade); return; }
+      const ct = rollCarat(tier);
+      save.coins = Math.max(0, save.coins - R.cost);
+      const res = applyPolish(tier, gemId, grade, ct);
+      persist();
+      reveal(res, score);
+    },
+  });
+}
+// 研磨のミニゲーム（針がリングを回り、光る面に重なったらタップ）。研磨工房と経営の名石で使う。
+// o：tier 原石の等級（面の数・速さ・幅）、gemId 光の色、tut 練習、en / jp 見出し、quit 始める前にやめたとき、done(精度, 品質)
+export function polishMini(o) {
+  const { tier, gemId, tut } = o;
+  const R = ROUGH[tier];
   const hint = gemColor(gemId);
 
   const node = el(`<div class="screen polish-screen">
-    <div class="pol-head"><div class="en">${tut ? 'TUTORIAL' : 'POLISHING'}</div><div class="jp">${tut ? '研磨のチュートリアル' : R.name}</div>
+    <div class="pol-head"><div class="en">${o.en}</div><div class="jp">${o.jp}</div>
       <div class="facets">${Array.from({ length: R.facets }, () => '<i></i>').join('')}</div></div>
     <canvas id="pc"></canvas>
     <div class="pol-hint" id="ph">${tut ? 'タップで練習開始' : 'タップで研磨開始'}</div>
@@ -173,7 +191,7 @@ function startPolish(tier, tut = false) {
   const speed = () => 2.2 * R.speed * (1 + 0.1 * st.facet) * (tut ? TUT_SPEED[Math.min(st.facet, TUT_SPEED.length - 1)] : 1);
   const tip = (t) => { const e = $('#pt', node); if (e) e.innerHTML = t; };
   // やめる：チュートリアルはいつでも。本番は始める前だけ（原石とコインは研磨が終わったときに使うので、何も減らない）
-  $('#tq', node).onclick = (e) => { e.stopPropagation(); audio.tap(); st.done = true; showAtelier('polish'); };
+  $('#tq', node).onclick = (e) => { e.stopPropagation(); audio.tap(); st.done = true; o.quit(); };
   const place = () => { st.target = st.ang + rand(1.8, 4.3); };
   place();
 
@@ -342,20 +360,10 @@ function startPolish(tier, tut = false) {
   function finish() {
     const score = st.results.reduce((a, b) => a + b, 0) / st.results.length;
     const grade = gradeFromScore(score);
-    if (!node.isConnected) return; // 途中でやめた
-    if (tut) {
-      st.revealed = true;
-      cancelAnimationFrame(raf);
-      tutorialResult(score, grade);
-      return;
-    }
-    const ct = rollCarat(tier);
-    save.coins = Math.max(0, save.coins - R.cost);
-    const res = applyPolish(tier, gemId, grade, ct);
-    persist();
+    if (!node.isConnected) return;
     st.revealed = true;
     cancelAnimationFrame(raf);
-    reveal(res, score);
+    o.done(score, grade);
   }
 }
 

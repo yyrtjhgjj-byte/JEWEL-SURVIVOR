@@ -70,8 +70,13 @@
       if (fs.length) { fs.sort((a, b) => B.queueWork(st.factories[a]) / B.factCap(st, a) - B.queueWork(st.factories[b]) / B.factCap(st, b)); B.ship(st, id, fs[0], now); }
       if (B.storeTotal(st.mines[id]) > 0 && !fs.length) B.sellRough(st, id);
     }
-    // 名石：宝物庫に 10 個までは飾り、それ以上はオークションに出す
-    for (const f of [...st.finds]) { if (st.vault.length < 10) B.keepFind(st, f.id); else B.sellFind(st, f.id); }
+    // 名石：原石は精度 70%（品質 A）で磨き、宝物庫に 10 個までは飾り、それ以上はオークションに出す
+    for (const f of [...st.finds]) {
+      if (f.raw) B.polishFind(st, f.id, 0.7, 2);
+      if (st.vault.length < 10) B.keepFind(st, f.id); else B.sellFind(st, f.id);
+    }
+    // 案件：落盤は資金に余裕があれば直し、ほかは受ける
+    if (st.deal && !OFF.includes('deal')) B.resolveDeal(st, st.deal.k !== 'cavein' || st.cash > st.deal.cost * 3, now);
     // 注文を納め、品質 S 以上をオークションへ、A 以上を鑑定へ
     if (!OFF.includes('order')) for (const o of [...st.orders.list]) B.deliver(st, o.id, now);
     if (!OFF.includes('auction')) for (const id in D.AUCTIONS) if (B.aucOpen(st, id)) for (const k of Object.keys(st.stock)) if (B.parseKey(k).g >= D.AUCTIONS[id].min) B.consign(st, id, k, now);
