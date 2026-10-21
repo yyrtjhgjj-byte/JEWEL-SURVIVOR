@@ -968,6 +968,119 @@ LOGIC.pectolite = {
   },
 };
 
+// ------------------------------------------------------------- アメジスト
+// ボス（いなければ HP の高い敵）を狙い続け、結晶を撃ち込む（途中の敵には当たらない）。
+// 刺さった結晶が敵に育ち、一定の数で砕けて大ダメージ。進化後は少ない数で砕け、欠片が周りの敵へ飛び散る
+const AME_NEED = 5, AME_NEED_EVO = 4;
+LOGIC.amethyst = {
+  update(g, w, s, dt) {
+    runBurst(w, dt);
+    const evo = w.evolved;
+    const p = g.player;
+    const shots = w.shots || (w.shots = []);
+    let keep = 0;
+    for (const sh of shots) {
+      sh.life -= dt;
+      if (!sh.tgt.alive) {
+        // 狙った敵が先に倒れたら、今の狙いへ向け直す
+        if (w.tgt && w.tgt.alive) sh.tgt = w.tgt;
+        else continue;
+      }
+      const e = sh.tgt;
+      const dx = e.x - sh.x, dy = e.y - sh.y, d = Math.hypot(dx, dy) || 1;
+      const step = 760 * s.speed * dt;
+      sh.a = Math.atan2(dy, dx);
+      if (d <= step + e.r * 0.6) {
+        this.strike(g, w, s, e, dx / d, dy / d);
+        continue;
+      }
+      if (sh.life <= 0) continue;
+      sh.x += (dx / d) * step;
+      sh.y += (dy / d) * step;
+      shots[keep++] = sh;
+    }
+    shots.length = keep;
+    if (w.marked) w.marked = w.marked.filter((e) => e.alive && e.amCr > 0);
+    w.t -= dt;
+    if (w.t > 0) return;
+    // 狙いは倒れるか遠く離れるまで変えない（眠っていて攻撃が効かない敵は外す）
+    const far = (e) => (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > 520 * 520;
+    if (!w.tgt || !w.tgt.alive || far(w.tgt) || w.tgt.asleep) w.tgt = g.strongestEnemies(p.x, p.y, 4, 480).find((e) => !e.asleep) || null;
+    if (!w.tgt) { w.t = 0.2; return; }
+    w.t = s.cd * (evo ? 0.85 : 1);
+    burst(w, s.amount, 0.08, () => {
+      if (!w.tgt || !w.tgt.alive) return;
+      const a = Math.atan2(w.tgt.y - p.y, w.tgt.x - p.x) + rand(-0.5, 0.5);
+      w.shots.push({ x: p.x + Math.cos(a) * 14, y: p.y + Math.sin(a) * 14, a, tgt: w.tgt, life: 1.6 });
+      audio.shoot();
+    });
+  },
+  // 結晶が刺さる：ダメージを与え、敵に結晶を 1 つ育てる。決まった数で砕ける
+  strike(g, w, s, e, kx, ky) {
+    const evo = w.evolved;
+    g.damage(e, s.dmg, { wid: 'amethyst', kx, ky, kb: 15 });
+    if (!e.alive) return;
+    e.amCr = (e.amCr || 0) + 1;
+    e.amT = g.time;
+    (w.marked || (w.marked = [])).includes(e) || w.marked.push(e);
+    if (e.amCr < (evo ? AME_NEED_EVO : AME_NEED)) return;
+    e.amCr = 0;
+    g.fx.ring(e.x, e.y, e.r, e.r + 46 * s.area, 0.35, '#c79bff', 5);
+    g.fx.burst(e.x, e.y, '#b980ff', 14, 220, 0.5, 10);
+    g.fx.text(e.x, e.y - e.r - 12, 'SHATTER', { color: '#e4ccff', size: 13, stroke: 'rgba(0,0,0,0.7)', life: 0.7 });
+    g.damage(e, s.dmg * (evo ? 8 : 6), { wid: 'amethyst', kx, ky, kb: 60 });
+    g.aoe(e.x, e.y, e.r + 40 * s.area, s.dmg * 0.8, 'amethyst', { kb: 70, exclude: e });
+    audio.crit();
+    if (!evo) return;
+    // 砕けた欠片が周りの敵へ飛び散る
+    const n = 8, a0 = rand(TAU), spd = 520 * s.speed;
+    for (let k = 0; k < n; k++) {
+      const a = a0 + (k / n) * TAU;
+      g.addProj({
+        hit: new Set([e]),
+        x: e.x, y: e.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 8 * s.area, dmg: s.dmg * 0.8, pierce: 2,
+        life: 0.55, wid: 'amethyst', sprite: gemSprite('amethyst', 14, 'long'), rotToVel: true, rotOff: Math.PI / 2, trail: '#c79bff', knock: 30,
+      });
+    }
+  },
+  // 敵に育った結晶（新しいものほど大きく出てくる）
+  drawMarks(g, w, s, ctx) {
+    if (w.marked) {
+      const need = w.evolved ? AME_NEED_EVO : AME_NEED;
+      const cr = gemSprite('amethyst', 16, 'long');
+      for (const e of w.marked) {
+        if (!e.alive || !(e.amCr > 0) || !g.inView(e, 40)) continue;
+        for (let k = 0; k < e.amCr; k++) {
+          const a = -Math.PI / 2 + (k - (need - 1) / 2) * 0.62;
+          const pop = k === e.amCr - 1 ? ease.outBack(Math.min(1, (g.time - e.amT) / 0.18)) : 1;
+          const L = cr.logical * (0.7 + 0.12 * k) * pop * Math.min(1.6, 0.6 + e.r / 30);
+          ctx.save();
+          ctx.translate(e.x + Math.cos(a) * e.r * 0.95, e.y + Math.sin(a) * e.r * 0.95);
+          ctx.rotate(a + Math.PI / 2);
+          ctx.drawImage(cr, -L / 2, -L * 0.8, L, L);
+          ctx.restore();
+        }
+      }
+    }
+  },
+  draw(g, w, s, ctx) {
+    if (!w.shots || !w.shots.length) return;
+    const spr = gemSprite('amethyst', 18, 'long');
+    const glow = starSprite('#b980ff');
+    for (const sh of w.shots) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.drawImage(glow, sh.x - 14, sh.y - 14, 28, 28);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.save();
+      ctx.translate(sh.x, sh.y);
+      ctx.rotate(sh.a + Math.PI / 2);
+      const L = spr.logical;
+      ctx.drawImage(spr, -L / 2, -L / 2, L, L);
+      ctx.restore();
+    }
+  },
+};
+
 // 地面エリア（エメラルドのクローバー・炎の跡・闇の裂け目）の絵
 export function drawArea(ctx, a, time) {
   const t = a.life / a.max;
