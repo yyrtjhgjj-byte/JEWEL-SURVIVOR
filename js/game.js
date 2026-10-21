@@ -119,6 +119,7 @@ export class Game {
     this.hyper = !!opts.hyper; // 自機・敵の移動 ×1.65、敵弾 ×1.2、コイン ×1.5
     this.hurry = !!opts.hurry; // ステージの時計が 2 倍速で進む
     this.banished = new Set(); // バニッシュした武器・チャーム（このランでは候補に出ない）
+    this.spent = new Set(); // 身代わりに砕けたマラカイト（このランでは候補に出ない）
     // 秘宝
     this.arts = [];
     this.artSet = new Set();
@@ -1769,12 +1770,21 @@ export class Game {
     const p = this.player;
     if (this.revives > 0) {
       this.revives--;
+      // 復活はマラカイトから先に使う。使ったマラカイトは身代わりに砕けて、チャームの枠が 1 つ空く
+      const mal = this.passives.find((x) => PASSIVES[x.id].revive);
+      if (mal) {
+        this.passives.splice(this.passives.indexOf(mal), 1);
+        this.spent.add(mal.id);
+        this.computeStats();
+        this.fx.burst(p.x, p.y, GEMS[mal.id].color, 26, 280, 0.8, 12);
+        this.fx.burst(p.x, p.y, GEMS[mal.id].light, 12, 180, 0.6, 8);
+      }
       if (this.artSet.has('pendant')) { this.revBuff++; this.computeStats(); } // 秘宝「護石のペンダント」
       p.hp = p.maxHp;
       p.iT = 2.5;
       p.reviveT = 2.5; // 溶岩など、無敵時間を無視するダメージも受けない
       this.jewelFlash(true);
-      this.hooks.banner('REVIVE', 'victory', '光は再び灯る');
+      this.hooks.banner('REVIVE', 'victory', mal ? 'マラカイトが砕けた' : '光は再び灯る');
       audio.heal();
       return;
     }
@@ -1972,7 +1982,7 @@ export class Game {
     }
     for (const p of this.passives) if (this.charmLbOk(p)) pool.push({ type: 'plb', id: p.id, weight: 6 });
     if (this.weapons.length < MAX_WEAPONS) for (const id of WEAPON_IDS) if (!this.getWeapon(id) && !this.banished.has(id)) pool.push({ type: 'wnew', id, weight: 5 });
-    if (this.passives.length < MAX_CHARMS) for (const id of PASSIVE_IDS) if (!this.getPassive(id) && !this.banished.has(id)) {
+    if (this.passives.length < MAX_CHARMS) for (const id of PASSIVE_IDS) if (!this.getPassive(id) && !this.banished.has(id) && !this.spent.has(id)) {
       // しんかに ひつようなら でやすく
       const need = this.weapons.some((w) => WEAPONS[w.id].evo.with === id && !w.evolved);
       pool.push({ type: 'pnew', id, weight: need ? 9 : 4 });
@@ -2187,7 +2197,7 @@ export class Game {
       feverGauge: this.feverGauge, feverNeed: this.feverNeed, fevers: this.fevers, evolvedCount: this.evolvedCount, bosses: this.bosses, miracles: this.miracles,
       weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved, lb: w.lb, lbN: w.lbN })),
       passives: this.passives.map((x) => ({ id: x.id, level: x.level, lbN: x.lbN })),
-      arts: [...this.arts], revives: this.revives, revBuff: this.revBuff, rerolls: this.rerolls, skips: this.skips, banishes: this.banishes, banished: [...this.banished],
+      arts: [...this.arts], revives: this.revives, revBuff: this.revBuff, rerolls: this.rerolls, skips: this.skips, banishes: this.banishes, banished: [...this.banished], spent: [...this.spent],
       roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
       hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big, ...(m.plus ? { plus: m.plus } : {}) })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
@@ -2213,6 +2223,7 @@ export class Game {
     this.killsByType = { ...s.killsByType };
     this.roughGot = { ...this.roughGot, ...s.roughGot };
     this.banished = new Set(s.banished);
+    this.spent = new Set(s.spent || []);
     // コンボ：再開した直後は雑魚がいないので、つなぎの猶予を長めにとる
     if (s.combo > 0) { this.combo = s.combo; this.comboT = 6; }
     this.computeStats();

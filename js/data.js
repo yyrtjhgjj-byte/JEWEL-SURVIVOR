@@ -473,7 +473,8 @@ export const PASSIVES = {
   citrine: { gem: 'citrine', name: 'シトリン', max: 5, per: { coinDrop: 0.02 }, t: 'コインのドロップ率 +2%' },
   peridot: { gem: 'peridot', name: 'ペリドット', max: 5, per: { moveSpeed: 0.08, speed: 0.08, duration: 0.08 }, t: '移動速度・弾速・持続 +8%' },
   // 復活はラン中の残り回数（game.js の revives）に、手に入れたときに足す（computeStats では数えない）。リミットブレイクと進化の相方はなし
-  malachite: { gem: 'malachite', name: 'マラカイト', max: 1, per: {}, revive: 1, noLb: true, t: '復活 +1' },
+  // 復活はマラカイトから先に使い、使うと砕けて枠から消える（game.js の die。そのランではもう候補に出ない）
+  malachite: { gem: 'malachite', name: 'マラカイト', max: 1, per: {}, revive: 1, noLb: true, t: '復活 +1（復活すると砕けて枠が空く）' },
 };
 export const PASSIVE_IDS = Object.keys(PASSIVES);
 // チャームのリミットブレイク（上位工房）：最大レベルのチャームに、1 レベル分の半分の効果を重ねる（1 つのチャームに CHARM_LB_MAX 回まで）。
