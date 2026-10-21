@@ -76,3 +76,16 @@ export function rgba(hex, a) {
 
 export const RAINBOW = ['#ff4d6d', '#ff9f1c', '#ffe14d', '#4ade80', '#38bdf8', '#818cf8', '#e879f9'];
 export const hsl = (h, s = 100, l = 60) => `hsl(${h},${s}%,${l}%)`;
+
+// 画像を 1 度だけ読み込んで、blob の URL に差し替える（宝石・百獣の絵）。サービスワーカーが入っていると、
+// <img> を作るたびに読み込み済みの画像でもサービスワーカーを通って 0.1 秒ほど待ち、出るのが遅れたり、
+// 描き直しでちらついたりする。blob の URL はサービスワーカーを通らないので、すぐ出る。
+// 読み込みが終わるまでは元の URL のまま
+const blobUrls = {};
+export const imgUrl = (path) => blobUrls[path] || path;
+export function preloadImages(paths) {
+  return Promise.all(paths.map((p) => fetch(p)
+    .then((r) => (r.ok ? r.blob() : null))
+    .then((b) => { if (b) blobUrls[p] = URL.createObjectURL(b); })
+    .catch(() => {})));
+}

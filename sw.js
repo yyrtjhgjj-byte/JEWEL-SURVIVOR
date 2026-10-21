@@ -1,5 +1,5 @@
 // オフラインでも あそべるように キャッシュする
-const CACHE = 'jewel-survivor-v144';
+const CACHE = 'jewel-survivor-v145';
 const ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/game.js', './js/weapons.js', './js/data.js', './js/render.js', './js/fx.js',
@@ -29,7 +29,8 @@ const NAV_TIMEOUT = 3000;
 const CACHE_FIRST_FOR = 15000;
 let cacheFirstUntil = 0;
 
-const fromCache = (req) => caches.match(req, { ignoreSearch: true });
+// まず URL のまま探し（速い）、なければ ? 以降を無視して探す（アイコンの ?v= など。全部をなめるので遅い）
+const fromCache = (req) => caches.match(req).then((r) => r || caches.match(req, { ignoreSearch: true }));
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
@@ -51,6 +52,13 @@ self.addEventListener('fetch', (e) => {
       return res;
     });
   };
+
+  // 宝石・百獣の絵とアプリのアイコン（img/・icons/）は保存分を優先する。版を上げるとインストールで新しい絵を取り直すので、
+  // 更新はそこで入る。ネットワーク優先だと、画面を開くたびに更新の確認を待って、絵が遅れて出る・描き直しでちらつく
+  if (sameOrigin && /\/(img|icons)\//.test(url.pathname)) {
+    e.respondWith(fromCache(e.request).then((r) => r || fetchNet()));
+    return;
+  }
 
   // 保存分でページを開いた直後：保存分を優先（無ければネットワーク）
   if (!isNav && Date.now() < cacheFirstUntil) {
