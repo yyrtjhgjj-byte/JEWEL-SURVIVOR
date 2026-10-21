@@ -1030,7 +1030,7 @@ LOGIC.amethyst = {
     g.fx.ring(e.x, e.y, e.r, e.r + 46 * s.area, 0.35, '#c79bff', 5);
     g.fx.burst(e.x, e.y, '#b980ff', 14, 220, 0.5, 10);
     g.fx.text(e.x, e.y - e.r - 12, 'SHATTER', { color: '#e4ccff', size: 13, stroke: 'rgba(0,0,0,0.7)', life: 0.7 });
-    g.damage(e, s.dmg * (evo ? 8 : 6), { wid: 'amethyst', kx, ky, kb: 60 });
+    g.damage(e, s.dmg * (evo ? 10 : 9), { wid: 'amethyst', kx, ky, kb: 60 });
     g.aoe(e.x, e.y, e.r + 40 * s.area, s.dmg * 0.8, 'amethyst', { kb: 70, exclude: e });
     audio.crit();
     if (!evo) return;
