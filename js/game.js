@@ -720,6 +720,7 @@ export class Game {
       this.trainNextT -= dt;
       if (this.trainNextT <= 0) {
         const e = this.trainSpawn('dummy', 0, -150, this.trainDummyHp());
+        e.infHp = !!this.train.inf;
         this.boss = e;
         this.hooks.bossBar(e);
       }
@@ -1415,6 +1416,8 @@ export class Game {
     const hp0 = e.hp;
     let dealt = Math.min(dmg, hp0);
     e.hp -= dmg;
+    // トレーニングの HP 無限の木人：HP は減らさず、与えたダメージは全部数える（ブレイクは最大 HP の割合でたまる）
+    if (e.infHp) { dealt = dmg; e.hp = e.maxHp; }
     if (o.wid && !o.dot && !e.boss && !e.segment && e.ai !== 'thief' && this.artSet.has('loupe') && chance(0.08)) e.frozenT = Math.max(e.frozenT, 1.5); // 秘宝「氷晶のルーペ」
     // 形態のあるボスは、形態変化の処理（AI 側）を飛ばして次の形態へ進んだり倒れたりしないようにする
     if (e.ai === 'emperor' && e.phaseNow && e.phaseNow < 3) {
