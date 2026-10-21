@@ -872,8 +872,8 @@ LOGIC.pectolite = {
           if (!e.alive || L.hit.includes(e)) continue;
           if (segDist2(e.x, e.y, ox, oy, d.x, d.y) > (hitR + e.r) ** 2) continue;
           L.hit.push(e);
-          g.damage(e, s.dmg, { wid: 'pectolite', kx: L.dx, ky: L.dy, kb: 50 * s.knock });
-          this.dew(g, w, e.x, e.y);
+          // しずくはダメージが通ったときだけ（眠りや無敵の敵からは出ない）
+          if (g.damage(e, s.dmg, { wid: 'pectolite', kx: L.dx, ky: L.dy, kb: 50 * s.knock }) > 0) this.dew(g, w, e.x, e.y);
         }
         if (L.u >= 1) {
           d.leap = null;
@@ -900,9 +900,11 @@ LOGIC.pectolite = {
     if (w.t > 0) return;
     w.t = s.cd * (evo ? 0.7 : 1);
     // 跳ぶ：泳いでいるイルカが、近い敵から順に 1 頭ずつ狙う（少しずつずらして跳ぶ）
-    // 画面の中の敵だけを狙う（画面の外へ跳ぶと、イルカもしずくも見えなくなる）
+    // 画面の中の敵だけを狙う（画面の外へ跳ぶと、イルカもしずくも見えなくなる）。眠っていて攻撃が効かない敵も外す。
+    // 探す前に外す（近い順に取ってから外すと、横の画面の外の敵で枠が埋まり、画面の中の敵を狙えなくなる）
     const free = dol.filter((d) => !d.leap).length;
-    const near = (n) => g.nearestEnemies(p.x, p.y, n + 3, 260).filter((e) => g.inView(e, -16));
+    const skip = { has: (e) => e.asleep || !g.inView(e, -16) };
+    const near = (n) => g.nearestEnemies(p.x, p.y, n, 260, skip);
     if (!near(1)[0]) { w.t = 0.2; return; }
     burst(w, free, 0.1, (i) => {
       const d = w.dol.find((x) => !x.leap);
@@ -974,6 +976,7 @@ LOGIC.pectolite = {
 // ボス（いなければ HP の高い敵）を狙い続け、結晶を撃ち込む（途中の敵には当たらない）。
 // 刺さった結晶が敵に育ち、一定の数で砕けて大ダメージ。進化後は少ない数で砕け、欠片が周りの敵へ飛び散る
 const AME_NEED = 5, AME_NEED_EVO = 4;
+const pickAme = (g, p) => g.strongestEnemies(p.x, p.y, 4, 480).find((e) => !e.asleep) || null;
 LOGIC.amethyst = {
   update(g, w, s, dt) {
     runBurst(w, dt);
@@ -984,9 +987,10 @@ LOGIC.amethyst = {
     for (const sh of shots) {
       sh.life -= dt;
       if (!sh.tgt.alive) {
-        // 狙った敵が先に倒れたら、今の狙いへ向け直す
-        if (w.tgt && w.tgt.alive) sh.tgt = w.tgt;
-        else continue;
+        // 狙った敵が先に倒れたら、今の狙い（それも倒れていれば選び直した狙い）へ向け直す
+        if (!w.tgt || !w.tgt.alive) w.tgt = pickAme(g, p);
+        if (!w.tgt) continue;
+        sh.tgt = w.tgt;
       }
       const e = sh.tgt;
       const dx = e.x - sh.x, dy = e.y - sh.y, d = Math.hypot(dx, dy) || 1;
@@ -1007,7 +1011,7 @@ LOGIC.amethyst = {
     if (w.t > 0) return;
     // 狙いは倒れるか遠く離れるまで変えない（眠っていて攻撃が効かない敵は外す）
     const far = (e) => (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > 520 * 520;
-    if (!w.tgt || !w.tgt.alive || far(w.tgt) || w.tgt.asleep) w.tgt = g.strongestEnemies(p.x, p.y, 4, 480).find((e) => !e.asleep) || null;
+    if (!w.tgt || !w.tgt.alive || far(w.tgt) || w.tgt.asleep) w.tgt = pickAme(g, p);
     if (!w.tgt) { w.t = 0.2; return; }
     w.t = s.cd * (evo ? 0.85 : 1);
     burst(w, s.amount, 0.08, () => {
@@ -1020,8 +1024,9 @@ LOGIC.amethyst = {
   // 結晶が刺さる：ダメージを与え、敵に結晶を 1 つ育てる。決まった数で砕ける
   strike(g, w, s, e, kx, ky) {
     const evo = w.evolved;
-    g.damage(e, s.dmg, { wid: 'amethyst', kx, ky, kb: 15 });
-    if (!e.alive) return;
+    // ダメージが通らない間（形態変化などの無敵）は結晶を育てない（砕けても大ダメージが入らないため）
+    const dealt = g.damage(e, s.dmg, { wid: 'amethyst', kx, ky, kb: 15 });
+    if (!e.alive || !(dealt > 0)) return;
     e.amCr = (e.amCr || 0) + 1;
     e.amT = g.time;
     (w.marked || (w.marked = [])).includes(e) || w.marked.push(e);

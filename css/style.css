@@ -1651,6 +1651,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .sp-note { font-family: var(--font-jp); font-size: 10.5px; color: var(--muted); margin: 6px 0 0; }
 .sp-list { margin: 0; padding-left: 1.2em; font-family: var(--font-jp); font-size: 12.5px; line-height: 1.65; color: #d8d5ea; }
 .sp-list li + li { margin-top: 2px; }
+/* 頭の短い説明はそろえて折り返し、一覧の行は最後の行に 1〜2 文字だけ残さない */
+.sp-head .sp-lead { text-wrap: balance; }
+.sp-list li { text-wrap: pretty; }
 .sp-tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .sp-tbl { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
 .sp-tbl th, .sp-tbl td { padding: 4px 6px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
