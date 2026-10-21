@@ -67,7 +67,7 @@ export const GEMS = {
   },
 
   alexandrite: {
-    jp: 'アレキサンドライト', en: 'ALEXANDRITE', word: '夢の実現と可能性', kana: 'ゆめ',
+    jp: 'アレキサンドライト', en: 'ALEXANDRITE', word: '夢の実現', kana: 'ゆめ',
     color: '#1fb58a', light: '#ff9ab8', dark: '#5a1640', cut: 'oval',
     lore: '光によって色を変える希少石。放たれた光弾は敵を追い続け、翠と紅の二つの顔を持つ。',
   },
@@ -101,8 +101,8 @@ export const GEMS = {
     lore: '安心の花崗岩。大地のように揺るがず、主を攻撃から守る。' },
   coal: { jp: 'コール', en: 'COAL', word: '忍耐', kana: 'にんたい', color: '#4a4a58', light: '#a9a9c2', dark: '#15151c', cut: 'round',
     lore: '忍耐の石炭。燃え尽きることなく、静かに傷を癒し続ける。' },
-  titanite: { jp: 'チタナイト', en: 'TITANITE', word: '仕事運とバランス', kana: 'しごとうん', color: '#c9d63a', light: '#f6ffb0', dark: '#5f6a00', cut: 'long',
-    lore: '仕事運とバランスの榍石。働きに見合った報酬を約束する。' },
+  titanite: { jp: 'チタナイト', en: 'TITANITE', word: '仕事運', kana: 'しごとうん', color: '#c9d63a', light: '#f6ffb0', dark: '#5f6a00', cut: 'long',
+    lore: '仕事運の榍石。働きに見合った報酬を約束する。' },
   redberyl: { jp: 'レッドベリル', en: 'RED BERYL', word: '心身の浄化', kana: 'じょうか', color: '#e0245e', light: '#ffa3c0', dark: '#6b0626', cut: 'emerald',
     lore: '心身を浄化する赤い緑柱石。散らばった輝きを主のもとへ呼び寄せる。' },
   turquoise: { jp: 'ターコイズ', en: 'TURQUOISE', word: '勇気', kana: 'ゆうき', color: '#2fc9b8', light: '#b8fff4', dark: '#0f6b66', cut: 'round',
