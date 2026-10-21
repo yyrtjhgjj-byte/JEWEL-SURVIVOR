@@ -1153,23 +1153,43 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
     }
     paintScenes(scenes);
   } else {
-    // 実績はメダル（報酬の大きさで 銅・銀・金・虹。キャラの解放つきは銀以上）。上に達成率の輪とメダルごとの数
+    // 実績はメダル（data.js の m で 銅・銀・金・プラチナ）。上に達成率の輪とメダルごとの数（押すとそのメダルだけに絞る）、
+    // その下に取得の状態の絞り込みと並び替え（save.tabs.ach に覚える）
     const done = ACHIEVEMENTS.filter((a) => save.achievements[a.id]).length;
-    const tiers = [['bronze', '銅'], ['silver', '銀'], ['gold', '金'], ['prism', '虹']];
-    const cnt = tiers.map(() => [0, 0]);
-    for (const a of ACHIEVEMENTS) { const t = medalTier(a); cnt[t][1]++; if (save.achievements[a.id]) cnt[t][0]++; }
-    zl.appendChild(el(`<div class="panel ach-head">
+    const cnt = MEDALS.map(() => [0, 0]);
+    for (const a of ACHIEVEMENTS) { cnt[a.m][1]++; if (save.achievements[a.id]) cnt[a.m][0]++; }
+    const f = save.tabs.ach || (save.tabs.ach = { st: 'all', m: -1, sort: 'def' });
+    const head = el(`<div class="panel ach-head">
       <div class="ach-ring" style="--p:${((done / ACHIEVEMENTS.length) * 100).toFixed(1)}"><b>${done}</b><small>/ ${ACHIEVEMENTS.length}</small></div>
-      <div class="ach-tiers">${tiers.map(([k, n], i) => `<div><span class="medal sm m-${k}"></span><b>${n}</b><i>${cnt[i][0]} / ${cnt[i][1]}</i></div>`).join('')}</div>
-    </div>`));
-    for (const a of ACHIEVEMENTS) {
-      const ok = save.achievements[a.id];
-      const k = tiers[medalTier(a)][0];
-      zl.appendChild(el(`<div class="zitem ach ${ok ? 'done' : ''} t-${k}">
-        <span class="medal m-${k} ${ok ? '' : 'off'}"></span>
-        <div><div class="zname">${a.name}</div><div class="ztext">${a.t}</div>
-        <div class="zevo">報酬 ${fmt(a.coins)} コイン${a.unlock ? ` ＋ ${GEMS[a.unlock].jp} 解放` : ''}</div></div></div>`));
-    }
+      <div class="ach-tiers">${MEDALS.map(([k, n], i) => `<button data-m="${i}"><span class="medal sm m-${k}"></span><b>${n}</b><i>${cnt[i][0]} / ${cnt[i][1]}</i></button>`).join('')}</div>
+    </div>`);
+    const tools = el(`<div class="ach-tools">
+      <div class="tabs sub">${[['all', 'すべて'], ['todo', '未取得'], ['done', '取得済み']].map(([k, n]) => `<button class="tab" data-st="${k}">${n}</button>`).join('')}</div>
+      <div class="tabs sub">${[['def', '標準'], ['medal', 'メダル順'], ['coin', '報酬順']].map(([k, n]) => `<button class="tab" data-sort="${k}">${n}</button>`).join('')}</div>
+    </div>`);
+    const items = el('<div class="ach-list"></div>');
+    zl.append(head, tools, items);
+    const draw = () => {
+      head.querySelectorAll('[data-m]').forEach((b) => { b.classList.toggle('on', +b.dataset.m === f.m); b.classList.toggle('dim', f.m >= 0 && +b.dataset.m !== f.m); });
+      tools.querySelectorAll('[data-st]').forEach((b) => b.classList.toggle('on', b.dataset.st === f.st));
+      tools.querySelectorAll('[data-sort]').forEach((b) => b.classList.toggle('on', b.dataset.sort === f.sort));
+      let list = ACHIEVEMENTS.filter((a) => (f.m < 0 || a.m === f.m) && (f.st === 'all' || !!save.achievements[a.id] === (f.st === 'done')));
+      if (f.sort === 'medal') list = list.map((a, i) => [a, i]).sort((x, y) => y[0].m - x[0].m || x[1] - y[1]).map((x) => x[0]);
+      else if (f.sort === 'coin') list = list.map((a, i) => [a, i]).sort((x, y) => y[0].coins - x[0].coins || x[1] - y[1]).map((x) => x[0]);
+      items.innerHTML = list.length ? list.map((a) => {
+        const ok = save.achievements[a.id];
+        const k = MEDALS[a.m][0];
+        return `<div class="zitem ach ${ok ? 'done' : ''} t-${k}">
+          <span class="medal m-${k} ${ok ? '' : 'off'}"></span>
+          <div><div class="zname">${a.name}</div><div class="ztext">${a.t}</div>
+          <div class="zevo">報酬 ${fmt(a.coins)} コイン${a.unlock ? ` ＋ ${GEMS[a.unlock].jp} 解放` : ''}</div></div></div>`;
+      }).join('') : '<div class="ach-none">該当する実績はありません</div>';
+    };
+    const pick = (k, v) => { audio.tap(); f[k] = v; persist(); draw(); };
+    head.querySelectorAll('[data-m]').forEach((b) => (b.onclick = () => pick('m', f.m === +b.dataset.m ? -1 : +b.dataset.m)));
+    tools.querySelectorAll('[data-st]').forEach((b) => (b.onclick = () => pick('st', b.dataset.st)));
+    tools.querySelectorAll('[data-sort]').forEach((b) => (b.onclick = () => pick('sort', b.dataset.sort)));
+    draw();
   }
 }
 
@@ -1193,11 +1213,8 @@ function monsterDetail(id, icon) {
   $('#ok', ov).onclick = () => { audio.tap(); ov.remove(); };
   ov.onclick = (ev) => { if (ev.target === ov) ov.remove(); };
 }
-// 実績のメダルの段階：0 銅 ／ 1 銀 ／ 2 金 ／ 3 虹
-function medalTier(a) {
-  const t = a.coins >= 10000 ? 3 : a.coins >= 2500 ? 2 : a.coins >= 500 ? 1 : 0;
-  return a.unlock ? Math.max(1, t) : t;
-}
+// 実績のメダル（data.js の ACHIEVEMENTS の m の順）
+const MEDALS = [['bronze', '銅'], ['silver', '銀'], ['gold', '金'], ['plat', 'プラチナ']];
 
 // ================================================================== 設定
 export function lastBackupText() {

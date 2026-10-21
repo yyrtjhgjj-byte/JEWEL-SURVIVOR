@@ -651,22 +651,31 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .medal.m-bronze { --mg: radial-gradient(circle at 34% 28%, #ffd9b4, #c47a44 42%, #6a3618 100%); --mstar: #ffe2c4; }
 .medal.m-silver { --mg: radial-gradient(circle at 34% 28%, #ffffff, #b9c3d2 42%, #59626f 100%); --mstar: #ffffff; --mglow: rgba(200,215,255,0.25); }
 .medal.m-gold { --mg: radial-gradient(circle at 34% 28%, #fff7cc, #f1bb3c 42%, #8a5a0e 100%); --mstar: #fff6d6; --mglow: rgba(255,200,80,0.35); }
-.medal.m-prism { --mg: radial-gradient(circle at 34% 28%, rgba(255,255,255,0.85), rgba(255,255,255,0) 46%), conic-gradient(from 20deg, #ff7ab8, #ffd86b, #7dffb0, #7fd0ff, #c78bff, #ff7ab8); --mstar: #ffffff; --mglow: rgba(220,160,255,0.5); }
-.medal.m-prism:not(.off) { animation: medalSpin 6s linear infinite; }
-@keyframes medalSpin { to { filter: hue-rotate(360deg); } }
+/* プラチナ：銀より明るく青白い地に、うっすら虹の照りと、光の筋がときどき流れる */
+.medal.m-plat { --mg: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.95) 50%, transparent 60%), conic-gradient(from 200deg at 50% 50%, rgba(255,190,230,0.22), rgba(170,220,255,0.26), rgba(210,190,255,0.22), rgba(190,255,235,0.2), rgba(255,190,230,0.22)), radial-gradient(circle at 34% 28%, #ffffff, #dde5ff 18%, #9cacdf 48%, #55618f 78%, #252a47 100%); background-size: 300% 100%, 100% 100%, 100% 100%; background-repeat: no-repeat; background-position: 100% 0, 0 0, 0 0; --mstar: #f4f7ff; --mglow: rgba(170,200,255,0.65); }
+.medal.m-plat:not(.off) { animation: medalShine 3.6s ease-in-out infinite; }
+@keyframes medalShine { 0%, 55% { background-position: 100% 0, 0 0, 0 0; } 100% { background-position: 0% 0, 0 0, 0 0; } }
 .medal.off { filter: grayscale(1) brightness(0.32); box-shadow: inset 0 2px 2px rgba(255,255,255,0.3), inset 0 -3px 5px rgba(0,0,0,0.5); }
 .zitem.ach { align-items: center; }
 .zitem.ach.done.t-bronze { border-color: rgba(214,140,90,0.45); }
 .zitem.ach.done.t-silver { border-color: rgba(200,215,240,0.5); }
 .zitem.ach.done.t-gold { border-color: rgba(255,197,61,0.55); background: linear-gradient(90deg, rgba(255,197,61,0.1), transparent 60%), var(--panel); }
-.zitem.ach.done.t-prism { border-color: transparent; background: linear-gradient(90deg, rgba(200,140,255,0.14), transparent 60%) padding-box, linear-gradient(var(--panel), var(--panel)) padding-box, var(--prism) border-box; background-size: 100%, 100%, 200% 100%; animation: prismBorder 3s linear infinite; }
+.zitem.ach.done.t-plat { border-color: rgba(214,226,255,0.75); background: linear-gradient(90deg, rgba(190,210,255,0.16), transparent 60%), var(--panel); box-shadow: 0 0 14px rgba(180,205,255,0.22); }
+/* 絞り込みと並び替え：メダルの数の欄を押すとそのメダルだけ。下に取得の状態と並び */
+.ach-tiers > button { display: flex; align-items: center; gap: 6px; font-family: var(--font-jp); font-size: 12px; color: var(--text, #e8e6f2); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 3px 8px; text-align: left; white-space: nowrap; }
+.ach-tiers > button.on { background: rgba(255,255,255,0.08); border-color: var(--line); }
+.ach-tiers > button.dim { filter: brightness(0.55); }
+.ach-tools { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 2px; flex-shrink: 0; }
+.ach-tools .tabs.sub { margin: 0; }
+.ach-tools .tabs.sub .tab { padding: 6px 11px; }
+.ach-list { display: flex; flex-direction: column; gap: inherit; }
+.ach-none { text-align: center; font-family: var(--font-jp); font-size: 13px; color: var(--muted); padding: 24px 0; }
 .ach-head { display: flex; align-items: center; gap: 16px; padding: 14px 16px; flex-shrink: 0; }
 .ach-ring { position: relative; width: 92px; height: 92px; flex: none; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .ach-ring::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--gold) calc(var(--p) * 1%), rgba(255,255,255,0.1) 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px)); mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px)); filter: drop-shadow(0 0 6px rgba(255,197,61,0.6)); }
 .ach-ring b { font-family: var(--font); font-weight: 700; font-size: 30px; line-height: 1; color: #fff; }
 .ach-ring small { font-family: var(--font); font-size: 11px; color: var(--muted); }
-.ach-tiers { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
-.ach-tiers > div { display: flex; align-items: center; gap: 6px; font-family: var(--font-jp); font-size: 12px; }
+.ach-tiers { flex: 1; display: grid; grid-template-columns: 1fr; gap: 2px; }
 .ach-tiers b { color: #fff; }
 .ach-tiers i { margin-left: auto; font-style: normal; font-family: var(--font); font-size: 12px; color: var(--muted); }
 .zitem.done .trophy { background: rgba(255,197,61,0.12); box-shadow: 0 0 12px rgba(255,197,61,0.3); color: var(--gold); }
