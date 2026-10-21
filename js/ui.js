@@ -16,7 +16,7 @@ import { rankClass, rankNeed, rankCoinMul, rankState, RANK_CLASSES } from './ran
 import { RARITY_ORDER, HOWTO_LOOP, HELP_GROUPS, helpTopicHTML, helpIndexHTML } from './howto.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
-import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
+import { ROUGH, ROUGH_IDS, totalRough, GRADES, COLLECTION_IDS, pickKey, pickRoughs } from './atelier.js';
 import { syncNav, refreshNav, showHub } from './menu.js';
 import { stageScene, stageSceneCached } from './scene-art.js';
 import { showcaseBack, showcaseFront } from './case-art.js';
@@ -677,9 +677,25 @@ export function showStageSelect() {
     }
     const scenes = [];
     if (ch === 'boss') {
-      // BOSS モード：ステージごとに、そのステージのボスたちを並べる
+      // BOSS モード：ステージごとに、そのステージのボスたちを並べる。章ごとに畳める（開いている章は save.tabs.rushOpen。最初は選んでいるステージの章だけ）
+      const selSt = STAGE_BY_ID[rsel];
+      const selCh = selSt ? selSt.finale || selSt.chapter : 1;
+      const openCh = save.tabs.rushOpen || (save.tabs.rushOpen = [selCh]);
+      // 選んでいるステージのある章の見出しに「選択中」
+      const markCh = (no) => list.querySelectorAll('.rush-ch').forEach((h) => { h.querySelector('small')?.remove(); if (+h.dataset.c === no) h.insertAdjacentHTML('beforeend', '<small>選択中</small>'); });
       for (const c of CHAPTERS) {
-        list.appendChild(el(`<div class="label rush-ch">${c.name}</div>`));
+        const isOpen = openCh.includes(c.no);
+        const head = el(`<button class="rush-ch ${isOpen ? 'open' : ''}" data-c="${c.no}"><span>${c.name}</span>${c.no === selCh ? '<small>選択中</small>' : ''}</button>`);
+        const grp = el(`<div class="rush-group ${isOpen ? '' : 'fold'}"></div>`);
+        head.onclick = () => {
+          audio.tap();
+          const on = !head.classList.contains('open');
+          head.classList.toggle('open', on);
+          grp.classList.toggle('fold', !on);
+          save.tabs.rushOpen = on ? [...new Set([...save.tabs.rushOpen, c.no])] : save.tabs.rushOpen.filter((n) => n !== c.no);
+          persist();
+        };
+        list.append(head, grp);
         for (const st of STAGES.filter((x) => x.chapter === c.no)) {
           const ok = cleared(st.id);
           const best = (save.bossRush || {})[st.id] || 0;
@@ -689,9 +705,9 @@ export function showStageSelect() {
             <div class="st-name">${stageUnlocked(st) ? st.name : '？？？'}</div>
             ${ok ? `<div class="rush-boss">${bosses.map((id) => `<img src="${enemyIcon(ENEMIES[id].sprite || id, Math.min(ENEMIES[id].r, 40), ENEMIES[id].tint)}">`).join('')}</div>` : `<div class="st-desc">🔒 STAGE ${st.no} をクリアで解放</div>`}
           </button>`);
-          if (ok) card.onclick = () => { rsel = st.id; save.rushStage = st.id; audio.cardFlip(st.no); markSel(card); renderRush(); };
+          if (ok) card.onclick = () => { rsel = st.id; save.rushStage = st.id; audio.cardFlip(st.no); markSel(card); markCh(c.no); renderRush(); };
           if (ok) scenes.push([card, st]);
-          list.appendChild(card);
+          grp.appendChild(card);
         }
         // 章の最後に、その章の最終ボスだけと連戦する「最終ボス連戦」
         const fin = FINALE_STAGES.find((x) => x.finale === c.no);
@@ -702,8 +718,8 @@ export function showStageSelect() {
           <div class="st-name">${fok ? fin.name : '？？？'}</div>
           ${fok ? `<div class="rush-boss">${fin.events.map((e) => e.enemy).map((id) => `<img src="${enemyIcon(ENEMIES[id].sprite || id, Math.min(ENEMIES[id].r, 40), ENEMIES[id].tint)}">`).join('')}</div>` : `<div class="st-desc">🔒 ${c.name}のステージをすべてクリアで解放</div>`}
         </button>`);
-        if (fok) fcard.onclick = () => { rsel = fin.id; save.rushStage = fin.id; audio.cardFlip(fin.no); markSel(fcard); renderRush(); };
-        list.appendChild(fcard);
+        if (fok) fcard.onclick = () => { rsel = fin.id; save.rushStage = fin.id; audio.cardFlip(fin.no); markSel(fcard); markCh(c.no); renderRush(); };
+        grp.appendChild(fcard);
       }
       paintScenes(scenes);
       return;
@@ -1037,6 +1053,16 @@ export function showExchange(onClose) {
     for (const t of ['mystic', 'large']) {
       row(roughIcon(t, ROUGH[t].color, 72), ROUGH[t].name, `所持 ${save.rough[t] || 0}`, EXCHANGE[t], true, () => { save.rough[t] = (save.rough[t] || 0) + 1; });
     }
+    // 選べる原石：押すと宝石を選ぶ画面を開き、選んでから交換する
+    xl.appendChild(el('<div class="exch-label">選べる原石（中身の宝石を選べる）</div>'));
+    for (const t of ROUGH_IDS.slice().reverse()) {
+      const cost = EXCHANGE.pick[t];
+      const have = pickRoughs().filter((x) => x.tier === t).reduce((a, x) => a + x.n, 0);
+      const r = el(`<div class="exch-row"><img src="${roughIcon(t, ROUGH[t].color, 72)}"><div class="xb"><div class="xn">選べる${ROUGH[t].name}</div><div class="xs">所持 ${have}</div></div>
+        <button class="btn small gold" ${(save.dust || 0) >= cost ? '' : 'disabled'}>${cost}</button></div>`);
+      $('button', r).onclick = () => { audio.tap(); pickRoughDialog(t, render); };
+      xl.appendChild(r);
+    }
     xl.appendChild(el('<div class="exch-label">覚醒（攻撃力 +5% ／ 最大 5 段階）</div>'));
     for (const id of CHAR_IDS) {
       if (!save.unlocked[id]) continue;
@@ -1047,6 +1073,44 @@ export function showExchange(onClose) {
   render();
   screens().appendChild(ov);
   $('#xok', ov).onclick = () => { audio.tap(); ov.remove(); if (onClose) onClose(); };
+}
+
+// 選べる原石の宝石を選ぶ画面（その宝石の最高品質も出す）。交換したら done で交換所を描き直す
+function pickRoughDialog(tier, done) {
+  const R = ROUGH[tier], cost = EXCHANGE.pick[tier];
+  let sel = null;
+  const ov = el(`<div class="screen dim at-over">
+    <div class="panel exch pick-rough">
+      <div class="exch-head"><span>${R.name} <small>宝石を選ぶ</small></span><span class="dustv">ジェムダスト <b>${fmt(save.dust || 0)}</b></span></div>
+      <div class="rush-pick">${COLLECTION_IDS.map((id) => {
+        const j = save.jewels[id];
+        const g = j && j.n ? GRADES[j.best] : null;
+        return `<button class="rp" data-id="${id}"><img src="${gemIcon(id, 72)}"><span>${GEMS[id].jp}</span>${g ? `<i class="pk-g ${g.id === 'SS' ? 'prism-text' : ''}" style="${g.id === 'SS' ? '' : `color:${g.color}`}">${g.id}</i>` : ''}</button>`;
+      }).join('')}</div>
+      <div class="pk-btns"><button class="btn" id="pc">やめる</button><button class="btn gold" id="pg" disabled>交換 ${cost}</button></div>
+    </div></div>`);
+  ov.querySelectorAll('.rp').forEach((b) => (b.onclick = () => {
+    audio.tap();
+    sel = b.dataset.id;
+    ov.querySelectorAll('.rp').forEach((x) => x.classList.toggle('on', x === b));
+    const go = $('#pg', ov);
+    go.disabled = (save.dust || 0) < cost;
+  }));
+  $('#pc', ov).onclick = () => { audio.tap(); ov.remove(); };
+  $('#pg', ov).onclick = () => {
+    if (!sel || (save.dust || 0) < cost) return;
+    save.dust -= cost;
+    const k = pickKey(sel, tier);
+    save.pickRough = save.pickRough || {};
+    save.pickRough[k] = (save.pickRough[k] || 0) + 1;
+    persist();
+    audio.levelUp();
+    haptic();
+    toast(`${GEMS[sel].jp}の${R.name}`, '研磨の画面で磨けます', 'EXCHANGE');
+    ov.remove();
+    done();
+  };
+  screens().appendChild(ov);
 }
 
 // ================================================================== 図鑑

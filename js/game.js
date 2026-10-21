@@ -1008,8 +1008,9 @@ export class Game {
           continue;
         }
       }
-      // トレーニングの的は動かず、攻撃もしない（魅了されたときだけ動き、解けると元の場所に戻る）
-      if (e.trainDummy) { e.x = e.px; e.y = e.py; e.vx = e.vy = 0; continue; }
+      // トレーニングの的は動かず、攻撃もしない（魅了されたときだけ動き、解けると元の場所に戻る）。
+      // ブレイクの時間だけはここで進める（HP 無限の木人は倒れないので、進めないとダウンしたままになる）
+      if (e.trainDummy) { e.x = e.px; e.y = e.py; e.vx = e.vy = 0; if (e.breakT > 0 && !stop) e.breakT -= dt; continue; }
       if (!stop && e.frozenT <= 0) {
         mv.spd = e.speed * (e.slowT > 0 ? e.slowMul : 1);
         mv.mx = dx / dist; mv.my = dy / dist;

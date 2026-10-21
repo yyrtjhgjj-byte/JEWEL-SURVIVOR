@@ -34,6 +34,7 @@ function defaults() {
     dust: 0, // ジェムダスト（ガチャで貯まり、交換所で使う）
     auction: null, // オークションの出品（auction.js）
     nextGem: {}, // 次に磨く原石の中身（等級ごと。atelier.js の nextGem）
+    pickRough: {}, // 交換所の選べる原石（「宝石|等級」ごとの数。atelier.js の pickRoughs）
     jewels: {}, // コレクション { gemId: { n: 研磨数, best: 最高品質, ct: 最大カラット, have: 所持数 } }
     beasts: {}, // 百獣 { gemId: レベル }（beasts.js）
     migrated: {}, // 一度だけ行う移行処理の済み印（main.js の migrateSave）

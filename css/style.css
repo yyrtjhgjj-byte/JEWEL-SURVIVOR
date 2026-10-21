@@ -745,7 +745,13 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .st-desc { font-family: var(--font-jp); font-size: 12px; line-height: 1.6; color: #c9c6dc; }
 .st-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; font-family: var(--font-jp); font-size: 11px; color: var(--muted); }
 .st-meta span { border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
-.rush-ch { margin: 6px 2px 2px; }
+/* BOSS タブの章の見出し：押すと畳む・開く */
+.rush-ch { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 4px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: #fff; font-family: var(--font-jp); font-weight: 700; font-size: 13px; letter-spacing: 0.1em; text-align: left; }
+.rush-ch small { color: var(--gold); font-size: 11px; letter-spacing: 0.05em; }
+.rush-ch::after { content: ''; margin-left: auto; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-2px) rotate(45deg); transition: transform 0.15s; }
+.rush-ch.open::after { transform: translateY(2px) rotate(-135deg); }
+.rush-group { display: flex; flex-direction: column; gap: 8px; }
+.rush-group.fold { display: none; }
 .rush-boss { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
 .rush-boss img { width: 46px; height: 46px; object-fit: contain; }
 /* 最終ボス連戦：金の差し色（番号の札・左の帯・地のほのかな光）。外枠はほかのカードと同じで、選んだときだけ金になる。名前はカタカナの途中で折り返さない */
@@ -955,6 +961,15 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .exch-row .xs { font-family: var(--font-jp); font-size: 11px; color: var(--muted); }
 .exch-row .btn { min-width: 64px; }
 .exch-label { font-family: var(--font-jp); font-size: 12px; color: #ffe39a; margin-top: 8px; }
+/* 選べる原石：宝石を選ぶ画面（右上に持っている最高品質）。下のボタンは見えたままにする */
+.pick-rough .rush-pick { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+.pk-g { position: absolute; top: 2px; right: 4px; font-style: normal; font-family: var(--font); font-size: 9px; font-weight: 700; }
+.pk-btns { position: sticky; bottom: -12px; display: flex; gap: 8px; padding: 8px 0 2px; background: var(--panel); }
+.pk-btns .btn { flex: 1; }
+.pk-btns .btn.gold { flex: 2; }
+/* 研磨の画面の選んだ原石 */
+.pick-label { margin: 14px 2px 6px; }
+.rough-item.pick { border-color: rgba(255,210,74,0.35); }
 
 /* レベルアップ：スキップ・バニッシュ */
 .lvl-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
