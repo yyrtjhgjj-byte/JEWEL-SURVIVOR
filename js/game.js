@@ -536,7 +536,7 @@ export class Game {
 
   // ---------------------------------------------------------------- しゅつげん
   wave() {
-    const W = this.stage.waves;
+    const W = (this.rushHome || this.stage).waves;
     let w = W[0];
     for (const x of W) if (this.time >= x[0]) w = x;
     return w;
@@ -918,7 +918,7 @@ export class Game {
       vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop, segment: !!d.segment,
       frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
       ai: d.ai || type, spr: d.sprite || type, weave: d.weave, kbk: kbWeight(d, elite),
-      tint: d.tint || (this.stage.tint && !d.boss && !d.prop && !d.segment && !d.ai ? TINT(type, this.stage.tint) : null),
+      tint: d.tint || (st.tint && !d.boss && !d.prop && !d.segment && !d.ai ? TINT(type, st.tint) : null),
     };
     if (this.rush) {
       const k = this.rushMul();
@@ -1143,7 +1143,9 @@ export class Game {
     e.atk2 -= dt;
     const shoot = (a, spd = 150, r = 8) => this.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r, dmg: e.dmg * 0.7, life: 6 });
     const kind = e.ai;
-    const minion = this.stage.id === 'wastes' ? 'slime' : this.stage.waves[1][1][0];
+    // 呼ぶ雑魚はボスのもとのステージの序盤の敵（最終ボス連戦のステージには雑魚の予定表がない）
+    const hs = this.rushHome || this.stage;
+    const minion = hs.id === 'wastes' ? 'slime' : hs.waves[1][1][0];
     if (kind === 'boss1') {
       if (e.atkT <= 0) {
         e.atkT = 2.8;

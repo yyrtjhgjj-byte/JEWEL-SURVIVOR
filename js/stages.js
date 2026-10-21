@@ -328,7 +328,7 @@ export const FINALE_STAGES = CHAPTERS.map((c) => {
   const sts = STAGES.filter((x) => x.chapter === c.no);
   const last = sts[sts.length - 1];
   return {
-    ...last, id: `finale${c.no}`, finale: c.no, name: FINALE_NAMES[c.no][0], en: FINALE_NAMES[c.no][1], hazard: null, keepBgm: false, finalBgm: null, finalBoss: null, waves: [],
+    ...last, id: `finale${c.no}`, finale: c.no, name: FINALE_NAMES[c.no][0], en: FINALE_NAMES[c.no][1], hazard: null, keepBgm: false, finalBgm: null, finalBoss: null,
     events: sts.map((x) => { const b = x.events.filter((e) => e.type === 'boss'); return { ...b[b.length - 1], home: x.id }; }),
   };
 });
