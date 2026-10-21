@@ -43,6 +43,7 @@ export const GEM_LOOK = {
   nephrite: C('cab', 8, 1.61),
   prase: C('cab', 9, 1.54),
   angelite: C('cab', 10, 1.57),
+  pectolite: C('cabOval', 11, 1.6),
   obsidian: { mode: 'facet', cut: 'trillion', kind: 0, ri: 1.49, spin0: 180 },
   coal: { mode: 'facet', cut: 'lump', kind: 1, ri: 1.9 },
   granite: { mode: 'tumble', cut: 'tumble', kind: 0, ri: 1.55 },
@@ -325,6 +326,16 @@ void stone(vec2 q, vec3 n, vec3 r, out vec3 alb, out vec3 emit, out float tr){
     vec3 body = mix(vec3(.04, .26, .08), vec3(.16, .5, .2), m); alb = mix(body, vec3(.05, .12, .06), fl * .7); emit = body * .12; tr = .35;
   } else if (uKind == 9) {
     vec3 body = mix(vec3(.22, .6, .14), vec3(.45, .85, .3), fbm(q * 2., 4, 161.)); alb = body * .6; emit = body * .35 * (.5 + .5 * n.z); tr = .5;
+  } else if (uKind == 11) {
+    // ペクトライト（ラリマー）：空色の地に、白い筋がぼんやりと網の目に広がる。網の目の中は濃い青がまだらに沈む
+    vec2 wq = q + (vec2(fbm(q * 1.3, 3, 191.), fbm(q.yx * 1.3, 3, 193.)) - .5) * .7;
+    vec3 vo = vor(wq * 1.7, 197.);
+    float e = vo.y - vo.x, ww = .07 + .1 * fbm(q * 4., 3, 199.);
+    float web = exp(-e * e / (ww * ww)) * (.55 + .45 * fbm(q * 7., 3, 203.));
+    float mot = fbm(q * 3.2 + vo.z * 7., 4, 211.);
+    vec3 body = mix(vec3(.03, .36, .66), vec3(.24, .68, .9), smoothstep(.28, .72, mot));
+    body = mix(body, vec3(.5, .82, .96), (1. - smoothstep(0., .35, e)) * .55);
+    alb = mix(body, vec3(.94, .98, 1.), clamp(web, 0., 1.) * .9); emit = body * .1; tr = .35;
   } else {
     float m = fbm(q * 2.5, 4, 171.), vein = smoothstep(.9, .97, 1. - abs(fbm(q * 3., 4, 181.) * 2. - 1.));
     vec3 body = mix(vec3(.28, .52, .92), vec3(.5, .72, 1.), m); alb = mix(body, vec3(.95, .97, 1.), vein * .8); emit = body * .1; tr = .3;

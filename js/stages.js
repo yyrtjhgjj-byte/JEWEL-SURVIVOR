@@ -149,7 +149,7 @@ export const STAGES = [
     id: 'deep', no: 6, chapter: 2, name: 'ドキドキ！？深海探索ツアー！', en: 'DEEP SEA TOUR', time: 600,
     desc: '光の届かない海の底へご招待。泡の噴き出す場所に入ると、しばらく速く泳げる。',
     hazard: 'bubbles', hazardText: '泡の噴出口（入ると加速）',
-    hp: 1.4, dmg: 1.45, reward: 6000, bgm: 'deep',
+    hp: 1.4, dmg: 1.45, reward: 6000, bgm: 'deep', unlockChar: 'pectolite',
     pal: { bg: '#02060c', grid: '60,140,220', mark: '90,190,255', dust: '160,220,255', glow: 'rgba(20,90,180,0.28)', accent: '#3fa8ff' },
     tint: null,
     waves: makeWaves({

@@ -14,7 +14,7 @@ export const GEM_CUT = {
   kyanite: 'baguette', tourmaline: 'baguette',
   titanite: 'trillion', obsidian: 'trillion',
   opal: 'cabOval', amber: 'cabOval', angelite: 'cab', turquoise: 'cabOval', coral: 'cab',
-  moonstone: 'cabOval', labradorite: 'cabOval', nephrite: 'cab', prase: 'cab', jasper: 'cabOval', rhodochrosite: 'cab',
+  moonstone: 'cabOval', labradorite: 'cabOval', nephrite: 'cab', prase: 'cab', jasper: 'cabOval', rhodochrosite: 'cab', pectolite: 'cabOval',
   milkyquartz: 'crystal', granite: 'tumble', coal: 'lump',
 };
 export const CUT_NAMES = {

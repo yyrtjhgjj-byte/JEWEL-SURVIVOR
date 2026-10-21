@@ -20,7 +20,7 @@ export const ELEMENTS = {
 // 宝石ごとの属性
 export const GEM_ELEMENT = {
   ruby: 'fire', rhodochrosite: 'fire', coal: 'fire', redberyl: 'fire',
-  aquamarine: 'water', coral: 'water', iolite: 'water',
+  aquamarine: 'water', coral: 'water', iolite: 'water', pectolite: 'water',
   sapphire: 'ice', kyanite: 'ice', milkyquartz: 'ice',
   emerald: 'grass', nephrite: 'grass', prase: 'grass', peridot: 'grass',
   labradorite: 'thunder', tourmaline: 'thunder', amber: 'thunder', citrine: 'thunder',
