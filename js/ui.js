@@ -640,17 +640,21 @@ export function showStageSelect() {
       const T_HP = [300, 1500, 6000, 25000];
       for (const [id, name, desc] of [['dummy', '木人', '動かない・攻撃しない的 1 体。倒すと立ち直る'], ['crowd', '群れ', '動かない雑魚 40 体。倒すと湧き直す']]) {
         const on = tc.target === id;
-        const hp = id === 'dummy' ? (tc.inf ? `HP ∞（ブレイクは STAGE ${tc.stage} 基準）` : `HP ${fmt(Math.round(trainDummyHp(tc.stage)))}（STAGE ${tc.stage} の最終ボスと同じ）`) : `HP ${fmt(tc.crowdHp)}（1 体）`;
+        // HP 無限でブレイクもなしなら、STAGE を選ぶ意味がないので −／＋ を出さない
+        const fixed = id === 'dummy' && tc.inf && tc.noBreak;
+        const hp = id === 'dummy' ? (tc.inf ? (tc.noBreak ? 'HP ∞' : `HP ∞（ブレイクは STAGE ${tc.stage} 基準）`) : `HP ${fmt(Math.round(trainDummyHp(tc.stage)))}（STAGE ${tc.stage} の最終ボスと同じ）`) : `HP ${fmt(tc.crowdHp)}（1 体）`;
         const card = el(`<div class="stage-card train-card ${on ? 'sel' : ''}" style="--sc:#e8c89a;--sg:rgba(232,200,154,0.35)">
           <div class="st-head"><span class="st-no">TARGET</span></div>
           <div class="st-name">${name}</div>
           <div class="st-desc">${desc}</div>
-          ${on ? `<div class="tr-hp"><span>${hp}</span><div class="heat-ctl"><button class="iconbtn" data-h="-1">−</button><button class="iconbtn" data-h="1">＋</button></div></div>` : ''}
-          ${on && id === 'dummy' ? `<div class="tr-hp"><span>HP 無限</span><button class="switch ${tc.inf ? 'on' : ''}" data-inf="1"></button></div>` : ''}
+          ${on ? `<div class="tr-hp"><span>${hp}</span>${fixed ? '' : '<div class="heat-ctl"><button class="iconbtn" data-h="-1">−</button><button class="iconbtn" data-h="1">＋</button></div>'}</div>` : ''}
+          ${on && id === 'dummy' ? `<div class="tr-hp"><span>HP 無限</span><button class="switch ${tc.inf ? 'on' : ''}" data-inf="1"></button></div>
+          <div class="tr-hp"><span>ブレイクなし</span><button class="switch ${tc.noBreak ? 'on' : ''}" data-nobreak="1"></button></div>` : ''}
         </div>`);
         card.onclick = (ev) => {
           const hb = ev.target.closest('[data-h]');
           if (ev.target.closest('[data-inf]')) tc.inf = !tc.inf;
+          else if (ev.target.closest('[data-nobreak]')) tc.noBreak = !tc.noBreak;
           else if (hb) {
             const d = +hb.dataset.h;
             if (id === 'dummy') tc.stage = Math.max(1, Math.min(STAGES.length, tc.stage + d));

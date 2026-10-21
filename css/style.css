@@ -758,13 +758,12 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .tr-ctls .iconbtn { width: 28px; height: 28px; font-size: 15px; border-radius: 8px; }
 .tr-ctls .iconbtn:disabled { filter: brightness(0.35); }
 .rp.on { border-color: var(--gold); box-shadow: 0 0 12px rgba(255,210,74,0.35), inset 0 0 0 1px var(--gold); }
-/* 選んだ武器の進化の相方のチャーム：武器の色で光らせ、右上に武器の印 */
+/* 選んだ武器の進化の相方のチャーム：枠をうっすら武器の色にし、右上に武器の印（選んでいる金の枠より控えめに） */
 .rp { position: relative; }
-.rp.pair { border-color: var(--pc); box-shadow: 0 0 12px color-mix(in srgb, var(--pc) 60%, transparent), inset 0 0 0 1px var(--pc); animation: rpPair 1.6s ease-in-out infinite; }
-.rp.pair.on { border-color: var(--gold); }
+.rp.pair { border-color: color-mix(in srgb, var(--pc) 55%, transparent); box-shadow: 0 0 8px color-mix(in srgb, var(--pc) 30%, transparent); }
+.rp.pair.on { border-color: var(--gold); box-shadow: 0 0 12px rgba(255,210,74,0.35), inset 0 0 0 1px var(--gold); }
 .rp.pair.full { filter: brightness(0.8); }
-.rp .rp-w { position: absolute; top: 3px; right: 3px; width: 16px; height: 16px; }
-@keyframes rpPair { 50% { box-shadow: 0 0 20px color-mix(in srgb, var(--pc) 85%, transparent), inset 0 0 0 1px var(--pc); } }
+.rp .rp-w { position: absolute; top: 3px; right: 3px; width: 15px; height: 15px; }
 .rp.full { filter: brightness(0.5); }
 .heat-ctl { display: flex; align-items: center; gap: 10px; }
 .heat-ctl .iconbtn { width: 36px; height: 36px; font-size: 18px; }
