@@ -595,6 +595,10 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .zitem img { width: 52px; height: 52px; flex: none; }
 .zitem.unk img { filter: grayscale(1) brightness(0.3); }
 .zitem .zname { font-family: var(--font-jp); font-weight: 900; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* 押すとくわしいページが開くカード（右上に › ） */
+.zitem.tap { position: relative; cursor: pointer; }
+.zitem.tap::after { content: '›'; position: absolute; top: 6px; right: 10px; font-size: 20px; line-height: 1; color: var(--muted); }
+.zitem.tap:active { filter: brightness(1.15); }
 .zitem .zname .en { font-size: 10px; color: var(--muted); }
 .zitem .ztext { font-family: var(--font-jp); font-size: 12px; line-height: 1.6; color: #c9c6dc; }
 .zitem .zevo { font-family: var(--font-jp); font-size: 11.5px; color: #d9b8ff; margin-top: 3px; }
@@ -1627,3 +1631,27 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .gv-sl input::-moz-range-thumb { width: 22px; height: 22px; border: none; border-radius: 50%; background: #fff; box-shadow: 0 1px 5px rgba(0,0,0,0.55); }
 .gv-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .gv-btns .btn.on { border-color: color-mix(in srgb, var(--fill) 75%, transparent); box-shadow: inset 0 0 14px color-mix(in srgb, var(--fill) 32%, transparent); }
+
+/* ------------------------------------------------------------------ 武器・チャームのくわしいページ（gem-spec.js） */
+.screen.spec-page { background: var(--bg); }
+.sp-body { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 10px; }
+.sp-body > * { flex-shrink: 0; }
+.sp-head { display: flex; gap: 12px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.sp-head img { width: 72px; height: 72px; flex: none; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--c) 45%, transparent)); }
+.sp-name { font-family: var(--font-jp); font-weight: 900; font-size: 17px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.sp-name .en { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; }
+.sp-lead { font-family: var(--font-jp); font-size: 12.5px; line-height: 1.6; color: #d8d5ea; margin: 6px 0 0; }
+.sp-sec { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.sp-sec h3 { margin: 0 0 6px; font-family: var(--font-jp); font-size: 13px; font-weight: 900; color: var(--c); }
+.sp-cond { font-family: var(--font-jp); font-size: 12px; color: var(--muted); margin: 0 0 4px; line-height: 1.6; }
+.sp-note { font-family: var(--font-jp); font-size: 10.5px; color: var(--muted); margin: 6px 0 0; }
+.sp-list { margin: 0; padding-left: 1.2em; font-family: var(--font-jp); font-size: 12.5px; line-height: 1.65; color: #d8d5ea; }
+.sp-list li + li { margin-top: 2px; }
+.sp-tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.sp-tbl { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.sp-tbl th, .sp-tbl td { padding: 4px 6px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+.sp-tbl tr:first-child th { font-family: var(--font-jp); font-size: 11px; color: var(--muted); font-weight: 700; }
+.sp-tbl th:first-child { text-align: left; color: var(--muted); font-weight: 700; }
+.sp-tbl.lt th, .sp-tbl.lt td { text-align: left; }
+.sp-tbl.lt td { font-family: var(--font-jp); white-space: normal; width: 100%; }
+.sp-tbl tr:last-child th, .sp-tbl tr:last-child td { border-bottom: none; }
