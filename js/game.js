@@ -2454,6 +2454,7 @@ export class Game {
       else if (w.id === 'moonstone') LOGIC.moonstone.draw(this, w, w.s, ctx);
       else if (w.id === 'obsidian') LOGIC.obsidian.draw(this, w, w.s, ctx);
       else if (w.id === 'pectolite') LOGIC.pectolite.draw(this, w, w.s, ctx);
+      else if (w.id === 'amethyst') LOGIC.amethyst.draw(this, w, w.s, ctx);
     }
 
     // たま
@@ -2588,6 +2589,8 @@ export class Game {
         ctx.fillRect(e.x - w / 2, e.y - e.r - 12, w * Math.max(0, e.hp / e.maxHp), 4);
       }
     }
+    // アメジストが敵に育てた結晶（敵の絵に隠れないよう、敵の上に描く）
+    for (const w of this.weapons) if (w.id === 'amethyst') LOGIC.amethyst.drawMarks(this, w, w.s, ctx);
 
     // プレイヤー（いちばん うえ）
     if (this.state !== 'dying' && this.state !== 'over') {

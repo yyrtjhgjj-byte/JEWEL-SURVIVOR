@@ -5,7 +5,7 @@
 // PAIR=1：進化の相方のチャームを最大 Lv で持たせる（それ以外の強化はなし）。REPS=3：同じ条件を 3 回測って平均と振れ幅を出す
 const { chromium } = require('playwright');
 const BASE = process.env.BASE || 'http://localhost:8123';
-const IDS = (process.argv[2] || 'ruby,sapphire,garnet,labradorite,opal,amber,angelite,diamond,emerald,rhodochrosite,kyanite,aquamarine,alexandrite,tourmaline,moonstone,obsidian,pectolite').split(',');
+const IDS = (process.argv[2] || 'ruby,sapphire,garnet,labradorite,opal,amber,angelite,diamond,emerald,rhodochrosite,kyanite,aquamarine,alexandrite,tourmaline,moonstone,obsidian,pectolite,amethyst').split(',');
 const LVS = (process.argv[3] || '1,4,8,evo').split(',');
 const SEC = +(process.env.SEC || 20);
 const PAIR = process.env.PAIR === '1';

@@ -7,7 +7,7 @@ import { TAU, mix, rgba } from './util.js';
 // 宝石ごとのカット
 export const GEM_CUT = {
   diamond: 'brilliant', topaz: 'brilliant',
-  sapphire: 'oval', ruby: 'oval',
+  sapphire: 'oval', ruby: 'oval', amethyst: 'oval',
   garnet: 'cushion', alexandrite: 'cushion', redberyl: 'cushion',
   emerald: 'step', aquamarine: 'step', citrine: 'step', peridot: 'step',
   iolite: 'pear',

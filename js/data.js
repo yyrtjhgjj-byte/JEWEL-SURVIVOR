@@ -117,6 +117,8 @@ export const GEMS = {
     lore: '溶岩が一瞬で凍りついた黒曜の刃。深い闇の中でも、決して折れない。' },
   pectolite: { jp: 'ペクトライト', en: 'PECTOLITE', word: '平和', kana: 'へいわ', color: '#4cc3e8', light: '#d6f6ff', dark: '#13698f', cut: 'cabOval',
     lore: '平和の曹灰針石。カリブの海の色をした石からイルカが跳ね、癒しのしずくを散らす。' },
+  amethyst: { jp: 'アメジスト', en: 'AMETHYST', word: '誠実', kana: 'せいじつ', color: '#9b5de5', light: '#e4ccff', dark: '#3f1470', cut: 'oval',
+    lore: '誠実の紫水晶。一度狙った敵に結晶を撃ち込み続け、育ちきったところで砕く。' },
 };
 
 // ---------------------------------------------------------------------
@@ -416,6 +418,23 @@ export const WEAPONS = {
     ],
     evo: { mul: 0.65, with: 'redberyl', name: 'パシフィック・ポッド', desc: 'イルカの群れが次々と跳ね、着水の波で周りの敵を巻き込む。しずくが出やすく、回復量もアップ' },
   },
+  amethyst: {
+    gem: 'amethyst', name: 'フェイスフル・ジオード',
+    dmgMul: 1.6, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: 0.4, // 低レベル時の補正（Lv1 で ×1.4、Lv8 で ×1）
+    desc: 'ボスやHPの高い敵を狙い続け、紫水晶の結晶を撃ち込む。結晶が5つ育つと砕けて大ダメージ',
+    base: { dmg: 60, cd: 1.0, amount: 1, speed: 1, area: 1 },
+    levels: [
+      { dmg: 20, t: 'ダメージ +20' },
+      { amount: 1, t: '結晶 +1' },
+      { cd: -0.15, t: '連射速度アップ' },
+      { dmg: 30, t: 'ダメージ +30' },
+      { area: 0.2, t: '砕けたときの範囲アップ' },
+      { dmg: 40, cd: -0.15, t: 'ダメージ +40 / 連射速度アップ' },
+      { amount: 1, t: '結晶 +1' },
+    ],
+    evo: { mul: 1.05, with: 'jasper', name: 'ヴァイオレット・オース', desc: '結晶が4つで砕け、砕けた欠片が周りの敵へ飛び散る' },
+  },
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
 export const WEAPON_MAX = 8;
@@ -497,6 +516,7 @@ export const CHARACTERS = {
   moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +7% / 回収範囲 +20%', stats: { area: 0.07, magnet: 0.2 }, unlock: 'STAGE 4 の最終ボスを倒す' },
   obsidian: { weapon: 'obsidian', perk: '攻撃力 +12% / アーマー +1', stats: { might: 0.12, armor: 1 }, unlock: 'STAGE 5 の最終ボスを倒す' },
   pectolite: { weapon: 'pectolite', perk: '回収範囲 +25% / 最大HP +10', stats: { magnet: 0.25, maxHp: 10 }, unlock: 'STAGE 6 の最終ボスを倒す' },
+  amethyst: { weapon: 'amethyst', perk: '攻撃力 +10% / クリティカル威力 +25%', stats: { might: 0.1, critDmg: 0.25 }, unlock: '経営で鉱区を2つ持つ' },
 };
 export const CHAR_IDS = Object.keys(CHARACTERS);
 
@@ -783,6 +803,7 @@ export const ACHIEVEMENTS = [
   { id: 'backroomMax', meta: true, name: 'マスターワークス・コンプリート', t: '上位工房の強化をすべて最大にする', coins: 10000, check: (r, s) => UPPER_SHOP.every((it) => ((s.upgrades2 || {})[it.id] || 0) >= it.max) },
   // 経営
   { id: 'biz1', meta: true, name: 'ファースト・クレーム', t: '経営で鉱区を手に入れる', coins: 300, check: (r, s) => s.biz && Object.keys(s.biz.mines).length >= 1 },
+  { id: 'biz2mine', meta: true, name: 'ツイン・クレーム', t: '経営で鉱区を2つ持つ', coins: 500, unlock: 'amethyst', check: (r, s) => s.biz && Object.keys(s.biz.mines).length >= 2 },
   { id: 'bizFactory', meta: true, name: 'カッティング・ハウス', t: '経営で工場を手に入れる', coins: 500, check: (r, s) => s.biz && Object.keys(s.biz.factories).length >= 1 },
   { id: 'bizShop', meta: true, name: 'ブティック・オープン', t: '経営で直営店を出す', coins: 1000, check: (r, s) => s.biz && Object.keys(s.biz.shops || {}).length >= 1 },
   { id: 'bizBoss', meta: true, name: 'マネジメント', t: '経営で人を雇う', coins: 500, check: (r, s) => s.biz && ['mines', 'factories', 'shops'].some((t) => Object.values(s.biz[t] || {}).some((o) => o.boss)) },
