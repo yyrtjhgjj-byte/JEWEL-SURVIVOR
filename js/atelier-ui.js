@@ -584,11 +584,21 @@ const r100 = (v) => Math.round(v / 100) * 100;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const ROUGH_ORDER = ['mystic', 'large', 'rough', 'shard'];
 
+// 詰め合わせの絵に積む 3 つの原石：入っている種類を 1 つずつ（良い順）、残りは数の多い種類で埋める
+function bundleStones(rough) {
+  const ts = ROUGH_ORDER.filter((t) => rough[t]);
+  const out = ts.slice(0, 3);
+  const most = [...ts].sort((a, b) => rough[b] - rough[a])[0];
+  while (out.length < 3) out.push(most);
+  return out;
+}
 // 品の絵と名前（宝石：品質とカラット ／ 詰め合わせ：原石の山と中身）
 function lotArt(lot, size) {
   if (lot.kind === 'bundle') {
-    const ts = ROUGH_ORDER.filter((t) => lot.rough[t]);
-    return `<div class="lot-art bundle" style="--c:${ROUGH[ts[0]].color}">${ts.map((t, i) => `<img src="${roughIcon(t, ROUGH[t].color, size)}" style="--i:${i}">`).join('')}</div>`;
+    // 3 つの原石を三角に積む（奥の左右 2 つ → 手前の真ん中に一番良い石）
+    const [front, ...back] = bundleStones(lot.rough);
+    const img = (t, k) => `<img class="b${k}" src="${roughIcon(t, ROUGH[t].color, size)}" alt="">`;
+    return `<div class="lot-art bundle" style="--c:${ROUGH[front].color}">${img(back[0], 1)}${img(back[1], 2)}${img(front, 0)}</div>`;
   }
   return `<div class="lot-art" style="--c:${gemColor(lot.gem)}"><img src="${gemIcon(lot.gem, size)}"></div>`;
 }

@@ -1153,7 +1153,10 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .lot-art { position: relative; width: 64px; height: 64px; flex: none; display: grid; place-items: center; }
 .lot-art::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--c) 45%, transparent), transparent 68%); }
 .lot-art img, .lot-art canvas { position: relative; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6)) drop-shadow(0 0 8px color-mix(in srgb, var(--c) 70%, transparent)); }
-.lot-art.bundle img { position: absolute; width: 62%; height: 62%; left: calc(4% + var(--i) * 18%); top: calc(30% - var(--i) * 10%); }
+.lot-art.bundle img { position: absolute; width: 60%; height: 60%; }
+.lot-art.bundle .b1 { left: 2%; top: 12%; }
+.lot-art.bundle .b2 { left: 38%; top: 8%; }
+.lot-art.bundle .b0 { left: 17%; top: 34%; width: 66%; height: 66%; }
 /* ライバルの席 */
 .seats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .seat { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px 7px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--rc) 35%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--rc) 14%, transparent), rgba(10,9,16,0.7)); min-width: 0; }
