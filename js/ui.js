@@ -1078,7 +1078,7 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
         <div><div class="zname">${g.jp}<span class="en">${g.en}</span></div>${wordTag(p.gem)}
           <div class="ztext">${seen ? `${p.t}（最大Lv${p.max}）` : '未発見'}</div>
           <div class="ztext">${seen ? g.lore || '' : ''}</div>
-          ${evoFor.length ? `<div class="zevo">${evoFor.join('・')} の進化素材</div>` : ''}
+          ${evoFor.length ? `<div class="zevo">進化素材：${evoFor.map((n) => `<span class="nw">${n}</span>`).join(' ／ ')}</div>` : ''}
         </div></div>`));
     }
   } else if (tab === 'enemies') {
