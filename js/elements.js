@@ -22,7 +22,7 @@ export const GEM_ELEMENT = {
   ruby: 'fire', rhodochrosite: 'fire', coal: 'fire', redberyl: 'fire',
   aquamarine: 'water', coral: 'water', iolite: 'water', pectolite: 'water',
   sapphire: 'ice', kyanite: 'ice', milkyquartz: 'ice',
-  emerald: 'grass', nephrite: 'grass', prase: 'grass', peridot: 'grass',
+  emerald: 'grass', nephrite: 'grass', prase: 'grass', peridot: 'grass', malachite: 'grass',
   labradorite: 'thunder', tourmaline: 'thunder', amber: 'thunder', citrine: 'thunder',
   opal: 'light', angelite: 'light', diamond: 'light', topaz: 'light', titanite: 'light',
   moonstone: 'dark', garnet: 'dark', alexandrite: 'dark', obsidian: 'dark',

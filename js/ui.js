@@ -1408,6 +1408,7 @@ function trainPanel(g) {
   body.querySelectorAll('[data-f]').forEach((x) => { const t = v[x.dataset.f]; if (t !== undefined && x.textContent !== t) x.textContent = t; });
 }
 
+const LIFE_HEART = '<svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 20.5C5.2 15.2 1.2 11.6 1.2 7A5.3 5.3 0 0 1 12 4.6 5.3 5.3 0 0 1 22.8 7c0 4.6-4 8.2-10.8 13.5Z"/></svg>';
 export function hud(g) {
   if (g.train) trainPanel(g);
   H.xp.style.transform = `scaleX(${Math.min(1, g.xp / g.xpNext)})`;
@@ -1420,13 +1421,16 @@ export function hud(g) {
     if (lastCoins >= 0) { H.coinstat.classList.remove('bump'); void H.coinstat.offsetWidth; H.coinstat.classList.add('bump'); }
     lastCoins = g.coins;
   }
-  const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '') + (w.lbN || 0)).join() + '|' + g.passives.map((p) => p.id + p.level + (p.lbN || 0)).join() + '|' + g.arts.join();
+  const lives = g.train ? 0 : g.revives;
+  const key = g.weapons.map((w) => w.id + w.level + (w.evolved ? 'e' : '') + (w.lbN || 0)).join() + '|' + g.passives.map((p) => p.id + p.level + (p.lbN || 0)).join() + '|' + lives + '|' + g.arts.join();
   if (key !== lastSlots) {
     lastSlots = key;
     const empty = (n, max) => '<div class="slotico empty"></div>'.repeat(Math.max(0, max - n));
     H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}${w.lbN ? `<i>+${w.lbN}</i>` : ''}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
       '<i style="grid-column:1/-1;height:0"></i>' +
       g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}${p.lbN ? `<i>+${p.lbN}</i>` : ''}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
+      // 残りの復活の回数（チャームの下にハートで並べる）
+      (lives > 0 ? `<div class="lives">${LIFE_HEART.repeat(lives)}</div>` : '') +
       (g.arts.length ? '<i style="grid-column:1/-1;height:0"></i>' + g.arts.map((id) => `<div class="slotico art"><img src="${artifactIcon(id, 48)}"></div>`).join('') : '');
   }
   const f = g.feverT > 0 ? g.feverT / (g.feverDur || 10) : g.feverGauge / g.feverNeed;

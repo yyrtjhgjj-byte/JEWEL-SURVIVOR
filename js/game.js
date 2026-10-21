@@ -341,6 +341,8 @@ export class Game {
   addPassive(id) {
     const p = { id, level: 1 };
     this.passives.push(p);
+    // マラカイト：復活の残り回数を増やす
+    if (PASSIVES[id].revive) this.revives += PASSIVES[id].revive;
     save.seen.passives[id] = true;
     this.computeStats();
     return p;

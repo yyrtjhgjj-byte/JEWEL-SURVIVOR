@@ -119,6 +119,8 @@ export const GEMS = {
     lore: '平和の曹灰針石。カリブの海の色をした石からイルカが跳ね、癒しのしずくを散らす。' },
   amethyst: { jp: 'アメジスト', en: 'AMETHYST', word: '誠実', kana: 'せいじつ', color: '#9b5de5', light: '#e4ccff', dark: '#3f1470', cut: 'oval',
     lore: '誠実の紫水晶。一度狙った敵に結晶を撃ち込み続け、育ちきったところで砕く。' },
+  malachite: { jp: 'マラカイト', en: 'MALACHITE', word: '身代わり', kana: 'みがわり', color: '#14a35c', light: '#8ff0bd', dark: '#04402a', cut: 'sphere',
+    lore: '身代わりの孔雀石。主が倒れたとき、一度だけ代わりに砕けて命をつなぐ。' },
 };
 
 // ---------------------------------------------------------------------
@@ -470,13 +472,15 @@ export const PASSIVES = {
   turquoise: { gem: 'turquoise', name: 'ターコイズ', max: 5, per: { guard: 0.08 }, t: '被ダメージ -8%' },
   citrine: { gem: 'citrine', name: 'シトリン', max: 5, per: { coinDrop: 0.02 }, t: 'コインのドロップ率 +2%' },
   peridot: { gem: 'peridot', name: 'ペリドット', max: 5, per: { moveSpeed: 0.08, speed: 0.08, duration: 0.08 }, t: '移動速度・弾速・持続 +8%' },
+  // 復活はラン中の残り回数（game.js の revives）に、手に入れたときに足す（computeStats では数えない）。リミットブレイクと進化の相方はなし
+  malachite: { gem: 'malachite', name: 'マラカイト', max: 1, per: {}, revive: 1, noLb: true, t: '復活 +1' },
 };
 export const PASSIVE_IDS = Object.keys(PASSIVES);
 // チャームのリミットブレイク（上位工房）：最大レベルのチャームに、1 レベル分の半分の効果を重ねる（1 つのチャームに CHARM_LB_MAX 回まで）。
 // ネフライト（弾数 +1）は半分にできないので、1 回ごとに弾数 +1 をそのまま重ね、その代わり 3 回まで
 // （素のレベル上限がほかのチャームの 5 に対して 1 なのと同じ考え。ユーザーの指定）
 export const CHARM_LB_MAX = 5;
-export const charmLbMax = (id) => (id === 'nephrite' ? 3 : CHARM_LB_MAX);
+export const charmLbMax = (id) => (id === 'nephrite' ? 3 : PASSIVES[id] && PASSIVES[id].noLb ? 0 : CHARM_LB_MAX);
 export function charmLbPer(id) {
   if (id === 'nephrite') return { amount: 1 };
   return Object.fromEntries(Object.entries(PASSIVES[id].per).map(([k, v]) => [k, v / 2]));
