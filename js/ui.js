@@ -699,7 +699,7 @@ export function showStageSelect() {
         const fbest = (save.bossRush || {})[fin.id] || 0;
         const fcard = el(`<button class="stage-card rush-card finale ${fok ? '' : 'locked'} ${fin.id === rsel ? 'sel' : ''}">
           <div class="st-head"><span class="st-no">FINALE</span>${fbest ? `<span class="st-clear">最高 ${fbest} 体</span>` : ''}</div>
-          <div class="st-name">${fin.name}</div>
+          <div class="st-name">${fok ? fin.name : '？？？'}</div>
           ${fok ? `<div class="rush-boss">${fin.events.map((e) => e.enemy).map((id) => `<img src="${enemyIcon(ENEMIES[id].sprite || id, Math.min(ENEMIES[id].r, 40), ENEMIES[id].tint)}">`).join('')}</div>` : `<div class="st-desc">🔒 ${c.name}のステージをすべてクリアで解放</div>`}
         </button>`);
         if (fok) fcard.onclick = () => { rsel = fin.id; save.rushStage = fin.id; audio.cardFlip(fin.no); markSel(fcard); renderRush(); };
@@ -1093,7 +1093,7 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
       const p = PASSIVES[id];
       const g = GEMS[p.gem];
       const seen = save.seen.passives[id];
-      const evoFor = WEAPON_IDS.filter((w) => WEAPONS[w].evo.with === id).map((w) => WEAPONS[w].name);
+      const evoFor = WEAPON_IDS.filter((w) => WEAPONS[w].evo.with === id).map((w) => (save.seen.weapons[w] || save.unlocked[w] ? WEAPONS[w].name : '???'));
       const card = el(`<div class="zitem gemcard ${seen ? 'tap' : 'unk'}" style="--ec:${elemColor(p.gem)}">
         <div class="gem-ped"><img src="${gemIcon(p.gem, 96)}"></div>
         <div><div class="zname">${g.jp}<span class="en">${g.en}</span></div>${wordTag(p.gem)}
@@ -1278,7 +1278,7 @@ function diagRow(c) {
   const pad = (n) => String(n).padStart(2, '0');
   const when = `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const r = c.run;
-  const where = r ? `${STAGE_BY_ID[r.stage] ? 'STAGE ' + STAGE_BY_ID[r.stage].no : r.stage} ${fmtTime(r.time)}・敵 ${r.enemies}` : (c.screen || '-');
+  const where = r ? `${STAGE_BY_ID[r.stage] ? stageTag(STAGE_BY_ID[r.stage]) : r.stage} ${fmtTime(r.time)}・敵 ${r.enemies}` : (c.screen || '-');
   return `<div class="dg-row"><b>${when}</b><span>${where}</span><small>起動から ${Math.round(c.up / 60)} 分</small></div>`;
 }
 

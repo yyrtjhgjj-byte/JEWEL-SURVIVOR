@@ -326,6 +326,9 @@ const COLS = [
   ['pierce', '貫通', (v) => String(v)],
   ['duration', '持続', (v) => `${+v.toFixed(1)}秒`],
   ['speed', '速さ', (v) => `×${+v.toFixed(2)}`],
+  ['life', '射程', (v) => `${+v.toFixed(1)}秒`],
+  ['bounce', '跳弾', (v) => String(v)],
+  ['charm', '魅了', (v) => `${Math.round(v * 100)}%`],
 ];
 
 // Lv ごとの素の性能（weaponStats から強化を抜いたもの）
@@ -364,7 +367,7 @@ function weaponBody(id) {
     (['dmg', 'cd', 'amount'].includes(k) || new Set(lvs.map((s) => s[k] || 0)).size > 1));
   const rows = lvs.map((s, i) => [`Lv${i + 1}`, ...keys.map(([k, , f]) => f(k === 'dmg' ? baseDmg(def, s, i + 1, false) : s[k] || 0))]);
   const table = `<div class="sp-tbl-wrap"><table class="sp-tbl"><tr><th></th>${keys.map(([, h]) => `<th>${h}</th>`).join('')}</tr>${rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td>${c}</td>` : `<th>${c}</th>`)).join('')}</tr>`).join('')}</table></div>
-    <p class="sp-note">ダメージは 1 回あたりの素の値（攻撃力などの強化とクリティカルを入れない）。低い Lv ほど補正で高めになる</p>`;
+    <p class="sp-note">ダメージは 1 回あたりの素の値（攻撃力などの強化とクリティカルを入れない）。${def.lowBoost > 0 ? `Lv${WEAPON_MAX} より前は補正で高めになる` : def.lowBoost < 0 ? `Lv${WEAPON_MAX} より前は補正で低めになる` : ''}</p>`;
   const spec = WEAPON_SPEC[id] || {};
   const evoDmg = Math.round(baseDmg(def, lvs[WEAPON_MAX - 1], WEAPON_MAX, true));
   const evoBody = evoSeen
@@ -399,7 +402,7 @@ function charmBody(id) {
   return sec('レベルごとの効果', `<div class="sp-tbl-wrap"><table class="sp-tbl lt"><tr><th></th><th>効果（合計）</th></tr>${rows.join('')}</table></div>`) +
     (CHARM_SPEC[id] ? sec('特別な決まり', list(CHARM_SPEC[id])) : '') +
     sec('リミットブレイク', lbN ? list([`上位工房で解放。最大 Lv のとき 1 回ごとに ${charmLbText(id)}（${lbN} 回まで）`]) : '<p class="sp-cond">なし</p>') +
-    sec('進化素材', evoFor.length ? list(evoFor.map((w) => `${GEMS[WEAPONS[w].gem].jp}の「${WEAPONS[w].name}」`)) : '<p class="sp-cond">なし</p>') +
+    sec('進化素材', evoFor.length ? list(evoFor.map((w) => `${GEMS[WEAPONS[w].gem].jp}の「${save.seen.weapons[w] || save.unlocked[w] ? WEAPONS[w].name : '???'}」`)) : '<p class="sp-cond">なし</p>') +
     elementSec(p.gem) +
     masterySec(p.gem);
 }

@@ -549,7 +549,7 @@ export class Game {
     let s = 1 + 0.35 * m + 0.06 * m * m; // もとの 10 分で 10.5 倍
     if (pt > 600) s *= 1 + (pt - 600) / 60 * 0.1; // もとの 10 分以降（虚空聖堂）
     if (this.time > this.stageTime && !this.rush) s *= 1 + (this.time - this.stageTime) / 60 * 0.15; // エンドレス
-    return s * this.stage.hp * this.heatM.hp;
+    return s * (this.rushHome || this.stage).hp * this.heatM.hp;
   }
 
   director(dt) {
@@ -809,7 +809,8 @@ export class Game {
   rushRough(e, lapBonus) {
     const lap = Math.floor((this.rushKills - 1) / this.rushOrder.length);
     const h = Math.min(10, lap * 3);
-    const t = lapBonus ? bossDrop(true, h) : bossDrop(e.type === this.stage.finalBoss, h);
+    // 最終ボス連戦は、倒したボスのもとのステージの最終ボスかで決める（次のボスが出るまで rushHome は倒したボスのまま）
+    const t = lapBonus ? bossDrop(true, h) : bossDrop(e.type === (this.rushHome || this.stage).finalBoss, h);
     this.roughGot[upgradeTier(t, this.stage.no, h, this.stats.roughUp)]++;
   }
   // BOSS モードの強さの倍率（1 周するたびに 2 倍。HP と攻撃力に掛ける）
@@ -2030,7 +2031,8 @@ export class Game {
     if (!w.evolved && !free) {
       const partner = def.evo.with;
       if (this.hasPassive(partner)) return null; // 進化できる
-      if (this.passives.length < MAX_CHARMS && !this.banished.has(partner)) return null; // まだ進化用のチャームを取れる
+      // まだ進化用のチャームを取れる（BOSS モードは新しいチャームが出ないので、空き枠があっても取れない）
+      if (!this.rush && this.passives.length < MAX_CHARMS && !this.banished.has(partner)) return null;
     }
     const lb = w.lb || {};
     const has = (n) => [].concat(n).some((k) => def.base[k] !== undefined);
