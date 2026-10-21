@@ -199,7 +199,7 @@
 - オークション（auction.js・atelier-ui.js）：ランを終えるたびに新しい開催（refreshLot）。1 回の開催は 3 点（宝石 2・原石の詰め合わせ 1）を順に競り、品ごとに参加か見送りを選ぶ。ライバル 3 人は開催ごとの予算（`rivals[id].left`。落札で減り、あとの品に響く）と品ごとの欲しがり具合（`lot.want`）を持ち、どちらも画面に出す。参加しない・降りた品は settleWithoutYou でライバルどうしの結果を決める。入札後にアプリが落ちた品（`lot.joined`）は、次に開いたとき（currentSession）降りた扱いで先へ進める。セーブの形は `{ v: 2, lots, cur, rivals }`（`v` が違えば作り直す）。裏オークション（`save.auction2`、`AUCTION_KINDS.black`）は別枠の開催で、品質・カラットの高い宝石と秘石の多い詰め合わせが出る。ライバルの名前は裏の世界の住人（`BLACK_RIVALS`）。詰め合わせの絵は中身にかかわらず原石を 3 つ三角に積む（atelier-ui.js の bundleStones。入っている種類を良い順に 1 つずつ、残りは数の多い種類）。
 - 競りの会場と落札の画面は `isolation: isolate` で重なりを閉じている（中の z-index が後から重ねる画面の上に描かれるため）。
 - ジュークボックス（jukebox.js）：ステージの曲はそのステージを解放すると、ボス戦などの曲は一度流れると聴ける（audio.playBgm が `save.seen.bgm` に記録）。未解放の曲はステージ名を出さない。BGM を足したら `trackList()` にも足す。
-- ユーザーランク（rank.js）、ログインボーナス（ui.js の `LOGIN_REWARDS`。受け取った日数の累計 `save.login.days` で 7 日周期）、実績（data.js。ラン中の記録で判定するものと、`meta` でセーブから判定するもの）。`ACHIEVEMENTS` の並びがそのまま実績画面の順なので、足すときは同じ系統の見出しの中に置く（id は変えない。`endless20`/`endless40` の中身は 10 分／20 分で、id の数字と合っていない）。
+- ユーザーランク（rank.js）、ログインボーナス（ui.js の `LOGIN_REWARDS`。受け取った日数の累計 `save.login.days` で 7 日周期）、実績（data.js。ラン中の記録で判定するものと、`meta` でセーブから判定するもの。`meta` は起動時・ランの精算・工房／採掘／経営の操作のあとに判定する）。`ACHIEVEMENTS` の並びがそのまま実績画面の順なので、足すときは同じ系統の見出しの中に置く（id は変えない。`endless20`/`endless40` の中身は 10 分／20 分で、id の数字と合っていない）。
 
 ### 経営（コード上は biz）
 
@@ -287,7 +287,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v151`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v152`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh

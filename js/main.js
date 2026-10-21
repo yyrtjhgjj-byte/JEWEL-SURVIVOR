@@ -489,6 +489,8 @@ function migrateSave() {
 const upperRefund = migrateSave();
 
 UI.initUI({ startGame, toTitle, toStageSelect, migrateSave, checkMetaAchievements: () => checkAchievements(null, true) });
+// セーブから判定する実績は、起動したときにも見る（条件をあとから足した実績も、満たしていればここで取れる）
+if (!DEBUG.autostart) setTimeout(() => checkAchievements(null, true), 1500);
 
 // 動作の記録（diag.js）：画面に出ている間に落ちたら、次の起動でこの様子が記録に残る
 // audioRate は直前の記録からの、1 秒あたりに作った音声ノードの数（audioNodes は起動してからの合計）
