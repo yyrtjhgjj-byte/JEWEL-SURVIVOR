@@ -115,6 +115,8 @@ export const GEMS = {
   // 敵のスプライトにも使う（color は暗いので、自機の光や画面の縁取りは glow を使う）
   obsidian: { jp: 'オブシディアン', en: 'OBSIDIAN', word: '不屈', kana: 'ふくつ', color: '#3a2350', light: '#9b6fd0', dark: '#0d0414', glow: '#a77be0', cut: 'round',
     lore: '溶岩が一瞬で凍りついた黒曜の刃。深い闇の中でも、決して折れない。' },
+  pectolite: { jp: 'ペクトライト', en: 'PECTOLITE', word: '平和', kana: 'へいわ', color: '#4cc3e8', light: '#d6f6ff', dark: '#13698f', cut: 'cabOval',
+    lore: '平和の曹灰針石。カリブの海の色をした石からイルカが跳ね、癒しのしずくを散らす。' },
 };
 
 // ---------------------------------------------------------------------
@@ -397,6 +399,23 @@ export const WEAPONS = {
     ],
     evo: { mul: 1.4, with: 'granite', name: 'アンブレイカブル・エッジ', desc: '全周を薙ぎ払い、斬った跡に闇の裂け目を残す' },
   },
+  pectolite: {
+    gem: 'pectolite', name: 'ピースフル・ドルフィン',
+    dmgMul: 1.7, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
+    lowBoost: 0.5, // 低レベル時の補正（Lv1 で ×1.5、Lv8 で ×1）
+    desc: 'イルカが近くの敵へ跳びかかる。当たった敵から癒しのしずくが飛び散り、拾うとHP回復',
+    base: { dmg: 70, cd: 1.6, amount: 1, speed: 1, area: 1 },
+    levels: [
+      { dmg: 25, t: 'ダメージ +25' },
+      { amount: 1, t: 'イルカ +1' },
+      { area: 0.15, cd: -0.15, t: '範囲アップ / ジャンプの間隔短縮' },
+      { dmg: 35, t: 'ダメージ +35' },
+      { amount: 1, t: 'イルカ +1' },
+      { dmg: 45, cd: -0.15, t: 'ダメージ +45 / ジャンプの間隔短縮' },
+      { dmg: 50, area: 0.15, t: 'ダメージ +50 / 範囲アップ' },
+    ],
+    evo: { mul: 0.65, with: 'redberyl', name: 'パシフィック・ポッド', desc: 'イルカの群れが次々と跳ね、着水の波で周りの敵を巻き込む。しずくが出やすく、回復量もアップ' },
+  },
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
 export const WEAPON_MAX = 8;
@@ -477,6 +496,7 @@ export const CHARACTERS = {
   alexandrite: { weapon: 'alexandrite', perk: '経験値 +15%', stats: { growth: 0.15 }, unlock: 'STAGE 3 の最終ボスを倒す' },
   moonstone: { weapon: 'moonstone', perk: '攻撃範囲 +7% / 回収範囲 +20%', stats: { area: 0.07, magnet: 0.2 }, unlock: 'STAGE 4 の最終ボスを倒す' },
   obsidian: { weapon: 'obsidian', perk: '攻撃力 +12% / アーマー +1', stats: { might: 0.12, armor: 1 }, unlock: 'STAGE 5 の最終ボスを倒す' },
+  pectolite: { weapon: 'pectolite', perk: '回収範囲 +25% / 最大HP +10', stats: { magnet: 0.25, maxHp: 10 }, unlock: 'STAGE 6 の最終ボスを倒す' },
 };
 export const CHAR_IDS = Object.keys(CHARACTERS);
 

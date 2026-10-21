@@ -3,7 +3,7 @@
 // =====================================================================
 import { WEAPONS, AREA_CAP } from './data.js';
 import { TAU, rand, randi, chance, ease } from './util.js';
-import { gemSprite, starSprite, softSprite, itemSprite, moonSprite } from './render.js';
+import { gemSprite, starSprite, softSprite, itemSprite, moonSprite, dolphinSprite } from './render.js';
 import { audio } from './audio.js';
 
 export function weaponStats(g, w) {
@@ -839,6 +839,132 @@ LOGIC.obsidian = {
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
+  },
+};
+
+// ------------------------------------------------------------- ペクトライト
+// イルカは自機のまわりを泳ぎ、間隔ごとに近くの敵へ跳びかかる（跳ぶ道筋の敵に当たる）。当たった敵からしずくが飛び散り、拾うと回復
+// 進化後はイルカが 2 頭増え、跳ぶ間隔が縮み、着水の波で周りの敵にも当たる
+const DEW_CAP = 24;
+LOGIC.pectolite = {
+  update(g, w, s, dt) {
+    runBurst(w, dt);
+    const evo = w.evolved;
+    const p = g.player;
+    const n = s.amount + (evo ? 2 : 0);
+    const dol = w.dol || (w.dol = []);
+    while (dol.length < n) dol.push({ x: p.x, y: p.y, vx: 0, vy: 0, h: 0, dir: 0, leap: null });
+    if (dol.length > n) dol.length = n;
+    w.ang = (w.ang || 0) + dt * 1.6;
+    w.dewT = (w.dewT || 0) - dt;
+    const R = 58 * s.area, hitR = 15 * s.area;
+    for (let k = 0; k < n; k++) {
+      const d = dol[k], L = d.leap;
+      if (L) {
+        L.u = Math.min(1, L.u + dt / L.T);
+        const ox = d.x, oy = d.y;
+        d.x = L.sx + (L.ex - L.sx) * L.u;
+        d.y = L.sy + (L.ey - L.sy) * L.u;
+        d.h = Math.sin(Math.PI * L.u) * L.H;
+        // 跳ぶ道筋の敵に当たる（1 回のジャンプで同じ敵には 1 度だけ）
+        g.grid.query(d.x, d.y, hitR + 40, Q);
+        for (const e of Q) {
+          if (!e.alive || L.hit.includes(e)) continue;
+          if (segDist2(e.x, e.y, ox, oy, d.x, d.y) > (hitR + e.r) ** 2) continue;
+          L.hit.push(e);
+          g.damage(e, s.dmg, { wid: 'pectolite', kx: L.dx, ky: L.dy, kb: 50 * s.knock });
+          this.dew(g, w, e.x, e.y);
+        }
+        if (L.u >= 1) {
+          d.leap = null;
+          d.h = 0;
+          d.vx = L.dx * 120;
+          d.vy = L.dy * 120;
+          g.fx.ring(d.x, d.y, 6, 30 * s.area * (evo ? 1.6 : 1), 0.35, '#9fe6ff', 3);
+          g.fx.burst(d.x, d.y, '#bff1ff', evo ? 8 : 5, 120, 0.4, 7);
+          if (evo) g.aoe(d.x, d.y, 48 * s.area, s.dmg * 0.6, 'pectolite', { kb: 60 });
+          audio.splash();
+        }
+        continue;
+      }
+      // 泳ぐ：自機のまわりの持ち場へ、ばねのようになめらかに寄っていく
+      const a = w.ang + (k / n) * TAU;
+      const tx = p.x + Math.cos(a) * R, ty = p.y + Math.sin(a) * R * 0.8;
+      d.vx += ((tx - d.x) * 9 - d.vx * 4.5) * dt;
+      d.vy += ((ty - d.y) * 9 - d.vy * 4.5) * dt;
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      if (d.vx * d.vx + d.vy * d.vy > 25) d.dir = Math.atan2(d.vy, d.vx);
+    }
+    w.t -= dt;
+    if (w.t > 0) return;
+    w.t = s.cd * (evo ? 0.7 : 1);
+    // 跳ぶ：泳いでいるイルカが、近い敵から順に 1 頭ずつ狙う（少しずつずらして跳ぶ）
+    const free = dol.filter((d) => !d.leap).length;
+    if (!g.nearestEnemies(p.x, p.y, 1, 320)[0]) { w.t = 0.2; return; }
+    burst(w, free, 0.1, (i) => {
+      const d = w.dol.find((x) => !x.leap);
+      const targets = g.nearestEnemies(p.x, p.y, free, 320);
+      if (!d || !targets.length) return;
+      const e = targets[i % targets.length];
+      let dx = e.x - d.x, dy = e.y - d.y;
+      const D0 = Math.hypot(dx, dy) || 1;
+      dx /= D0;
+      dy /= D0;
+      // 敵を通り越した先まで跳ぶ
+      const ex = e.x + dx * 50 * s.area, ey = e.y + dy * 50 * s.area;
+      const D = Math.hypot(ex - d.x, ey - d.y);
+      d.leap = { sx: d.x, sy: d.y, ex, ey, dx, dy, u: 0, T: Math.min(0.7, Math.max(0.25, D / (600 * s.speed))), H: 18 + D * 0.12, hit: [] };
+      audio.whoosh();
+    });
+  },
+  // しずく：当たった敵からときどき飛び散る（出る間隔と盤面の数に上限）
+  dew(g, w, x, y) {
+    const evo = w.evolved;
+    if (w.dewT > 0 || !chance(evo ? 0.35 : 0.25)) return;
+    let c = 0;
+    for (const pk of g.pickups) if (pk.kind === 'dew' && ++c >= DEW_CAP) return;
+    w.dewT = evo ? 0.3 : 0.4;
+    g.dropPickup('dew', x, y, evo ? 4 : 1.5 + w.level * 0.2);
+  },
+  draw(g, w, s, ctx) {
+    if (!w.dol) return;
+    const spr = dolphinSprite();
+    const L0 = spr.logical * Math.min(1.5, Math.sqrt(s.area)) * (w.evolved ? 1.1 : 1);
+    const glow = starSprite('#6fd6ff');
+    for (const d of w.dol) {
+      const L = d.leap;
+      // 跳んでいるときは影、泳いでいるときは波紋
+      ctx.globalAlpha = L ? 0.3 : 0.4;
+      ctx.beginPath();
+      if (L) {
+        ctx.fillStyle = '#04141f';
+        ctx.ellipse(d.x, d.y + 6, 14 * (1 - d.h / (L.H * 2.5)), 5, 0, 0, TAU);
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = '#9fe6ff';
+        ctx.lineWidth = 1.5;
+        ctx.ellipse(d.x, d.y + 5, 16 + Math.sin(g.time * 6 + d.x * 0.05) * 2, 5, 0, 0, TAU);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      let ang = d.dir;
+      if (L) {
+        // 画面の上での動きの向き（放物線に沿って頭を上げ下げする）
+        const D = Math.hypot(L.ex - L.sx, L.ey - L.sy);
+        ang = Math.atan2((L.ey - L.sy) - Math.PI * Math.cos(Math.PI * L.u) * L.H, L.ex - L.sx || D * 1e-3);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(glow, d.x - L0 * 0.6, d.y - d.h - L0 * 0.6, L0 * 1.2, L0 * 1.2);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      ctx.save();
+      ctx.translate(d.x, d.y - d.h);
+      ctx.rotate(ang);
+      if (Math.cos(ang) < 0) ctx.scale(1, -1);
+      ctx.drawImage(spr, -L0 / 2, -L0 / 2, L0, L0);
+      ctx.restore();
+      if (L && Math.random() < 0.3) g.fx.add(d.x, d.y - d.h, rand(-30, 30), rand(-10, 30), 0.4, 5, '#bff1ff', 'star');
+    }
   },
 };
 

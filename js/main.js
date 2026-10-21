@@ -422,8 +422,9 @@ function migrateSave() {
     delete save.login.streak;
     persist();
   }
-  // 虚空聖堂をクリア済みなら、あとから追加したオブシディアンを解放する
+  // 虚空聖堂・深海をクリア済みなら、あとから追加したオブシディアン・ペクトライトを解放する
   if (save.stages.void && save.stages.void.cleared && !save.unlocked.obsidian) { save.unlocked.obsidian = true; persist(); }
+  if (save.stages.deep && save.stages.deep.cleared && !save.unlocked.pectolite) { save.unlocked.pectolite = true; persist(); }
   // 宝石の所持数を数える前のセーブは、研磨数をそのまま所持数にする
   if (Object.values(save.jewels).some((r) => r.have === undefined)) {
     for (const r of Object.values(save.jewels)) if (r.have === undefined) r.have = r.n || 0;

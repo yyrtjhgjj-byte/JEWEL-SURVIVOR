@@ -1807,6 +1807,8 @@ export class Game {
   dropPickup(kind, x, y, value = 1) {
     // トレーニングはアイテムを盤面に出さず、数だけ数える（エメラルドの畑・コハクのコインなど）
     if (this.train) {
+      // ペクトライトのしずくは、拾ったことにしてその場で回復する
+      if (kind === 'dew') { this.heal(value, true); return; }
       if (this.trainStat) this.trainStat.items[kind] = (this.trainStat.items[kind] || 0) + 1;
       return;
     }
@@ -1875,6 +1877,11 @@ export class Game {
         this.heal(30, true); // 回復量は heal() が緑の数字で表示する（聖杯の 2 倍も効く）
         audio.heal();
         this.fx.burst(p.x, p.y, '#ff7ab8', 12, 150, 0.6, 12);
+        break;
+      case 'dew':
+        this.heal(pk.value, true);
+        audio.pickup();
+        this.fx.burst(p.x, p.y, '#9fe6ff', 5, 90, 0.35, 7);
         break;
       case 'magnet':
         for (const q of this.pickups) if (q.kind === 'xp' || q.kind === 'coin') q.vac = true;
@@ -2410,7 +2417,7 @@ export class Game {
       const L2 = spr.logical;
       if (pk.kind !== 'xp' && pk.kind !== 'coin') {
         ctx.globalCompositeOperation = 'lighter';
-        const st = starSprite(pk.kind === 'heart' ? '#ff7ab8' : pk.kind === 'rough' ? ROUGH[pk.value].color : '#ffe9a0');
+        const st = starSprite(pk.kind === 'heart' ? '#ff7ab8' : pk.kind === 'dew' ? '#6fd6ff' : pk.kind === 'rough' ? ROUGH[pk.value].color : '#ffe9a0');
         const s = 26 + Math.sin(this.time * 6) * 4;
         ctx.drawImage(st, pk.x - s, pk.y - s + bob, s * 2, s * 2);
         ctx.globalCompositeOperation = 'source-over';
@@ -2446,6 +2453,7 @@ export class Game {
       else if (w.id === 'opal') LOGIC.opal.draw(this, w, w.s, ctx);
       else if (w.id === 'moonstone') LOGIC.moonstone.draw(this, w, w.s, ctx);
       else if (w.id === 'obsidian') LOGIC.obsidian.draw(this, w, w.s, ctx);
+      else if (w.id === 'pectolite') LOGIC.pectolite.draw(this, w, w.s, ctx);
     }
 
     // たま

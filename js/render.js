@@ -4555,6 +4555,8 @@ export function itemSprite(kind) {
     sparkle(ctx, 0, 0, r * 0.5, '#fff6b0');
   } else if (kind === 'heart') {
     drawGem(ctx, 11, { color: '#ff4d8d', light: '#ffc2d9', dark: '#9a0040' }, 'heart');
+  } else if (kind === 'dew') {
+    drawGem(ctx, 7, { color: '#4cc3e8', light: '#e0f8ff', dark: '#13698f' }, 'drop');
   } else if (kind === 'magnet') {
     ctx.lineWidth = 6;
     ctx.lineCap = 'butt';
@@ -4692,6 +4694,67 @@ export function pillarSprite(r, v) {
 
 // 三日月／満月
 const moonCache = new Map();
+// ペクトライトのイルカ（横向き、頭が +x）
+let dolphinCache = null;
+export function dolphinSprite() {
+  if (dolphinCache) return dolphinCache;
+  const S = 46;
+  const c = makeCanvas(S * RES, S * RES);
+  const ctx = c.getContext('2d');
+  ctx.scale(RES, RES);
+  ctx.translate(S / 2, S / 2);
+  ctx.lineJoin = 'round';
+  const fin = (pts) => { ctx.beginPath(); ctx.moveTo(pts[0], pts[1]); ctx.quadraticCurveTo(pts[2], pts[3], pts[4], pts[5]); ctx.quadraticCurveTo(pts[6], pts[7], pts[8], pts[9]); ctx.closePath(); };
+  const body = () => {
+    ctx.beginPath();
+    ctx.moveTo(-15, -1);
+    ctx.quadraticCurveTo(-4, -10, 8, -7);
+    ctx.quadraticCurveTo(13, -6, 15, -3);
+    ctx.lineTo(20.5, -1.4);
+    ctx.quadraticCurveTo(21.5, 0, 20, 0.8);
+    ctx.quadraticCurveTo(14, 4.5, 6, 5.2);
+    ctx.quadraticCurveTo(-6, 6.2, -15, 1.2);
+    ctx.closePath();
+  };
+  const parts = [
+    [-2, -8, -1, -15, 4.5, -14, 1.5, -11, 3.5, -7.5],
+    [-14, 0, -19, -4, -22.5, -7, -20, -1, -14, 1],
+    [-14, 0, -19, 4, -22.5, 7, -20, 1, -14, 1],
+    [3, 4, 0, 10.5, -3.5, 9.5, -1.5, 6, -1.5, 4],
+  ];
+  // 縁取り（暗い外縁と白い縁）
+  for (const [col, lw] of [['#06243a', 4], ['#e8fbff', 1.6]]) {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw;
+    body(); ctx.stroke();
+    for (const q of parts) { fin(q); ctx.stroke(); }
+  }
+  const grd = ctx.createLinearGradient(0, -9, 0, 6);
+  grd.addColorStop(0, '#1e86c2');
+  grd.addColorStop(0.5, '#5cc8ec');
+  grd.addColorStop(0.75, '#bdeefc');
+  grd.addColorStop(1, '#f2fdff');
+  ctx.fillStyle = '#2a92c8';
+  for (const q of parts) { fin(q); ctx.fill(); }
+  ctx.fillStyle = grd;
+  body(); ctx.fill();
+  // ラリマーの白い筋
+  ctx.strokeStyle = 'rgba(240,252,255,0.55)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-9, -4); ctx.lineTo(-3, -2); ctx.lineTo(2, -5);
+  ctx.moveTo(-3, -2); ctx.lineTo(1, 1);
+  ctx.moveTo(6, -6); ctx.lineTo(9, -3);
+  ctx.stroke();
+  ctx.fillStyle = '#04141f';
+  ctx.beginPath();
+  ctx.arc(12, -2.6, 1.2, 0, TAU);
+  ctx.fill();
+  c.logical = S;
+  dolphinCache = c;
+  return c;
+}
+
 export function moonSprite(size, full) {
   const key = size + ':' + (full ? 1 : 0);
   let c = moonCache.get(key);
