@@ -14,12 +14,12 @@ export const GEM_CUT = {
   kyanite: 'baguette', tourmaline: 'baguette',
   titanite: 'trillion', obsidian: 'trillion',
   opal: 'cabOval', amber: 'cabOval', angelite: 'cab', turquoise: 'cabOval', coral: 'cab',
-  moonstone: 'cabOval', labradorite: 'cabOval', nephrite: 'cab', prase: 'cab', jasper: 'cabOval', rhodochrosite: 'cab', pectolite: 'cabOval',
+  moonstone: 'cabOval', labradorite: 'cabOval', nephrite: 'cab', prase: 'cab', jasper: 'cabOval', rhodochrosite: 'cab', pectolite: 'cabOval', malachite: 'sphere',
   milkyquartz: 'crystal', granite: 'tumble', coal: 'lump',
 };
 export const CUT_NAMES = {
   brilliant: 'ラウンドブリリアント', oval: 'オーバル', cushion: 'クッション', pear: 'ペアシェイプ', trillion: 'トリリアント',
-  step: 'エメラルドカット', baguette: 'バゲット', cab: 'カボション（丸）', cabOval: 'カボション（楕円）',
+  step: 'エメラルドカット', baguette: 'バゲット', cab: 'カボション（丸）', cabOval: 'カボション（楕円）', sphere: '球',
   crystal: '原石：結晶', tumble: '原石：丸石', lump: '原石：塊',
 };
 
@@ -266,6 +266,16 @@ function drawCab(ctx, r, g, cut, id) {
     ctx.globalCompositeOperation = 'lighter';
     fillPoly(ctx, shape, s);
     ctx.globalCompositeOperation = 'source-over';
+  } else if (id === 'malachite') {
+    // 濃い緑と明るい緑の同心円の縞（目玉の模様）
+    const cx = rx * 0.22, cy = -ry * 0.12;
+    for (let k = 5; k >= 1; k--) {
+      ctx.strokeStyle = k % 2 ? rgba(g.dark, 0.55) : rgba(g.light, 0.45);
+      ctx.lineWidth = r * (0.09 + rnd() * 0.07);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, r * 0.24 * k, r * 0.2 * k, 0.4, 0, TAU);
+      ctx.stroke();
+    }
   } else if (id === 'turquoise') {
     // 母岩の黒い網目
     ctx.strokeStyle = rgba('#3a2e22', 0.55);
@@ -452,7 +462,7 @@ function drawLump(ctx, r, g) {
 export function drawCutGem(ctx, r, g, id, cut = GEM_CUT[id] || 'brilliant') {
   ctx.save();
   if (cut === 'step' || cut === 'baguette') drawStep(ctx, r, g, cut);
-  else if (cut === 'cab' || cut === 'cabOval') drawCab(ctx, r, g, cut, id);
+  else if (cut === 'cab' || cut === 'cabOval' || cut === 'sphere') drawCab(ctx, r, g, cut, id);
   else if (cut === 'crystal') drawCrystal(ctx, r, g);
   else if (cut === 'tumble') drawTumble(ctx, r, g);
   else if (cut === 'lump') drawLump(ctx, r, g);

@@ -45,6 +45,7 @@ export const GEM_LOOK = {
   prase: C('cab', 9, 1.54),
   angelite: C('cab', 10, 1.57),
   pectolite: C('cabOval', 11, 1.6),
+  malachite: C('sphere', 12, 1.75),
   obsidian: { mode: 'facet', cut: 'trillion', kind: 0, ri: 1.49, spin0: 180 },
   coal: { mode: 'facet', cut: 'lump', kind: 1, ri: 1.9 },
   granite: { mode: 'tumble', cut: 'tumble', kind: 0, ri: 1.55 },
@@ -337,6 +338,15 @@ void stone(vec2 q, vec3 n, vec3 r, out vec3 alb, out vec3 emit, out float tr){
     vec3 body = mix(vec3(.03, .36, .66), vec3(.24, .68, .9), smoothstep(.28, .72, mot));
     body = mix(body, vec3(.5, .82, .96), (1. - smoothstep(0., .35, e)) * .55);
     alb = mix(body, vec3(.94, .98, 1.), clamp(web, 0., 1.) * .9); emit = body * .1; tr = .35;
+  } else if (uKind == 12) {
+    // マラカイト（球）：濃い緑と明るい緑の縞が、同心円（目玉）と流れる帯になる。球の上の向き（n）で決めるので、回しても模様はつながる
+    vec3 w = n + vnoise33(n * 2.2) * .35;
+    float d = min(length(w - vec3(.45, .3, .85)), length(w - vec3(-.7, -.5, .2)) * 1.15);
+    float b = fract(d * 2.6 + vnoise3(n * 4. + 3.) * .3);
+    float st = .5 + .5 * sin(d * 30. + vnoise3(n * 6.) * 3.);
+    vec3 c = mix(vec3(0., .12, .06), vec3(.02, .36, .17), smoothstep(.12, .4, b));
+    c = mix(c, vec3(.2, .72, .43), smoothstep(.58, .64, b) * (1. - smoothstep(.8, .88, b)));
+    alb = c * (.85 + .15 * st); tr = .03;
   } else {
     float m = fbm(q * 2.5, 4, 171.), vein = smoothstep(.9, .97, 1. - abs(fbm(q * 3., 4, 181.) * 2. - 1.));
     vec3 body = mix(vec3(.28, .52, .92), vec3(.5, .72, 1.), m); alb = mix(body, vec3(.95, .97, 1.), vein * .8); emit = body * .1; tr = .3;
@@ -350,7 +360,8 @@ vec4 cab(vec3 ro, vec3 rd){
   float qa = dot(rd * rd, 1. / a2), qb = 2. * dot(ro * rd, 1. / a2), qc = dot(ro * ro, 1. / a2) - 1.;
   float disc = qb * qb - 4. * qa * qc; if (disc < 0.) return vec4(0);
   float t = (-qb - sqrt(disc)) / (2. * qa); vec3 h = ro + rd * t, n;
-  if (h.z < 0.) {
+  // 球（uAbc がどの向きも同じ）は裏まで丸い
+  if (h.z < 0. && uAbc.z < .8) {
     // 裏から見たとき：平らに磨いた底の面
     if (rd.z <= 0.) return vec4(0);
     h = ro + rd * (-ro.z / rd.z);
@@ -576,7 +587,7 @@ function createRenderer(canvas) {
       gl.uniform1f(uni.uPleoOn, g.pleo ? 1 : 0);
       gl.uniform2fv(uni.uCau, cauchy(g, g.fire == null ? 1.6 : g.fire));
     } else {
-      gl.uniform3fv(uni.uAbc, g.cut === 'cab' ? [0.92, 0.92, 0.62] : [1.0, 0.76, 0.62]);
+      gl.uniform3fv(uni.uAbc, g.cut === 'cab' ? [0.92, 0.92, 0.62] : g.cut === 'sphere' ? [0.9, 0.9, 0.9] : [1.0, 0.76, 0.62]);
       gl.uniform3f(uni.uIor, g.ri, g.ri, g.ri);
     }
     look = g;
