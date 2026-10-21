@@ -721,6 +721,7 @@ export class Game {
       if (this.trainNextT <= 0) {
         const e = this.trainSpawn('dummy', 0, -150, this.trainDummyHp());
         e.infHp = !!this.train.inf;
+        e.noBreak = !!this.train.noBreak;
         this.boss = e;
         this.hooks.bossBar(e);
       }
@@ -1440,7 +1441,7 @@ export class Game {
       e.vx += kx * o.kb * k;
       e.vy += ky * o.kb * k;
     }
-    if (e.boss && !(e.breakT > 0) && e.hp > 0) this.addBreak(e, dealt);
+    if (e.boss && !(e.breakT > 0) && e.hp > 0 && !e.noBreak) this.addBreak(e, dealt);
     if (o.wid) this.dmgBy[o.wid] = (this.dmgBy[o.wid] || 0) + dealt;
     this.totalDmg += dealt;
     if (!o.silent) {
