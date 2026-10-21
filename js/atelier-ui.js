@@ -10,7 +10,7 @@ import { save, persist } from './save.js';
 import {
   ROUGH, ROUGH_IDS, GRADES, gradeFromScore, COLLECTION_IDS, MASTERY_MAX,
   mastery, nextMilestone, collectionStats, gemBonusText, statText, nextGem, rollCarat, applyPolish, autoGrade,
-  collectionCount,
+  collectionCount, pickRoughs, pickKey,
 } from './atelier.js';
 import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast } from './ui.js';
 import { showHub } from './menu.js';
@@ -92,10 +92,31 @@ function renderPolish(box) {
     list.appendChild(row);
   }
   box.appendChild(list);
+  // 交換所の選べる原石（中身が決まっている。手で研磨するだけ）
+  const picks = pickRoughs();
+  if (picks.length) {
+    box.appendChild(el('<div class="label pick-label">選んだ原石</div>'));
+    const pl = el('<div class="rough-list"></div>');
+    for (const { gem, tier, n } of picks) {
+      const R = ROUGH[tier];
+      const row = el(`<div class="rough-item pick">
+        <img src="${gemIcon(gem, 72)}">
+        <div class="rbody">
+          <div class="rname">${GEMS[gem].jp}の${R.name}<small>×${n}</small></div>
+          <div class="rdesc">${R.ct[0]}〜${R.ct[1]}ct ／ 研磨 ${R.facets} 面 ／ <i class="coin-ico"></i>${fmt(R.cost)}</div>
+        </div>
+        <div class="rbtns2"><button class="btn small gold" ${save.coins >= R.cost ? '' : 'disabled'}>研磨</button></div>
+      </div>`);
+      $('button', row).onclick = () => { audio.select(); startPolish(tier, false, gem); };
+      pl.appendChild(row);
+    }
+    box.appendChild(pl);
+  }
   box.appendChild(el(`<div class="at-note">
     リングを回る針が光る面に重なった瞬間にタップすると研磨できます。精度が高いほど品質が上がります（C〜SS）。<br>
     自動研磨はまとめて磨けますが、品質は C か B になります。<br>
-    原石はエリートやボスを倒すか、採掘で手に入ります。ステージやヒートが高いほど上位の原石が出やすくなります。
+    原石はエリートやボスを倒すか、採掘で手に入ります。ステージやヒートが高いほど上位の原石が出やすくなります。<br>
+    交換所では、中身の宝石を選んだ原石と交換できます（自動研磨には使いません）。
   </div>`));
 }
 
@@ -142,20 +163,22 @@ const TUT_HINT = [
   '次は止まりません。光る面に針が重なった瞬間にタップ',
   '最後は本番と同じ速さです',
 ];
-function startPolish(tier, tut = false) {
+// pick：交換所の選べる原石（その宝石の原石を使う）
+function startPolish(tier, tut = false, pick = null) {
   const R = ROUGH[tier];
-  if (!tut && (!save.rough[tier] || save.coins < R.cost)) return;
+  const have = pick ? (save.pickRough || {})[pickKey(pick, tier)] || 0 : save.rough[tier];
+  if (!tut && (!have || save.coins < R.cost)) return;
   // コインは研磨が終わったとき（原石を消費するのと同時）に払う。途中でアプリが落ちてもコインだけ失わないように
-  const gemId = tut ? 'diamond' : nextGem(tier);
+  const gemId = tut ? 'diamond' : pick || nextGem(tier);
   if (!tut) persist();
   polishMini({
-    tier, gemId, tut, en: tut ? 'TUTORIAL' : 'POLISHING', jp: tut ? '研磨のチュートリアル' : R.name,
+    tier, gemId, tut, en: tut ? 'TUTORIAL' : 'POLISHING', jp: tut ? '研磨のチュートリアル' : pick ? `${GEMS[pick].jp}の${R.name}` : R.name,
     quit: () => showAtelier('polish'),
     done: (score, grade) => {
       if (tut) { tutorialResult(score, grade); return; }
       const ct = rollCarat(tier);
       save.coins = Math.max(0, save.coins - R.cost);
-      const res = applyPolish(tier, gemId, grade, ct);
+      const res = applyPolish(tier, gemId, grade, ct, !!pick);
       persist();
       reveal(res, score);
     },
@@ -403,6 +426,8 @@ function reveal(res, score) {
     res.ctUp ? '<span class="ctag2 t-pair">最大カラット 更新</span>' : '',
   ].join('');
   const mUp = res.mAfter > res.mBefore;
+  // もう一度：選べる原石なら同じ宝石の原石の残り
+  const left = res.pick ? (save.pickRough || {})[pickKey(res.gemId, res.tier)] || 0 : save.rough[res.tier] || 0;
   const node = el(`<div class="screen dim reveal-screen">
     <div class="rays"></div>
     <div class="rv-gem"><img src="${gemIcon(res.gemId, 200)}" style="filter:drop-shadow(0 0 28px ${col})"></div>
@@ -416,7 +441,7 @@ function reveal(res, score) {
       <div class="rrow2 muted"><span>精度</span><b>${Math.round(score * 100)}%</b></div>
     </div>
     <div class="rbtns">
-      <button class="btn big primary" id="again" ${save.rough[res.tier] > 0 && save.coins >= R.cost ? '' : 'disabled'}>もう一度<span class="sub">${R.short} ×${save.rough[res.tier] || 0}</span></button>
+      <button class="btn big primary" id="again" ${left > 0 && save.coins >= R.cost ? '' : 'disabled'}>もう一度<span class="sub">${res.pick ? `${g.jp}の` : ''}${R.short} ×${left}</span></button>
       <button class="btn" id="back2">戻る</button>
     </div>
   </div>`);
@@ -428,7 +453,7 @@ function reveal(res, score) {
   node.classList.add(`rv-g${res.grade}`);
   metaAch();
   refreshCoinPill();
-  $('#again', node).onclick = () => { audio.select(); startPolish(res.tier); };
+  $('#again', node).onclick = () => { audio.select(); startPolish(res.tier, false, res.pick ? res.gemId : null); };
   $('#back2', node).onclick = () => { audio.tap(); showAtelier('polish'); };
 }
 

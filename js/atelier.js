@@ -115,6 +115,13 @@ export function nextGem(tier) {
   const q = save.nextGem || (save.nextGem = {});
   return q[tier] || (q[tier] = rollGem(tier));
 }
+// 選べる原石：交換所で中身の宝石を選んで手に入れた原石（save.pickRough の「宝石|等級」ごとの数）。手で研磨するだけで、自動研磨には使わない
+export const pickKey = (gem, tier) => `${gem}|${tier}`;
+export function pickRoughs() {
+  return Object.entries(save.pickRough || {}).filter(([, n]) => n > 0).map(([k, n]) => { const [gem, tier] = k.split('|'); return { gem, tier, n }; })
+    .filter((x) => ROUGH[x.tier] && GEMS[x.gem])
+    .sort((a, b) => ROUGH_IDS.indexOf(b.tier) - ROUGH_IDS.indexOf(a.tier) || COLLECTION_IDS.indexOf(a.gem) - COLLECTION_IDS.indexOf(b.gem));
+}
 export function rollCarat(tier) {
   const [a, b] = ROUGH[tier].ct;
   // 大きいものほど出にくい
@@ -122,7 +129,8 @@ export function rollCarat(tier) {
 }
 
 // 研磨の結果をセーブに反映し、変化を返す
-export function applyPolish(tier, gemId, grade, ct) {
+// pick：選べる原石を使う（中身が決まっているので nextGem は動かさない）
+export function applyPolish(tier, gemId, grade, ct, pick = false) {
   const rec = save.jewels[gemId] || (save.jewels[gemId] = { n: 0, best: -1, ct: 0 });
   const before = { m: mastery(rec), best: rec.best, ct: rec.ct, n: rec.n };
   rec.n++;
@@ -131,10 +139,16 @@ export function applyPolish(tier, gemId, grade, ct) {
   if (ct > rec.ct) rec.ct = ct;
   save.stats.polished = (save.stats.polished || 0) + 1;
   if (grade === GRADES.length - 1) save.stats.polishSS = (save.stats.polishSS || 0) + 1;
-  save.rough[tier]--;
-  if (save.nextGem) delete save.nextGem[tier];
+  if (pick) {
+    const k = pickKey(gemId, tier);
+    save.pickRough[k]--;
+    if (save.pickRough[k] <= 0) delete save.pickRough[k];
+  } else {
+    save.rough[tier]--;
+    if (save.nextGem) delete save.nextGem[tier];
+  }
   return {
-    gemId, grade, ct, tier,
+    gemId, grade, ct, tier, pick,
     isNew: before.n === 0,
     bestUp: grade > before.best && before.n > 0,
     ctUp: ct > before.ct && before.n > 0,
@@ -170,5 +184,5 @@ export function collectionCount() {
   return COLLECTION_IDS.filter((id) => save.jewels[id] && save.jewels[id].n).length;
 }
 export function totalRough() {
-  return ROUGH_IDS.reduce((a, t) => a + (save.rough[t] || 0), 0);
+  return ROUGH_IDS.reduce((a, t) => a + (save.rough[t] || 0), 0) + pickRoughs().reduce((a, x) => a + x.n, 0);
 }

@@ -366,7 +366,7 @@ function quitRun() {
   // トレーニング：精算もリザルトもなく、ステージ選択の TRAINING タブへ戻る
   if (game.train) {
     game.state = 'over';
-    audio.stopBgm();
+    audio.playBgm('title');
     game = null;
     window.__game = null;
     input.enabled = false;

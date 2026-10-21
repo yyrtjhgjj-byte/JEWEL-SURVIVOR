@@ -125,6 +125,7 @@
 ### BOSS モード（コード上は rush）
 
 - ステージ選択の BOSS タブ。クリアしたステージのボス（予定表の中ボス・最終ボスの順）と連戦する。1 周目はステージと同じ強さで、1 周するたびに HP と攻撃力が 2 倍（rushMul。ボスが呼ぶ雑魚にも掛ける）。
+- BOSS タブは章ごとに見出しを押して畳める（開いている章は `save.tabs.rushOpen`。最初は選んでいるステージの章だけ開く）。
 - 武器 4・チャーム 6 を自由に選んで Lv1 から（`save.rushLoadout`）。選んだ武器の進化の相方のチャームは、枠をうっすら武器の色にして右上に武器の印を出す（選んでいる金の枠より控えめに）（ui.js の pickHTML・pairsOf。トレーニングの選択も同じ）。雑魚・経験値・フィーバー・ギミックはなく、HUD のレベル・経験値バー・フィーバーのゲージは `#hud.rush` で隠す。
 - 強化は BOSS TREASURE だけ。開始時に 1 つ（rushBegin）と撃破ごとに 1 つで、k 体目の宝箱は枠が +k−1（modal の `plus`、rollChest の第 2 引数。追加の枠にはコインを付けない）。撃破の演出（slowT）が終わるとそのまま開く（modalQueue に積むので途中保存にも残る）。枠が 6 つ以上なら同じ石の強化を 1 枠にまとめて小さく出す（ui.js の chestTiles・`.chest-screen.many`）。
 - 次のボスは撃破の `RUSH_GAP` 秒後。宝箱などの画面が控えている間はこの時間を止め、残り 3 秒から画面の中央に 3・2・1 を出す（hooks.rushCount）。
@@ -195,7 +196,7 @@
 ### ラン外の要素
 
 - 工房・上位工房（data.js の `SHOP` / `UPPER_SHOP`）：最大まで上げた強化は ON／OFF できる。全額返金は実際に払ったコイン（`save.shopPaid`）を返す。上位工房は工房を全部最大にすると開き、返金しても閉じない（`save.upperShop`）。強化のレベルは `save.upgrades2`。ラン外の強化（採掘の極意・裏オークション）は ui.js の `upperLv(id)` で見る（OFF なら 0）。
-- 採掘（コード上の id は gacha）・ジェムダストの交換所・覚醒：data.js。採掘の 100 連は秘石が `GACHA100_UR` 個以上確定で、結果はレア度ごとに重ねた山で出す（ui.js の gachaStacks）。
+- 採掘（コード上の id は gacha）・ジェムダストの交換所・覚醒：data.js。交換所の選べる原石（`EXCHANGE.pick`。狙った宝石の天井として高め）は中身の宝石を選んだ原石で、`save.pickRough`（「宝石|等級」ごとの数。atelier.js の pickRoughs）に入る。研磨の画面の「選んだ原石」から手で磨き（startPolish の `pick`・applyPolish の `pick`。nextGem は動かさない）、自動研磨には使わない。採掘の 100 連は秘石が `GACHA100_UR` 個以上確定で、結果はレア度ごとに重ねた山で出す（ui.js の gachaStacks）。
 - キャラ：初期はルビー・サファイア・ガーネット。ほかは実績（`ACHIEVEMENTS` の `unlock`。アメジストは経営で鉱区を 2 つ持つ `biz2mine`）かステージクリアで解放。
 - 秘宝（artifacts.js）：ステージ選択で持ち込み＋中ボスの秘宝の宝箱。解放は実績。
 - 研磨工房（atelier.js）：原石を研磨して宝石のコレクションに。練度に応じた永続ボーナス。次に出る宝石は `save.nextGem` に先に決めておく（研磨の途中で落ちても変わらない）。研磨のコインは完了時に払う。所持数 `have`（百獣で消費）と研磨数 `n`（練度に使い、減らさない）は別。GEM DATA（gem-facts.js）は実際の宝石学の情報だけ。研磨のチュートリアル（atelier-ui.js の startPolish(tier, true)）は原石もコインも使わない練習で、一度も開いていないと枠が虹色（`save.seen.polishTut`）。本番の研磨は、始める前なら「やめる」で戻れる。
@@ -291,7 +292,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v170`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v171`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
