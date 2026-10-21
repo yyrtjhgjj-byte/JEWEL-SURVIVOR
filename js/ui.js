@@ -1497,6 +1497,8 @@ export function banner(text, kind = '', sub = '') {
   while (box.children.length >= 2) box.firstChild.remove();
   const b = el(`<div class="banner ${kind}"></div>`);
   b.textContent = text;
+  // 長い文字（第2章の英題など）は折り返して、少し小さくする
+  if (text.length > 18) b.classList.add('long');
   if (sub) { const s = document.createElement('small'); s.textContent = sub; b.appendChild(s); }
   box.appendChild(b);
   setTimeout(() => b.remove(), kind === 'warning' ? 2500 : 2300);

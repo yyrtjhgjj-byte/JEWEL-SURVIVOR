@@ -143,7 +143,7 @@
 
 ### 第2章（ユーザーの構想）
 
-- クトゥルフ神話がモチーフのツアー。全 6 ステージ。ステージ名はノリのよい名前をそのまま使う。
+- クトゥルフ神話がモチーフのツアー。全 6 ステージ。ステージ名はノリのよい名前をそのまま使う。英題（`en`）はパロディ元の英題に寄せる（例：2001: A Space Odyssey → 2026: A SPACE ODYSSEY、The Beast That Shouted Love at the Heart of the World → THE BEAST THAT SLUMBERED AT THE HEART OF THE UNIVERSE）。長い英題は開始のバナーで折り返す（ui.js の banner の `.long`）。
 - 雑魚：深海は専用の敵。ルルイエ以降は使い回しの「多肢の異形」6 種（ai なしなので、ステージの tint で色が変わる。game.js の `BASE_COL` にも登録）＋ステージ専用の 1〜2 種。
 - 中ボスの絵は既存の絵＋tint や専用の雑魚の拡大で使い回してよい。最終ボスの AI は enemies.js、絵は render.js の `ENEMY_DRAW`。
 - 大ボス撃破の実績は英語のかっこいい名前にする。
@@ -291,7 +291,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v164`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v165`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
