@@ -738,7 +738,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .rush-ch { margin: 6px 2px 2px; }
 .rush-boss { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
 .rush-boss img { width: 46px; height: 46px; object-fit: contain; }
-/* 最終ボス連戦：金の縁取り。長い名前は「！？」のあとで折り返す */
+/* 最終ボス連戦：金の縁取り。名前はカタカナの途中で折り返さない */
 .rush-card.finale .st-name { word-break: keep-all; }
 .rush-card.finale { --sc: #ffd24a; --sg: rgba(255,210,74,0.22); background: linear-gradient(135deg, rgba(255,210,74,0.08), transparent 60%), var(--panel); border-color: rgba(255,210,74,0.45); }
 .rp-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; letter-spacing: 0.1em; margin: 12px 2px 6px; }

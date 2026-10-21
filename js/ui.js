@@ -699,7 +699,7 @@ export function showStageSelect() {
         const fbest = (save.bossRush || {})[fin.id] || 0;
         const fcard = el(`<button class="stage-card rush-card finale ${fok ? '' : 'locked'} ${fin.id === rsel ? 'sel' : ''}">
           <div class="st-head"><span class="st-no">FINALE</span>${fbest ? `<span class="st-clear">最高 ${fbest} 体</span>` : ''}</div>
-          <div class="st-name">${fin.name.replace('！？', '！？<wbr>')}</div>
+          <div class="st-name">${fin.name}</div>
           ${fok ? `<div class="rush-boss">${fin.events.map((e) => e.enemy).map((id) => `<img src="${enemyIcon(ENEMIES[id].sprite || id, Math.min(ENEMIES[id].r, 40), ENEMIES[id].tint)}">`).join('')}</div>` : `<div class="st-desc">🔒 ${c.name}のステージをすべてクリアで解放</div>`}
         </button>`);
         if (fok) fcard.onclick = () => { rsel = fin.id; save.rushStage = fin.id; audio.cardFlip(fin.no); markSel(fcard); renderRush(); };
