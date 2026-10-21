@@ -2,6 +2,7 @@
 //  ジュエルのデータ
 // =====================================================================
 import { MINES as BIZ_MINES, SHOPS as BIZ_SHOPS } from './biz-data.js';
+import { STAGE_BY_ID } from './stages.js';
 
 export const GEMS = {
   // ---------- 武器になるジュエル ----------
@@ -690,6 +691,8 @@ export const UPPER_SHOP = [
 // ---------------------------------------------------------------------
 //  実績
 // ---------------------------------------------------------------------
+// BOSS モードの最高記録（倒したボスの数）を、何周ぶんかに直す
+const rushLaps = (s, id) => Math.floor(((s.bossRush || {})[id] || 0) / STAGE_BY_ID[id].events.filter((e) => e.type === 'boss').length);
 export const ACHIEVEMENTS = [
   // 並び順がそのまま実績の画面の順。同じ系統をまとめて、易しい順に並べる
   // 撃破数
@@ -747,6 +750,16 @@ export const ACHIEVEMENTS = [
   { id: 'boss1', name: 'レジサイド', t: 'ボスを倒す', coins: 150, check: (r) => r.bosses >= 1 },
   { id: 'boss2', name: 'ドラゴンスレイヤー', t: '1回のプレイでボスを2体撃破', coins: 400, unlock: 'kyanite', check: (r) => r.bosses >= 2 },
   { id: 'boss3', name: 'ボス・ラッシュ', t: '1回のプレイでボスを3体撃破', coins: 800, check: (r) => r.bosses >= 3 },
+  // BOSS モード（倒したボスの最高記録を周の数に直して判定する）
+  { id: 'rush5_3', meta: true, name: 'ヴォイド・ガントレット', t: 'STAGE 5 の BOSS モードで 3 周クリア', coins: 12000, check: (r, s) => rushLaps(s, 'void') >= 3 },
+  { id: 'rush5_6', meta: true, name: 'ヴォイド・オンスロート', t: 'STAGE 5 の BOSS モードで 6 周クリア', coins: 24000, check: (r, s) => rushLaps(s, 'void') >= 6 },
+  { id: 'rush5_10', meta: true, name: 'ヴォイド・アポセオシス', t: 'STAGE 5 の BOSS モードで 10 周クリア', coins: 40000, check: (r, s) => rushLaps(s, 'void') >= 10 },
+  { id: 'rush11_3', meta: true, name: 'コズミック・ガントレット', t: 'STAGE 11 の BOSS モードで 3 周クリア', coins: 20000, check: (r, s) => rushLaps(s, 'azathoth') >= 3 },
+  { id: 'rush11_6', meta: true, name: 'コズミック・オンスロート', t: 'STAGE 11 の BOSS モードで 6 周クリア', coins: 40000, check: (r, s) => rushLaps(s, 'azathoth') >= 6 },
+  { id: 'rush11_10', meta: true, name: 'コズミック・アポセオシス', t: 'STAGE 11 の BOSS モードで 10 周クリア', coins: 60000, check: (r, s) => rushLaps(s, 'azathoth') >= 10 },
+  { id: 'rush15_3', meta: true, name: 'ヘヴンリー・ガントレット', t: 'STAGE 15 の BOSS モードで 3 周クリア', coins: 30000, check: (r, s) => rushLaps(s, 'chuou') >= 3 },
+  { id: 'rush15_6', meta: true, name: 'ヘヴンリー・オンスロート', t: 'STAGE 15 の BOSS モードで 6 周クリア', coins: 50000, check: (r, s) => rushLaps(s, 'chuou') >= 6 },
+  { id: 'rush15_10', meta: true, name: 'ヘヴンリー・アポセオシス', t: 'STAGE 15 の BOSS モードで 10 周クリア', coins: 80000, check: (r, s) => rushLaps(s, 'chuou') >= 10 },
   // 装備・進化
   { id: 'full', name: 'フルセット', t: '武器を4種類そろえる', coins: 200, check: (r) => r.weaponCount >= 4 },
   { id: 'evo', name: 'エヴォリューション', t: '武器を進化させる', coins: 200, check: (r) => r.evolved >= 1 },
