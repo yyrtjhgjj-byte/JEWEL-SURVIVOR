@@ -8,7 +8,7 @@ import { audio } from './audio.js';
 import { save, persist } from './save.js';
 import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost } from './data.js';
 import { ARTIFACTS } from './artifacts.js';
-import { STAGES, STAGE_BY_ID } from './stages.js';
+import { STAGES, STAGE_BY_ID, rushLabel } from './stages.js';
 import { gemSprite, starSprite, backgroundTile, clearEnemySprites } from './render.js';
 import { TAU, rand, pick, preloadImages } from './util.js';
 import * as UI from './ui.js';
@@ -235,12 +235,12 @@ function startGame(charId, opt = {}) {
   audio.tempoMul = 1;
   if (!(opt.resume && game.boss)) audio.playBgm(stage.bgm);
   const m = Math.floor(stage.time / 60);
-  if (opt.resume) UI.banner('RESUME', 'start', opt.rush ? `BOSS ・ STAGE ${stage.no}` : stage.name);
+  if (opt.resume) UI.banner('RESUME', 'start', opt.rush ? `BOSS ・ ${rushLabel(stage)}` : stage.name);
   else if (opt.train) {
     UI.banner('TRAINING', 'start', opt.train.target === 'crowd' ? '群れ' : '木人');
   } else if (opt.rush) {
     // 最高記録の続きから始めるときは、まとめの画面（rushWarp）が開くのでバナーは出さない
-    if (!game.rushFrom) UI.banner('BOSS RUSH', 'start', `STAGE ${stage.no} のボス ${game.rushOrder.length} 体 ・ 1 周ごとに ×2`);
+    if (!game.rushFrom) UI.banner('BOSS RUSH', 'start', `${stage.finale ? `第${stage.finale}章の最終ボス` : `STAGE ${stage.no} のボス`} ${game.rushOrder.length} 体 ・ 1 周ごとに ×2`);
     save.stats.runs++;
   } else {
     UI.banner(stage.en, 'start', `${m}:00 — ${ENEMIES[stage.finalBoss].name}を撃破せよ`);
