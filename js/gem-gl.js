@@ -7,6 +7,8 @@
 //  同じ計算で書き出した画像（img/gems/*.webp。tools/gem-bake.html と tools/test/gem-bake.js）を使う
 // =====================================================================
 
+import { imgUrl } from './util.js';
+
 // 見た目の数値。mode：trace（透明）・cab（カボション）・facet（不透明なカット面）・tumble（丸く磨いた石）
 // t：長さ 1 進んだときに残る光の割合（RGB）、d：濃さ、pleo：横向きに進むときの色（多色性）、bi：バイカラーのもう一方の色
 // fog・fogD：乳白（中で散る光の色と濃さ）、kind：シェーダーの石の番号、ri：屈折率（不透明な石）
@@ -54,8 +56,8 @@ const NW = 6;
 // 透明な石を見る近さ（目までの距離の逆数。宝石の半径が 1）
 const PERSP = 0.12;
 
-// 書き出した画像の場所
-export const gemImage = (id) => `img/gems/${id}.webp`;
+// 書き出した画像の場所（起動のあとは読み込み済みの blob の URL。util.js の imgUrl）
+export const gemImage = (id) => imgUrl(`img/gems/${id}.webp`);
 
 // ---------------------------------------------------------------- カットの形（平面の集合）
 const TAU = Math.PI * 2, D2R = Math.PI / 180;

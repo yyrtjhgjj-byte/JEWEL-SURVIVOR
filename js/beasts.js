@@ -1,5 +1,6 @@
 // 百獣：同じ宝石を 10 個使って動物の彫刻を召喚し、以降は 10 個ごとに強化する
 import { save } from './save.js';
+import { imgUrl } from './util.js';
 
 export const BEAST_COST = 10;
 
@@ -148,5 +149,5 @@ export function beastStats() {
 // ---------------------------------------------------------------- 彫刻の絵
 // 型（shape）を立体にふくらませた宝石の置物を、光線追跡で書き出した画像（tools/beast-art.js・tools/test/gem-bake.js）
 export function beastIcon(id) {
-  return `img/beasts/${id}.webp`;
+  return imgUrl(`img/beasts/${id}.webp`);
 }

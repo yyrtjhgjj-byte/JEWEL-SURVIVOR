@@ -10,10 +10,12 @@ import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost } f
 import { ARTIFACTS } from './artifacts.js';
 import { STAGES, STAGE_BY_ID } from './stages.js';
 import { gemSprite, starSprite, backgroundTile, clearEnemySprites } from './render.js';
-import { TAU, rand, pick } from './util.js';
+import { TAU, rand, pick, preloadImages } from './util.js';
 import * as UI from './ui.js';
 import { addRankExp, runExp, settleRank } from './rank.js';
 import { initDiag } from './diag.js';
+import { gemImage } from './gem-gl.js';
+import { BEAST_IDS, beastIcon } from './beasts.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -525,6 +527,20 @@ if (DEBUG.autostart) {
   if (upperRefund) setTimeout(() => UI.toast('上位工房の入れ替えに伴い返金', `+${upperRefund.toLocaleString()} コイン`, 'MASTERWORKS'), 900);
   if (crashed) setTimeout(() => UI.toast('前回は途中で終了しました', '設定の「動作の記録」に残しました', 'DIAGNOSTIC'), 1500);
 }
+
+// 宝石と百獣の絵を起動のあとに読み込んで blob の URL にし（util.js の preloadImages）、絵にしたものを持ち続ける
+// （画面を開いたとき・描き直したときに、読み込みを待たずにすぐ出るように）
+const keptIcons = [];
+setTimeout(() => {
+  preloadImages([...Object.keys(GEMS).map((id) => `img/gems/${id}.webp`), ...BEAST_IDS.map((id) => `img/beasts/${id}.webp`)]).then(() => {
+    for (const u of [...Object.keys(GEMS).map((id) => gemImage(id)), ...BEAST_IDS.map((id) => beastIcon(id))]) {
+      const im = new Image();
+      im.src = u;
+      if (im.decode) im.decode().catch(() => {});
+      keptIcons.push(im);
+    }
+  });
+}, 300);
 
 // オフライン用 サービスワーカー
 // 新しい版が入ったら自動で再読み込みする。ただし、何も開いていないタイトル画面にいるときだけ
