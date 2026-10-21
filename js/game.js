@@ -1806,9 +1806,8 @@ export class Game {
 
   dropPickup(kind, x, y, value = 1) {
     // トレーニングはアイテムを盤面に出さず、数だけ数える（エメラルドの畑・コハクのコインなど）
-    if (this.train) {
-      // ペクトライトのしずくは、拾ったことにしてその場で回復する
-      if (kind === 'dew') { this.heal(value, true); return; }
+    // ペクトライトのしずくは武器の一部なので、トレーニングでも盤面に出す
+    if (this.train && kind !== 'dew') {
       if (this.trainStat) this.trainStat.items[kind] = (this.trainStat.items[kind] || 0) + 1;
       return;
     }
