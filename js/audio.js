@@ -6,10 +6,6 @@ import { save } from './save.js';
 const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 // ペンタトニック（ひろうたびに 音が あがっていく ドパミン音階）
 const PENTA = [0, 2, 4, 7, 9];
-// 戦闘中によく鳴る効果音の上限（作る音声ノードの数で数える。1 秒に SFX_RATE まで、まとめて SFX_CAP まで）。
-// 終盤は 1 秒に数百のノードを作っていて、iOS で落ちる原因の候補なので抑える。
-// 間隔（throttle）で音ごとの数をそろえたうえで、数の多い音は残りが keep を切ったら鳴らさず、拾う・倒す音のぶんを残す
-const SFX_RATE = 90, SFX_CAP = 40;
 
 class AudioEngine {
   constructor() {
@@ -22,6 +18,8 @@ class AudioEngine {
     this.bgmTimer = null;
     this.tempoMul = 1;
     this.nodeCount = 0; // 作った音声ノードの数（動作の記録 diag.js 用）
+    this.samples = new Map(); // 録音した効果音（sample）
+    this.bgmSamples = new Map(); // 録音した BGM の音（今の曲のぶんだけ。曲を変えたら捨てる）
   }
 
   // iOS は ユーザー操作の中で よばないと 音が でない
@@ -76,14 +74,44 @@ class AudioEngine {
   suspend() { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); }
   resume() { if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => {}); }
 
-  // 戦闘中の効果音の上限（n はその音が作る音声ノードの数、keep は残しておく数）
-  spend(n, keep = 0) {
-    const now = performance.now();
-    this.tokens = Math.min(SFX_CAP, (this.tokens == null ? SFX_CAP : this.tokens) + ((now - (this.tokT || now)) / 1000) * SFX_RATE);
-    this.tokT = now;
-    if (this.tokens - n < keep) return false;
-    this.tokens -= n;
-    return true;
+  // 戦闘中によく鳴る効果音は、1 度だけ録音（OfflineAudioContext）して、あとは録音を 1 つの音声ノードで鳴らす。
+  // 合成すると 1 回に 2〜14 個のノードを作るが、録音なら 1 個で済む（終盤は 1 秒に数百のノードを作っていて、
+  // iOS で落ちる原因の候補）。音は合成と同じ。録音ができるまでは、その場で合成して鳴らす。
+  // key は録音の名前（音の高さなどが違えば別の key）、dur は録音の長さ（秒）、synth(bus, when) は合成。
+  // BGM の音は bus・when（何秒後）を渡し、曲ごとの録音（bgmSamples）に入れる
+  sample(key, dur, synth, bus = null, when = 0) {
+    if (!this.ready) return;
+    const pool = bus ? this.bgmSamples : this.samples;
+    const buf = pool.get(key);
+    if (buf) {
+      const s = this.ctx.createBufferSource();
+      s.buffer = buf;
+      s.connect(bus || this.sfxBus);
+      s.onended = () => s.disconnect();
+      this.nodeCount += 1;
+      s.start(this.ctx.currentTime + when);
+      return;
+    }
+    if (!pool.has(key)) this.bake(pool, key, dur, synth);
+    synth(bus || this.sfxBus, when);
+  }
+  bake(pool, key, dur, synth) {
+    pool.set(key, null);
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OAC) return;
+    let off;
+    try { off = new OAC(1, Math.ceil(this.ctx.sampleRate * dur), this.ctx.sampleRate); } catch (e) { return; }
+    // 合成の行き先を録音用に差し替えて、同じ合成を 1 回だけ流す
+    const keep = [this.ctx, this.sfxBus, this.nodeCount];
+    this.ctx = off;
+    this.sfxBus = off.destination;
+    try { synth(off.destination, 0); } catch (e) { /* 録音できなければ合成のまま */ }
+    [this.ctx, this.sfxBus, this.nodeCount] = keep;
+    // 録音中に曲が変わっていたら、捨てた方の入れ物に入るだけ（今の曲の録音には混ざらない）
+    const done = (b) => { if (b) pool.set(key, b); };
+    const p = off.startRendering();
+    if (p && p.then) p.then(done).catch(() => {});
+    else off.oncomplete = (e) => done(e.renderedBuffer);
   }
 
   // 同じ音が 鳴りすぎないように
@@ -208,47 +236,58 @@ class AudioEngine {
     return 1 / (1 + 0.6 * (L.length - 1));
   }
 
+  // 高さが毎回少し変わる音は、録音を何通りか作って選ぶ
   shoot() {
-    if (!this.throttle('shoot', 70) || !this.spend(2, 8)) return;
-    this.tone(900 + Math.random() * 200, 0.07, { type: 'square', vol: 0.035, slide: 500 });
+    if (!this.throttle('shoot', 70)) return;
+    this.sample(`shoot${Math.floor(Math.random() * 4)}`, 0.1, () => this.tone(900 + Math.random() * 200, 0.07, { type: 'square', vol: 0.035, slide: 500 }));
   }
   hit() {
-    if (!this.throttle('hit', 120) || !this.spend(3, 8)) return;
-    this.noise(0.05, { vol: 0.12, freq: 2500 + Math.random() * 1500, q: 2 });
+    if (!this.throttle('hit', 35)) return;
+    this.sample(`hit${Math.floor(Math.random() * 6)}`, 0.08, () => this.noise(0.05, { vol: 0.12, freq: 2500 + Math.random() * 1500, q: 2 }));
   }
   crit() {
-    if (!this.throttle('crit', 200) || !this.spend(4, 8)) return;
-    this.tone(1800, 0.12, { type: 'triangle', vol: 0.08 });
-    this.tone(2700, 0.1, { type: 'sine', vol: 0.05, when: 0.02 });
+    if (!this.throttle('crit', 60)) return;
+    this.sample('crit', 0.16, () => {
+      this.tone(1800, 0.12, { type: 'triangle', vol: 0.08 });
+      this.tone(2700, 0.1, { type: 'sine', vol: 0.05, when: 0.02 });
+    });
   }
   kill() {
-    if (!this.throttle('kill', 40) || !this.spend(2)) return;
-    const f = 500 + Math.random() * 300;
-    this.tone(f, 0.12, { type: 'triangle', vol: 0.09, slide: f * 2.2 });
+    if (!this.throttle('kill', 40)) return;
+    this.sample(`kill${Math.floor(Math.random() * 6)}`, 0.16, () => {
+      const f = 500 + Math.random() * 300;
+      this.tone(f, 0.12, { type: 'triangle', vol: 0.09, slide: f * 2.2 });
+    });
   }
   pickup() {
-    if (!this.throttle('pickup', 28) || !this.spend(4)) return;
+    if (!this.throttle('pickup', 28)) return;
     const now = performance.now();
     if (now - this.pickupT > 450) this.pickupStep = 0;
     this.pickupT = now;
     const s = this.pickupStep++;
     const oct = Math.floor(s / 5) % 3;
     const note = 76 + PENTA[s % 5] + oct * 12;
-    this.tone(mtof(note), 0.09, { type: 'sine', vol: 0.09 });
-    this.tone(mtof(note + 12), 0.06, { type: 'triangle', vol: 0.03, when: 0.01 });
+    this.sample(`pickup${note}`, 0.12, () => {
+      this.tone(mtof(note), 0.09, { type: 'sine', vol: 0.09 });
+      this.tone(mtof(note + 12), 0.06, { type: 'triangle', vol: 0.03, when: 0.01 });
+    });
   }
   coin() {
-    if (!this.throttle('coin', 50) || !this.spend(4)) return;
-    this.tone(mtof(83), 0.06, { type: 'square', vol: 0.05 });
-    this.tone(mtof(88), 0.22, { type: 'square', vol: 0.05, when: 0.06 });
+    if (!this.throttle('coin', 50)) return;
+    this.sample('coin', 0.32, () => {
+      this.tone(mtof(83), 0.06, { type: 'square', vol: 0.05 });
+      this.tone(mtof(88), 0.22, { type: 'square', vol: 0.05, when: 0.06 });
+    });
   }
   heal() {
     [72, 76, 79, 84].forEach((n, i) => this.tone(mtof(n), 0.18, { type: 'sine', vol: 0.08, when: i * 0.05 }));
   }
   hurt() {
     if (!this.throttle('hurt', 120)) return;
-    this.tone(220, 0.15, { type: 'sawtooth', vol: 0.08, slide: 90 });
-    this.noise(0.12, { vol: 0.15, freq: 600, q: 0.8 });
+    this.sample('hurt', 0.2, () => {
+      this.tone(220, 0.15, { type: 'sawtooth', vol: 0.08, slide: 90 });
+      this.noise(0.12, { vol: 0.15, freq: 600, q: 0.8 });
+    });
   }
   levelUp() {
     const seq = [72, 76, 79, 84, 88, 91, 96];
@@ -297,32 +336,37 @@ class AudioEngine {
   }
   // max：大きい音のグループで同時に鳴らす数の上限（灼熱鉱脈の噴火は 2）
   bomb(force, max = 3) {
-    if (!force && (!this.throttle('bomb', 90) || !this.spend(7))) return;
+    if (!force && !this.throttle('bomb', 90)) return;
     const k = force ? 1 : this.voice('loud', max, 0.7); // アイテムのボムは必ず鳴らす
     if (!k) return;
-    this.noise(1.0, { vol: 0.35 * k, freq: 3000, slide: 80, q: 0.5, type: 'lowpass' });
-    this.tone(120, 0.8, { type: 'sine', vol: 0.3 * k, slide: 30 });
-    this.tone(mtof(96), 0.5, { type: 'triangle', vol: 0.06 * k });
+    // 重なりで小さくする音量（k）は数通りなので、それぞれ録音する
+    this.sample(`bomb${k.toFixed(2)}`, 1.05, () => {
+      this.noise(1.0, { vol: 0.35 * k, freq: 3000, slide: 80, q: 0.5, type: 'lowpass' });
+      this.tone(120, 0.8, { type: 'sine', vol: 0.3 * k, slide: 30 });
+      this.tone(mtof(96), 0.5, { type: 'triangle', vol: 0.06 * k });
+    });
   }
   thunder() {
-    if (!this.throttle('thunder', 200) || !this.spend(5, 8)) return;
-    this.noise(0.35, { vol: 0.2, freq: 5000, slide: 300, q: 0.7 });
-    this.tone(90, 0.3, { type: 'square', vol: 0.05, slide: 40 });
+    if (!this.throttle('thunder', 90)) return;
+    this.sample('thunder', 0.4, () => {
+      this.noise(0.35, { vol: 0.2, freq: 5000, slide: 300, q: 0.7 });
+      this.tone(90, 0.3, { type: 'square', vol: 0.05, slide: 40 });
+    });
   }
   whoosh() {
-    if (!this.throttle('whoosh', 120) || !this.spend(3, 8)) return;
-    this.noise(0.25, { vol: 0.08, freq: 600, slide: 3000, q: 3 });
+    if (!this.throttle('whoosh', 120)) return;
+    this.sample('whoosh', 0.3, () => this.noise(0.25, { vol: 0.08, freq: 600, slide: 3000, q: 3 }));
   }
   splash() {
-    if (!this.throttle('splash', 150) || !this.spend(3, 8)) return;
-    this.noise(0.4, { vol: 0.12, freq: 1200, slide: 300, q: 1 });
+    if (!this.throttle('splash', 150)) return;
+    this.sample('splash', 0.45, () => this.noise(0.4, { vol: 0.12, freq: 1200, slide: 300, q: 1 }));
   }
   miracle() {
     // MIRACLE の音は爆発と同じグループで重なりを抑える（効果そのものは制限しない）
-    if (!this.throttle('miracle', 500) || !this.spend(14, 8)) return;
+    if (!this.throttle('miracle', 70)) return;
     const k = this.voice('loud', 3, 0.46);
     if (!k) return;
-    [84, 88, 91, 96, 100, 103, 108].forEach((n, i) => this.tone(mtof(n), 0.25, { type: 'sine', vol: 0.07 * k, when: i * 0.035 }));
+    this.sample(`miracle${k.toFixed(2)}`, 0.5, () => [84, 88, 91, 96, 100, 103, 108].forEach((n, i) => this.tone(mtof(n), 0.25, { type: 'sine', vol: 0.07 * k, when: i * 0.035 })));
   }
   jackpot() {
     for (let i = 0; i < 14; i++) this.tone(mtof(i % 2 ? 88 : 83), 0.08, { type: 'square', vol: 0.05, when: i * 0.06 });
@@ -371,6 +415,8 @@ class AudioEngine {
     this.stopBgm();
     const tr = TRACKS[name];
     if (!tr) return;
+    // 前の曲の録音は捨てる（覚えておく音を今の曲のぶんだけにする）
+    this.bgmSamples = new Map();
     this.bgmTrack = { name, ...tr };
     this.step = 0;
     this.nextTime = this.ctx.currentTime + 0.08;
@@ -399,37 +445,42 @@ class AudioEngine {
     const b = this.bgmBus;
     const fever = this.tempoMul > 1.05;
     // ベース
+    // 楽器の音は 1 度録音して、あとは録音を鳴らす（sample。音は同じで、作る音声ノードが少ない）
+    const S = (key, dur, f) => this.sample(key, dur, f, b, when);
     if (tr.bass[s16] != null) {
       const n = chord[0] - 24 + tr.bass[s16];
-      this.tone(mtof(n), 0.16, { type: 'triangle', vol: 0.32, when, bus: b });
+      S(`b${n}`, 0.2, (bus, w) => this.tone(mtof(n), 0.16, { type: 'triangle', vol: 0.32, when: w, bus }));
     }
     // アルペジオ（arpPluck は撥弦の音色）
     if (tr.arp && (s16 % tr.arp === 0)) {
       const idx = Math.floor(step / tr.arp) % 4;
       const n = chord[idx % 3] + (idx === 3 ? 12 : 0) + 12;
-      if (tr.arpPluck) this.pluck(mtof(n), { when, bus: b, vol: 0.05, dur: 0.3 });
-      else this.tone(mtof(n), 0.09, { type: 'square', vol: 0.045, when, bus: b });
+      if (tr.arpPluck) S(`ap${n}`, 0.34, (bus, w) => this.pluck(mtof(n), { when: w, bus, vol: 0.05, dur: 0.3 }));
+      else S(`as${n}`, 0.13, (bus, w) => this.tone(mtof(n), 0.09, { type: 'square', vol: 0.045, when: w, bus }));
     }
     // 銅鑼（gong 小節ごとの頭）
-    if (tr.gong && s16 === 0 && bar % tr.gong === 0) this.gong({ when, bus: b });
+    if (tr.gong && s16 === 0 && bar % tr.gong === 0) S('gong', 1.95, (bus, w) => this.gong({ when: w, bus }));
     // メロディ（8分）。flute / pluck / bell / celesta で音色を変える
     if (s16 % 2 === 0 && tr.melody) {
       const mel = tr.melody[bar];
       const n = mel && mel[s16 / 2];
-      if (n && tr.flute) this.flute(mtof(n), tr.noteLen || 0.4, { when, bus: b, vol: 0.09 });
-      else if (n && tr.pluck) this.pluck(mtof(n), { when, bus: b, vol: 0.11, dur: tr.noteLen || 0.7 });
-      else if (n && tr.bell) this.bell(mtof(n), { when, bus: b, vol: 0.075 });
-      else if (n && tr.celesta) this.celesta(mtof(n), { when, bus: b, vol: 0.09 });
+      const len = tr.noteLen || (tr.flute ? 0.4 : 0.7);
+      if (n && tr.flute) S(`mf${n}`, len + 0.08, (bus, w) => this.flute(mtof(n), len, { when: w, bus, vol: 0.09 }));
+      else if (n && tr.pluck) S(`mp${n}`, len + 0.05, (bus, w) => this.pluck(mtof(n), { when: w, bus, vol: 0.11, dur: len }));
+      else if (n && tr.bell) S(`mb${n}`, 1.35, (bus, w) => this.bell(mtof(n), { when: w, bus, vol: 0.075 }));
+      else if (n && tr.celesta) S(`mc${n}`, 0.6, (bus, w) => this.celesta(mtof(n), { when: w, bus, vol: 0.09 }));
       else if (n) {
-        this.tone(mtof(n), 0.22, { type: 'sawtooth', vol: 0.035, when, bus: b, detune: 6 });
-        this.tone(mtof(n), 0.24, { type: 'sine', vol: 0.06, when, bus: b });
+        S(`ms${n}`, 0.27, (bus, w) => {
+          this.tone(mtof(n), 0.22, { type: 'sawtooth', vol: 0.035, when: w, bus, detune: 6 });
+          this.tone(mtof(n), 0.24, { type: 'sine', vol: 0.06, when: w, bus });
+        });
       }
     }
     // ドラム
     if (tr.drums) {
-      if (tr.kick.includes(s16)) this.tone(tr.kickHz || 150, tr.kickHz ? 0.24 : 0.14, { type: 'sine', vol: 0.5, slide: 40, when, bus: b });
-      if (tr.snare.includes(s16)) this.noise(0.13, { vol: 0.22, freq: 1800, q: 0.7, when, bus: b });
-      if (tr.hat.includes(s16) || (fever && s16 % 2 === 1)) this.noise(0.035, { vol: 0.09, freq: 9000, type: 'highpass', when, bus: b });
+      if (tr.kick.includes(s16)) S('kick', 0.3, (bus, w) => this.tone(tr.kickHz || 150, tr.kickHz ? 0.24 : 0.14, { type: 'sine', vol: 0.5, slide: 40, when: w, bus }));
+      if (tr.snare.includes(s16)) S('snare', 0.16, (bus, w) => this.noise(0.13, { vol: 0.22, freq: 1800, q: 0.7, when: w, bus }));
+      if (tr.hat.includes(s16) || (fever && s16 % 2 === 1)) S('hat', 0.06, (bus, w) => this.noise(0.035, { vol: 0.09, freq: 9000, type: 'highpass', when: w, bus }));
     }
   }
 }
