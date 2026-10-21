@@ -6,6 +6,10 @@ import { save } from './save.js';
 const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 // ペンタトニック（ひろうたびに 音が あがっていく ドパミン音階）
 const PENTA = [0, 2, 4, 7, 9];
+// 戦闘中によく鳴る効果音の上限（作る音声ノードの数で数える。1 秒に SFX_RATE まで、まとめて SFX_CAP まで）。
+// 終盤は 1 秒に数百のノードを作っていて、iOS で落ちる原因の候補なので抑える。
+// 間隔（throttle）で音ごとの数をそろえたうえで、数の多い音は残りが keep を切ったら鳴らさず、拾う・倒す音のぶんを残す
+const SFX_RATE = 90, SFX_CAP = 40;
 
 class AudioEngine {
   constructor() {
@@ -71,6 +75,16 @@ class AudioEngine {
 
   suspend() { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); }
   resume() { if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => {}); }
+
+  // 戦闘中の効果音の上限（n はその音が作る音声ノードの数、keep は残しておく数）
+  spend(n, keep = 0) {
+    const now = performance.now();
+    this.tokens = Math.min(SFX_CAP, (this.tokens == null ? SFX_CAP : this.tokens) + ((now - (this.tokT || now)) / 1000) * SFX_RATE);
+    this.tokT = now;
+    if (this.tokens - n < keep) return false;
+    this.tokens -= n;
+    return true;
+  }
 
   // 同じ音が 鳴りすぎないように
   throttle(name, gap) {
@@ -195,25 +209,25 @@ class AudioEngine {
   }
 
   shoot() {
-    if (!this.throttle('shoot', 70)) return;
+    if (!this.throttle('shoot', 70) || !this.spend(2, 8)) return;
     this.tone(900 + Math.random() * 200, 0.07, { type: 'square', vol: 0.035, slide: 500 });
   }
   hit() {
-    if (!this.throttle('hit', 35)) return;
+    if (!this.throttle('hit', 120) || !this.spend(3, 8)) return;
     this.noise(0.05, { vol: 0.12, freq: 2500 + Math.random() * 1500, q: 2 });
   }
   crit() {
-    if (!this.throttle('crit', 60)) return;
+    if (!this.throttle('crit', 200) || !this.spend(4, 8)) return;
     this.tone(1800, 0.12, { type: 'triangle', vol: 0.08 });
     this.tone(2700, 0.1, { type: 'sine', vol: 0.05, when: 0.02 });
   }
   kill() {
-    if (!this.throttle('kill', 40)) return;
+    if (!this.throttle('kill', 40) || !this.spend(2)) return;
     const f = 500 + Math.random() * 300;
     this.tone(f, 0.12, { type: 'triangle', vol: 0.09, slide: f * 2.2 });
   }
   pickup() {
-    if (!this.throttle('pickup', 28)) return;
+    if (!this.throttle('pickup', 28) || !this.spend(4)) return;
     const now = performance.now();
     if (now - this.pickupT > 450) this.pickupStep = 0;
     this.pickupT = now;
@@ -224,7 +238,7 @@ class AudioEngine {
     this.tone(mtof(note + 12), 0.06, { type: 'triangle', vol: 0.03, when: 0.01 });
   }
   coin() {
-    if (!this.throttle('coin', 50)) return;
+    if (!this.throttle('coin', 50) || !this.spend(4)) return;
     this.tone(mtof(83), 0.06, { type: 'square', vol: 0.05 });
     this.tone(mtof(88), 0.22, { type: 'square', vol: 0.05, when: 0.06 });
   }
@@ -283,7 +297,7 @@ class AudioEngine {
   }
   // max：大きい音のグループで同時に鳴らす数の上限（灼熱鉱脈の噴火は 2）
   bomb(force, max = 3) {
-    if (!force && !this.throttle('bomb', 90)) return;
+    if (!force && (!this.throttle('bomb', 90) || !this.spend(7))) return;
     const k = force ? 1 : this.voice('loud', max, 0.7); // アイテムのボムは必ず鳴らす
     if (!k) return;
     this.noise(1.0, { vol: 0.35 * k, freq: 3000, slide: 80, q: 0.5, type: 'lowpass' });
@@ -291,21 +305,21 @@ class AudioEngine {
     this.tone(mtof(96), 0.5, { type: 'triangle', vol: 0.06 * k });
   }
   thunder() {
-    if (!this.throttle('thunder', 90)) return;
+    if (!this.throttle('thunder', 200) || !this.spend(5, 8)) return;
     this.noise(0.35, { vol: 0.2, freq: 5000, slide: 300, q: 0.7 });
     this.tone(90, 0.3, { type: 'square', vol: 0.05, slide: 40 });
   }
   whoosh() {
-    if (!this.throttle('whoosh', 120)) return;
+    if (!this.throttle('whoosh', 120) || !this.spend(3, 8)) return;
     this.noise(0.25, { vol: 0.08, freq: 600, slide: 3000, q: 3 });
   }
   splash() {
-    if (!this.throttle('splash', 150)) return;
+    if (!this.throttle('splash', 150) || !this.spend(3, 8)) return;
     this.noise(0.4, { vol: 0.12, freq: 1200, slide: 300, q: 1 });
   }
   miracle() {
     // MIRACLE の音は爆発と同じグループで重なりを抑える（効果そのものは制限しない）
-    if (!this.throttle('miracle', 70)) return;
+    if (!this.throttle('miracle', 500) || !this.spend(14, 8)) return;
     const k = this.voice('loud', 3, 0.46);
     if (!k) return;
     [84, 88, 91, 96, 100, 103, 108].forEach((n, i) => this.tone(mtof(n), 0.25, { type: 'sine', vol: 0.07 * k, when: i * 0.035 }));

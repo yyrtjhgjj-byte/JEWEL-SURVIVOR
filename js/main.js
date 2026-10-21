@@ -488,11 +488,16 @@ const upperRefund = migrateSave();
 UI.initUI({ startGame, toTitle, toStageSelect, migrateSave, checkMetaAchievements: () => checkAchievements(null, true) });
 
 // 動作の記録（diag.js）：画面に出ている間に落ちたら、次の起動でこの様子が記録に残る
+// audioRate は直前の記録からの、1 秒あたりに作った音声ノードの数（audioNodes は起動してからの合計）
+let lastAudio = { n: 0, t: performance.now() };
 const crashed = initDiag(() => {
   const top = document.getElementById('screens').lastElementChild;
+  const now = performance.now(), dt = (now - lastAudio.t) / 1000;
+  const audioRate = dt > 0 ? Math.round((audio.nodeCount - lastAudio.n) / dt) : 0;
+  lastAudio = { n: audio.nodeCount, t: now };
   const info = {
     screen: top ? [...top.classList].filter((c) => c !== 'screen' && c !== 'dim').join(' ') || 'screen' : '',
-    audioNodes: audio.nodeCount, w: innerWidth, h: innerHeight, dpr: window.devicePixelRatio || 1,
+    audioNodes: audio.nodeCount, audioRate, w: innerWidth, h: innerHeight, dpr: window.devicePixelRatio || 1,
     os: (navigator.userAgent.match(/OS ([\d_]+)/) || [])[1] || '',
   };
   const g = game;
