@@ -146,7 +146,7 @@ export const STAGES = [
   },
   // ---------------------------------------------------------------- 第2章
   {
-    id: 'deep', no: 6, chapter: 2, name: 'ドキドキ！？深海探索ツアー！', en: 'DEEP SEA TOUR', time: 600,
+    id: 'deep', no: 6, chapter: 2, name: 'ドキドキ！？深海探索ツアー！', en: 'HEART-POUNDING!? DEEP SEA TOUR!', time: 600,
     desc: '光の届かない海の底へご招待。泡の噴き出す場所に入ると、しばらく速く泳げる。',
     hazard: 'bubbles', hazardText: '泡の噴出口（入ると加速）',
     hp: 1.4, dmg: 1.45, reward: 6000, bgm: 'deep', unlockChar: 'pectolite',
@@ -160,7 +160,7 @@ export const STAGES = [
     finalBoss: 'dagon',
   },
   {
-    id: 'rlyeh', no: 7, chapter: 2, name: 'ワクワク！？ルルイエ探検ツアー！', en: "R'LYEH EXPEDITION", time: 600,
+    id: 'rlyeh', no: 7, chapter: 2, name: 'ワクワク！？ルルイエ探検ツアー！', en: "SO EXCITING!? R'LYEH EXPEDITION TOUR!", time: 600,
     desc: '海の底から浮かび上がった、角度の狂った石の都。歪んだ門に入ると、その先へ跳ばされる。',
     hazard: 'portals', hazardText: '歪んだ門（入ると先へ跳ぶ）',
     hp: 1.6, dmg: 1.55, reward: 7000, bgm: 'rlyeh',
@@ -174,7 +174,7 @@ export const STAGES = [
     finalBoss: 'cthulhu',
   },
   {
-    id: 'lake', no: 8, chapter: 2, name: 'ハリ湖のほとりでお茶しましょ？', en: 'TEA BY LAKE HALI', time: 600,
+    id: 'lake', no: 8, chapter: 2, name: 'ハリ湖のほとりでお茶しましょ？', en: 'SHALL WE HAVE TEA BY LAKE HALI?', time: 600,
     desc: '霧の立ちこめる黄昏の湖畔で、優雅なお茶会を。お茶会の席の近くにいると、少しずつ体力が戻る。',
     hazard: 'teatime', hazardText: 'お茶会の席（近くにいると回復）',
     hp: 1.8, dmg: 1.65, reward: 8000, bgm: 'lake',
@@ -188,7 +188,7 @@ export const STAGES = [
     finalBoss: 'glaaki',
   },
   {
-    id: 'carcosa', no: 9, chapter: 2, name: 'ぶらりカルコサ巡りの旅', en: 'CARCOSA STROLL', time: 600,
+    id: 'carcosa', no: 9, chapter: 2, name: 'ぶらりカルコサ巡りの旅', en: 'NEXT STOP, CARCOSA', time: 600,
     desc: '双子の太陽が沈む黄昏の都。黒い星が昇っている間は、経験値が多く手に入る。',
     hazard: 'blackstars', hazardText: '黒い星の夜（経験値 ×1.5）',
     hp: 2.0, dmg: 1.75, reward: 9000, bgm: 'carcosa',
@@ -202,7 +202,7 @@ export const STAGES = [
     finalBoss: 'kingyellow',
   },
   {
-    id: 'space', no: 10, chapter: 2, name: '2026年宇宙の旅', en: 'A SPACE ODYSSEY', time: 600,
+    id: 'space', no: 10, chapter: 2, name: '2026年宇宙の旅', en: '2026: A SPACE ODYSSEY', time: 600,
     desc: '星々の彼方、黒い石板が待つ宇宙の果てへ。ときどき流れ星が横切り、通り道に経験値を落としていく。',
     hazard: 'meteor', hazardText: '流れ星（通り道に経験値）',
     hp: 2.2, dmg: 1.85, reward: 10000, bgm: 'space',
@@ -216,7 +216,7 @@ export const STAGES = [
     finalBoss: 'monolith',
   },
   {
-    id: 'azathoth', no: 11, chapter: 2, name: '宇宙の中心で惰眠を貪るけもの', en: 'THE BLIND IDIOT GOD', time: 600,
+    id: 'azathoth', no: 11, chapter: 2, name: '宇宙の中心で惰眠を貪るけもの', en: 'THE BEAST THAT SLUMBERED AT THE HEART OF THE UNIVERSE', time: 600,
     desc: '狂った笛の音が響く宇宙の中心。漂う混沌の泡に触れると、何かが出てくる。',
     hazard: 'chaos', hazardText: '混沌の泡（触れるとアイテム）',
     hp: 2.4, dmg: 1.95, reward: 15000, bgm: 'pipers', keepBgm: true,
