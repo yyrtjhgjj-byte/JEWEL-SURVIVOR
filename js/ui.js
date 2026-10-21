@@ -20,6 +20,7 @@ import { ROUGH, ROUGH_IDS, totalRough } from './atelier.js';
 import { syncNav, refreshNav, showHub } from './menu.js';
 import { stageScene, stageSceneCached } from './scene-art.js';
 import { showcaseBack, showcaseFront } from './case-art.js';
+import { openSpec } from './gem-spec.js';
 import { BREAK_TIME, trainDummyHp } from './game.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -1059,13 +1060,16 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
       const g = GEMS[w.gem];
       const seen = save.seen.weapons[id] || save.unlocked[id];
       const evoSeen = save.seen.evos[id];
-      zl.appendChild(el(`<div class="zitem gemcard ${seen ? '' : 'unk'}" style="--ec:${elemColor(w.gem)}">
+      const card = el(`<div class="zitem gemcard ${seen ? 'tap' : 'unk'}" style="--ec:${elemColor(w.gem)}">
         <div class="gem-ped"><img src="${gemIcon(w.gem, 96)}"></div>
         <div><div class="zname">${g.jp}<span class="en">${g.en}</span></div>${wordTag(w.gem)}
           <div class="ztext"><b>${seen ? w.name : '???'}</b> — ${seen ? w.desc : '未発見'}</div>
           <div class="ztext">${seen ? g.lore : ''}</div>
           <div class="zevo">EVOLUTION：${evoSeen ? w.evo.name : '???'}<span class="nw">（Lv${WEAPON_MAX} ＋ ${GEMS[w.evo.with].jp}）</span></div>
-        </div></div>`));
+        </div></div>`);
+      // 見たことのある武器は、押すとくわしいページを開く
+      if (seen) card.onclick = () => { audio.tap(); openSpec('weapon', id); };
+      zl.appendChild(card);
     }
   } else if (tab === 'charms') {
     for (const id of PASSIVE_IDS) {
@@ -1073,13 +1077,15 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
       const g = GEMS[p.gem];
       const seen = save.seen.passives[id];
       const evoFor = WEAPON_IDS.filter((w) => WEAPONS[w].evo.with === id).map((w) => WEAPONS[w].name);
-      zl.appendChild(el(`<div class="zitem gemcard ${seen ? '' : 'unk'}" style="--ec:${elemColor(p.gem)}">
+      const card = el(`<div class="zitem gemcard ${seen ? 'tap' : 'unk'}" style="--ec:${elemColor(p.gem)}">
         <div class="gem-ped"><img src="${gemIcon(p.gem, 96)}"></div>
         <div><div class="zname">${g.jp}<span class="en">${g.en}</span></div>${wordTag(p.gem)}
           <div class="ztext">${seen ? `${p.t}（最大Lv${p.max}）` : '未発見'}</div>
           <div class="ztext">${seen ? g.lore || '' : ''}</div>
           ${evoFor.length ? `<div class="zevo">進化素材：${evoFor.map((n) => `<span class="nw">${n}</span>`).join(' ／ ')}</div>` : ''}
-        </div></div>`));
+        </div></div>`);
+      if (seen) card.onclick = () => { audio.tap(); openSpec('charm', id); };
+      zl.appendChild(card);
     }
   } else if (tab === 'enemies') {
     // 章ごとのタブ
