@@ -318,17 +318,23 @@ export const STAGE_BY_ID = Object.fromEntries(STAGES.map((s) => [s.id, s]));
 export const CHAPTERS = [...new Set(STAGES.map((s) => s.chapter))].map((no) => ({ no, name: `第${no}章`, en: `CHAPTER ${no}` }));
 // BOSS モードの「最終ボス連戦」：章ごとに、その章の各ステージの最終ボスだけを順に出す（STAGES には入れず、STAGE_BY_ID にだけ足す）。
 // ボスごとに、もとのステージ（home）の強さ・曲を使う（game.js の rushDirector）。背景・番号（原石の質）はその章の最後のステージ
+// 名前は章の作りに合わせる（第1章：場所の名前、第2章：ツアーのパロディ、第3章：漢文の書き下し。en は元の白文。出典『左伝』）
+const FINALE_NAMES = {
+  1: ['黄昏の闘技場', 'TWILIGHT ARENA'],
+  2: ['ゾクゾク！？邪神オールスター弾丸ツアー！', 'ELDRITCH ALL-STAR TOUR'],
+  3: ['四凶族ヲ流ス', '流四凶族'],
+};
 export const FINALE_STAGES = CHAPTERS.map((c) => {
   const sts = STAGES.filter((x) => x.chapter === c.no);
   const last = sts[sts.length - 1];
   return {
-    ...last, id: `finale${c.no}`, finale: c.no, name: '最終ボス連戦', en: `${c.en} FINALE`, hazard: null, keepBgm: false, finalBgm: null, finalBoss: null, waves: [],
+    ...last, id: `finale${c.no}`, finale: c.no, name: FINALE_NAMES[c.no][0], en: FINALE_NAMES[c.no][1], hazard: null, keepBgm: false, finalBgm: null, finalBoss: null, waves: [],
     events: sts.map((x) => { const b = x.events.filter((e) => e.type === 'boss'); return { ...b[b.length - 1], home: x.id }; }),
   };
 });
 for (const st of FINALE_STAGES) STAGE_BY_ID[st.id] = st;
-// BOSS モードの表示名（ステージは番号、最終ボス連戦は章の名前つき）
-export const rushLabel = (st) => (st.finale ? `第${st.finale}章 最終ボス連戦` : `STAGE ${st.no}`);
+// 番号の札（最終ボス連戦は番号の代わりに FINALE）
+export const stageTag = (st) => (st.finale ? 'FINALE' : `STAGE ${st.no}`);
 // 敵が最初に登場する章（ステージの出現表・イベントから。ボスの眷属など、どこにも書いていない敵は第1章）
 export function enemyChapter(id) {
   for (const st of STAGES) {
