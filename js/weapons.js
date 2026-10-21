@@ -845,7 +845,7 @@ LOGIC.obsidian = {
 // ------------------------------------------------------------- ペクトライト
 // イルカは自機のまわりを泳ぎ、間隔ごとに近くの敵へ跳びかかる（跳ぶ道筋の敵に当たる）。当たった敵からしずくが飛び散り、拾うと回復
 // 進化後はイルカが 2 頭増え、跳ぶ間隔が縮み、着水の波で周りの敵にも当たる
-const DEW_CAP = 24;
+const DEW_CAP = 30;
 LOGIC.pectolite = {
   update(g, w, s, dt) {
     runBurst(w, dt);
@@ -900,11 +900,13 @@ LOGIC.pectolite = {
     if (w.t > 0) return;
     w.t = s.cd * (evo ? 0.7 : 1);
     // 跳ぶ：泳いでいるイルカが、近い敵から順に 1 頭ずつ狙う（少しずつずらして跳ぶ）
+    // 画面の中の敵だけを狙う（画面の外へ跳ぶと、イルカもしずくも見えなくなる）
     const free = dol.filter((d) => !d.leap).length;
-    if (!g.nearestEnemies(p.x, p.y, 1, 320)[0]) { w.t = 0.2; return; }
+    const near = (n) => g.nearestEnemies(p.x, p.y, n + 3, 260).filter((e) => g.inView(e, -16));
+    if (!near(1)[0]) { w.t = 0.2; return; }
     burst(w, free, 0.1, (i) => {
       const d = w.dol.find((x) => !x.leap);
-      const targets = g.nearestEnemies(p.x, p.y, free, 320);
+      const targets = near(free);
       if (!d || !targets.length) return;
       const e = targets[i % targets.length];
       let dx = e.x - d.x, dy = e.y - d.y;
@@ -921,11 +923,11 @@ LOGIC.pectolite = {
   // しずく：当たった敵からときどき飛び散る（出る間隔と盤面の数に上限）
   dew(g, w, x, y) {
     const evo = w.evolved;
-    if (w.dewT > 0 || !chance(evo ? 0.35 : 0.25)) return;
+    if (w.dewT > 0 || !chance(evo ? 0.6 : 0.5)) return;
     let c = 0;
     for (const pk of g.pickups) if (pk.kind === 'dew' && ++c >= DEW_CAP) return;
-    w.dewT = evo ? 0.3 : 0.4;
-    g.dropPickup('dew', x, y, evo ? 4 : 1.5 + w.level * 0.2);
+    w.dewT = evo ? 0.14 : 0.18;
+    g.dropPickup('dew', x, y, evo ? 1.8 : 0.7 + w.level * 0.09);
   },
   draw(g, w, s, ctx) {
     if (!w.dol) return;

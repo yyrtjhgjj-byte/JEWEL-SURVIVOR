@@ -1838,7 +1838,8 @@ export class Game {
       if (isChest || pk.kind === 'rough') this.hazards.collide(pk, 12);
       // 遠くに取り残したコイン・回復などは消す（エンドレスで溜まり続けないように）
       if (!isChest && pk.kind !== 'rough' && pk.kind !== 'xp' && d2 > farItem2) continue;
-      if (!isChest && pk.t > 0.25 && (d2 < mR2 || pk.vac)) {
+      // ペクトライトのしずくは、出たところが見えるように少し長く地面に残してから吸い寄せる
+      if (!isChest && pk.t > (pk.kind === 'dew' ? 0.7 : 0.25) && (d2 < mR2 || pk.vac)) {
         pk.vac = true;
         const d = Math.sqrt(d2) || 1;
         pk.sp = (pk.sp || 120) + 900 * dt;
@@ -2415,9 +2416,17 @@ export class Game {
       else if (pk.kind === 'rough') spr = roughSprite(pk.value, ROUGH[pk.value].color, 13);
       else spr = itemSprite(pk.kind === 'coin' ? 'coin' : pk.kind);
       const L2 = spr.logical;
-      if (pk.kind !== 'xp' && pk.kind !== 'coin') {
+      if (pk.kind === 'dew') {
+        // ペクトライトのしずく：イルカの光（星形）と見分けやすいよう、丸い光で脈打たせる
         ctx.globalCompositeOperation = 'lighter';
-        const st = starSprite(pk.kind === 'heart' ? '#ff7ab8' : pk.kind === 'dew' ? '#6fd6ff' : pk.kind === 'rough' ? ROUGH[pk.value].color : '#ffe9a0');
+        ctx.globalAlpha = 0.55 + 0.25 * Math.sin(this.time * 7 + pk.x * 0.05);
+        const s = 20;
+        ctx.drawImage(softSprite('#6fe0ff'), pk.x - s, pk.y - s + bob, s * 2, s * 2);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+      } else if (pk.kind !== 'xp' && pk.kind !== 'coin') {
+        ctx.globalCompositeOperation = 'lighter';
+        const st = starSprite(pk.kind === 'heart' ? '#ff7ab8' : pk.kind === 'rough' ? ROUGH[pk.value].color : '#ffe9a0');
         const s = 26 + Math.sin(this.time * 6) * 4;
         ctx.drawImage(st, pk.x - s, pk.y - s + bob, s * 2, s * 2);
         ctx.globalCompositeOperation = 'source-over';

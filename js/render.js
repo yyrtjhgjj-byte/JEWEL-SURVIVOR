@@ -4556,7 +4556,7 @@ export function itemSprite(kind) {
   } else if (kind === 'heart') {
     drawGem(ctx, 11, { color: '#ff4d8d', light: '#ffc2d9', dark: '#9a0040' }, 'heart');
   } else if (kind === 'dew') {
-    drawGem(ctx, 7, { color: '#4cc3e8', light: '#e0f8ff', dark: '#13698f' }, 'drop');
+    drawGem(ctx, 10, { color: '#5fd4f5', light: '#f0fcff', dark: '#1a7fa8' }, 'drop');
   } else if (kind === 'magnet') {
     ctx.lineWidth = 6;
     ctx.lineCap = 'butt';
