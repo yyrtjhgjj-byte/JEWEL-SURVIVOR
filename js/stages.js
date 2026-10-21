@@ -321,7 +321,7 @@ export const CHAPTERS = [...new Set(STAGES.map((s) => s.chapter))].map((no) => (
 // 名前は章の作りに合わせる（第1章：場所の名前、第2章：パロディ（『八十日間世界一周』）、第3章：漢文の書き下し。en は元の白文。出典『左伝』）
 const FINALE_NAMES = {
   1: ['黄昏の闘技場', 'TWILIGHT ARENA'],
-  2: ['五分間邪神一周', 'AROUND THE DARK GODS IN FIVE MINUTES'],
+  2: ['五分間邪神一周', 'AROUND THE OLD ONES IN FIVE MINUTES'],
   3: ['四凶族ヲ流ス', '流四凶族'],
 };
 export const FINALE_STAGES = CHAPTERS.map((c) => {
