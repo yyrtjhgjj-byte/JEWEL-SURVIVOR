@@ -8,7 +8,7 @@ import { audio } from './audio.js';
 import { save, persist } from './save.js';
 import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost } from './data.js';
 import { ARTIFACTS } from './artifacts.js';
-import { STAGES, STAGE_BY_ID, rushLabel } from './stages.js';
+import { STAGES, STAGE_BY_ID, stageTag } from './stages.js';
 import { gemSprite, starSprite, backgroundTile, clearEnemySprites } from './render.js';
 import { TAU, rand, pick, preloadImages } from './util.js';
 import * as UI from './ui.js';
@@ -235,7 +235,7 @@ function startGame(charId, opt = {}) {
   audio.tempoMul = 1;
   if (!(opt.resume && game.boss)) audio.playBgm(stage.bgm);
   const m = Math.floor(stage.time / 60);
-  if (opt.resume) UI.banner('RESUME', 'start', opt.rush ? `BOSS ・ ${rushLabel(stage)}` : stage.name);
+  if (opt.resume) UI.banner('RESUME', 'start', opt.rush ? `BOSS ・ ${stageTag(stage)}` : stage.name);
   else if (opt.train) {
     UI.banner('TRAINING', 'start', opt.train.target === 'crowd' ? '群れ' : '木人');
   } else if (opt.rush) {
