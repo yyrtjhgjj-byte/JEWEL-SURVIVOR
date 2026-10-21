@@ -9,7 +9,7 @@ import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickax
 import { mountLiveGem } from './gem-gl.js';
 import { diagCrashes, diagLaunches, clearDiag } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
-import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter } from './stages.js';
+import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter, FINALE_STAGES, rushLabel } from './stages.js';
 import { fmt, fmtTime, pick, todayStr } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState, RANK_CLASSES } from './rank.js';
@@ -478,7 +478,13 @@ export function showStageSelect() {
   const kind = (c) => (c === 'boss' || c === 'train' ? c : 'stage');
   // BOSS モード：クリア済みのステージのボスたちと連戦する。武器とチャームは自由に選ぶ（save.rushLoadout）
   const cleared = (id) => !!stageRec(id).cleared;
-  let rsel = cleared(save.rushStage) ? save.rushStage : (STAGES.find((st) => cleared(st.id)) || {}).id || null;
+  // 最終ボス連戦は、その章のステージをすべてクリアすると開く
+  const rushOk = (id) => {
+    const st = STAGE_BY_ID[id];
+    if (!st) return false;
+    return st.finale ? STAGES.filter((x) => x.chapter === st.finale).every((x) => cleared(x.id)) : cleared(id);
+  };
+  let rsel = rushOk(save.rushStage) ? save.rushStage : (STAGES.find((st) => cleared(st.id)) || {}).id || null;
   const lo = save.rushLoadout || (save.rushLoadout = { w: [CHARACTERS[save.selected] ? CHARACTERS[save.selected].weapon : 'ruby'], p: [] });
   // 秘宝の持ち込み（通常のステージと BOSS モードで共通）
   const artHTML = () => {
@@ -687,6 +693,17 @@ export function showStageSelect() {
           if (ok) scenes.push([card, st]);
           list.appendChild(card);
         }
+        // 章の最後に、その章の最終ボスだけと連戦する「最終ボス連戦」
+        const fin = FINALE_STAGES.find((x) => x.finale === c.no);
+        const fok = rushOk(fin.id);
+        const fbest = (save.bossRush || {})[fin.id] || 0;
+        const fcard = el(`<button class="stage-card rush-card finale ${fok ? '' : 'locked'} ${fin.id === rsel ? 'sel' : ''}">
+          <div class="st-head"><span class="st-no">FINALE</span>${fbest ? `<span class="st-clear">最高 ${fbest} 体</span>` : ''}</div>
+          <div class="st-name">${fin.name}</div>
+          ${fok ? `<div class="rush-boss">${fin.events.map((e) => e.enemy).map((id) => `<img src="${enemyIcon(ENEMIES[id].sprite || id, Math.min(ENEMIES[id].r, 40), ENEMIES[id].tint)}">`).join('')}</div>` : `<div class="st-desc">🔒 ${c.name}のステージをすべてクリアで解放</div>`}
+        </button>`);
+        if (fok) fcard.onclick = () => { rsel = fin.id; save.rushStage = fin.id; audio.cardFlip(fin.no); markSel(fcard); renderRush(); };
+        list.appendChild(fcard);
       }
       paintScenes(scenes);
       return;
@@ -1941,7 +1958,7 @@ export function resumePrompt(res, onResume, onSettle) {
       <div class="big-title prism-text">RESUME</div>
       <div class="sub-title">中断したランがあります</div>
       <div class="panel" style="min-width:260px">
-        <div class="rrow"><span>ステージ</span><b>${res.rush ? `BOSS ・ STAGE ${st.no}` : st.name}${res.heat ? `　HEAT ${res.heat}` : ''}</b></div>
+        <div class="rrow"><span>ステージ</span><b>${res.rush ? `BOSS ・ ${rushLabel(st)}` : st.name}${res.heat ? `　HEAT ${res.heat}` : ''}</b></div>
         <div class="rrow"><span>ジュエル</span><b>${GEMS[res.charId].jp}</b></div>
         <div class="rrow"><span>経過時間</span><b>${fmtTime(r.time)}</b></div>
         ${res.rush ? `<div class="rrow"><span>倒したボス</span><b>${res.rush.kills} 体</b></div>` : `<div class="rrow"><span>レベル</span><b>LV ${r.level}</b></div>`}
@@ -1999,7 +2016,7 @@ export function results(res, cleared, extra) {
       <div class="rays"></div>
       <div class="result-head">
         ${res.rush ? '<div class="big-title prism-text">BOSS RUSH</div>' : cleared ? '<div class="big-title prism-text">STAGE CLEAR</div>' : '<div class="big-title lose">GAME OVER</div>'}
-        <div class="sub-title" style="margin-top:6px">${res.rush ? 'BOSS ・ ' : ''}STAGE ${STAGE_BY_ID[res.stageId].no}　${STAGE_BY_ID[res.stageId].name}${res.heat ? `　HEAT ${res.heat}` : ''}${res.endless ? '　ENDLESS' : ''}${res.hyper ? '　HYPER' : ''}${res.hurry ? '　HURRY' : ''}</div>
+        <div class="sub-title" style="margin-top:6px">${res.rush ? `BOSS ・ ${rushLabel(STAGE_BY_ID[res.stageId])}` : `STAGE ${STAGE_BY_ID[res.stageId].no}　${STAGE_BY_ID[res.stageId].name}`}${res.heat ? `　HEAT ${res.heat}` : ''}${res.endless ? '　ENDLESS' : ''}${res.hyper ? '　HYPER' : ''}${res.hurry ? '　HURRY' : ''}</div>
         ${extra.firstClear ? `<div class="hint" style="margin-top:6px;color:#ffe39a">初クリア報酬 ${fmt(STAGE_BY_ID[res.stageId].reward)} コイン${extra.unlocked ? ` ／ ${GEMS[extra.unlocked].jp} 解放` : ''}${extra.nextStage ? ` ／ ${extra.nextStage} 解放` : ''}</div>` : ''}
       </div>
       <div class="panel" id="rows"></div>

@@ -316,6 +316,19 @@ export const STAGE_BY_ID = Object.fromEntries(STAGES.map((s) => [s.id, s]));
 
 // 章（ステージ選択と敵図鑑のタブ）。ステージの chapter で分ける
 export const CHAPTERS = [...new Set(STAGES.map((s) => s.chapter))].map((no) => ({ no, name: `第${no}章`, en: `CHAPTER ${no}` }));
+// BOSS モードの「最終ボス連戦」：章ごとに、その章の各ステージの最終ボスだけを順に出す（STAGES には入れず、STAGE_BY_ID にだけ足す）。
+// ボスごとに、もとのステージ（home）の強さ・曲を使う（game.js の rushDirector）。背景・番号（原石の質）はその章の最後のステージ
+export const FINALE_STAGES = CHAPTERS.map((c) => {
+  const sts = STAGES.filter((x) => x.chapter === c.no);
+  const last = sts[sts.length - 1];
+  return {
+    ...last, id: `finale${c.no}`, finale: c.no, name: '最終ボス連戦', en: `${c.en} FINALE`, hazard: null, keepBgm: false, finalBgm: null, finalBoss: null, waves: [],
+    events: sts.map((x) => { const b = x.events.filter((e) => e.type === 'boss'); return { ...b[b.length - 1], home: x.id }; }),
+  };
+});
+for (const st of FINALE_STAGES) STAGE_BY_ID[st.id] = st;
+// BOSS モードの表示名（ステージは番号、最終ボス連戦は章の名前つき）
+export const rushLabel = (st) => (st.finale ? `第${st.finale}章 最終ボス連戦` : `STAGE ${st.no}`);
 // 敵が最初に登場する章（ステージの出現表・イベントから。ボスの眷属など、どこにも書いていない敵は第1章）
 export function enemyChapter(id) {
   for (const st of STAGES) {

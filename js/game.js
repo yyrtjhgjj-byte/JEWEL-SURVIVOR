@@ -145,7 +145,9 @@ export class Game {
     // 最高記録の続きから始めたときの開始位置（それまでに倒した数。rushWarp）
     this.rushFrom = 0;
     this.rushNextT = 3;
-    this.rushOrder = this.stage.events.filter((e) => e.type === 'boss').map((e) => ({ enemy: e.enemy, mul: e.mul || 1, t: e.t }));
+    this.rushOrder = this.stage.events.filter((e) => e.type === 'boss').map((e) => ({ enemy: e.enemy, mul: e.mul || 1, t: e.t, home: e.home }));
+    // 最終ボス連戦：いま戦っているボスのもとのステージ（ボスが呼ぶ雑魚の強さにも使う）
+    this.rushHome = null;
     this.hazards = new Hazards(this, this.rush || this.train ? { ...this.stage, hazard: null } : this.stage);
     this.bot = !!opts.bot;
     this.god = !!opts.god;
@@ -634,6 +636,9 @@ export class Game {
     const ev = this.rushOrder[this.rushKills % n];
     const p = this.player, a = -Math.PI / 2 + rand(-0.5, 0.5);
     // 1 周目はステージで出るときと同じ強さ（攻撃力は、そのボスが出る時刻の時間の伸びを掛ける。HP の時間の伸びはボスにはない）
+    // 最終ボス連戦は、ボスごとにもとのステージの強さと曲を使う
+    this.rushHome = ev.home ? STAGE_BY_ID[ev.home] : null;
+    const hs = this.rushHome || this.stage;
     const e = this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * (this.viewR * 0.8), p.y + Math.sin(a) * (this.viewR * 0.8), { mul: ev.mul });
     e.dmg *= 1 + Math.min(ev.t / TIME_SCALE, 900) / 600;
     e.atkT = 2;
@@ -642,7 +647,7 @@ export class Game {
     this.hooks.bossBar(e);
     this.hooks.banner(ENEMIES[ev.enemy].name, 'boss', `${lap + 1} 周目 ・ ${(this.rushKills % n) + 1} / ${n}${lap ? ` ・ ×${2 ** lap}` : ''}`);
     // keepBgm のステージ（アザトース）は、目覚めの曲のまま次の周に入らないよう、ボスが出るたびにステージの曲へ戻す
-    audio.playBgm(this.stage.keepBgm ? this.stage.bgm : this.bossBgm(ev.enemy));
+    audio.playBgm(hs.keepBgm ? hs.bgm : this.bossBgm(ev.enemy, hs));
     this.fx.shake(12);
     save.seen.enemies[ev.enemy] = true;
   }
@@ -893,8 +898,8 @@ export class Game {
   }
 
   // ボス戦の曲（ステージの finalBgm があれば最終ボスはその曲。第3章は四凶の曲）
-  bossBgm(type) {
-    return type === this.stage.finalBoss ? this.stage.finalBgm || 'final' : 'boss';
+  bossBgm(type, st = this.stage) {
+    return type === st.finalBoss ? st.finalBgm || 'final' : 'boss';
   }
 
   spawnEnemy(type, x, y, o = {}) {
@@ -902,12 +907,14 @@ export class Game {
     const elite = !!o.elite;
     // ボスの HP は段階ごとの基本値（data.js）× ステージ × ヒート（自機のレベルが 20 を超えた分だけ 1%/Lv 硬くなる）。
     // 雑魚は時間の伸び（hpScale）× 自機の強さ（trashMul。大群イベント・エリート・シーフは連動させない）、エリートは雑魚の 2 倍
-    const mul = d.boss ? BOSS_HP * (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) * this.stage.hp * this.heatM.hp
+    // 最終ボス連戦では、いま戦っているボスのもとのステージの倍率を使う（ボスが呼ぶ雑魚も同じ）
+    const st = this.rushHome || this.stage;
+    const mul = d.boss ? BOSS_HP * (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) * st.hp * this.heatM.hp
       : d.prop ? 1 : this.hpScale() * (elite ? 2 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1);
     // 敵の攻撃力（dmg）：雑魚・エリート 2 倍、ボス 1.5 倍（弾・レーザーもこれをもとにする）
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
-      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * this.stageDmg * (d.boss ? 1.5 : 2), xp: d.xp,
+      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * (this.rushHome ? this.rushHome.dmg * this.heatM.dmg : this.stageDmg) * (d.boss ? 1.5 : 2), xp: d.xp,
       vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop, segment: !!d.segment,
       frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
       ai: d.ai || type, spr: d.sprite || type, weave: d.weave, kbk: kbWeight(d, elite),
@@ -2230,6 +2237,8 @@ export class Game {
     this.player.hp = Math.max(1, Math.min(this.player.maxHp, s.hp));
     this.player.iT = 2;
     const p = this.player;
+    // 最終ボス連戦：いま戦っているボスのもとのステージ
+    if (this.rush) { const cur = this.rushOrder[this.rushKills % this.rushOrder.length]; this.rushHome = cur && cur.home ? STAGE_BY_ID[cur.home] : null; }
     for (const b of s.bossList || []) {
       const a = -Math.PI / 2 + rand(-0.5, 0.5);
       const e = this.spawnEnemy(b.type, p.x + Math.cos(a) * this.viewR * 0.8, p.y + Math.sin(a) * this.viewR * 0.8);
@@ -2243,8 +2252,9 @@ export class Game {
     }
     if (this.boss) {
       this.hooks.bossBar(this.boss);
-      if (this.stage.keepBgm) audio.playBgm(this.boss.azWoke ? 'azathoth' : this.stage.bgm);
-      else audio.playBgm(this.bossBgm(this.boss.type));
+      const bs = this.rushHome || this.stage;
+      if (bs.keepBgm) audio.playBgm(this.boss.azWoke ? 'azathoth' : bs.bgm);
+      else audio.playBgm(this.bossBgm(this.boss.type, bs));
     }
     this.modalQueue = []; // 開始時の初期強化の分は、保存したモーダルに含まれている
     for (const m of s.modals || []) this.modalQueue.push(m);
