@@ -1520,9 +1520,9 @@ export function hud(g) {
   const t = fmtTime(g.time);
   if (H.timer.textContent !== t) H.timer.textContent = t;
   if (g.rush) {
-    // 周と、いま（倒したあとは次）のボスが 1 周の何体目か
-    const n = g.rushOrder.length;
-    const lt = `${Math.floor(g.rushKills / n) + 1} 周目 ・ ${(g.rushKills % n) + 1} / ${n}`;
+    // 周と、いま出ているボス（次のボスが出るまでは倒したボス）が 1 周の何体目か
+    const n = g.rushOrder.length, c = g.rushCur ?? g.rushKills;
+    const lt = `${Math.floor(c / n) + 1} 周目 ・ ${(c % n) + 1} / ${n}`;
     if (H.rushlap.textContent !== lt) H.rushlap.textContent = lt;
   }
   if (g.kills !== lastKills) { H.kills.textContent = fmt(g.kills); lastKills = g.kills; }
