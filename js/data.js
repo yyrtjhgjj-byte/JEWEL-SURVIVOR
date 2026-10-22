@@ -870,7 +870,7 @@ export const EXCHANGE = {
   large: 15, // 大原石 1 個
   awaken: 30, // 覚醒 1 段階（解放済みのジュエル、最大 5）
   // 選べる原石（中身の宝石を選べる。狙った宝石が出るまで研磨し続けなくて済むための天井なので高め）
-  pick: { shard: 200, rough: 350, large: 480, mystic: 600 },
+  pick: { shard: 200, rough: 300, large: 400, mystic: 500 },
 };
 export const AWAKEN_MAX = 5;
 export const RARITY = {
