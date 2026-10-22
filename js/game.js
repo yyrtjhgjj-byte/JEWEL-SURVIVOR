@@ -793,7 +793,7 @@ export class Game {
     const got = { evo: 0, up: 0, lb: 0 };
     // 開始時の 1 つと、倒した from 体ぶん（k 体目は +k-1）
     for (let i = 0; i <= from; i++) {
-      for (const c of this.rollChest(true, Math.max(0, i - 1)).items) {
+      for (const c of this.rollChest(true, i ? this.rushChestPlus(i) : 0).items) {
         if (c.type === 'evo') got.evo++;
         else if (c.type === 'lb' || c.type === 'plb') got.lb++;
         else if (c.type === 'wup' || c.type === 'pup') got.up++;
@@ -803,6 +803,15 @@ export class Game {
     this.rushKills = this.rushFrom = from;
     this.player.hp = this.stats.maxHp;
     this.modalQueue.push({ type: 'rushWarp', n: from + 1, from, ...got });
+  }
+  // BOSS モードの k 体目の宝箱の追加の枠（2 倍の周では k-1）。1 周の強化が 2 倍より大きい最終ボス連戦は、
+  // 強さの伸びに合わせて「2 倍の周なら何体目ぶんか」（r = log2(倍率) 倍）の宝箱をまとめて 1 つにする
+  rushChestPlus(k) {
+    const r = Math.log2(rushStep(this.stage));
+    const a = Math.floor(r * (k - 1) + 1e-9) + 1, b = Math.max(a, Math.floor(r * k + 1e-9));
+    let plus = 0;
+    for (let j = a; j <= b; j++) plus += j - 1;
+    return plus + (b - a) * this.chestCount(true);
   }
   // BOSS モードの原石：盤面には落とさず、リザルトでまとめて渡す（roughGot に足す）。
   // 1 体ごとにステージと同じ抽選、1 周するたびにおまけで大原石か秘石。周が進むほど上の段階になりやすい
@@ -1619,7 +1628,7 @@ export class Game {
     // BOSS モードは宝箱を拾わず、撃破の演出のあとそのまま BOSS TREASURE の画面を開く
     // 中身はそれまでに倒した数だけ多い（1 体目 +0、2 体目 +1 …。ユーザーの指定）
     if (this.rush) {
-      this.modalQueue.push({ type: 'chest', big: true, plus: this.rushKills });
+      this.modalQueue.push({ type: 'chest', big: true, plus: this.rushChestPlus(this.rushKills + 1) });
       audio.chestOpen();
     } else this.dropPickup('bigchest', e.x, e.y);
     if (e.artChest && this.arts.length < this.artMax && this.artifactChoices().length) this.modalQueue.push({ type: 'artifact' });
