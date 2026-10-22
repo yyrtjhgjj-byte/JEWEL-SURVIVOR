@@ -93,6 +93,7 @@
 | js/input.js | フローティング仮想スティック（PC は WASD／矢印） |
 | sw.js | Service Worker（ネットワーク優先） |
 | tools/test/ | Playwright のテストと計測（§7） |
+| TODO-gems.md | 未実装の宝石の候補（ユーザーのリスト）と、元ネタのジュエルパワー |
 
 ## 4. ゲームの仕様（要点）
 
