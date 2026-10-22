@@ -634,6 +634,8 @@ export class Game {
     const n = this.rushOrder.length;
     const lap = Math.floor(this.rushKills / n);
     const ev = this.rushOrder[this.rushKills % n];
+    // HUD の「何周目・何体目」は、いま出ているボス（次のボスが出るまでは倒したボス）を数える
+    this.rushCur = this.rushKills;
     const p = this.player, a = -Math.PI / 2 + rand(-0.5, 0.5);
     // 1 周目はステージで出るときと同じ強さ（攻撃力は、そのボスが出る時刻の時間の伸びを掛ける。HP の時間の伸びはボスにはない）
     // 最終ボス連戦は、ボスごとにもとのステージの強さと曲を使う
