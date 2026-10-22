@@ -6,7 +6,7 @@ import {
   charmLbMax, charmLbPer,
 } from './data.js';
 import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
-import { STAGES, STAGE_BY_ID, heatMods, TIME_SCALE } from './stages.js';
+import { STAGES, STAGE_BY_ID, heatMods, TIME_SCALE, rushStep } from './stages.js';
 import { AI, onEnemyKilled, thiefTick, spillEaten } from './enemies.js';
 import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
@@ -645,7 +645,7 @@ export class Game {
     e.atk2 = 5;
     this.boss = e;
     this.hooks.bossBar(e);
-    this.hooks.banner(ENEMIES[ev.enemy].name, 'boss', `${lap + 1} 周目 ・ ${(this.rushKills % n) + 1} / ${n}${lap ? ` ・ ×${2 ** lap}` : ''}`);
+    this.hooks.banner(ENEMIES[ev.enemy].name, 'boss', `${lap + 1} 周目 ・ ${(this.rushKills % n) + 1} / ${n}${lap ? ` ・ ×${rushStep(this.stage) ** lap}` : ''}`);
     // keepBgm のステージ（アザトース）は、目覚めの曲のまま次の周に入らないよう、ボスが出るたびにステージの曲へ戻す
     audio.playBgm(hs.keepBgm ? hs.bgm : this.bossBgm(ev.enemy, hs));
     this.fx.shake(12);
@@ -815,7 +815,7 @@ export class Game {
   }
   // BOSS モードの強さの倍率（1 周するたびに 2 倍。HP と攻撃力に掛ける）
   rushMul() {
-    return this.rush ? 2 ** Math.floor(this.rushKills / this.rushOrder.length) : 1;
+    return this.rush ? rushStep(this.stage) ** Math.floor(this.rushKills / this.rushOrder.length) : 1;
   }
 
   ringPos(extra = 40) {
