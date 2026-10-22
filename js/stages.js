@@ -335,6 +335,8 @@ export const FINALE_STAGES = CHAPTERS.map((c) => {
 for (const st of FINALE_STAGES) STAGE_BY_ID[st.id] = st;
 // 番号の札（最終ボス連戦は番号の代わりに FINALE）
 export const stageTag = (st) => (st.finale ? 'FINALE' : `STAGE ${st.no}`);
+// BOSS モードで 1 周ごとに強くなる倍率（最終ボス連戦は周を短くするため 3 倍、ほかは 2 倍）
+export const rushStep = (st) => (st && st.finale ? 3 : 2);
 // 敵が最初に登場する章（ステージの出現表・イベントから。ボスの眷属など、どこにも書いていない敵は第1章）
 export function enemyChapter(id) {
   for (const st of STAGES) {

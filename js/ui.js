@@ -9,7 +9,7 @@ import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickax
 import { mountLiveGem } from './gem-gl.js';
 import { diagCrashes, diagLaunches, clearDiag } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
-import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter, FINALE_STAGES, stageTag } from './stages.js';
+import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter, FINALE_STAGES, stageTag, rushStep } from './stages.js';
 import { fmt, fmtTime, pick, todayStr } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState, RANK_CLASSES } from './rank.js';
@@ -521,7 +521,7 @@ export function showStageSelect() {
     const best = rushBest(rsel);
     const lap = best ? Math.floor(best / rushPer(rsel)) : 0;
     $('#opts', node).innerHTML = `${artHTML()}
-      ${best ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHECKPOINT<small>最高記録の ${best + 1} 体目（${lap + 1} 周目${lap ? ` ×${2 ** lap}` : ''}）から。BOSS TREASURE ×${best + 1} を開けた状態で始める</small></span><button class="switch ${save.rushFromBest ? 'on' : ''}" id="rfrom"></button></div>` : ''}
+      ${best ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHECKPOINT<small>最高記録の ${best + 1} 体目（${lap + 1} 周目${lap ? ` ×${rushStep(STAGE_BY_ID[rsel]) ** lap}` : ''}）から。BOSS TREASURE ×${best + 1} を開けた状態で始める</small></span><button class="switch ${save.rushFromBest ? 'on' : ''}" id="rfrom"></button></div>` : ''}
       <div class="rp-head"><span>WEAPON</span><b>${lo.w.length} / ${MAX_WEAPONS}</b></div>
       <div class="rush-pick">${pickHTML(WEAPON_IDS, lo.w, MAX_WEAPONS, 'w')}</div>
       <div class="rp-head"><span>CHARM</span><b>${lo.p.length} / ${MAX_CHARMS}</b></div>
