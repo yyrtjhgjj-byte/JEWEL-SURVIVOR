@@ -557,7 +557,10 @@ export const LOGIC = {
       if (w.t > 0) return;
       w.t = s.cd;
       const p = g.player;
-      const targets = g.strongestEnemies(p.x, p.y, s.amount, 480);
+      // HP の高い順に別々の敵を狙う。ただし先頭の 1/4 に届かない弱い敵には分けない（槍が多いとボスの取り巻きへ散らばるため）。
+      // 眠っていて攻撃が効かない敵とワームの胴体は狙わない
+      const cand = g.strongestEnemies(p.x, p.y, s.amount + 8, 480).filter((e) => !e.asleep && !e.segment);
+      const targets = cand.filter((e) => e.hp >= cand[0].hp * 0.25).slice(0, s.amount);
       burst(w, s.amount, 0.12, (i) => {
         let a;
         const e = targets[i % Math.max(1, targets.length)];
