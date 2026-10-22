@@ -2149,7 +2149,7 @@ export function results(res, cleared, extra) {
   for (const [id, v] of sorted) {
     const w = res.weapons.find((x) => x.id === id);
     const c = gemColor(WEAPONS[id].gem);
-    const r = el(`<div class="dmgrow"><img src="${gemIcon(WEAPONS[id].gem, 48)}"><div style="flex:1"><div>${w && w.evolved ? WEAPONS[id].evo.name : WEAPONS[id].name}</div><div class="bar"><i style="background:${c};box-shadow:0 0 8px ${c}"></i></div></div><div class="num">${fmt(v)}</div></div>`);
+    const r = el(`<div class="dmgrow"><img src="${gemIcon(WEAPONS[id].gem, 48)}"><div class="dn">${w && w.evolved ? WEAPONS[id].evo.name : WEAPONS[id].name}</div><div class="num">${fmt(v)}</div><div class="bar"><i style="background:${c};box-shadow:0 0 8px ${c}"></i></div></div>`);
     dmgEl.appendChild(r);
     setTimeout(() => ($('.bar i', r).style.width = (v / total) * 100 + '%'), 300);
   }
