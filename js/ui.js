@@ -1454,7 +1454,7 @@ export function hudShow(on) {
   $('#hud').classList.toggle('hidden', !on);
   if (on) {
     Object.assign(H, {
-      xp: $('#xpfill'), lv: $('#lvtext'), timer: $('#timer'), kills: $('#kills'), coins: $('#coins'),
+      xp: $('#xpfill'), lv: $('#lvtext'), timer: $('#timer'), rushlap: $('#rushlap'), kills: $('#kills'), coins: $('#coins'),
       coinstat: $('#coinstat'), slots: $('#slots'), fever: $('#feverfill'), combo: $('#combo'), comboB: $('#combo b'),
       boss: $('#bossbar'), bossFill: $('#bossbar .bfill'), bossBreak: $('#bossbar .bbfill'), bossName: $('#bossbar .bname'), hud: $('#hud'),
     });
@@ -1519,6 +1519,12 @@ export function hud(g) {
   if (g.level !== lastLv) { H.lv.textContent = `LV ${g.level}`; lastLv = g.level; }
   const t = fmtTime(g.time);
   if (H.timer.textContent !== t) H.timer.textContent = t;
+  if (g.rush) {
+    // 周と、いま（倒したあとは次）のボスが 1 周の何体目か
+    const n = g.rushOrder.length;
+    const lt = `${Math.floor(g.rushKills / n) + 1} 周目 ・ ${(g.rushKills % n) + 1} / ${n}`;
+    if (H.rushlap.textContent !== lt) H.rushlap.textContent = lt;
+  }
   if (g.kills !== lastKills) { H.kills.textContent = fmt(g.kills); lastKills = g.kills; }
   if (g.coins !== lastCoins) {
     H.coins.textContent = fmt(g.coins);
@@ -1877,12 +1883,17 @@ export function chest(g, big, done, plus = 0) {
   node.classList.toggle('many', plus >= 3);
   screens().appendChild(node);
   const chestEl = $('#chest', node);
+  // BOSS モードは開ける回数が多いので演出を短くする（fast）。開けている途中で画面を押すと、残りを飛ばして結果を出す
+  const fast = !!g.rush;
+  let skip = false;
+  const w = (ms) => (skip ? Promise.resolve() : wait(fast ? ms * 0.35 : ms));
+  node.addEventListener('pointerdown', (ev) => { if (ev.target.id !== 'ok') skip = true; });
   const allIcons = [...WEAPON_IDS.map((id) => gemIcon(WEAPONS[id].gem, 72)), ...PASSIVE_IDS.map((id) => gemIcon(PASSIVES[id].gem, 72))];
   (async () => {
-    await wait(250);
+    await w(250);
     chestEl.classList.add('shake');
-    audio.drumroll(1.0);
-    await wait(1000);
+    if (!skip) audio.drumroll(fast ? 0.35 : 1.0);
+    await w(1000);
     chestEl.classList.remove('shake');
     chestEl.classList.add('open');
     audio.chestOpen();
@@ -1907,7 +1918,7 @@ export function chest(g, big, done, plus = 0) {
       slots.forEach((s) => { if (s.classList.contains('spin')) $('img', s).src = pick(allIcons); });
       audio.slotTick(tick++);
     }, 70);
-    await wait(500);
+    await w(500);
     // 枠が多いときは、全部で 2.4 秒ほどで止まるように速める
     const step = Math.min(330, Math.round(2400 / slots.length));
     for (let i = 0; i < slots.length; i++) {
@@ -1917,18 +1928,17 @@ export function chest(g, big, done, plus = 0) {
       if (c.type === 'evo') s.classList.add('evo');
       $('img', s).src = itemIcon(c);
       $('.sl', s).textContent = itemLabel(g, c);
-      audio.cardFlip(i % 8);
-      haptic();
-      await wait(c.type === 'evo' ? 600 : step);
+      if (!skip) { audio.cardFlip(i % 8); haptic(); }
+      await w(c.type === 'evo' ? 600 : step);
     }
     clearInterval(iv);
     const cc = $('#ccoins', node);
     cc.innerHTML = `${coinIco}<span></span>`;
-    await countUp($('span', cc), res.coins, 700, (v) => '+' + fmt(v));
+    await countUp($('span', cc), res.coins, skip ? 1 : fast ? 250 : 700, (v) => '+' + fmt(v));
     audio.bigWin();
     const ok = $('#ok', node);
     ok.classList.remove('hidden');
-    guard(ok, 400);
+    guard(ok, fast ? 250 : 400);
     ok.onclick = async () => {
       audio.tap();
       node.remove();

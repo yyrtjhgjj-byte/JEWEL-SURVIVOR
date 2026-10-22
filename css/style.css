@@ -385,6 +385,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 #hudleft { display: flex; flex-direction: column; gap: 1px; font-weight: 700; }
 #lvtext { font-size: 15px; letter-spacing: 0.15em; color: #fff; }
 #hud.rush #xpbar, #hud.rush #lvtext, #hud.rush #feverwrap { display: none; }
+/* BOSS モード：タイムの下に周と何体目か */
+#rushlap { display: none; position: absolute; left: 50%; top: 34px; transform: translateX(-50%); font-size: 13px; font-weight: 700; color: #ffe39a; letter-spacing: 0.08em; white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+#hud.rush #rushlap { display: block; }
 /* トレーニング：左の数値パネル（通常のランには出さない） */
 #hud.train #coinstat, #hud:not(.train) #trainpanel { display: none; }
 .train-panel {
