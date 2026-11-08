@@ -398,7 +398,7 @@ export function showCharSelect() {
         <div>
           <div class="name">${unlocked ? g.jp : '???'}</div>
           <div class="sub"><span class="en">${g.en}</span>${wordTag(sel)}</div>
-          <div class="row">武器 <b>${w.name}</b></div>
+          <div class="row">ウェポン <b>${w.name}</b></div>
           <div class="row">特性 <b>${c.perk}</b>${aw ? ` ／ 覚醒+${aw}（攻撃力+${aw * 5}%）` : ''}</div>
         </div>
       </div>
@@ -1123,7 +1123,7 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
     <div class="screen" data-nav="archive">
       ${tab === 'trophy' ? topbar('RECORDS', '実績', null, 'records#ach') : `${topbar('LIBRARY', '図鑑', null, 'records#library')}
       <div class="tabs">
-        <button class="tab ${tab === 'gems' ? 'on' : ''}" data-t="gems">武器</button>
+        <button class="tab ${tab === 'gems' ? 'on' : ''}" data-t="gems">ウェポン</button>
         <button class="tab ${tab === 'charms' ? 'on' : ''}" data-t="charms">チャーム</button>
         <button class="tab ${tab === 'enemies' ? 'on' : ''}" data-t="enemies">敵</button>
         <button class="tab ${tab === 'arts' ? 'on' : ''}" data-t="arts">秘宝</button>
@@ -1516,7 +1516,8 @@ const LIFE_HEART = '<svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 20.
 export function hud(g) {
   if (g.train) trainPanel(g);
   H.xp.style.transform = `scaleX(${Math.min(1, g.xp / g.xpNext)})`;
-  if (g.level !== lastLv) { H.lv.textContent = `LV ${g.level}`; lastLv = g.level; }
+  const lvKey = g.level + (g.autoOn ? 'a' : '');
+  if (lvKey !== lastLv) { H.lv.innerHTML = `LV ${g.level}${g.autoOn ? '<span class="autotag">AUTO</span>' : ''}`; lastLv = lvKey; }
   const t = fmtTime(g.time);
   if (H.timer.textContent !== t) H.timer.textContent = t;
   if (g.rush) {
@@ -1625,14 +1626,14 @@ function choiceInfo(g, c) {
     const word = `${gem.jp}「${gem.word}」`;
     if (c.type === 'wnew') {
       const tags = (save.seen.weapons[c.id] ? '' : T_NEW) + evoTagForWeapon(g, def);
-      return { icon: gemIcon(def.gem, 96), name: def.name, lv: 'NEW', desc: def.desc, word, rar: g.hasPassive(def.evo.with) ? 'SR' : 'R', tags };
+      return { icon: gemIcon(def.gem, 96), name: def.name, lv: 'NEW', desc: def.desc, word, rar: g.choiceRar(c), tags };
     }
     if (c.type === 'lb') {
       const w = g.getWeapon(c.id);
-      return { icon: gemIcon(def.gem, 96), name: w.evolved ? def.evo.name : def.name, lv: `LIMIT BREAK ${(w.lbN || 0) + 1}`, desc: LIMIT_BREAK[c.stat].t, word, rar: 'R', tags: '' };
+      return { icon: gemIcon(def.gem, 96), name: w.evolved ? def.evo.name : def.name, lv: `LIMIT BREAK ${(w.lbN || 0) + 1}`, desc: LIMIT_BREAK[c.stat].t, word, rar: g.choiceRar(c), tags: '' };
     }
     if (c.type === 'evo') {
-      return { icon: gemIcon(def.gem, 96), name: def.evo.name, lv: 'EVOLUTION', desc: def.evo.desc, word: `${def.name} ＋ ${GEMS[def.evo.with].jp}`, rar: 'UR', tags: save.seen.evos[c.id] ? '' : T_NEW };
+      return { icon: gemIcon(def.gem, 96), name: def.evo.name, lv: 'EVOLUTION', desc: def.evo.desc, word: `${def.name} ＋ ${GEMS[def.evo.with].jp}`, rar: g.choiceRar(c), tags: save.seen.evos[c.id] ? '' : T_NEW };
     }
     const w = g.getWeapon(c.id);
     const next = Math.min(WEAPON_MAX, w.level + (c.double ? 2 : 1));
@@ -1640,7 +1641,7 @@ function choiceInfo(g, c) {
     const real = (t) => t.replace(/ダメージ \+(\d+)/g, (_, n) => `ダメージ +${Math.round(n * (def.dmgMul || 1))}`);
     let desc = real(def.levels[w.level - 1].t);
     if (c.double && def.levels[w.level]) desc += ' ／ ' + real(def.levels[w.level].t);
-    return { icon: gemIcon(def.gem, 96), name: def.name, lv: `LV ${w.level} → ${next}${next >= WEAPON_MAX ? ' MAX' : ''}`, desc, word, rar: c.double ? 'SSR' : next >= WEAPON_MAX ? 'SR' : 'N', tags: evoTagForWeapon(g, def) };
+    return { icon: gemIcon(def.gem, 96), name: def.name, lv: `LV ${w.level} → ${next}${next >= WEAPON_MAX ? ' MAX' : ''}`, desc, word, rar: g.choiceRar(c), tags: evoTagForWeapon(g, def) };
   }
   if (c.type === 'pnew' || c.type === 'pup' || c.type === 'plb') {
     const P = PASSIVES[c.id];
@@ -1648,15 +1649,15 @@ function choiceInfo(g, c) {
     const word = `ジュエルパワー「${gem.word}」`;
     if (c.type === 'plb') {
       const p = g.getPassive(c.id);
-      return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LIMIT BREAK ${(p.lbN || 0) + 1}`, desc: charmLbText(c.id), word, rar: 'R', tags: '' };
+      return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LIMIT BREAK ${(p.lbN || 0) + 1}`, desc: charmLbText(c.id), word, rar: g.choiceRar(c), tags: '' };
     }
     if (c.type === 'pnew') {
       const evoTags = evoTagsForCharm(g, c.id, false);
-      return { icon: gemIcon(P.gem, 96), name: P.name, lv: 'NEW', desc: P.t, word, rar: evoTags ? 'UR' : 'R', tags: (save.seen.passives[c.id] ? '' : T_NEW) + evoTags };
+      return { icon: gemIcon(P.gem, 96), name: P.name, lv: 'NEW', desc: P.t, word, rar: g.choiceRar(c), tags: (save.seen.passives[c.id] ? '' : T_NEW) + evoTags };
     }
     const p = g.getPassive(c.id);
     const next = Math.min(P.max, p.level + (c.double ? 2 : 1));
-    return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LV ${p.level} → ${next}`, desc: P.t + (c.double ? ' ×2' : ''), word, rar: c.double ? 'SSR' : 'N', tags: evoTagsForCharm(g, c.id, true) };
+    return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LV ${p.level} → ${next}`, desc: P.t + (c.double ? ' ×2' : ''), word, rar: g.choiceRar(c), tags: evoTagsForCharm(g, c.id, true) };
   }
   if (c.type === 'coins') return { icon: coinIcon(96), name: 'コイン', lv: '', desc: `${c.value} コイン獲得`, word: '', rar: 'N' };
   return { icon: gemIcon('garnet', 96), name: '全回復', lv: '', desc: 'HPを全回復', word: '', rar: 'N' };
@@ -1698,7 +1699,25 @@ export function artifactChoice(g, done) {
   pickArtifact(ids, (id) => { if (id) g.addArtifact(id); done(); }, false);
 }
 
+// オートセレクトで選んだことを自機の上に小さく出す
+const RAR_TEXT = { UR: '#ffffff', SSR: '#ffd24a', SR: '#c78bff', R: '#7fd0ff', N: '#e8e6f2' };
+function autoPicked(g, c) {
+  const p = g.player;
+  if (c.type === 'heal25') return;
+  const info = choiceInfo(g, c);
+  g.fx.text(p.x, p.y - 40, `${info.name} ${info.lv}`, { size: 13, color: RAR_TEXT[info.rar], rainbow: info.rar === 'UR', life: 1.2, vy: -40 });
+}
+
 export function levelUp(g, done) {
+  if (g.autoOn) {
+    const c = g.autoChoice(g.rollChoices());
+    autoPicked(g, c);
+    audio.select();
+    const evolved = g.applyChoice(c);
+    if (evolved) evolveScene(evolved, done);
+    else done();
+    return;
+  }
   haptic();
   const node = el(`
     <div class="screen dim lvl-screen">
@@ -1708,7 +1727,7 @@ export function levelUp(g, done) {
       <div class="sub-title"><b>LV ${g.level - g.pendingLevels}</b>　強化を1つ選択</div>
       <div class="lvl-order">良い順 ${RARITY_ORDER}</div>
       <div class="cards" id="cards"></div>
-      <div class="lvl-actions"><button class="btn small" id="reroll"></button><button class="btn small" id="skip"></button><button class="btn small" id="banish"></button></div>
+      <div class="lvl-actions"><button class="btn small" id="reroll"></button><button class="btn small" id="skip"></button><button class="btn small" id="banish"></button>${g.stats.autoPick > 0 ? '<button class="btn small auto-btn" id="auto">AUTO</button>' : ''}</div>
       <div class="banish-hint">除外する候補をタップ（このランでは二度と出なくなります）</div>
     </div>`);
   screens().appendChild(node);
@@ -1717,6 +1736,8 @@ export function levelUp(g, done) {
   let locked = false;
   let banishMode = false;
   let cur = [];
+  // 今のカード（オートセレクトで押すため）
+  let cardEls = [];
   // バニッシュ：その武器・チャームをこのランの候補から外し、カードを消す
   const banish = (c) => {
     if (c.type === 'evo' || g.banishes <= 0) return;
@@ -1731,6 +1752,7 @@ export function levelUp(g, done) {
   };
   const render = (choices) => {
     cur = choices;
+    cardEls = [];
     cardsEl.innerHTML = '';
     node.classList.toggle('banishing', banishMode);
     node.classList.toggle('many', choices.length >= 5); // 選択肢が多いときは詰めて表示
@@ -1749,6 +1771,7 @@ export function levelUp(g, done) {
           g.applyChoice(c);
           setTimeout(() => { node.remove(); done(); }, 420);
         };
+        cardEls.push(card);
         cardsEl.appendChild(card);
         return;
       }
@@ -1777,6 +1800,7 @@ export function levelUp(g, done) {
           else done();
         }, 420);
       };
+      cardEls.push(card);
       cardsEl.appendChild(card);
     });
     if (choices.some((c) => c.type === 'evo')) setTimeout(() => audio.bigWin(), 200);
@@ -1809,6 +1833,14 @@ export function levelUp(g, done) {
     g.rerolls--;
     audio.whoosh();
     render(g.rollChoices());
+  };
+  // AUTO：オートセレクトを ON にして、今のカードからも選ぶ（OFF にはポーズ画面で）
+  const au = $('#auto', node);
+  if (au) au.onclick = () => {
+    if (locked || banishMode) return;
+    g.autoPick = true;
+    const c = g.autoChoice(cur);
+    cardEls[cur.indexOf(c)].onclick();
   };
   render(g.rollChoices());
 }
@@ -2022,6 +2054,7 @@ export function pauseMenu(g, onResume, onQuit) {
       <button class="btn big primary" id="resume">RESUME</button>
       <div class="rbtns" style="margin:0">
         ${g.train ? '<button class="btn" id="treset">数値リセット</button>' : ''}
+        ${g.stats.autoPick > 0 && !g.rush && !g.train ? `<button class="btn" id="autosel">オートセレクト ${g.autoPick ? 'ON' : 'OFF'}</button>` : ''}
         <button class="btn" id="set">設定</button>
         <button class="btn" id="quit">${g.train ? '装備を変える' : 'リタイア'}</button>
       </div>
@@ -2029,6 +2062,9 @@ export function pauseMenu(g, onResume, onQuit) {
   screens().appendChild(node);
   $('#resume', node).onclick = () => { audio.tap(); node.remove(); onResume(); };
   $('#set', node).onclick = () => { audio.tap(); showSettings(null, true); };
+  const as = $('#autosel', node);
+  if (as) as.onclick = () => { audio.tap(); g.autoPick = !g.autoPick; as.textContent = `オートセレクト ${g.autoPick ? 'ON' : 'OFF'}`; as.classList.toggle('on', g.autoPick); };
+  if (as) as.classList.toggle('on', g.autoPick);
   // トレーニング：数値と的を最初からにして再開
   const tr = $('#treset', node);
   if (tr) tr.onclick = () => { audio.tap(); g.trainReset(); node.remove(); onResume(); };
