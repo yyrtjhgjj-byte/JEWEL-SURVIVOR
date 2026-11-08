@@ -55,6 +55,9 @@
 
 **音**
 - 大きい音（爆発・MIRACLE）は audio.js の `voice('loud', 3, …)` で同時数を抑える。アイテムのボムは `bomb(true)` で必ず鳴らし、灼熱鉱脈の噴火は `bomb(false, 2)`。
+- BGM は 8bit 風のチップ音源（js/chip.js。パルス波・三角波・のこぎり波・ノイズのドラム。音量は 0〜15 の 16 段階、音色のマクロは 1/60 秒ごと）で、js/songs.js の楽譜（MML）を鳴らす。AudioWorklet の 1 つのノード（`audio.chip`）が曲を合成し、使えないブラウザでは同じ音源を ScriptProcessor で動かす。曲を変える・止める・速さ（フィーバーの `tempoMul`）は port に送る。
+- 楽譜：旋律・対旋律は MML で手で書き、伴奏は和音の名前から作る（songs.js の arp・bass・pads）。曲には小節ごとの和音 `chords` と旋律のチャンネル `melody` を書き、tools/test/chip-check.js が小節の長さ・ループの位置のずれと、旋律の長い音が和音とぶつかっていないかを見る。やまびこ（チャンネルの `echo`）は同じ音を遅らせて小さく鳴らす別の声。第3章の銅鑼はドラムとは別のチャンネル（鳴らしたまま響かせるため）。
+- 曲の名前（`SONGS` のキー）はステージの `bgm`・`finalBgm` と game.js・ui.js の playBgm から呼ぶ。渾沌の輪の弾は chuou の 140 BPM に合わせてある（enemies.js）。
 
 ## 3. 構成
 
@@ -79,7 +82,8 @@
 | js/gem-spec.js | 武器・チャームのくわしいページ（図鑑のカードから開く）。くわしい動きの文 `WEAPON_SPEC`・`CHARM_SPEC` |
 | img/gems/ / img/beasts/ | 宝石のアイコンと百獣の絵（書き出した画像。tools/gem-bake.html・tools/beast-art.js・tools/test/gem-bake.js） |
 | js/fx.js | パーティクル・ダメージ数字・揺れ・フラッシュ |
-| js/audio.js | WebAudio の効果音と BGM |
+| js/audio.js | WebAudio の効果音と BGM の切り替え |
+| js/chip.js / songs.js | BGM のチップ音源（MML の読み込みと合成。AudioWorklet）と、全曲の楽譜・音色 |
 | js/ui.js | 全画面（タイトル〜リザルト、HUD、バナー） |
 | js/menu.js | 画面の下のメニューと、カテゴリごとのハブ |
 | js/atelier.js / atelier-ui.js / auction.js / beasts.js | 宝石の研磨・コレクション・オークション・百獣（atelier-ui.js の showAtelier(tab) が各画面） |
@@ -272,7 +276,7 @@
 
 **重さ対策**（iPhone SE2 で落ちることがある。原因は未特定で、iOS 特有のメモリの上限を疑っている。実機で落ちたら設定の「動作の記録」をコピーしてもらう）
 - 効果音の音声ノードは、鳴り終わったら必ず disconnect する（audio.js の onended）。
-- 戦闘中によく鳴る効果音と BGM の楽器の音は、1 度だけ録音（OfflineAudioContext）して、あとは録音を 1 つの音声ノードで鳴らす（audio.js の sample。合成だと 1 回に 2〜14 個のノードを作る）。高さが毎回変わる音は録音を何通りか作り、BGM の録音は今の曲のぶんだけ持つ（playBgm で捨てる）。数を減らして音をまばらにすると違和感が出るので、鳴らす数は間隔（throttle）だけで決める。よく鳴る効果音を足すときも sample を通す。動作の記録の `audioRate` は直前の 1 秒あたりに作ったノードの数（`audioNodes` は起動してからの合計）。
+- 戦闘中によく鳴る効果音は、1 度だけ録音（OfflineAudioContext）して、あとは録音を 1 つの音声ノードで鳴らす（audio.js の sample。合成だと 1 回に 2〜14 個のノードを作る）。高さが毎回変わる音は録音を何通りか作る。数を減らして音をまばらにすると違和感が出るので、鳴らす数は間隔（throttle）だけで決める。BGM は AudioWorklet の中で合成するので、鳴らしても音声ノードは増えない。よく鳴る効果音を足すときも sample を通す。動作の記録の `audioRate` は直前の 1 秒あたりに作ったノードの数（`audioNodes` は起動してからの合計）。
 - 一時的なキャンバスを作り捨てしない（iOS の Safari は捨てたものも回収されるまで数える）。アイコンは render.js の iconBegin / iconEnd で 1 枚を使い回し、作業用を作ったら使い終わりに `width = height = 1` にする。敵の絵のキャッシュはランの開始時に捨てる（main.js の startGame で clearEnemySprites）。
 - 攻撃範囲は `AREA_CAP` まで（武器ごとのリミットブレイクも含める）。サファイアのオーブとエメラルドのクローバーは見た目の数にも上限がある。
 - autoRes で画質を段階的に下げる。パーティクル・リング・稲妻・ダメージ数字には上限がある（fx.js）。
@@ -293,7 +297,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v179`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v180`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
@@ -344,6 +348,8 @@ node tools/test/gem-bake.js [ruby,opal]            # 宝石のアイコンと百
 node tools/test/gem-bake.js all beasts             # 百獣の絵だけ書き出す
 node tools/test/biz-sim.js 40 120 1500             # 経営のバランス（日数、開く間隔（分）、1 ランの平均コイン。ブラウザ不要）
 node tools/test/biz-tut.js                         # 経営のチュートリアルを新しいセーブで最後まで通す（SHOT=<フォルダ> で手順ごとの画像）
+node tools/test/chip-check.js [title,boss]         # BGM の楽譜（小節の長さ・ループ・旋律と和音のぶつかり、曲の長さ）。ブラウザ不要
+MP3=1 node tools/test/chip-render.js title <フォルダ>  # BGM を WAV・MP3 に書き出して試聴（前奏＋ループ 1 回。SPEC=1 でスペクトログラム、TEMPO=1.18）
 ```
 
 - テストは変えた箇所に絞る。clear.js はステージ・ボスを変えたときだけ、wrap.js は文字や画面を変えたときだけ（SE の画面のみ）。
