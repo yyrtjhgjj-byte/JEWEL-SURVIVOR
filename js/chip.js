@@ -1,5 +1,6 @@
 // =====================================================================
-//  チップ音源：8bit 風の BGM の合成（パルス波・三角波・のこぎり波・ノイズのドラム）と、楽譜（MML）の読み込み
+//  BGM の音源：楽譜（MML）の読み込みと合成。8bit 風のチップ音源（パルス波・三角波・のこぎり波・ノイズのドラム）と、
+//  楽器の音源（笛・弦・金管・合唱・はじく弦・打楽器と残響。第2・3章）
 //  AudioWorklet（'chip'）でも、メインスレッド（AudioWorklet が使えないとき）でも、Node（tools/test/chip-render.js）でも同じ音が出る。
 //  DOM もセーブも読まない
 // =====================================================================
@@ -282,7 +283,7 @@ export function compileSong(song, lib = {}) {
       out.push({ ...base, pan: pan === undefined ? -base.pan : pan, ev: ec });
     }
   }
-  return { song: { bpm: song.bpm, T, loop, ch: out, inst: instList, reverb: song.reverb || null }, warnings };
+  return { song: { bpm: song.bpm, T, loop, ch: out, inst: instList, reverb: song.reverb || null, gain: song.gain || 1 }, warnings };
 }
 
 // ---------------------------------------------------------------- 合成
@@ -566,6 +567,7 @@ class PercVoice {
     this.pp = new Float64Array(8);
     this.pa = new Float32Array(8);
     this.pd = new Float32Array(8);
+    this.pr = new Float32Array(8);
   }
   start(d, vel) {
     const sr = this.sr;
@@ -608,13 +610,13 @@ class PercVoice {
       this.md = T60(len, sr);
     }
     const P = d.p || [];
-    this.npart = P.length;
-    for (let k = 0; k < P.length; k++) {
+    this.npart = Math.min(8, P.length);
+    for (let k = 0; k < this.npart; k++) {
       this.pp[k] = 0;
       this.pa[k] = P[k][1];
       this.pd[k] = T60(P[k][2], sr);
+      this.pr[k] = (P[k][0] * (d.pf || 100)) / sr;
     }
-    this.pr = P.map((x) => (x[0] * (d.pf || 100)) / sr);
     this.sw = d.sw ? 1 / (d.sw * sr) : 0;
     this.swv = d.sw ? 0 : 1;
   }
@@ -687,6 +689,7 @@ class InstVoice {
     this.f1 = new SVF();
     this.f2 = new SVF();
     this.f3 = new SVF();
+    this.is = new Float32Array(3);
     this.buf = null;
   }
   start(P, e, vel) {
@@ -737,8 +740,7 @@ class InstVoice {
         this.dc[2 * k] = T60(it, sr);
         this.dc[2 * k + 1] = adec ? T60(adec, sr) : 1;
       }
-      this.is = pr.map((x) => x[3] / (2 * Math.PI));
-      this.fb = 0;
+      for (let k = 0; k < this.np; k++) this.is[k] = pr[k][3] / (2 * Math.PI);
     } else if (this.model === 'sub') {
       this.np = P.n || 1;
       for (let k = 0; k < this.np; k++) {
@@ -997,14 +999,11 @@ class PolyChannel {
     for (const v of this.voices) if (!v.done && v.st !== 3 && v.g <= tick) v.release();
     while (this.idx < this.ev.length && this.ev[this.idx].t <= tick) this.trigger(this.ev[this.idx++]);
   }
+  // 鳴らす音を用意する。重ねられる数（poly）を超えたら、いちばん古い音を止めて使う
   voice() {
-    let v = this.pool.pop();
-    if (!v) v = this.perc ? new PercVoice(this.sr) : new InstVoice(this.sr);
-    if (this.voices.length >= this.max) {
-      const old = this.voices.shift();
-      old.done = true;
-      this.pool.push(old);
-    }
+    let v;
+    if (this.voices.length >= this.max) v = this.voices.shift();
+    else v = this.pool.pop() || (this.perc ? new PercVoice(this.sr) : new InstVoice(this.sr));
     this.voices.push(v);
     return v;
   }
@@ -1055,9 +1054,14 @@ class PolyChannel {
       R[off + i] += x * gr;
       RV[off + i] += x * rv;
     }
-    for (let k = this.voices.length - 1; k >= 0; k--) {
-      if (this.voices[k].done) this.pool.push(this.voices.splice(k, 1)[0]);
+    // 鳴り終わった音を並びから外して使い回しに戻す（配列を作らずに詰める）
+    const vs = this.voices;
+    let w = 0;
+    for (let k = 0; k < vs.length; k++) {
+      if (vs[k].done) this.pool.push(vs[k]);
+      else vs[w++] = vs[k];
     }
+    vs.length = w;
   }
 }
 
@@ -1188,7 +1192,7 @@ export class ChipSynth {
     const lpA = this.lpA;
     const hpR = this.hpR;
     const fs = 1 / (0.04 * this.sr);
-    const g = this.master;
+    const g = this.master * song.gain;
     for (let s = 0; s < n; s++) {
       if (this.fade !== this.fadeTo) {
         this.fade += this.fadeTo > this.fade ? fs : -fs;

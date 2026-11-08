@@ -55,9 +55,10 @@
 
 **音**
 - 大きい音（爆発・MIRACLE）は audio.js の `voice('loud', 3, …)` で同時数を抑える。アイテムのボムは `bomb(true)` で必ず鳴らし、灼熱鉱脈の噴火は `bomb(false, 2)`。
-- BGM は 8bit 風のチップ音源（js/chip.js。パルス波・三角波・のこぎり波・ノイズのドラム。音量は 0〜15 の 16 段階、音色のマクロは 1/60 秒ごと）で、js/songs.js の楽譜（MML）を鳴らす。AudioWorklet の 1 つのノード（`audio.chip`）が曲を合成し、使えないブラウザでは同じ音源を ScriptProcessor で動かす。曲を変える・止める・速さ（フィーバーの `tempoMul`）は port に送る。
-- 楽譜：旋律・対旋律は MML で手で書き、伴奏は和音の名前から作る（songs.js の arp・bass・pads）。曲には小節ごとの和音 `chords` と旋律のチャンネル `melody` を書き、tools/test/chip-check.js が小節の長さ・ループの位置のずれと、旋律の長い音が和音とぶつかっていないかを見る。やまびこ（チャンネルの `echo`）は同じ音を遅らせて小さく鳴らす別の声。第3章の銅鑼はドラムとは別のチャンネル（鳴らしたまま響かせるため）。
-- 曲の名前（`SONGS` のキー）はステージの `bgm`・`finalBgm` と game.js・ui.js の playBgm から呼ぶ。渾沌の輪の弾は chuou の 140 BPM に合わせてある（enemies.js）。
+- BGM は js/chip.js の音源で js/songs.js の楽譜（MML）を鳴らす。AudioWorklet の 1 つのノード（`audio.chip`）が曲を合成し、使えないブラウザでは同じ音源を ScriptProcessor で動かす。曲を変える・止める・速さ（フィーバーの `tempoMul`）は port に送る。
+- 音色は 2 種類（ユーザーの希望）。タイトル・第1章（ボス戦を含む）・リザルト・経営は 8bit 風のチップ音源（チャンネルの type が pulse・tri・saw・drum。音量は 0〜15 の 16 段階、音色のマクロは 1/60 秒ごと）。第2・3章は楽器の音色（type が inst・perc）で、音色の `model` は add（倍音を足す：笛・鐘・オルガン）・fm（エレピ・チェレスタ）・sub（フィルターで削る：弦・金管・合唱・二胡・嗩吶）・ks（弦をはじく：ハープ・古筝・琵琶・ピチカート）。inst は和音（`{c e g}4`）を鳴らせ、`poly` まで音を重ねる。perc は打楽器の組（chip.js の `PERC`）。楽器の曲は残響（曲の `reverb`、チャンネルの `rev`）を使い、曲ごとの音量の差は曲の `gain` でそろえる（tools/test/chip-render.js の RMS で -23〜-24 dB）。
+- 楽譜：旋律・対旋律は MML で手で書き、伴奏は和音の名前から作る（songs.js の arp・bass・pads、楽器の和音の塊は blocks）。曲には小節ごとの和音 `chords` と旋律のチャンネル `melody` を書き、tools/test/chip-check.js が小節の長さ・ループの位置のずれと、旋律の長い音が和音とぶつかっていないかを見る（フリギアなどわざとぶつける音は、確かめ用の和音 mb9・mb6 で書く）。やまびこ（チャンネルの `echo`）は同じ音を遅らせて小さく鳴らす別の声。第3章の銅鑼はドラムとは別のチャンネル（鳴らしたまま響かせるため）。
+- 曲の名前（`SONGS` のキー）はステージの `bgm`・`bossBgm`・`finalBgm`（第1章は boss・final。game.js の bossBgm）と ui.js などの playBgm から呼ぶ。外なる奏者（pipers）の主題は旧曲の笛の旋律で、目覚めたアザトースの終わりにも出る。渾沌の輪の弾は chuou の 140 BPM に合わせてある（enemies.js）。
 
 ## 3. 構成
 
@@ -83,7 +84,7 @@
 | img/gems/ / img/beasts/ | 宝石のアイコンと百獣の絵（書き出した画像。tools/gem-bake.html・tools/beast-art.js・tools/test/gem-bake.js） |
 | js/fx.js | パーティクル・ダメージ数字・揺れ・フラッシュ |
 | js/audio.js | WebAudio の効果音と BGM の切り替え |
-| js/chip.js / songs.js | BGM のチップ音源（MML の読み込みと合成。AudioWorklet）と、全曲の楽譜・音色 |
+| js/chip.js / songs.js | BGM の音源（MML の読み込み、チップ音源と楽器の音源、残響。AudioWorklet）と、全曲の楽譜・音色 |
 | js/bgm-old.js | 旧曲（チップ音源にする前の BGM。ジュークボックスの「旧曲」だけで鳴らす） |
 | js/ui.js | 全画面（タイトル〜リザルト、HUD、バナー） |
 | js/menu.js | 画面の下のメニューと、カテゴリごとのハブ |
@@ -162,7 +163,7 @@
 - 筋：舜が四方の果てに流した四凶が、魑魅魍魎を率いてくる（『左伝』）。並びは 北（窮奇）→ 東（檮杌）→ 西（饕餮）→ 中央（渾沌）で、背景色とボスの飾りの宝石も五行の色に寄せた。
 - 雑魚：共通の 6 種（ai なしで tint で色が変わる。`BASE_COL` にも登録）＋ステージ専用 2 種。蠱雕は羽ばたく（game.js の `FLAP`）。中ボスは羿が討った六つの害と、渾沌に穴を開けた儵・忽（AI は boss1 / boss2）。
 - 読みにくい名前は ENEMIES の `kana`（図鑑で名前の横に小さく出す）。
-- 最終ボスの曲はステージの `finalBgm`（game.js の bossBgm で選ぶ。ジュークボックスにも出る）。
+- ボス戦の曲はステージの `bossBgm`・`finalBgm`（game.js の bossBgm で選ぶ。ジュークボックスにも出る）。
 - 渾沌：HP を 7 等分した境目ごとに顔に穴が開いて攻撃が増え、七つ目（口）で死ぬ。絵のコマは `e.sprFrame`。穴の数は HP から決めるので途中保存には入れない。
 - 饕餮：吸い込んだ経験値とコインを、ブレイクか撃破のときに 1.5 倍で吐き出す（enemies.js の spillEaten）。地形の鼎は render.js の鼎の絵（f=2・3）。
 
@@ -209,7 +210,7 @@
 - 百獣（beasts.js）：同じ宝石 10 個で動物の彫刻を召喚・強化。動物の名前・実績名（『ルビー』など二重鉤括弧ごと）はユーザーの指定。絵は `shape`（横向きの型）を厚みのある立体にふくらませ、三角形ごとに面の向きをそろえたカットした宝石の置物として、宝石と同じ光線追跡で書き出した画像（tools/beast-art.js → img/beasts。台座は黒い磨いた石。透明な石は後ろからの光で色を透かし、ラブラドライトは暗い灰色に青緑のひらめき）。beastIcon は画像の URL を返す。形や材質を変えたら書き出し直す。
 - オークション（auction.js・atelier-ui.js）：ランを終えるたびに新しい開催（refreshLot）。1 回の開催は 3 点（宝石 2・原石の詰め合わせ 1）を順に競り、品ごとに参加か見送りを選ぶ。ライバル 3 人は開催ごとの予算（`rivals[id].left`。落札で減り、あとの品に響く）と品ごとの欲しがり具合（`lot.want`）を持ち、どちらも画面に出す。参加しない・降りた品は settleWithoutYou でライバルどうしの結果を決める。入札後にアプリが落ちた品（`lot.joined`）は、次に開いたとき（currentSession）降りた扱いで先へ進める。セーブの形は `{ v: 2, lots, cur, rivals }`（`v` が違えば作り直す）。裏オークション（`save.auction2`、`AUCTION_KINDS.black`）は別枠の開催で、品質・カラットの高い宝石と秘石の多い詰め合わせが出る。ライバルの名前は裏の世界の住人（`BLACK_RIVALS`）。詰め合わせの絵は中身にかかわらず原石を 3 つ三角に積む（atelier-ui.js の bundleStones。入っている種類を良い順に 1 つずつ、残りは数の多い種類）。
 - 競りの会場と落札の画面は `isolation: isolate` で重なりを閉じている（中の z-index が後から重ねる画面の上に描かれるため）。
-- ジュークボックス（jukebox.js）：ステージの曲はそのステージを解放すると、ボス戦などの曲は一度流れると聴ける（audio.playBgm が `save.seen.bgm` に記録）。未解放の曲はステージ名を出さない。BGM を足したら `trackList()` にも足す。上の「新曲／旧曲」（`save.tabs.jbOld`）で、旧曲（bgm-old.js。audio.playOldBgm）に切り替えて聴ける。切り替えると流れている曲をもう一方で流し直す。
+- ジュークボックス（jukebox.js）：ステージの曲はそのステージを解放すると、ボス戦などの曲は一度流れると聴ける（audio.playBgm が `save.seen.bgm` に記録）。未解放の曲はステージ名を出さない。BGM を足したら `trackList()` にも足す（章ごとのボス戦の曲は `BOSS_BGM`）。上の「新曲／旧曲」（`save.tabs.jbOld`）で、旧曲（bgm-old.js。audio.playOldBgm）に切り替えて聴ける。切り替えると流れている曲をもう一方で流し直す。旧曲のない曲（`NEW_ONLY`）は旧曲のときに押せない。
 - ユーザーランク（rank.js）、ログインボーナス（ui.js の `LOGIN_REWARDS`。受け取った日数の累計 `save.login.days` で 7 日周期）、実績（data.js。ラン中の記録で判定するものと、`meta` でセーブから判定するもの。`meta` は起動時・ランの精算・工房／採掘／経営の操作のあとに判定する）。`ACHIEVEMENTS` の並びがそのまま実績画面の順なので、足すときは同じ系統の見出しの中に置く（id は変えない。`endless20`/`endless40` の中身は 10 分／20 分で、id の数字と合っていない）。
 
 ### 経営（コード上は biz）
@@ -298,7 +299,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v181`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v182`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
