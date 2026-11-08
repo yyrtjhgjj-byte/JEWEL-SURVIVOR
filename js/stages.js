@@ -149,7 +149,7 @@ export const STAGES = [
     id: 'deep', no: 6, chapter: 2, name: 'ドキドキ！？深海探索ツアー！', en: 'HEART-POUNDING!? DEEP SEA TOUR!', time: 600,
     desc: '光の届かない海の底へご招待。泡の噴き出す場所に入ると、しばらく速く泳げる。',
     hazard: 'bubbles', hazardText: '泡の噴出口（入ると加速）',
-    hp: 1.4, dmg: 1.45, reward: 6000, bgm: 'deep', unlockChar: 'pectolite',
+    hp: 1.4, dmg: 1.45, reward: 6000, bgm: 'deep', bossBgm: 'boss2', finalBgm: 'final2', unlockChar: 'pectolite',
     pal: { bg: '#02060c', grid: '60,140,220', mark: '90,190,255', dust: '160,220,255', glow: 'rgba(20,90,180,0.28)', accent: '#3fa8ff' },
     tint: null,
     waves: makeWaves({
@@ -163,7 +163,7 @@ export const STAGES = [
     id: 'rlyeh', no: 7, chapter: 2, name: 'ワクワク！？ルルイエ探検ツアー！', en: "SO EXCITING!? R'LYEH EXPEDITION TOUR!", time: 600,
     desc: '海の底から浮かび上がった、角度の狂った石の都。歪んだ門に入ると、その先へ跳ばされる。',
     hazard: 'portals', hazardText: '歪んだ門（入ると先へ跳ぶ）',
-    hp: 1.6, dmg: 1.55, reward: 7000, bgm: 'rlyeh',
+    hp: 1.6, dmg: 1.55, reward: 7000, bgm: 'rlyeh', bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#08140f', grid: '80,220,150', mark: '120,255,180', dust: '160,255,200', glow: 'rgba(30,160,90,0.26)', accent: '#3fe08a' },
     tint: '#3a8a6a',
     waves: makeWaves({
@@ -177,7 +177,7 @@ export const STAGES = [
     id: 'lake', no: 8, chapter: 2, name: 'ハリ湖のほとりでお茶しましょ？', en: 'SHALL WE HAVE TEA BY LAKE HALI?', time: 600,
     desc: '霧の立ちこめる黄昏の湖畔で、優雅なお茶会を。お茶会の席の近くにいると、少しずつ体力が戻る。',
     hazard: 'teatime', hazardText: 'お茶会の席（近くにいると回復）',
-    hp: 1.8, dmg: 1.65, reward: 8000, bgm: 'lake',
+    hp: 1.8, dmg: 1.65, reward: 8000, bgm: 'lake', bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#0e1219', grid: '170,190,230', mark: '200,215,255', dust: '220,225,255', glow: 'rgba(120,140,200,0.22)', accent: '#a9b8ff' },
     tint: '#6a7aa8',
     waves: makeWaves({
@@ -191,7 +191,7 @@ export const STAGES = [
     id: 'carcosa', no: 9, chapter: 2, name: 'ぶらりカルコサ巡りの旅', en: 'NEXT STOP, CARCOSA', time: 600,
     desc: '双子の太陽が沈む黄昏の都。黒い星が昇っている間は、経験値が多く手に入る。',
     hazard: 'blackstars', hazardText: '黒い星の夜（経験値 ×1.5）',
-    hp: 2.0, dmg: 1.75, reward: 9000, bgm: 'carcosa',
+    hp: 2.0, dmg: 1.75, reward: 9000, bgm: 'carcosa', bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#16120a', grid: '230,200,110', mark: '255,220,130', dust: '255,230,170', glow: 'rgba(200,160,40,0.22)', accent: '#ffd24a' },
     tint: '#a08a3a',
     waves: makeWaves({
@@ -205,7 +205,7 @@ export const STAGES = [
     id: 'space', no: 10, chapter: 2, name: '2026年宇宙の旅', en: '2026: A SPACE ODYSSEY', time: 600,
     desc: '星々の彼方、黒い石板が待つ宇宙の果てへ。ときどき流れ星が横切り、通り道に経験値を落としていく。',
     hazard: 'meteor', hazardText: '流れ星（通り道に経験値）',
-    hp: 2.2, dmg: 1.85, reward: 10000, bgm: 'space',
+    hp: 2.2, dmg: 1.85, reward: 10000, bgm: 'space', bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#05050c', grid: '150,170,255', mark: '190,205,255', dust: '230,235,255', glow: 'rgba(100,110,220,0.22)', accent: '#8fa8ff' },
     tint: '#7a9ab8',
     waves: makeWaves({
@@ -219,7 +219,7 @@ export const STAGES = [
     id: 'azathoth', no: 11, chapter: 2, name: '宇宙の中心で惰眠を貪るけもの', en: 'THE BEAST THAT SLUMBERED AT THE HEART OF THE UNIVERSE', time: 600,
     desc: '狂った笛の音が響く宇宙の中心。漂う混沌の泡に触れると、何かが出てくる。',
     hazard: 'chaos', hazardText: '混沌の泡（触れるとアイテム）',
-    hp: 2.4, dmg: 1.95, reward: 15000, bgm: 'pipers', keepBgm: true,
+    hp: 2.4, dmg: 1.95, reward: 15000, bgm: 'pipers', keepBgm: true, bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#07040c', grid: '190,130,255', mark: '220,170,255', dust: '240,210,255', glow: 'rgba(160,80,240,0.24)', accent: '#c78bff' },
     tint: '#8a5ac8',
     waves: makeWaves({
@@ -234,7 +234,7 @@ export const STAGES = [
     id: 'yushu', no: 12, chapter: 3, name: '人ヲ食ラフコト首ヨリ始ム', en: '食人從首始', time: 600,
     desc: '北の果て、幽州。北風に乗ってつむじ風が吹き抜け、経験値を巻き上げて集める。触れると風に押されて速く走れる。',
     hazard: 'whirl', hazardText: 'つむじ風（経験値を集める・触れると加速）',
-    hp: 2.6, dmg: 2.05, reward: 16000, bgm: 'yushu', finalBgm: 'shikyou',
+    hp: 2.6, dmg: 2.05, reward: 16000, bgm: 'yushu', bossBgm: 'boss3', finalBgm: 'shikyou',
     pal: { bg: '#080b12', grid: '120,160,220', mark: '160,200,255', dust: '200,225,255', glow: 'rgba(60,110,200,0.24)', accent: '#7fb8ff' },
     tint: '#4a5a8a',
     waves: makeWaves({
@@ -248,7 +248,7 @@ export const STAGES = [
     id: 'uzan', no: 13, chapter: 3, name: '浩浩トシテ天ニ滔ル', en: '浩浩滔天', time: 600,
     desc: '東の果て、羽山。洪水があふれ、大地を濁流が横切る。流れに入ると、自分も敵も押し流される。',
     hazard: 'flood', hazardText: '濁流（入ると流される）',
-    hp: 2.8, dmg: 2.15, reward: 18000, bgm: 'uzan', finalBgm: 'shikyou',
+    hp: 2.8, dmg: 2.15, reward: 18000, bgm: 'uzan', bossBgm: 'boss3', finalBgm: 'shikyou',
     pal: { bg: '#06100e', grid: '80,200,170', mark: '120,230,200', dust: '170,240,220', glow: 'rgba(30,150,120,0.24)', accent: '#3fd8b0' },
     tint: '#3a8a7a',
     waves: makeWaves({
@@ -262,7 +262,7 @@ export const STAGES = [
     id: 'sanki', no: 14, chapter: 3, name: '首有リテ身無シ', en: '有首無身', time: 600,
     desc: '西の果て、三危山。あちこちに置かれた饕餮の鼎が、近くの経験値を吸い込む。鼎に触れると、1.5 倍にして吐き出す。',
     hazard: 'cauldron', hazardText: '饕餮の鼎（経験値を吸い込む。触れると 1.5 倍で吐き出す）',
-    hp: 3.0, dmg: 2.25, reward: 20000, bgm: 'sanki', finalBgm: 'shikyou',
+    hp: 3.0, dmg: 2.25, reward: 20000, bgm: 'sanki', bossBgm: 'boss3', finalBgm: 'shikyou',
     pal: { bg: '#100d08', grid: '220,190,130', mark: '240,215,160', dust: '250,235,200', glow: 'rgba(190,150,70,0.22)', accent: '#e8c070' },
     tint: '#9a8a6a',
     waves: makeWaves({
@@ -276,7 +276,7 @@ export const STAGES = [
     id: 'chuou', no: 15, chapter: 3, name: '七日ニシテ渾沌死ス', en: '七日而渾沌死', time: 600,
     desc: '天地の分かれる前の、中央の地。歌と舞が満ち、光る舞の輪の中にいる間は、与えるダメージが上がる。',
     hazard: 'dance', hazardText: '舞の輪（中にいると与ダメージ ×1.3）',
-    hp: 3.2, dmg: 2.35, reward: 25000, bgm: 'chuou', finalBgm: 'shikyou',
+    hp: 3.2, dmg: 2.35, reward: 25000, bgm: 'chuou', bossBgm: 'boss3', finalBgm: 'shikyou',
     pal: { bg: '#120a05', grid: '255,160,80', mark: '255,190,110', dust: '255,215,160', glow: 'rgba(230,110,30,0.24)', accent: '#ffa040' },
     tint: '#c8803a',
     waves: makeWaves({

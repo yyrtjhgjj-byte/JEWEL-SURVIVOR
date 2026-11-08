@@ -10,18 +10,26 @@ import { show, el, $, topbar, stageUnlocked } from './ui.js';
 import { showHub } from './menu.js';
 
 const heard = (id) => !!(save.seen.bgm && save.seen.bgm[id]);
-// 章ごとの最終ボスの曲の名前
-const FINAL_BGM = { shikyou: ['四凶との戦い', 'THE FOUR FIENDS'] };
-const anyCleared = () => STAGES.some((st) => save.stages[st.id] && save.stages[st.id].cleared);
-const bossSeen = () => Object.keys(save.seen.enemies || {}).some((id) => ENEMIES[id] && ENEMIES[id].boss);
+// 章ごとのボス戦の曲（ステージの bossBgm・finalBgm。第1章は boss・final）
+const BOSS_BGM = {
+  boss: ['ボス戦', 'BOSS BATTLE', '#ff3ddc'],
+  final: ['最終ボス戦', 'FINAL BOSS', '#ff5f7a'],
+  boss2: ['ボス戦', 'BOSS BATTLE', '#5fd0ff'],
+  final2: ['旧支配者との戦い', 'THE GREAT OLD ONES', '#7a6bff'],
+  boss3: ['ボス戦', 'BOSS BATTLE', '#ffb03d'],
+  shikyou: ['四凶との戦い', 'THE FOUR FIENDS', '#ff5a3d'],
+};
+// 旧曲のない曲（作り直したあとに足した曲）
+export const NEW_ONLY = new Set(['boss2', 'final2', 'boss3']);
+// その章の中ボスに会ったか・ステージをどれかクリアしたか
+const midSeen = (ch) => STAGES.some((s) => s.chapter === ch && s.events.some((e) => e.type === 'boss' && e.enemy !== s.finalBoss && save.seen.enemies && save.seen.enemies[e.enemy]));
+const chCleared = (ch) => STAGES.some((s) => s.chapter === ch && save.stages[s.id] && save.stages[s.id].cleared);
 
 // 曲の一覧（sec は見出し）。open は聴けるかどうか、lock は聴けないときの説明
 export function trackList() {
   const list = [
     { sec: '共通' },
     { id: 'title', name: 'タイトル', en: 'TITLE', color: '#b45cff', open: true },
-    { id: 'boss', name: 'ボス戦', en: 'BOSS BATTLE', color: '#ff3ddc', open: heard('boss') || bossSeen() },
-    { id: 'final', name: '最終ボス戦', en: 'FINAL BOSS', color: '#ff5f7a', open: heard('final') || anyCleared() },
     { id: 'result', name: 'リザルト', en: 'RESULT', color: '#ffd24a', open: true },
     { id: 'business', name: '経営', en: 'BUSINESS', color: '#4ade9a', open: heard('business') || !!save.biz, lock: '🔒 経営を開くと解放' },
   ];
@@ -35,10 +43,11 @@ export function trackList() {
         list.push({ id: 'azathoth', name: `${ENEMIES.azathoth.name}（目覚め）`, en: 'AWAKENING', no: st.no, color: '#ff5fd2', open: open && (heard('azathoth') || cl) });
       }
     }
-    // 章ごとの最終ボスの曲（第3章の四凶）。一度流れるか、その章のステージをどれかクリアすると聴ける
-    for (const id of new Set(STAGES.filter((s) => s.chapter === ch.no && s.finalBgm).map((s) => s.finalBgm))) {
-      const cl = STAGES.some((s) => s.finalBgm === id && save.stages[s.id] && save.stages[s.id].cleared);
-      list.push({ id, name: FINAL_BGM[id][0], en: FINAL_BGM[id][1], color: '#ff5a3d', open: heard(id) || cl, lock: '🔒 ゲーム中に流れると解放' });
+    // 章のボス戦の曲。一度流れるか、中ボスは会うと・最終ボスはその章のステージをどれかクリアすると聴ける
+    const sts = STAGES.filter((s) => s.chapter === ch.no);
+    for (const [id, fin] of [[sts[0].bossBgm || 'boss', false], [sts[0].finalBgm || 'final', true]]) {
+      const [name, en, color] = BOSS_BGM[id];
+      list.push({ id, name, en, color, open: heard(id) || (fin ? chCleared(ch.no) : midSeen(ch.no) || chCleared(ch.no)), lock: '🔒 ゲーム中に流れると解放' });
     }
   }
   return list;
@@ -64,6 +73,9 @@ export function showJukebox() {
   // 新曲（チップ音源）と旧曲（前の BGM）の切り替え。save.tabs.jbOld に覚える
   const isOld = () => !!save.tabs.jbOld;
   const play = (id) => (isOld() ? audio.playOldBgm(id) : audio.playBgm(id));
+  // 旧曲のときは、旧曲のない曲を押せなくする
+  const avail = (t) => t.open && !(isOld() && NEW_ONLY.has(t.id));
+  const enText = (t) => (!t.open ? t.lock || '🔒 ゲーム中に流れると解放' : !avail(t) ? '旧曲なし' : (t.no ? `STAGE ${t.no} ・ ` : '') + t.en);
   const render = () => {
     const cur = playing();
     const t = cur && byId[cur];
@@ -72,21 +84,26 @@ export function showJukebox() {
     $('#jbd', node).style.setProperty('--c', t ? t.color : '#5a5670');
     $('#jbd', node).classList.toggle('on', !!t);
     $('#jbs', node).disabled = !cur;
-    node.querySelectorAll('.jb-row').forEach((r) => r.classList.toggle('on', r.dataset.id === cur));
+    node.querySelectorAll('.jb-row').forEach((r) => {
+      const tr = byId[r.dataset.id];
+      r.classList.toggle('on', r.dataset.id === cur);
+      r.classList.toggle('locked', !avail(tr));
+      r.disabled = !avail(tr);
+      r.querySelector('.jb-en').textContent = enText(tr);
+    });
   };
   const box = $('#jbl', node);
   let n = 0;
   for (const t of list) {
     if (t.sec) { box.appendChild(el(`<div class="label jb-sec">${t.sec}</div>`)); continue; }
     n++;
-    const row = el(`<button class="jb-row ${t.open ? '' : 'locked'}" data-id="${t.id}" style="--c:${t.color}">
+    const row = el(`<button class="jb-row" data-id="${t.id}" style="--c:${t.color}">
       <span class="jb-no">${String(n).padStart(2, '0')}</span>
-      <span class="jb-body"><span class="jb-name">${t.open ? t.name : '？？？'}</span><span class="jb-en">${t.open ? (t.no ? `STAGE ${t.no} ・ ` : '') + t.en : t.lock || '🔒 ゲーム中に流れると解放'}</span></span>
+      <span class="jb-body"><span class="jb-name">${t.open ? t.name : '？？？'}</span><span class="jb-en"></span></span>
       <span class="jb-eq"><i></i><i></i><i></i></span>
     </button>`);
-    row.disabled = !t.open;
     row.onclick = () => {
-      if (!t.open) return;
+      if (!avail(t)) return;
       audio.unlock();
       audio.tempoMul = 1;
       if (playing() === t.id && !!(audio.bgmTrack && audio.bgmTrack.old) === isOld()) audio.stopBgm();
@@ -105,7 +122,8 @@ export function showJukebox() {
       save.tabs.jbOld = old;
       persist();
       const cur = audio.bgmTrack && audio.bgmTrack.name;
-      if (cur && byId[cur] && byId[cur].open) { audio.unlock(); audio.tempoMul = 1; play(cur); }
+      if (cur && byId[cur] && avail(byId[cur])) { audio.unlock(); audio.tempoMul = 1; play(cur); }
+      else if (cur && byId[cur]) audio.stopBgm();
       render();
     };
   });
