@@ -390,13 +390,27 @@ class AudioEngine {
     // 一度流れた曲は、ジュークボックスで聴けるようにする
     if (SONGS[name]) (save.seen.bgm || (save.seen.bgm = {}))[name] = true;
     if (!this.ready) { this.pendingTrack = name; return; }
-    if (this.bgmTrack && this.bgmTrack.name === name) return;
+    if (this.bgmTrack && this.bgmTrack.name === name && !this.bgmTrack.old) return;
     if (!SONGS[name]) { this.stopBgm(); return; }
+    if (this.old) this.old.stop();
     this.bgmTrack = { name };
     if (this.chip) this.chip.port.postMessage({ song: SONGS[name], lib: INST });
   }
+  // 旧曲（ジュークボックスの「旧曲」）。js/bgm-old.js はこのときに読み込む
+  playOldBgm(name) {
+    if (!this.ready) return;
+    this.stopBgm();
+    this.bgmTrack = { name, old: true };
+    import('./bgm-old.js').then(({ OldBgm }) => {
+      const t = this.bgmTrack;
+      if (!t || !t.old || t.name !== name) return;
+      if (!this.old) this.old = new OldBgm(this);
+      this.old.play(name);
+    }).catch(() => {});
+  }
   stopBgm() {
     this.bgmTrack = null;
+    if (this.old) this.old.stop();
     if (this.chip) this.chip.port.postMessage({ stop: true });
   }
 }
