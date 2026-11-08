@@ -38,6 +38,51 @@ export const INST = {
   // のこぎり波
   saw: { env: [13, 12, 11, 11, 10], rel: 3 },
   sawlead: { env: [12, 13, 12, 11, 10, 10, 9], rel: 4, vib: [14, 5.5, 18] },
+
+  // ---- 楽器（第2・3章。チャンネルの type が inst。js/chip.js の楽器の音源の説明を参照）
+  // 笛
+  fl: { model: 'add', parts: [[1, 1], [2, 0.18], [3, 0.08], [4, 0.03], [5, 0.01]], noise: 0.035, chiff: 0.3, nf: 1, nq: 2.5, env: [0.06, 0.5, 0.88, 0.16], vib: [14, 5.1, 0.3], scoop: [-0.2, 0.05], glide: 0.05, gain: 0.9 },
+  afl: { model: 'add', parts: [[1, 1], [2, 0.12], [3, 0.05]], noise: 0.06, chiff: 0.35, nf: 1, nq: 2, env: [0.09, 0.5, 0.85, 0.2], vib: [12, 4.8, 0.35], glide: 0.06, gain: 1 },
+  dizi: { model: 'add', parts: [[1, 1], [2, 0.35], [3, 0.28], [4, 0.14], [5, 0.09], [6, 0.05], [7, 0.03]], noise: 0.05, chiff: 0.4, nf: 1.5, nq: 3, env: [0.04, 0.4, 0.88, 0.12], vib: [22, 5.6, 0.2], scoop: [-0.9, 0.09], glide: 0.05, gain: 0.75 },
+  xiao: { model: 'add', parts: [[1, 1], [2, 0.1], [3, 0.06]], noise: 0.12, chiff: 0.5, nf: 1, nq: 1.5, env: [0.12, 0.6, 0.85, 0.25], vib: [16, 4.6, 0.35], scoop: [-1.2, 0.14], glide: 0.08, gain: 0.95 },
+  theremin: { model: 'add', parts: [[1, 1], [2, 0.08], [3, 0.03]], env: [0.15, 0.5, 0.95, 0.3], vib: [30, 6.2, 0.15], glide: 0.12, gain: 0.9 },
+  // 弦
+  strings: { model: 'sub', n: 3, det: 14, cut: 2600, kt: 0.35, q: 0.6, env: [0.22, 0.5, 0.9, 0.45], vib: [8, 5.2, 0.3], gain: 1.5 },
+  strst: { model: 'sub', n: 3, det: 12, cut: 3000, kt: 0.35, q: 0.6, env: [0.008, 0.22, 0, 0.08], gain: 1.8 },
+  violin: { model: 'sub', n: 1, cut: 3500, kt: 0.2, q: 0.8, noise: 0.03, env: [0.06, 0.4, 0.9, 0.18], vib: [24, 5.8, 0.18], scoop: [-0.3, 0.05], glide: 0.06, gain: 1.1 },
+  cello: { model: 'sub', n: 1, cut: 1600, kt: 0.3, q: 0.8, noise: 0.02, env: [0.08, 0.4, 0.9, 0.25], vib: [20, 5.2, 0.2], glide: 0.06, gain: 1 },
+  erhu: { model: 'sub', n: 1, form: [[750, 2.5, 1], [1600, 3, 0.7], [3200, 4, 0.35]], noise: 0.04, env: [0.05, 0.4, 0.9, 0.15], vib: [30, 6, 0.12], scoop: [-0.6, 0.1], glide: 0.08, gain: 2 },
+  // 金管・リード
+  horn: { model: 'sub', n: 2, det: 6, cut: 500, kt: 0.5, fenv: [1400, 0.06, 0.35], q: 0.8, env: [0.05, 0.4, 0.85, 0.2], scoop: [-0.4, 0.05], vib: [8, 5, 0.4], gain: 1.4 },
+  tpt: { model: 'sub', n: 1, cut: 900, kt: 0.5, fenv: [3200, 0.04, 0.3], q: 0.9, env: [0.025, 0.3, 0.85, 0.12], scoop: [-0.5, 0.04], vib: [14, 5.5, 0.3], gain: 1.1 },
+  trb: { model: 'sub', n: 2, det: 5, cut: 450, kt: 0.6, fenv: [1500, 0.05, 0.3], q: 0.8, env: [0.04, 0.4, 0.85, 0.2], gain: 1.4 },
+  brs: { model: 'sub', n: 3, det: 10, cut: 700, kt: 0.4, fenv: [2500, 0.04, 0.25], q: 0.7, env: [0.03, 0.3, 0.75, 0.15], gain: 1.6 },
+  suona: { model: 'sub', osc: 'pulse', duty: 0.3, n: 1, form: [[1100, 2, 1], [2500, 3, 0.6], [4000, 4, 0.3]], env: [0.03, 0.3, 0.9, 0.1], vib: [26, 6, 0.15], scoop: [-0.8, 0.08], glide: 0.05, gain: 1.4 },
+  bando: { model: 'sub', osc: 'pulse', duty: 0.35, n: 2, det: 7, cut: 2400, kt: 0.3, q: 0.7, env: [0.05, 0.3, 0.9, 0.12], trem: [0.12, 6], gain: 0.9 },
+  organ: { model: 'add', parts: [[0.5, 0.5], [1, 1], [2, 0.6], [3, 0.35], [4, 0.3], [6, 0.15], [8, 0.1]], env: [0.012, 0.1, 1, 0.08], gain: 0.45 },
+  // 合唱（あー・うー）
+  cha: { model: 'sub', n: 3, det: 16, form: [[730, 5, 1], [1090, 6, 0.55], [2440, 8, 0.25]], noise: 0.02, env: [0.35, 0.5, 0.9, 0.6], vib: [10, 4.8, 0.4], gain: 3.6 },
+  cho: { model: 'sub', n: 3, det: 16, form: [[320, 5, 1], [800, 6, 0.35], [2240, 8, 0.12]], noise: 0.02, env: [0.4, 0.5, 0.9, 0.7], vib: [10, 4.8, 0.4], gain: 3.2 },
+  synpad: { model: 'sub', n: 2, det: 10, cut: 900, kt: 0.3, q: 0.6, env: [0.6, 1, 0.85, 1.2], vib: [6, 4, 0.5], gain: 1.5 },
+  // はじく弦
+  harp: { model: 'ks', bright: 0.55, t60: 3.2, damp: 0.25, pick: 0.12, cut: 6000, rel: 2.5, gain: 1.6 },
+  zheng: { model: 'ks', bright: 0.75, t60: 3, damp: 0.18, pick: 0.08, cut: 8000, rel: 1.5, gain: 1.7 },
+  pipa: { model: 'ks', bright: 0.9, t60: 1.2, damp: 0.15, pick: 0.1, cut: 9000, rel: 0.4, gain: 1.9 },
+  yangqin: { model: 'ks', bright: 0.85, t60: 1.8, damp: 0.2, pick: 0.3, cut: 9000, rel: 1, gain: 2 },
+  pizz: { model: 'ks', bright: 0.4, t60: 0.5, damp: 0.4, pick: 0.2, cut: 3500, rel: 0.15, gain: 1.9 },
+  cbass: { model: 'ks', bright: 0.3, t60: 1.6, damp: 0.45, tk: 0.3, cut: 1500, rel: 0.25, gain: 2.2 },
+  harpsi: { model: 'ks', bright: 0.95, t60: 1.6, damp: 0.08, pick: 0.15, cut: 9000, rel: 0.15, gain: 1.6 },
+  guitar: { model: 'ks', bright: 0.5, t60: 2.4, damp: 0.3, pick: 0.18, cut: 5000, rel: 0.3, gain: 1.8 },
+  // 鍵盤・打つ音程楽器
+  epiano: { model: 'fm', pairs: [[1, 1, 1.6, 0.25, 1.2, 1, 0], [1, 14, 1.1, 0, 0.18, 0.18, 0.5]], env: [0.002, 3.5, 0, 0.35], gain: 0.9 },
+  celesta: { model: 'fm', pairs: [[1, 4, 1.3, 0, 0.25, 1, 0]], env: [0.001, 1.6, 0, 0.4], gain: 0.9 },
+  glock: { model: 'add', parts: [[1, 1, 1.8], [2.76, 0.35, 0.6], [5.4, 0.15, 0.3], [8.93, 0.05, 0.12]], env: [0.001, 2.2, 0, 0.6], gain: 0.7 },
+  vibes: { model: 'add', parts: [[1, 1, 2.5], [4, 0.18, 0.5], [10, 0.03, 0.12]], env: [0.001, 3, 0, 0.7], trem: [0.35, 5.5], gain: 0.9 },
+  marimba: { model: 'add', parts: [[1, 1, 0.6], [4, 0.3, 0.12], [10, 0.06, 0.03]], env: [0.001, 0.8, 0, 0.25], gain: 1.1 },
+  bianzhong: { model: 'add', parts: [[1, 1, 2.6], [1.19, 0.35, 1.8], [2, 0.5, 1.4], [2.76, 0.3, 0.8], [4.1, 0.15, 0.5], [5.4, 0.08, 0.3]], chiff: 0.15, nf: 4, nq: 1, env: [0.001, 3, 0, 1.2], gain: 0.7 },
+  tubell: { model: 'add', parts: [[1, 1, 3], [2.76, 0.5, 2], [5.4, 0.25, 1.2], [8.93, 0.12, 0.6]], env: [0.001, 3.5, 0, 1.5], gain: 0.65 },
+  timp: { model: 'add', parts: [[1, 1, 1.6], [1.5, 0.5, 1.1], [1.98, 0.35, 0.9], [2.44, 0.22, 0.7], [2.97, 0.1, 0.5]], noise: 0, chiff: 0.3, nf: 3, nq: 0.7, env: [0.002, 2, 0, 0.6], gain: 1.1 },
+  subbass: { model: 'add', parts: [[1, 1], [2, 0.15]], env: [0.01, 0.3, 0.9, 0.12], gain: 1.2 },
 };
 
 // ---------------------------------------------------------------- 和音から伴奏を作る
@@ -51,6 +96,8 @@ const QUAL = {
   '7sus4': [0, 5, 7, 10], 6: [0, 4, 7, 9], m6: [0, 3, 7, 9], add9: [0, 4, 7, 14], madd9: [0, 3, 7, 14],
   M9: [0, 4, 7, 11, 14], m9: [0, 3, 7, 10, 14], 9: [0, 4, 7, 10, 14], '7b9': [0, 4, 7, 10, 13], 5: [0, 7],
   'M7#11': [0, 4, 7, 11, 18], 69: [0, 4, 7, 9, 14], m11: [0, 3, 7, 10, 17], '7#9': [0, 4, 7, 10, 15], aug7: [0, 4, 8, 10],
+  // 旋律の確かめ用：フリギアの短 2 度・エオリアの短 6 度を含む短三和音
+  mb9: [0, 3, 7, 13], mb6: [0, 3, 7, 8],
 };
 const pcOf = (s) => (PC[s[0]] + (s[1] === '#' ? 1 : s[1] === 'b' ? -1 : 0) + 12) % 12;
 export function parseChord(name) {
@@ -142,6 +189,38 @@ export function pads(chords, { lo = 64, len = '1', start = null } = {}) {
     cand.sort((a, b) => Math.abs(a - prev) - Math.abs(b - prev));
     prev = cand[0];
     return `${nm(prev)}${cs.length === 1 ? len : half[len]}`;
+  }).join(' ')).join(' | ') + ' |';
+}
+
+// 和音の塊（楽器のチャンネル）。n 声で、lo から上の形のうち前の和音からいちばん動かないものを選ぶ。
+// rh は 1 小節の中の長さの並び（r で始まると休み）、1 小節に 2 つの和音なら rh2 をそれぞれに使う
+export function blocks(chords, { lo = 55, n = 3, rh = ['1'], rh2 = ['2'] } = {}) {
+  let prev = null;
+  const voicing = (c) => {
+    let pcs = [...new Set(c.iv.map((x) => (c.root + x) % 12))];
+    if (pcs.length > n && pcs.length > 3) pcs = pcs.filter((pc) => pc !== (c.root + 7) % 12);
+    const cands = [];
+    for (let k = 0; k < pcs.length; k++) {
+      let m = lo;
+      while (m % 12 !== pcs[k]) m++;
+      const v = [m];
+      let j = k;
+      while (v.length < n) {
+        j = (j + 1) % pcs.length;
+        let x = v[v.length - 1] + 1;
+        while (x % 12 !== pcs[j]) x++;
+        v.push(x);
+      }
+      cands.push(v);
+    }
+    const cost = (v) => v.reduce((a, x, i) => a + Math.abs(x - prev[Math.min(i, prev.length - 1)]), 0);
+    const best = prev ? cands.reduce((a, b) => (cost(b) < cost(a) ? b : a)) : cands[0];
+    prev = best;
+    return `{${best.map(nm).join(' ')}}`;
+  };
+  return barsOf(chords).map((cs) => cs.map((c) => {
+    const v = voicing(c);
+    return (cs.length === 1 ? rh : rh2).map((d) => (d[0] === 'r' ? d : v + d)).join(' ');
   }).join(' ')).join(' | ') + ' |';
 }
 
@@ -621,44 +700,58 @@ export const SONGS = {};
   };
 }
 
-// 外なる奏者：呪われた笛の単調な調べ。フリギア（D に E♭）。2 本目の笛は 4 度下を平行に吹く
+// 外なる奏者：呪われた笛の単調な調べ（フリギア）。主題は前の曲の笛の旋律。
+// 1 回目は笛 1 本、2 回目はアルトフルートが 4 度下を平行に吹き、竪琴が加わる
 {
-  const A = 'Dm Eb Dm Eb Bbm A Dm,Eb Dm';
+  const A = 'Dm Dm Bb A Dm Dm Bb A';
   const B = 'Gm A7 Gm A7 Bb A7 Eb A7';
   const C = 'Dm Eb Dm Eb Dm Eb Bbm A';
+  const chk = 'Dmb9,Dmb6 Dmb9 Bbsus4,Bb Asus4,A Dmb6 Dmb6 Bbsus4,Bb A';
   SONGS.pipers = {
     bpm: 80,
-    melody: 'p1',
-    chords: `Dm Dm ${A} ${A} ${B} ${C}`,
+    melody: 'fl',
+    chords: `Dm Dm ${chk} ${chk} ${B} Dmb6 Eb Dm Eb Dm Eb Bbm A`,
+    reverb: { size: 0.85, damp: 0.35 },
     pat: {
-      M: 'd4. e-8 d4 c4 | <b-4. >c8 d4 e-4 | f4. e-8 d4 a4 | g4. f8 e-4 b-4 | >d-4. c8 <b-4 f4 | e4. d8 c+4 <a4 | >d2 e-4 d4 | d1 |',
+      T: 'o5 d4 e-4 d4 <b-4 | >d4 e-4 f4 e-8 d8 | <b-4 a4 b-4 >d4 | c+4 d4 e4 c+4 | a4 b-4 a4 f4 | a4 b-4 >c4 <b-8 a8 | f4 e-4 d4 <b-4 | >c+2 <a2 |',
     },
     ch: [
-      { id: 'p1', type: 'pulse', pan: -0.25, echo: [48, 0.4, 0.6], mml: `
+      { id: 'fl', type: 'inst', pan: -0.2, rev: 0.4, mml: `
         r1 | r1 | L
-        @flute v12 o5 $M o5 $M
-        @bamboo v13
-        o5 g4. a8 b-4 a4 | g4 f4 e4 c+4 | d4. e-8 f4 g4 | a2 e2 | f4. g8 a4 b-4 | >c+4. <b-8 a4 g4 | g4. f8 e-4 b-4 | a2 >c+2 |
-        @flute v13
-        o5 [a16 b-16]4 a2 | [b-16 >c16 <]4 b-2 | [a16 b-16]4 >d2 | e-4. d8 c4 <b-4 |
-        a4. g8 f4 d4 | e-4. f8 g4 b-4 | >d-4. c8 <b-4 a-4 | a1 |` },
-      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @fl v12 $T $T
+        @fl v11 o6 r2 d4. e-8 | c+2 e2 | d2 <b-2 | >c+1 | d2 f2 | e2 c+2 | <b-2 >e-4 d4 | c+2 e4 c+4 |
+        @fl v13 o5 [a16 b-16]4 a2 | [b-16 >c16 <]4 b-2 | [a16 b-16]4 >d2 | e-4. d8 c4 <b-4 | a4. g8 f4 d4 | e-4. f8 g4 b-4 | >d-4. c8 <b-4 a-4 | a2. r4 |` },
+      { id: 'afl', type: 'inst', pan: 0.3, rev: 0.4, mml: `
         r1 | r1 | L
-        @pad v8 ${pads(A, { lo: 62 })}
-        @flute v10 k-5 o5 $M k0
-        @pad v9 ${pads(B, { lo: 62 })}
-        @pad25 v8 ${pads(C, { lo: 57 })}` },
-      { id: 'tri', type: 'tri', mml: `
-        @bass ${bass('Dm Dm', 'R1', { lo: 38 })} L
+        @afl v10 o4 d1 | d1 | d1 | c+1 | d1 | d1 | d1 | c+1 |
+        @afl v10 k-5 $T k0
+        @afl v12 o4 g4. a8 b-4 a4 | g4 f4 e4 c+4 | d4. e-8 f4 g4 | a2 e2 | f4. g8 a4 b-4 | >c+4. <b-8 a4 g4 | g4. f8 e-4 b-4 | a2 >c+2 |
+        @afl v10 o4 f1 | g1 | a1 | b-1 | a2 f2 | g2 b-2 | b-2 a-2 | a1 |` },
+      { id: 'cho', type: 'inst', pan: 0, rev: 0.55, poly: 6, mml: `
+        @cho v7 ${blocks('Dm Dm', { lo: 50 })} L
+        ${blocks(A, { lo: 50 })}
+        ${blocks(A, { lo: 50 })}
+        v8 ${blocks(B, { lo: 50 })}
+        @cha v8 ${blocks(C, { lo: 52 })}` },
+      { id: 'low', type: 'inst', pan: 0.05, rev: 0.25, mml: `
+        @cello v11 ${bass('Dm Dm', 'R1', { lo: 38, hi: 50 })} L
         ${bass(A, 'R1', { lo: 38, hi: 50 })}
         ${bass(A, 'R2 R2', { lo: 38, hi: 50 })}
-        ${bass(B, 'R2 R4 O4', { lo: 38, hi: 50 })}
-        ${bass(C, 'R4 R4 R4 R4', { lo: 38, hi: 50 })}` },
-      { id: 'dr', type: 'drum', mml: `
+        ${bass(B, 'R2 F2', { lo: 38, hi: 50 })}
+        @cbass v13 ${bass(C, 'R4 R4 R4 R4', { lo: 38, hi: 50 })}` },
+      { id: 'harp', type: 'inst', pan: 0.35, rev: 0.35, mml: `
+        r1 | r1 | L
+        r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
+        @harp v10 ${arp(A, { lo: 50, pat: [0, 1, 2, 3, 4, 3, 2, 1], len: 8 })}
+        ${arp(B, { lo: 50, pat: [0, 2, 1, 3, 2, 4, 3, 5], len: 8 })}
+        v11 ${arp(C, { lo: 55, pat: RISE })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.25, mml: `
         v12 j4 r4 j4 r4 | j4 r8 j8 j4 v8 t8 f8 | L
-        [v12 j4 v8 t8 t8 v12 j4 v8 m8 f8 |]16
-        [v12 j4 v6 z8 z8 v10 s4 v6 z8 z8 |]7 v12 j4 v9 t8 t8 m8 m8 f8 f8 |
-        [v12 j8 v6 z8 z8 v12 j8 v10 s8 v6 z8 v12 j8 v6 z8 |]7 v12 j8 j8 v10 s8 s8 t8 t8 f8 f8 |` },
+        [v11 j4 v5 z8 z8 v11 j4 v7 m8 f8 |]8
+        [v11 j4 v5 z8 v7 b8 v11 j4 v7 m8 f8 |]7 v11 j4 v8 t8 t8 m8 m8 f8 f8 |
+        [v11 j4 v5 z8 z8 v9 x4 v5 z8 z8 |]7 v11 j4 v9 t8 t8 m8 m8 f8 f8 |
+        [v12 j8 v7 t8 t8 v12 j8 v9 m8 v7 t8 v12 j8 v8 f8 |]7 v12 j16 j16 j16 j16 v10 t16 t16 m16 m16 v12 f8 f8 j8 C8 |` },
+      { id: 'gong', type: 'perc', pan: 0, rev: 0.45, mml: `v11 g1 | r1 | L [v12 g1 | r1 | r1 | r1 | v9 e1 | r1 | r1 | r1 |]4` },
     ],
   };
 }
@@ -715,46 +808,65 @@ export const SONGS = {};
 // 第3章の銅鑼（4 小節ごと。n は小節の数）
 const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / every}`;
 
-// 窮奇：北の果ての北風。竹の笛と琴の 16 分
+// 窮奇：北の果ての北風。竹笛（笛子）・古筝・二胡・琵琶と、大太鼓・木魚・銅鑼
 {
   const intro = 'Dm Dm C C';
   const A = 'Dm C Dm Am Dm C Bb A';
   const A2 = 'Dm C Dm Am F C Gm A';
   const B = 'F C Dm Am Bb F Gm A';
   const C = 'Dm C Dm C Bb C Dm A';
-  const tpl = 'R4 O8 R8 F4 O8 R8';
+  const trem = [3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1];
   SONGS.yushu = {
     bpm: 132,
-    melody: 'p1',
+    melody: ['dizi', 'erhu'],
     chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    reverb: { size: 0.8, damp: 0.4 },
     ch: [
-      { id: 'p1', type: 'pulse', pan: -0.2, echo: [36, 0.32, 0.5], mml: `
+      { id: 'dizi', type: 'inst', pan: -0.2, rev: 0.3, mml: `
         r1 | r1 | r1 | r1 | L
-        @bamboo v13
+        @dizi v13
         o5 d4. f8 g4 a4 | >c4. <a8 g4 e4 | d4 f4 a4 >c4 | <a2 e4 g4 | a4. >c8 d4 f4 | e4. d8 c4 <g4 | f4. g8 f4 d4 | e2. r4 |
         d4. f8 g4 a4 | >c4. <a8 g4 e4 | d4 f4 a4 >d4 | c4. <a8 e4 a4 | >c4. d8 c4 <a4 | g4. e8 g4 >c4 | d4. c8 <b-4 g4 | a2. r4 |
-        >f4. e8 d4 c4 | d4. c8 <a4 g4 | a4 >c4 d4 f4 | e2 c4 <a4 | b-4. a8 f4 d4 | f4. g8 a4 >c4 | d4 <b-4 g4 d4 | e2 c+4 e4 |
-        @flute v13
-        d16 f16 g16 a16 >c16 <a16 g16 f16 d4 a4 | g16 a16 >c16 d16 e16 d16 c16 <a16 g4 e4 |
+        r1 | r1 | r1 | r2 o6 c4 <a4 | r1 | r1 | r1 | r2 a4 >c+4 |
+        o5 d16 f16 g16 a16 >c16 <a16 g16 f16 d4 a4 | g16 a16 >c16 d16 e16 d16 c16 <a16 g4 e4 |
         d16 f16 g16 a16 >c16 d16 f16 g16 a4 f4 | e16 d16 c16 <a16 g16 e16 d16 c16 e4 g4 |
         f4. g8 b-4 >d4 | c4. <a8 g4 e4 | d4 f4 a4 >d4 | c+2. r4 |` },
-      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
-        @koto v9 ${arp(intro, { lo: 62, pat: WAVE })} L
-        ${arp(A, { lo: 57, pat: WAVE })}
+      { id: 'erhu', type: 'inst', pan: 0.25, rev: 0.3, mml: `
+        r1 | r1 | r1 | r1 | L
+        r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
+        @erhu v11 o4 a2 f2 | g2 e2 | f2 a2 | e1 | f2 a2 | g1 | g2 b-2 | a1 |
+        v13 o5 f4. e8 d4 c4 | d4. c8 <a4 g4 | a4 >c4 d4 f4 | e2 c4 <a4 | b-4. a8 f4 d4 | f4. g8 a4 >c4 | d4 <b-4 g4 d4 | e2 c+4 e4 |
+        v11 a1 | g1 | a1 | g1 | f1 | e1 | f1 | e1 |` },
+      { id: 'zheng', type: 'inst', pan: 0.35, rev: 0.25, poly: 10, mml: `
+        @zheng v10 ${arp(intro, { lo: 62, pat: WAVE })} L
+        v9 ${arp(A, { lo: 57, pat: WAVE })}
         ${arp(A2, { lo: 57, pat: WAVE })}
         ${arp(B, { lo: 57, pat: [0, 2, 1, 3, 2, 4, 3, 1], len: 8 })}
-        ${arp(C, { lo: 62, pat: RISE })}` },
-      { id: 'tri', type: 'tri', mml: `
-        @bass ${bass(intro, tpl, { lo: 38, hi: 52 })} L
-        ${bass(A, tpl, { lo: 38, hi: 52 })}
-        ${bass(A2, tpl, { lo: 38, hi: 52 })}
-        ${bass(B, tpl, { lo: 38, hi: 52 })}
+        r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |` },
+      { id: 'pipa', type: 'inst', pan: -0.35, rev: 0.2, poly: 6, mml: `
+        r1 | r1 | r1 | r1 | L
+        r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
+        r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
+        @pipa v9 ${arp(B, { lo: 55, pat: ['r', 0, 'r', 1, 'r', 2, 'r', 1], len: 8 })}
+        v10 ${arp(C, { lo: 62, pat: trem, len: 32 })}` },
+      { id: 'str', type: 'inst', pan: 0, rev: 0.45, poly: 6, mml: `
+        r1 | r1 | @strings v7 ${blocks('C C', { lo: 55 })} L
+        ${blocks(A, { lo: 55 })}
+        v8 ${blocks(A2, { lo: 55 })}
+        v9 ${blocks(B, { lo: 55 })}
+        v10 ${blocks(C, { lo: 57 })}` },
+      { id: 'bass', type: 'inst', pan: 0, rev: 0.1, mml: `
+        @cbass v12 ${bass(intro, 'R2 R2', { lo: 38, hi: 52 })} L
+        ${bass(A, 'R4 O8 R8 F4 O8 R8', { lo: 38, hi: 52 })}
+        ${bass(A2, 'R4 O8 R8 F4 O8 R8', { lo: 38, hi: 52 })}
+        ${bass(B, 'R4 O8 R8 F4 O8 R8', { lo: 38, hi: 52 })}
         ${bass(C, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 38, hi: 52 })}` },
-      { id: 'dr', type: 'drum', mml: `
-        v6 [z8 z8 z8 z8 z8 z8 z8 z8 |]3 v11 s16 s16 s16 s16 t8 t8 m8 m8 f8 f8 | L
-        [[v12 k8 v6 h8 v10 s8 v6 h8 v12 k8 k8 v10 s8 v6 h8 |]7 v12 k8 v6 h8 v10 s8 s8 s16 s16 s16 s16 t8 f8 |]3
-        [v12 k8 h8 S8 h8 k16 k16 h8 S8 o8 |]7 v12 k8 h8 S8 S8 s16 s16 s16 s16 S8 S8 |` },
-      { id: 'gong', type: 'drum', mml: `r1 | r1 | r1 | r1 | L ${gongs(32)}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.2, mml: `
+        v6 [z8 z8 z8 z8 z8 z8 z8 z8 |]3 v11 s16 s16 s16 s16 j8 j8 J4 C4 | L
+        [[v12 J8 v7 b8 v10 s8 v7 b8 v12 j8 j8 v10 s8 v7 b8 |]7 v12 j8 b8 s8 s8 s16 s16 s16 s16 J8 C8 |]2
+        [v12 J4 v8 b8 b8 v11 S4 v8 b8 j8 |]7 v12 j8 j8 S8 S8 s16 s16 s16 s16 J8 C8 |
+        [v12 J8 j8 S8 j8 J8 j8 S8 v9 u8 |]7 v12 J8 J8 S8 S8 s16 s16 s16 s16 J8 C8 |` },
+      { id: 'gong', type: 'perc', pan: 0, rev: 0.4, mml: `v12 g1 | r1 | r1 | r1 | L [v12 g1 | r1 | r1 | r1 |]8` },
     ],
   };
 }

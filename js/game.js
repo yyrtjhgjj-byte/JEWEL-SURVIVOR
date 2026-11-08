@@ -909,9 +909,9 @@ export class Game {
     }
   }
 
-  // ボス戦の曲（ステージの finalBgm があれば最終ボスはその曲。第3章は四凶の曲）
+  // ボス戦の曲（ステージの bossBgm・finalBgm。第1章は boss・final）
   bossBgm(type, st = this.stage) {
-    return type === st.finalBoss ? st.finalBgm || 'final' : 'boss';
+    return type === st.finalBoss ? st.finalBgm || 'final' : st.bossBgm || 'boss';
   }
 
   spawnEnemy(type, x, y, o = {}) {
