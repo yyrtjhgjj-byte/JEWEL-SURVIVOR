@@ -1309,6 +1309,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 
 /* ジュークボックス */
 .jb-now { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 520px; margin-bottom: 10px; flex-shrink: 0; }
+.jb-mode { flex-shrink: 0; margin-bottom: 10px; }
+.jb-mode .tab { padding: 6px 18px; }
 .jb-nb { flex: 1; min-width: 0; }
 .jb-nb b { display: block; font-family: var(--font-jp); font-size: 15px; margin-top: 2px; text-wrap: balance; word-break: keep-all; }
 .jb-disc { --c: #5a5670; width: 44px; height: 44px; flex: none; border-radius: 50%;

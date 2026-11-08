@@ -5,7 +5,7 @@
 import { ENEMIES } from './data.js';
 import { STAGES, CHAPTERS } from './stages.js';
 import { audio } from './audio.js';
-import { save } from './save.js';
+import { save, persist } from './save.js';
 import { show, el, $, topbar, stageUnlocked } from './ui.js';
 import { showHub } from './menu.js';
 
@@ -53,6 +53,7 @@ export function showJukebox() {
         <div class="jb-nb"><div class="label">NOW PLAYING</div><b id="jbn"></b></div>
         <button class="btn small" id="jbs">停止</button>
       </div>
+      <div class="tabs sub jb-mode">${[['new', '新曲'], ['old', '旧曲']].map(([k, n]) => `<button class="tab" data-m="${k}">${n}</button>`).join('')}</div>
       ${save.settings.bgm <= 0 ? '<div class="hint">BGM の音量が 0 です（設定で変更できます）</div>' : ''}
       <div class="jb-list" id="jbl"></div>
     </div>`);
@@ -60,10 +61,14 @@ export function showJukebox() {
   const list = trackList();
   const byId = Object.fromEntries(list.filter((t) => t.id).map((t) => [t.id, t]));
   const playing = () => (audio.bgmTrack ? audio.bgmTrack.name : audio.ready ? null : audio.pendingTrack || null);
+  // 新曲（チップ音源）と旧曲（前の BGM）の切り替え。save.tabs.jbOld に覚える
+  const isOld = () => !!save.tabs.jbOld;
+  const play = (id) => (isOld() ? audio.playOldBgm(id) : audio.playBgm(id));
   const render = () => {
     const cur = playing();
     const t = cur && byId[cur];
-    $('#jbn', node).textContent = t && t.open ? t.name : '—';
+    $('#jbn', node).textContent = t && t.open ? `${t.name}${audio.bgmTrack && audio.bgmTrack.old ? '（旧曲）' : ''}` : '—';
+    node.querySelectorAll('.jb-mode .tab').forEach((b) => b.classList.toggle('on', (b.dataset.m === 'old') === isOld()));
     $('#jbd', node).style.setProperty('--c', t ? t.color : '#5a5670');
     $('#jbd', node).classList.toggle('on', !!t);
     $('#jbs', node).disabled = !cur;
@@ -84,13 +89,26 @@ export function showJukebox() {
       if (!t.open) return;
       audio.unlock();
       audio.tempoMul = 1;
-      if (playing() === t.id) audio.stopBgm();
-      else audio.playBgm(t.id);
+      if (playing() === t.id && !!(audio.bgmTrack && audio.bgmTrack.old) === isOld()) audio.stopBgm();
+      else play(t.id);
       render();
     };
     box.appendChild(row);
   }
   $('#jbs', node).onclick = () => { audio.tap(); audio.stopBgm(); audio.pendingTrack = null; render(); };
+  // 切り替えると、流れている曲をもう一方で流し直す
+  node.querySelectorAll('.jb-mode .tab').forEach((b) => {
+    b.onclick = () => {
+      const old = b.dataset.m === 'old';
+      if (old === isOld()) return;
+      audio.tap();
+      save.tabs.jbOld = old;
+      persist();
+      const cur = audio.bgmTrack && audio.bgmTrack.name;
+      if (cur && byId[cur] && byId[cur].open) { audio.unlock(); audio.tempoMul = 1; play(cur); }
+      render();
+    };
+  });
   $('#back', node).onclick = () => { audio.tap(); showHub('archive'); };
   render();
 }
