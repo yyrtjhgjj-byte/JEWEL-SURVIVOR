@@ -1,0 +1,1090 @@
+// =====================================================================
+//  BGM の楽譜（js/chip.js で鳴らす）
+//  旋律は MML で手で書き、伴奏（アルペジオ・ベース・持続音）は和音の名前から作る
+// =====================================================================
+
+// ---------------------------------------------------------------- 音色
+export const INST = {
+  // 主旋律（25%・12.5%・50% のパルス）
+  lead: { duty: 0.25, env: [14, 15, 14, 13, 12, 12, 11, 11, 10], rel: 4, vib: [16, 5.6, 18] },
+  lead12: { duty: 0.125, env: [15, 14, 13, 12, 11, 10, 10, 9], rel: 4, vib: [14, 5.8, 16] },
+  lead50: { duty: 0.5, env: [12, 13, 12, 11, 10, 10, 9], rel: 5, vib: [18, 5.2, 20] },
+  // 鋭く入って太くなる（金管風）
+  brass: { duty: [0.125, 0.125, 0.25, 0.25, 0.5], env: [9, 12, 14, 15, 14, 13, 13, 12], rel: 4, pit: [-0.6, -0.35, -0.15, -0.05, 0], vib: [14, 5.5, 22] },
+  // はじく音
+  pluck: { duty: 0.25, env: [15, 12, 10, 8, 7, 6, 5, 4, 4, 3, 3, 2, 2, 2, 1, 1, 1, 0], rel: 2 },
+  pluck12: { duty: 0.125, env: [15, 12, 10, 8, 7, 6, 5, 4, 4, 3, 3, 2, 2, 2, 1, 1, 1, 0], rel: 2 },
+  // 鐘（長く残る。12.5% と 25% を行き来してきらめく）
+  bell: { duty: [0.125, 0.25], dl: 0, env: [15, 13, 11, 10, 9, 8, 8, 7, 7, 6, 6, 6, 5, 5, 5, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0], rel: 8 },
+  // 和音の分散
+  arp: { duty: 0.25, env: [10, 9, 8, 8, 7, 7, 6], rel: 3 },
+  arp12: { duty: 0.125, env: [11, 10, 9, 8, 8, 7], rel: 3 },
+  // やわらかい持続音
+  pad: { duty: 0.5, env: [2, 4, 5, 6, 7, 8, 8, 8, 9, 9, 9, 9, 8, 8, 8, 8, 8, 7], rel: 10, vib: [10, 4.6, 30] },
+  pad25: { duty: 0.25, env: [2, 4, 6, 7, 8, 8, 8, 7], rel: 10, vib: [10, 4.6, 30] },
+  // 短く切る和音・刻み
+  stab: { duty: 0.5, env: [14, 11, 8, 6, 4, 3, 2, 1, 0], rel: 1 },
+  chug: { duty: 0.5, env: [12, 9, 7, 6, 5, 5, 4], rel: 1 },
+  // 笛（息で入る）
+  flute: { duty: 0.5, env: [5, 8, 10, 11, 12, 12, 11, 11], rel: 5, pit: [-0.5, -0.3, -0.15, -0.05, 0], vib: [22, 5.2, 14] },
+  // 竹の笛：下からしゃくり上げる
+  bamboo: { duty: [0.5, 0.5, 0.25], dl: 2, env: [6, 9, 11, 12, 12, 11, 11, 10], rel: 6, pit: [-1.2, -0.8, -0.45, -0.2, -0.08, 0], vib: [26, 5, 18] },
+  // 琴・琵琶：はじいて少し下がる
+  koto: { duty: [0.125, 0.25], dl: 1, env: [15, 13, 11, 9, 8, 7, 6, 5, 5, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1, 0], rel: 3, pit: [0.25, 0.12, 0.04, 0] },
+  // 三角波
+  bass: { env: [15], rel: 1 },
+  bassP: { env: [15, 15, 15, 15, 15, 13, 11, 9, 7, 5, 3, 0], rel: 1 },
+  tflute: { env: [15], rel: 3, vib: [20, 5, 16] },
+  // のこぎり波
+  saw: { env: [13, 12, 11, 11, 10], rel: 3 },
+  sawlead: { env: [12, 13, 12, 11, 10, 10, 9], rel: 4, vib: [14, 5.5, 18] },
+};
+
+// ---------------------------------------------------------------- 和音から伴奏を作る
+const NN = ['c', 'c+', 'd', 'd+', 'e', 'f', 'f+', 'g', 'g+', 'a', 'a+', 'b'];
+// 高さ（MIDI の番号）→ MML の音（オクターブ付き）
+const nm = (m) => `o${Math.floor(m / 12) - 1}${NN[((m % 12) + 12) % 12]}`;
+const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const QUAL = {
+  '': [0, 4, 7], m: [0, 3, 7], 7: [0, 4, 7, 10], M7: [0, 4, 7, 11], m7: [0, 3, 7, 10], mM7: [0, 3, 7, 11],
+  m7b5: [0, 3, 6, 10], dim: [0, 3, 6], dim7: [0, 3, 6, 9], aug: [0, 4, 8], sus4: [0, 5, 7], sus2: [0, 2, 7],
+  '7sus4': [0, 5, 7, 10], 6: [0, 4, 7, 9], m6: [0, 3, 7, 9], add9: [0, 4, 7, 14], madd9: [0, 3, 7, 14],
+  M9: [0, 4, 7, 11, 14], m9: [0, 3, 7, 10, 14], 9: [0, 4, 7, 10, 14], '7b9': [0, 4, 7, 10, 13], 5: [0, 7],
+  'M7#11': [0, 4, 7, 11, 18], 69: [0, 4, 7, 9, 14], m11: [0, 3, 7, 10, 17], '7#9': [0, 4, 7, 10, 15], aug7: [0, 4, 8, 10],
+};
+const pcOf = (s) => (PC[s[0]] + (s[1] === '#' ? 1 : s[1] === 'b' ? -1 : 0) + 12) % 12;
+export function parseChord(name) {
+  const [main, slash] = name.split('/');
+  const m = /^([A-G][#b]?)(.*)$/.exec(main);
+  if (!m || !(m[2] in QUAL)) throw new Error(`和音 ${name} が読めない`);
+  const root = pcOf(m[1]);
+  return { root, iv: QUAL[m[2]], bass: slash ? pcOf(slash) : root };
+}
+// lo 以上の和音の音を下から n 個
+function tones(c, lo, n = 10) {
+  const pcs = new Set(c.iv.map((x) => (c.root + x) % 12));
+  const out = [];
+  for (let m = lo; out.length < n; m++) if (pcs.has(m % 12)) out.push(m);
+  return out;
+}
+// 'FM7 Em7 G7sus4,G7' → 小節ごとの和音（, で 1 小節を等分）
+const barsOf = (s) => s.trim().split(/\s+/).map((b) => b.split(',').map(parseChord));
+export const chordNames = (s) => s.trim().split(/\s+/).map((b) => b.split(','));
+
+// 分散和音。pat は 1 小節ぶんの「下から何番目の音か」（r は休み）。1 小節に 2 つの和音なら pat の前半・後半をそれぞれに使う
+export function arp(chords, { lo = 60, pat, len = 16 }) {
+  const per = pat.length;
+  return barsOf(chords).map((cs) => {
+    const k = per / cs.length;
+    return pat.map((x, j) => {
+      if (x === 'r') return `r${len}`;
+      const t = tones(cs[Math.floor(j / k)], lo);
+      return `${nm(t[x])}${len}`;
+    }).join(' ');
+  }).join(' | ') + ' |';
+}
+
+// ベース。tpl は 1 小節の型：R 根音  O 1 オクターブ上  F 5 度  T 3 度  S 7 度  L 次の小節の根音へ半音下から  r 休み（後ろに長さ）
+// near：前の小節の根音にいちばん近い高さを選ぶ（lo〜hi の中で）
+export function bass(chords, tpl, { lo = 33, hi = 52, near = true } = {}) {
+  const bs = barsOf(chords);
+  const toks = tpl.trim().split(/\s+/).map((t) => {
+    const m = /^([RFOTSLr])(\d+\.?)$/.exec(t);
+    if (!m) throw new Error(`ベースの型 ${t} が読めない`);
+    return { k: m[1], len: m[2] };
+  });
+  const lenTick = (l) => (192 / parseInt(l, 10)) * (l.endsWith('.') ? 1.5 : 1);
+  const total = toks.reduce((a, t) => a + lenTick(t.len), 0);
+  let prev = null;
+  const place = (pc) => {
+    const cand = [];
+    for (let m = lo; m <= hi; m++) if (m % 12 === pc) cand.push(m);
+    if (!cand.length) return lo + (((pc - lo) % 12) + 12) % 12;
+    if (!near || prev === null) return cand[0];
+    return cand.reduce((a, b) => (Math.abs(b - prev) < Math.abs(a - prev) ? b : a));
+  };
+  const roots = bs.map((cs) => cs.map((c) => { const r = place(c.bass); prev = r; return r; }));
+  return bs.map((cs, b) => {
+    let t = 0;
+    return toks.map((tk) => {
+      const h = Math.min(cs.length - 1, Math.floor((t / total) * cs.length));
+      t += lenTick(tk.len);
+      const c = cs[h];
+      const R = roots[b][h];
+      if (tk.k === 'r') return `r${tk.len}`;
+      const up = (x) => R + ((((c.root + x) % 12) - R) % 12 + 12) % 12;
+      const fifth = c.iv.includes(7) ? 7 : c.iv.includes(6) ? 6 : c.iv.includes(8) ? 8 : 7;
+      const third = c.iv.includes(4) ? 4 : c.iv.includes(3) ? 3 : 5;
+      const sev = c.iv.includes(10) ? 10 : c.iv.includes(11) ? 11 : c.iv.includes(9) ? 9 : 12;
+      let n = R;
+      if (tk.k === 'O') n = R + 12;
+      if (tk.k === 'F') n = up(fifth);
+      if (tk.k === 'T') n = up(third);
+      if (tk.k === 'S') n = up(sev);
+      if (tk.k === 'L') {
+        const nx = roots[(b + 1) % roots.length][0];
+        n = nx - 1;
+      }
+      return `${nm(n)}${tk.len}`;
+    }).join(' ');
+  }).join(' | ') + ' |';
+}
+
+// 持続音：和音の 3 度か 7 度のうち、前の音にいちばん近いものを lo〜lo+11 から選ぶ（なめらかな内声）
+// len は 1 小節の長さ（4 拍子なら '1'、3 拍子なら '2.'）。1 小節に 2 つの和音なら半分ずつ
+export function pads(chords, { lo = 64, len = '1', start = null } = {}) {
+  let prev = start === null ? lo + 6 : start;
+  const half = { 1: '2', '2.': '4.' };
+  return barsOf(chords).map((cs) => cs.map((c) => {
+    const cand = [];
+    for (const x of c.iv) if (x !== 0 && x !== 7) for (let m = lo; m < lo + 12; m++) if (m % 12 === (c.root + x) % 12) cand.push(m);
+    if (!cand.length) cand.push(lo + ((c.root - lo) % 12 + 12) % 12);
+    cand.sort((a, b) => Math.abs(a - prev) - Math.abs(b - prev));
+    prev = cand[0];
+    return `${nm(prev)}${cs.length === 1 ? len : half[len]}`;
+  }).join(' ')).join(' | ') + ' |';
+}
+
+// よく使う分散の型（1 小節の 16 分音符）
+const WAVE = [2, 3, 4, 5, 6, 5, 4, 3, 2, 3, 4, 5, 6, 7, 6, 5];
+const RISE = [0, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6];
+
+// ---------------------------------------------------------------- 曲
+// chords は小節ごとの和音（旋律の確かめ用。tools/test/chip-check.js）。melody は旋律のチャンネルの id
+export const SONGS = {};
+
+// タイトル：宝石の主題。F から半音ずつ下がっていくベースの上に、遠い記憶のような旋律
+{
+  const intro = 'FM7 FM7 Em7 Em7';
+  const A = 'FM7 Em7 Dm7 CM7 BbM7 Am7 AbM7 G7sus4,G7';
+  const A2 = 'FM7 Em7 Dm7 CM7 BbM7 Am7 Dm7,G7 C';
+  const B = 'Dm7 G7 CM7 FM7 Bm7b5 E7 Am7 A7';
+  const C = 'Dm9 Em7 FM7 G7 Em7 Am7 Dm7 G7sus4,G7';
+  SONGS.title = {
+    bpm: 92,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.2, echo: [36, 0.35, 0.45], mml: `
+        r1 | r1 | r1 | r1 | L
+        @lead12 v13
+        o5 r8 e8 a8 b8 >c4. <b8 | g4 e4 d8 e4. | r8 d8 a8 b8 >c4. d8 | e4. d8 <b2 |
+        >d4. c8 <a+8 a8 f4 | g4. e8 c8 d8 e4 | g2 f8 e-8 c8 e-8 | d4. c8 <b2 |
+        o5 r8 e8 a8 b8 >c8 e8 d8 c8 | <b4 g4 e8 d8 e4 | r8 d8 a8 b8 >c8 d8 f8 g8 | e2^8 g8 f8 e8 |
+        d4. c8 d8 f8 a8 f8 | e4. d8 c4 <a4 | >c4. d8 <b8 a8 g8 f8 | e2. r4 |
+        @lead v12
+        o5 r8 d8 f8 a8 >c4 <b8 a8 | b4. a8 g8 f8 d4 | r8 c8 e8 g8 b4 a8 g8 | a4. g8 e8 f8 c4 |
+        r8 <b8 >d8 f8 a4 g+8 a8 | b4. a8 g+8 f8 e4 | r8 e8 a8 >c8 e4 d8 c8 | c+2 <a4 g4 |
+        @lead v14
+        o5 r8 a8 >d8 e8 f4. e8 | d4. e8 d8 c8 <b4 | a4. g8 a8 >c8 e4 | g2 f8 e8 d8 e8 |
+        d4. <b8 g4 b4 | >c4. d8 e4 g4 | a2 g4 f4 | f4. e8 d2 |` },
+      { id: 'p2', type: 'pulse', pan: 0.25, mml: `
+        @arp12 v7 ${arp(intro, { lo: 67, pat: WAVE })} L
+        v7 ${arp(A, { lo: 60, pat: WAVE })}
+        v7 ${arp(A2, { lo: 67, pat: WAVE })}
+        @pluck v9 ${arp(B, { lo: 57, pat: [0, 2, 1, 3, 2, 4, 3, 5], len: 8 })}
+        @pad v9 ${pads(C, { lo: 64 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R1', { lo: 40 })} L
+        ${bass(A, 'R2. O8 F8', { lo: 31, hi: 50 })}
+        ${bass(A2, 'R2. O8 F8', { lo: 31, hi: 50 })}
+        ${bass(B, 'R4 O8 R8 F4 O8 F8', { lo: 33, hi: 50 })}
+        ${bass(C, 'R8 O8 R8 O8 R8 O8 F8 O8', { lo: 33, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        r1 | r1 | v5 [z8 z8 z8 z8 z8 z8 z8 z8 |]2 L
+        [v11 k8 v6 h8 h8 h8 v9 s8 v6 h8 v11 k8 v6 h8 |]7 v11 k8 v6 h8 h8 h8 v9 s8 s16 s16 v10 t8 m8 |
+        [v11 k8 v6 h8 h8 h8 v9 s8 v6 h8 v11 k8 v6 h8 |]7 v11 k8 v6 h8 h8 h8 v10 s8 s8 s8 s16 s16 |
+        [v12 k8 v6 h8 v12 k8 v6 h8 v10 s8 v6 h8 v12 k8 v6 o8 |]7 v12 k8 v6 h8 v10 s8 s16 s16 t8 t8 m8 f8 |
+        v12 c8 v6 h8 v12 k8 v6 h8 v11 s8 v6 h8 v12 k8 v6 o8 |
+        [v12 k8 v6 h8 v12 k8 v6 h8 v11 s8 v6 h8 v12 k8 v6 o8 |]6 v12 k8 v11 s8 s8 s16 s16 v12 s8 t8 m8 f8 |` },
+    ],
+  };
+}
+
+// 黒曜の荒野：乾いた荒野を駆ける。アンダルシア進行に、ギャロップのベース
+{
+  const intro = 'Am Am Am E';
+  const A = 'Am G F E Am G F E7';
+  const A2 = 'Am G F E Dm7 E7 F,G A';
+  const B = 'C G/B Am Em/G F Fm Em7,A7 Dm7,G7';
+  const C = 'F E F E Dm E F E7';
+  const gallop = 'R8 R16 R16 O8 R16 R16 R8 R16 R16 F8 R16 R16';
+  SONGS.stage = {
+    bpm: 128,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [36, 0.3, 0.4], mml: `
+        r1 | r1 | r1 | r1 | L
+        @lead v13
+        o5 a4. e8 a8 b8 >c4 | <b4. g8 d4 g4 | a4. f8 c8 d8 f4 | e2 g+4 b4 |
+        >c4. d8 e4 c4 | d4. <b8 g4 b4 | >c4. <a8 f4 a8 g8 | g+4. a8 b4 >d4 |
+        <a4. e8 a8 b8 >c8 d8 | e4 d4 <b4 g4 | a4. f8 c8 d8 f4 | e4. f8 g+4 b4 |
+        a4. g8 f8 e8 d4 | g+4. a8 b8 >c8 d4 | c4 <a4 b4 >d4 | c+2. r4 |
+        e4. d8 c4 <g4 | >d4. c8 <b4 g4 | a4. b8 >c8 d8 e4 | d4. c8 <b2 |
+        a2. g8 a8 | g+2. g8 f8 | e4. g8 >c+4 <a4 | >d4. c8 <b4 g4 |
+        a4. g+8 a8 b8 >c4 | <b4. a8 g+8 f8 e4 | a4. g+8 a8 b8 >c8 d8 | e4. d8 c8 <b8 g+4 |
+        f4. e8 d8 e8 f8 a8 | g+4. f8 e8 f8 g+8 b8 | >c4. <b8 a8 b8 >c8 d8 | e2. r4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.25, mml: `
+        @arp v8 ${arp(intro, { lo: 57, pat: [0, 2, 1, 3, 2, 4, 3, 5, 0, 2, 1, 3, 2, 4, 3, 5] })} L
+        @pluck v9 ${arp(A, { lo: 57, pat: [0, 1, 2, 3, 2, 1, 2, 3], len: 8 })}
+        ${arp(A2, { lo: 57, pat: [0, 1, 2, 3, 2, 1, 2, 3], len: 8 })}
+        @pad25 v9 ${pads(B, { lo: 62 })}
+        @arp12 v8 ${arp(C, { lo: 57, pat: RISE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, gallop, { lo: 33, hi: 50 })} L
+        ${bass(A, gallop, { lo: 33, hi: 50 })}
+        ${bass(A2, gallop, { lo: 33, hi: 50 })}
+        ${bass(B, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 33, hi: 50 })}
+        ${bass(C, 'R8 R8 R8 R8 R8 R8 R8 L8', { lo: 36, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [k8 h8 h8 h8 k8 h8 h8 h8 |]3 s16 s16 s16 s16 t8 t8 m8 m8 f8 f8 | L
+        [[k8 h8 S8 h8 k8 k8 S8 h8 |]7 k8 h8 S8 h8 s16 s16 s16 s16 t8 m8 |]2
+        C8 h8 S8 h8 k8 k8 S8 o8 | [k8 h8 S8 h8 k8 k8 S8 o8 |]6 k8 h8 S8 S8 s16 s16 s16 s16 S4 |
+        C4 h8 h8 S4 h8 k8 | [K4 h8 h8 S4 h8 k8 |]6 k8 k8 S8 k8 s16 s16 s16 s16 S8 S8 |` },
+    ],
+  };
+}
+
+// 水晶洞窟：水晶の光。5 度で上がるきらめきと、リディアの #11
+{
+  const intro = 'Em9 Em9 CM7#11 CM7#11';
+  const A = 'Em9 CM7#11 Am9 B7sus4,B7 Em9 CM7#11 D6 B7';
+  const A2 = 'Em9 CM7#11 Am9 B7sus4,B7 CM7 D6 Bm7 Em9';
+  const B = 'CM7 D/C Bm7 Em9 CM7 D/C B7sus4 B7';
+  const C = 'Am9 Bm7 CM7 D6 Am9 Bm7 CM7#11 B7';
+  SONGS.cavern = {
+    bpm: 120,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.2, echo: [36, 0.38, 0.5], mml: `
+        r1 | r1 | r1 | r1 | L
+        @lead12 v13
+        o5 e8 b8 >f+4 e8 d8 <b4 | >c4. <b8 g4 f+4 | e8 a8 >e4 d8 c8 <b4 | >e2 d+2 |
+        <e8 b8 >f+4 g8 f+8 e4 | e4. f+8 g4 b4 | a2 f+4 d4 | d+2. r4 |
+        <e8 b8 >f+4 e8 d8 <b4 | >c4. <b8 >e4 d4 | c4. <b8 a4 e4 | e4 f+4 d+2 |
+        e4. g8 b4 >e4 | f+4. e8 d4 <a4 | b4. a8 f+4 d4 | e2. r4 |
+        @lead50 v12
+        g4 b4 >e4. d8 | f+2 e4 d4 | d4. c+8 <b4 a4 | b2 g4 f+4 |
+        e4 g4 b4 >e4 | f+4. g8 a4 f+4 | e2 f+4 e4 | d+2 <b4 a4 |
+        @bell v13
+        o6 b2 e2 | a2 f+2 | g2 e2 | f+2 d2 | e2 c2 | d2 <b2 | >f+2 e2 | d+1 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @arp12 v7 ${arp(intro, { lo: 64, pat: WAVE })} L
+        @arp v7 ${arp(A, { lo: 59, pat: [0, 2, 4, 1, 3, 5, 2, 4, 0, 2, 4, 1, 3, 5, 2, 4] })}
+        ${arp(A2, { lo: 59, pat: [0, 2, 4, 1, 3, 5, 2, 4, 0, 2, 4, 1, 3, 5, 2, 4] })}
+        @pluck12 v9 ${arp(B, { lo: 55, pat: [0, 1, 2, 3, 4, 3, 2, 1], len: 8 })}
+        @arp12 v8 ${arp(C, { lo: 64, pat: RISE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R1', { lo: 40 })} L
+        ${bass(A, 'R4. O8 r8 F8 R4', { lo: 35, hi: 52 })}
+        ${bass(A2, 'R4. O8 r8 F8 R4', { lo: 35, hi: 52 })}
+        ${bass(B, 'R8 R8 O8 R8 F8 R8 O8 F8', { lo: 35, hi: 52 })}
+        ${bass(C, 'R2. F4', { lo: 35, hi: 52 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        r1 | r1 | v6 [z8 z8 z8 z8 z8 z8 z8 z8 |]2 L
+        [[v11 k8 v6 z8 h8 z8 v9 s8 v6 z8 h8 z8 |]7 v11 k8 v6 z8 h8 z8 v9 s8 s16 s16 v8 t8 m8 |]2
+        [v11 k8 v6 h8 v11 k8 v6 h8 v10 s8 v6 h8 v11 k8 v6 o8 |]7 v11 k8 v10 s8 s8 s16 s16 v11 s8 t8 m8 f8 |
+        v12 c4 v6 z4 v10 k4 v6 z4 | [v10 k4 v6 z4 v8 s4 v6 z4 |]6 v10 k4 v8 s8 s8 s8 s8 t8 f8 |` },
+    ],
+  };
+}
+
+// 灼熱鉱脈：煮えたぎる 16 分のベース。最後はナポリの和音（E♭）で熱を上げる
+{
+  const intro = 'Dm Dm Bb A';
+  const A = 'Dm Dm Bb A Dm Dm Gm A7';
+  const A2 = 'Dm C Bb A Gm A7 Dm Dm';
+  const B = 'Bb C Am Dm Bb C Eb A7';
+  const C = 'Dm Eb Dm Eb Gm Eb A A7';
+  const drive = 'R16 R16 O16 R16 R16 R16 O16 R16 R16 R16 O16 R16 F16 F16 O16 F16';
+  SONGS.magma = {
+    bpm: 146,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [24, 0.28, 0.4], mml: `
+        r1 | r1 | r1 | r1 | L
+        @brass v14
+        o5 d4 a4 g8 a8 >c8 d8 | e8 d8 c8 <a8 f4 a4 | b-4. a8 b-8 >c8 d4 | c+2 e4 a4 |
+        o5 a4 >d4 f8 e8 d8 c8 | d4. <a8 f4 d4 | g4. a8 b-4 >d4 | c+4. <b-8 a4 g4 |
+        d4 a4 g8 a8 >c8 d8 | e4. d8 c4 <g4 | b-4. >c8 d4 f4 | e2 c+4 <a4 |
+        b-4. a8 g4 d4 | e4 g4 >c+4 e4 | d2 f4 a4 | d2. r4 |
+        o5 f4 b-4 >d4. c8 | e4. d8 c4 <g4 | a4. b8 >c4 e4 | d2 <a2 |
+        f4 b-4 >d4 f4 | e4. d8 e4 g4 | g2 b-4 g4 | a2 e4 c+4 |
+        @chug v11
+        o4 [d16 d16 a16 d16]4 | [e-16 e-16 b-16 e-16]4 | [d16 d16 a16 d16]4 | [e-16 e-16 b-16 e-16]4 |
+        [g16 g16 >d16 <g16]4 | [e-16 e-16 b-16 e-16]4 | [a16 a16 >e16 <a16]4 | a16 a16 >e16 <a16 >g16 e16 c+16 <a16 >c+8 e8 g8 b-8 |` },
+      { id: 'p2', type: 'pulse', pan: 0.25, mml: `
+        @chug v10 ${bass(intro, drive, { lo: 50, hi: 62 })} L
+        @stab v9 ${arp(A, { lo: 62, pat: ['r', 0, 'r', 1, 'r', 2, 'r', 1], len: 8 })}
+        ${arp(A2, { lo: 62, pat: ['r', 0, 'r', 1, 'r', 2, 'r', 1], len: 8 })}
+        @pad25 v9 ${pads(B, { lo: 62 })}
+        @pad v10 ${pads(C, { lo: 67 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, drive, { lo: 38, hi: 50 })} L
+        ${bass(A, drive, { lo: 38, hi: 50 })}
+        ${bass(A2, drive, { lo: 38, hi: 50 })}
+        ${bass(B, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 38, hi: 50 })}
+        ${bass(C, 'R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16', { lo: 38, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [k8 h8 s8 h8 k8 k8 s8 h8 |]3 s16 s16 s16 s16 s16 s16 s16 s16 t16 t16 m16 m16 f16 f16 f16 f16 | L
+        [C8 h8 S8 h8 k8 k8 S8 h8 | [k8 h8 S8 h8 k8 k8 S8 h8 |]6 k8 h8 S8 h8 s16 s16 s16 s16 S8 S8 |]2
+        [C8 h8 S8 h8 k16 k16 h8 S8 o8 | [k8 h8 S8 h8 k16 k16 h8 S8 o8 |]2 k8 h8 S8 h8 k16 k16 h8 s16 s16 s16 s16 |]2
+        [K8 k8 k8 k8 S8 k8 k8 k8 |]7 s16 s16 s16 s16 s16 s16 s16 s16 S8 S8 C4 |` },
+    ],
+  };
+}
+
+// 凍晶氷原：雪のワルツ（3 拍子）。終わりの手前でナポリの和音（B♭）へ寄り道する
+{
+  const intro = 'Am Am FM7 E';
+  const A = 'Am Am/G FM7 E Dm Am/C B7 E7 Am Am/G FM7 Dm7 BbM7 E7 Am Am';
+  const B = 'F G Em Am Dm G CM7 E7 F G Em7 A7 Dm E7 Am Am';
+  SONGS.tundra = {
+    bpm: 126,
+    meter: 3,
+    melody: 'p1',
+    chords: `${intro} ${A} ${B}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.2, echo: [48, 0.35, 0.5], mml: `
+        r2. | r2. | r2. | r2. | L
+        @lead12 v13
+        o5 e2 a4 | b2 >c4 | <b2 a4 | g+2. | f2 a4 | e2 a4 | d+2 f+4 | e2. |
+        e2 a4 | b2 >c4 | e2 d4 | c2 <a4 | b-2 a4 | g+2 a8 b8 | a2. | r2. |
+        @lead50 v12
+        a2 >c4 | d2 <b4 | >e2. | e4 d4 c4 | d2 f4 | f4 e4 d4 | e2. | d2 <b4 |
+        >c2 <a4 | b2 >d4 | g2 e4 | c+2 e4 | f2 d4 | <b2 g+4 | a2. | r2. |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @arp12 v7 ${arp(intro, { lo: 64, pat: [0, 1, 2, 3, 4, 3], len: 8 })} L
+        @pluck12 v8 ${arp(A, { lo: 60, pat: ['r', 1, 2], len: 4 })}
+        @arp v7 ${arp(B, { lo: 62, pat: [0, 1, 2, 3, 2, 1], len: 8 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R2.', { lo: 40 })} L
+        ${bass(A, 'R2 F4', { lo: 33, hi: 50 })}
+        ${bass(B, 'R4 F4 O4', { lo: 33, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [v5 z4 z8 z8 z4 |]4 L
+        [v10 k4 v5 h4 h4 |]15 v10 k4 v8 s8 s8 s4 |
+        [v10 k4 v6 h4 v8 s4 |]15 v10 k4 s8 s8 t8 f8 |` },
+    ],
+  };
+}
+
+// 虚空聖堂：オルガンのトッカータ（16 分の分散）と、下がっていくベースの上のコラール
+{
+  const intro = 'Cm Cm Ab G';
+  const A = 'Cm G/B Cm/Bb F/A Fm/Ab Cm/G Dm7b5 G7';
+  const B = 'Ab Bb Gm Cm Fm7 Bb7 EbM7 G7';
+  const C = 'Cm Db Cm Db Bbm Cm Ab G7';
+  const toc = [0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1];
+  SONGS.void = {
+    bpm: 138,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [48, 0.3, 0.45], mml: `
+        r1 | r1 | r1 | r1 | L
+        @lead50 v13
+        o5 g2 >c2 | <b2 >d2 | e-2. d8 c8 | c2 <a2 | a-2 >c2 | <g2. f8 e-8 | f2 a-2 | b2 >d2 |
+        o5 g4. a-8 g4 >c4 | <b4. >c8 d4 f4 | e-2 g4 f8 e-8 | f4 c4 <a4 >c4 |
+        o6 c4. <b-8 a-4 f4 | g4. f8 e-4 c4 | d4 f4 a-4 >c4 | <b2. r4 |
+        @brass v14
+        o5 a-4. b-8 >c4 e-4 | d2 f4 d4 | <b-4. a8 g4 d4 | e-2 g4 >c4 |
+        c4. <b-8 a-4 f4 | a-4 f4 d4 f4 | g2 b-4 >d4 | d2 <b2 |
+        @lead50 v13
+        o4 g2 >c4 e-4 | f2 a-4 >d-4 | c2 <g4 e-4 | f2 d-4 <a-4 |
+        b-2 >d-4 f4 | e-2 g4 >c4 | <a-2 >c4 e-4 | d2 <b4 g4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.25, mml: `
+        @arp v8 ${arp(intro, { lo: 55, pat: toc })} L
+        ${arp(A, { lo: 55, pat: toc })}
+        ${arp(A, { lo: 60, pat: toc })}
+        ${arp(B, { lo: 60, pat: toc })}
+        v9 ${arp(C, { lo: 55, pat: RISE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R2 R2', { lo: 36, hi: 50 })} L
+        ${bass(A, 'R2 R2', { lo: 31, hi: 48 })}
+        ${bass(A, 'R4 O4 R4 O4', { lo: 31, hi: 48 })}
+        ${bass(B, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 32, hi: 48 })}
+        ${bass(C, 'R4. R8 R4 L4', { lo: 34, hi: 48 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        r1 | r1 | r1 | s16 s16 s16 s16 s16 s16 s16 s16 t8 m8 f8 f8 | L
+        [v11 k4 v6 h4 v11 k4 v6 h4 |]7 v11 k4 v6 h4 v10 s8 s8 s8 s8 |
+        v12 [k8 h8 S8 h8 k8 k8 S8 h8 |]7 k8 h8 S8 h8 s16 s16 s16 s16 t8 f8 |
+        C8 h8 S8 h8 k8 k8 S8 o8 | [k8 h8 S8 h8 k8 k8 S8 o8 |]6 k8 h8 S8 S8 S16 S16 S16 S16 S8 S8 |
+        [J4 h8 h8 S4 t8 m8 |]7 J8 J8 S8 S8 t8 m8 f8 f8 |` },
+    ],
+  };
+}
+
+// 深海：ゆらゆら揺れる探検ツアー。ドリアの 6 度（B）と、泡のような高い音
+{
+  const intro = 'Dm7 Em7 Dm7 Em7';
+  const A = 'Dm7 Em7 Dm7 Em7 BbM7 Am7 Gm7 A7';
+  const A2 = 'Dm7 Em7 Dm7 Em7 BbM7 C7 FM7 A7';
+  const B = 'Gm7 C9 FM7 BbM7 Em7b5 A7 Dm7 A7';
+  const bubbles = [0, 4, 2, 5, 1, 3, 6, 2, 0, 5, 3, 1, 4, 6, 2, 4];
+  const groove = 'R8. R16 r8 O8 F8. F16 r8 O8';
+  SONGS.deep = {
+    bpm: 100,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B}`,
+    inst: { wob: { duty: 0.25, env: [12, 13, 13, 12, 11, 11, 10], rel: 5, vib: [32, 4.2, 8] } },
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.2, echo: [36, 0.35, 0.5], mml: `
+        r1 | r1 | r1 | r1 | L
+        @wob v13 P3
+        o5 a4. b8 a8 f8 d4 | e4. f+8 g4 b4 | a4. b8 >c8 <a8 f4 | g4 e4 r8 b8 a8 g8 |
+        f4. a8 >c4 d4 | e4. d8 c4 <a4 | b-4. a8 g4 f4 | e4 c+4 <a2 |
+        >a4. b8 a8 f8 d4 | e4. f+8 g4 b4 | a4. b8 >c8 d8 e4 | d2 <b4 g4 |
+        a4. f8 d4 f4 | g4. e8 c4 b-4 | a2 e4 c4 | c+2. r4 |
+        o4 b-4. >d8 f4 a4 | g4. f8 e4 d4 | e4. c8 <a4 >c4 | d2 f4 a4 |
+        b-4. a8 g4 e4 | c+4 e4 g4 b-4 | a2 f4 d4 | e2 c+4 <a4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @arp12 v7 ${arp(intro, { lo: 74, pat: bubbles })} L
+        ${arp(A, { lo: 74, pat: bubbles })}
+        ${arp(A2, { lo: 74, pat: bubbles })}
+        @pluck v9 ${arp(B, { lo: 57, pat: [0, 2, 1, 3, 2, 4, 3, 1], len: 8 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, groove, { lo: 38, hi: 52 })} L
+        ${bass(A, groove, { lo: 38, hi: 52 })}
+        ${bass(A2, groove, { lo: 38, hi: 52 })}
+        ${bass(B, 'R4 F8 O8 R4 F8 L8', { lo: 38, hi: 52 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        v6 [z8 z8 z8 z8 z8 z8 z8 z8 |]3 v10 k8. k16 s8 s16 s16 t8 m8 f8 f8 | L
+        [[v11 k8. k16 v6 h8 h8 v9 s8 v6 h8 v11 k8 v6 z8 |]7 v11 k8. k16 v9 s8 s16 s16 s8 s8 t8 f8 |]2
+        [v11 k4 v6 z8 z8 v9 s4 v6 z8 z8 |]7 v11 k8 v9 s8 s8 s8 s16 s16 s16 s16 s8 s8 |` },
+    ],
+  };
+}
+
+// ルルイエ：ゆがんだ遺跡。三全音（増 4 度）離れた和音を行き来する
+{
+  const intro = 'Em Bb Em Bb';
+  const A = 'Em Bb Em Bb CM7 F#7 Am7 B7';
+  const A2 = 'Em Bb Gm Db CM7 F#7 Am7 B7';
+  const B = 'G Db G Db Eb A Cm B7';
+  SONGS.rlyeh = {
+    bpm: 112,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [36, 0.3, 0.45], mml: `
+        r1 | r1 | r1 | r1 | L
+        @lead v13
+        o5 b4. g8 e4 b4 | b-4. f8 d4 b-4 | >e4. d8 <b4 g4 | f4. e8 d4 <b-4 |
+        >c4. e8 g4 b4 | a+4. f+8 e4 c+4 | e4. g8 c4 a4 | b4 a4 f+4 d+4 |
+        b4. g8 e4 b4 | b-4. f8 d4 b-4 | >d4. c8 <b-4 g4 | a-4. f8 d-4 f4 |
+        e4. g8 b4 >e4 | c+4. <a+8 f+4 e4 | e4 g4 >c4 e4 | d+2 f+4 <b4 |
+        @brass v14
+        o5 g4. a8 b4 >d4 | d-4. e-8 f4 a-4 | g4. f+8 d4 <b4 | >d-4. c8 <a-4 f4 |
+        g4. b-8 >e-4 g4 | a4. e8 c+4 <a4 | >c4. <b-8 g4 e-4 | d+2 f+4 a4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.25, mml: `
+        @arp12 v7 ${arp(intro, { lo: 59, pat: RISE })} L
+        @arp v7 ${arp(A, { lo: 59, pat: RISE })}
+        ${arp(A2, { lo: 59, pat: RISE })}
+        @stab v9 ${arp(B, { lo: 62, pat: ['r', 0, 'r', 1, 'r', 2, 'r', 1], len: 8 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R2 O2', { lo: 34, hi: 50 })} L
+        ${bass(A, 'R8 R8 O8 R8 F8 R8 O8 F8', { lo: 34, hi: 50 })}
+        ${bass(A2, 'R8 R8 O8 R8 F8 R8 O8 F8', { lo: 34, hi: 50 })}
+        ${bass(B, 'R4. R8 O4 F4', { lo: 34, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        v11 [j2 v7 t4 m4 |]3 v11 j8 j8 s8 s8 t8 m8 f8 f8 | L
+        [[v12 k8 v6 h8 v11 S8 v6 h8 v12 k8 k16 k16 v11 S8 v6 h8 |]7 v12 k8 h8 S8 h8 s16 s16 s16 s16 t8 f8 |]2
+        v12 C8 h8 S8 h8 k8 k8 S8 o8 | [k8 h8 S8 h8 k8 k8 S8 o8 |]6 k8 k8 S8 S8 s16 s16 s16 s16 S8 S8 |` },
+    ],
+  };
+}
+
+// ハリ湖のお茶会：スウィングする優雅なお茶の時間。ときどき影が差す（短調の iv・減 7 の和音）
+{
+  const intro = 'FM7 Dm7 Gm7 C7';
+  const A = 'FM7 D7 Gm7 C7 Am7 D7 Gm7 C7';
+  const A2 = 'FM7 F7 BbM7 Bbm6 Am7 Abdim7 Gm7 C7';
+  const B = 'Dm7 G7 CM7 Am7 Dm7 G7 Gm7 C7';
+  const comp = ['r', 'r', 1, 'r', 'r', 2, 'r', 'r', 1, 'r', 'r', 3];
+  SONGS.lake = {
+    bpm: 96,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [32, 0.3, 0.4], mml: `
+        r1 | r1 | r1 | r2 r4 r6 o5 a12 | L
+        @lead50 v13
+        a6 g12 a6 >c12 e4 d4 | c4 <a6 f+12 a4 >c4 | <b-4. a8 g6 f12 d4 | e4 g4 b-4 a6 g12 |
+        >c4. <a8 g4 e6 c12 | d4 f+4 a4 >c4 | <b-4. a8 g6 a12 b-6 >d12 | c2 r4 r6 <a12 |
+        a6 g12 a6 >c12 e4 d4 | c4 <a6 f12 e-4 c4 | d4. f8 a4 >c4 | d-4. f8 g4 <b-4 |
+        a4 g4 e4 c4 | <b4 >d4 f4 a-4 | g4. f8 d6 e12 f6 g12 | e2 r2 |
+        @lead v12
+        f6 e12 f6 a12 >c4 <a4 | b4 g6 f12 d4 <b4 | >c6 d12 e6 g12 b4 g4 | a4. g8 e4 c4 |
+        d6 e12 f6 a12 >c4 d4 | <b4 >d6 c12 <b4 g4 | b-4. a8 g4 f4 | e4 g4 b-4 >c4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.25, mml: `
+        @stab v8 ${arp(intro, { lo: 60, pat: comp, len: 12 })} L
+        ${arp(A, { lo: 60, pat: comp, len: 12 })}
+        ${arp(A2, { lo: 60, pat: comp, len: 12 })}
+        @pad v9 ${pads(B, { lo: 62 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R4 T4 F4 L4', { lo: 36, hi: 52 })} L
+        ${bass(A, 'R4 T4 F4 L4', { lo: 36, hi: 52 })}
+        ${bass(A2, 'R4 T4 F4 L4', { lo: 36, hi: 52 })}
+        ${bass(B, 'R4 T4 F4 L4', { lo: 36, hi: 52 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [v9 k4 v6 h6 h12 v8 s4 v6 h6 h12 |]4 L
+        [[v9 k4 v6 h6 h12 v8 s4 v6 h6 h12 |]7 v9 k4 v6 h6 h12 v8 s6 s12 s6 s12 |]3` },
+    ],
+  };
+}
+
+// カルコサ：黄衣の王の劇場。半音ずつ下がるベースのタンゴ（ハバネラのリズム）
+{
+  const intro = 'Am E7 Am E7';
+  const A = 'Am Am/G F#m7b5 F7 E7 E7 Am E7';
+  const A2 = 'Am Am/G F#m7b5 F7 E7 Bb7 Am Am';
+  const B = 'Dm G7 CM7 FM7 Bm7b5 E7 Am A7';
+  const C = 'Dm Dm/C Bm7b5 Bb7 Am/E E7 Am E7';
+  const hab = 'R8. F16 T8 F8 R8. F16 T8 F8';
+  const tango = [1, 'r', 'r', 2, 2, 'r', 3, 'r', 1, 'r', 'r', 2, 2, 'r', 3, 'r'];
+  SONGS.carcosa = {
+    bpm: 104,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [36, 0.3, 0.45], mml: `
+        r1 | r1 | r1 | r1 | L
+        @lead50 v13
+        o5 e4. f8 e8 d+8 e4 | a4. b8 a8 g+8 a4 | >c4. <b8 a8 g8 f+4 | a4 e-4 c4 <a4 |
+        >g+4. a8 b4 >d4 | c4. <b8 g+4 e4 | a2. g+8 a8 | b2. r4 |
+        e4. f8 e8 d+8 e4 | a4. b8 a8 g+8 a4 | >c4. d8 e4 <a4 | >e-4. d8 c4 <a4 |
+        g+2 b4 >d4 | d4. <a-8 f4 d4 | e2. d+8 e8 | a2. r4 |
+        @lead v13
+        f4. e8 f4 a4 | g4. f8 d4 <b4 | >e4. d8 e4 g4 | a2 >c4 e4 |
+        d4. c8 <a4 f4 | g+4. a8 b4 >d4 | c4. <b8 a4 e4 | c+2 e4 g4 |
+        @brass v14
+        a6 a6 a6 >d4 f4 | e6 d6 c6 <a2 | b6 b6 b6 >d4 f4 | a-6 f6 d6 <b-2 |
+        >c4. <b8 a4 e4 | f4. e8 g+4 b4 | a2 >c4 e4 | d2 <b4 g+4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.25, mml: `
+        @stab v9 ${arp(intro, { lo: 57, pat: tango })} L
+        ${arp(A, { lo: 57, pat: tango })}
+        ${arp(A2, { lo: 57, pat: tango })}
+        @pad25 v9 ${pads(B, { lo: 62 })}
+        @arp v8 ${arp(C, { lo: 57, pat: RISE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, hab, { lo: 33, hi: 50 })} L
+        ${bass(A, hab, { lo: 33, hi: 50 })}
+        ${bass(A2, hab, { lo: 33, hi: 50 })}
+        ${bass(B, hab, { lo: 33, hi: 50 })}
+        ${bass(C, 'R8 R8 R8 R8 R8 R8 R8 L8', { lo: 33, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [v11 k8. v6 h16 v9 s8 v6 h8 v11 k8. k16 v9 s8 x8 |]3 v10 s8. s16 s8 s8 t8 m8 f8 f8 | L
+        [[v11 k8. v6 h16 v9 s8 v6 h8 v11 k8. k16 v9 s8 x8 |]7 v11 k8. k16 v9 s8 s8 s16 s16 s16 s16 x8 x8 |]4` },
+    ],
+  };
+}
+
+// 宇宙：リディアの和音（C → D/C）が、短 3 度ずつ上へ平行移動していく
+{
+  const intro = 'Cadd9 D/C Cadd9 D/C';
+  const A = 'CM7 D/C EbM7 F/Eb AbM7 Bb/Ab Gsus4 G';
+  const A2 = 'CM7 D/C Em7 Am7 FM7 G/F Em7,A7 Dm7,G7';
+  const B = 'Am7 Em7 FM7 CM7 Dm7 Em7 FM7 Gsus4,G';
+  SONGS.space = {
+    bpm: 88,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.2, echo: [48, 0.4, 0.55], mml: `
+        r1 | r1 | r1 | r1 | L
+        @lead50 v13
+        o5 c2 g2 | f+1 | e-2 b-2 | a1 | a-2 >e-2 | d1 | c2 d2 | <b1 |
+        @lead v12
+        e4. d8 e4 g4 | a4. f+8 d2 | b4. a8 g4 e4 | >c2 <a2 | a4. g8 a4 >c4 | d2 <b2 | g2 >c+2 | d2 <b2 |
+        @bell v13
+        >c4 e4 g4 e4 | d4 <b4 g4 b4 | a4 >c4 e4 c4 | <b4 g4 e4 g4 | a4 >c4 f4 c4 | <b4 >d4 g4 d4 | e2 c2 | d2 <b2 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @arp12 v7 ${arp(intro, { lo: 67, pat: [0, 1, 2, 3, 4, 3, 2, 1], len: 8 })} L
+        ${arp(A, { lo: 67, pat: [0, 1, 2, 3, 4, 3, 2, 1], len: 8 })}
+        @pad25 v9 ${pads(A2, { lo: 62 })}
+        @arp v7 ${arp(B, { lo: 60, pat: RISE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R1', { lo: 36 })} L
+        ${bass(A, 'R1', { lo: 32, hi: 48 })}
+        ${bass(A2, 'R2 F2', { lo: 33, hi: 50 })}
+        ${bass(B, 'R4. F8 O4 F4', { lo: 33, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        r1 | r1 | v5 [z4 z4 z4 z4 |]2 L
+        [v9 k2 v5 z4 z4 |]7 v9 k4 v7 t8 t8 m8 m8 f8 f8 |
+        [v10 k4 v6 h4 v9 s4 v6 h4 |]7 v10 k4 v9 s8 s8 s8 s16 s16 s4 |
+        v11 c8 v6 h8 v9 s8 v6 h8 v11 k8 k8 v9 s8 v6 h8 | [v11 k8 v6 h8 v9 s8 v6 h8 v11 k8 k8 v9 s8 v6 h8 |]6 v11 k8 v9 s8 s8 s16 s16 s8 t8 m8 f8 |` },
+    ],
+  };
+}
+
+// 外なる奏者：呪われた笛の単調な調べ。フリギア（D に E♭）。2 本目の笛は 4 度下を平行に吹く
+{
+  const A = 'Dm Eb Dm Eb Bbm A Dm,Eb Dm';
+  const B = 'Gm A7 Gm A7 Bb A7 Eb A7';
+  const C = 'Dm Eb Dm Eb Dm Eb Bbm A';
+  SONGS.pipers = {
+    bpm: 80,
+    melody: 'p1',
+    chords: `Dm Dm ${A} ${A} ${B} ${C}`,
+    pat: {
+      M: 'd4. e-8 d4 c4 | <b-4. >c8 d4 e-4 | f4. e-8 d4 a4 | g4. f8 e-4 b-4 | >d-4. c8 <b-4 f4 | e4. d8 c+4 <a4 | >d2 e-4 d4 | d1 |',
+    },
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.25, echo: [48, 0.4, 0.6], mml: `
+        r1 | r1 | L
+        @flute v12 o5 $M o5 $M
+        @bamboo v13
+        o5 g4. a8 b-4 a4 | g4 f4 e4 c+4 | d4. e-8 f4 g4 | a2 e2 | f4. g8 a4 b-4 | >c+4. <b-8 a4 g4 | g4. f8 e-4 b-4 | a2 >c+2 |
+        @flute v13
+        o5 [a16 b-16]4 a2 | [b-16 >c16 <]4 b-2 | [a16 b-16]4 >d2 | e-4. d8 c4 <b-4 |
+        a4. g8 f4 d4 | e-4. f8 g4 b-4 | >d-4. c8 <b-4 a-4 | a1 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        r1 | r1 | L
+        @pad v8 ${pads(A, { lo: 62 })}
+        @flute v10 k-5 o5 $M k0
+        @pad v9 ${pads(B, { lo: 62 })}
+        @pad25 v8 ${pads(C, { lo: 57 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass('Dm Dm', 'R1', { lo: 38 })} L
+        ${bass(A, 'R1', { lo: 38, hi: 50 })}
+        ${bass(A, 'R2 R2', { lo: 38, hi: 50 })}
+        ${bass(B, 'R2 R4 O4', { lo: 38, hi: 50 })}
+        ${bass(C, 'R4 R4 R4 R4', { lo: 38, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        v12 j4 r4 j4 r4 | j4 r8 j8 j4 v8 t8 f8 | L
+        [v12 j4 v8 t8 t8 v12 j4 v8 m8 f8 |]16
+        [v12 j4 v6 z8 z8 v10 s4 v6 z8 z8 |]7 v12 j4 v9 t8 t8 m8 m8 f8 f8 |
+        [v12 j8 v6 z8 z8 v12 j8 v10 s8 v6 z8 v12 j8 v6 z8 |]7 v12 j8 j8 v10 s8 s8 t8 t8 f8 f8 |` },
+    ],
+  };
+}
+
+// 目覚めたアザトース：渦を巻く混沌。三全音と半音ずつ上がる和音
+{
+  const intro = 'Dm Eb Dm Eb';
+  const A = 'Dm Eb Dm Ab Dm Eb Bb A7';
+  const A2 = 'Dm Eb Dm Ab Gm A7 Dm C#dim7';
+  const B = 'Bb C Db Eb Bb C Db A7';
+  const C = 'Dm Ab Dm Ab Gm Db A7 A7';
+  SONGS.azathoth = {
+    bpm: 168,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [24, 0.3, 0.45], mml: `
+        r1 | r1 | r1 | r1 | L
+        @lead12 v14
+        o5 d8 f8 a8 >d8 c+4 d4 | e-8 d8 <b-8 g8 b-4 >e-4 | d8 c+8 d8 f8 a4 g+4 | a-4. g-8 e-4 c4 |
+        <d8 f8 a8 >d8 f4 e4 | e-4. f8 g4 b-4 | a4. f8 d4 <b-4 | >c+4. <b-8 a4 e4 |
+        d8 f8 a8 >d8 c+4 d4 | e-8 d8 <b-8 g8 b-4 >e-4 | d8 c+8 d8 f8 a4 g+4 | a-4. g-8 e-4 c4 |
+        <b-8 >d8 g8 b-8 a4 g4 | e4 c+4 <a4 g4 | f4 d4 a4 f4 | e4 g4 b-4 >c+4 |
+        @brass v14
+        o5 d4. f8 b-4 >d4 | <e4. g8 >c4 e4 | <f4. a-8 >d-4 f4 | <g4. b-8 >e-4 g4 |
+        f2 d4 <b-4 | >c2 <g4 e4 | f2 a-4 >d-4 | c+2 e4 a4 |
+        @lead12 v13
+        o5 d16 e16 f16 a16 >d16 <a16 f16 e16 d16 e16 f16 a16 >d16 e16 f16 a16 |
+        <a-16 g-16 e-16 c16 <a-16 >c16 e-16 g-16 a-16 g-16 e-16 c16 <a-16 >c16 e-16 g-16 |
+        a16 >d16 f16 a16 f16 d16 <a16 f16 d16 f16 a16 >d16 f16 a16 f16 d16 |
+        e-16 c16 <a-16 e-16 c16 e-16 a-16 >c16 e-16 c16 <a-16 e-16 c16 e-16 a-16 >c16 |
+        <b-4. a8 g4 d4 | f4. e-8 d-4 <a-4 | >c+8 e8 g8 b-8 >c+4 <a4 | e2 c+4 <a4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @arp12 v8 ${arp(intro, { lo: 62, pat: [0, 3, 1, 4, 2, 5, 3, 6, 0, 3, 1, 4, 2, 5, 3, 6] })} L
+        ${arp(A, { lo: 62, pat: [0, 3, 1, 4, 2, 5, 3, 6, 0, 3, 1, 4, 2, 5, 3, 6] })}
+        ${arp(A2, { lo: 62, pat: [0, 3, 1, 4, 2, 5, 3, 6, 0, 3, 1, 4, 2, 5, 3, 6] })}
+        @stab v10 ${arp(B, { lo: 62, pat: ['r', 0, 'r', 1, 'r', 2, 'r', 1], len: 8 })}
+        @pad v10 ${pads(C, { lo: 69 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 38, hi: 52 })} L
+        ${bass(A, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 38, hi: 52 })}
+        ${bass(A2, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 38, hi: 52 })}
+        ${bass(B, 'R8 R8 O8 R8 R8 O8 R8 L8', { lo: 38, hi: 52 })}
+        ${bass(C, 'R16 R16 O16 R16 R16 R16 O16 R16 R16 R16 O16 R16 F16 F16 O16 F16', { lo: 38, hi: 52 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [k8 k8 S8 k8 k8 k8 S8 k8 |]3 s16 s16 s16 s16 s16 s16 s16 s16 t16 t16 m16 m16 f16 f16 f16 f16 | L
+        [C16 h16 S16 h16 k16 k16 S16 h16 k16 h16 S16 h16 k16 k16 S16 h16 | [[k16 h16 S16 h16 k16 k16 S16 h16]2 |]6 [k16 h16 S16 h16]2 s16 s16 s16 s16 S8 S8 |]2
+        C8 h8 S8 h8 k8 k8 S8 o8 | [k8 h8 S8 h8 k8 k8 S8 o8 |]6 k8 k8 S8 S8 s16 s16 s16 s16 S8 S8 |
+        [J8 k8 S8 k8 J8 k8 S8 k8 |]7 s16 s16 s16 s16 s16 s16 s16 s16 C4 S8 S8 |` },
+    ],
+  };
+}
+
+// 第3章の銅鑼（4 小節ごと。n は小節の数）
+const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / every}`;
+
+// 窮奇：北の果ての北風。竹の笛と琴の 16 分
+{
+  const intro = 'Dm Dm C C';
+  const A = 'Dm C Dm Am Dm C Bb A';
+  const A2 = 'Dm C Dm Am F C Gm A';
+  const B = 'F C Dm Am Bb F Gm A';
+  const C = 'Dm C Dm C Bb C Dm A';
+  const tpl = 'R4 O8 R8 F4 O8 R8';
+  SONGS.yushu = {
+    bpm: 132,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.2, echo: [36, 0.32, 0.5], mml: `
+        r1 | r1 | r1 | r1 | L
+        @bamboo v13
+        o5 d4. f8 g4 a4 | >c4. <a8 g4 e4 | d4 f4 a4 >c4 | <a2 e4 g4 | a4. >c8 d4 f4 | e4. d8 c4 <g4 | f4. g8 f4 d4 | e2. r4 |
+        d4. f8 g4 a4 | >c4. <a8 g4 e4 | d4 f4 a4 >d4 | c4. <a8 e4 a4 | >c4. d8 c4 <a4 | g4. e8 g4 >c4 | d4. c8 <b-4 g4 | a2. r4 |
+        >f4. e8 d4 c4 | d4. c8 <a4 g4 | a4 >c4 d4 f4 | e2 c4 <a4 | b-4. a8 f4 d4 | f4. g8 a4 >c4 | d4 <b-4 g4 d4 | e2 c+4 e4 |
+        @flute v13
+        d16 f16 g16 a16 >c16 <a16 g16 f16 d4 a4 | g16 a16 >c16 d16 e16 d16 c16 <a16 g4 e4 |
+        d16 f16 g16 a16 >c16 d16 f16 g16 a4 f4 | e16 d16 c16 <a16 g16 e16 d16 c16 e4 g4 |
+        f4. g8 b-4 >d4 | c4. <a8 g4 e4 | d4 f4 a4 >d4 | c+2. r4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @koto v9 ${arp(intro, { lo: 62, pat: WAVE })} L
+        ${arp(A, { lo: 57, pat: WAVE })}
+        ${arp(A2, { lo: 57, pat: WAVE })}
+        ${arp(B, { lo: 57, pat: [0, 2, 1, 3, 2, 4, 3, 1], len: 8 })}
+        ${arp(C, { lo: 62, pat: RISE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, tpl, { lo: 38, hi: 52 })} L
+        ${bass(A, tpl, { lo: 38, hi: 52 })}
+        ${bass(A2, tpl, { lo: 38, hi: 52 })}
+        ${bass(B, tpl, { lo: 38, hi: 52 })}
+        ${bass(C, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 38, hi: 52 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        v6 [z8 z8 z8 z8 z8 z8 z8 z8 |]3 v11 s16 s16 s16 s16 t8 t8 m8 m8 f8 f8 | L
+        [[v12 k8 v6 h8 v10 s8 v6 h8 v12 k8 k8 v10 s8 v6 h8 |]7 v12 k8 v6 h8 v10 s8 s8 s16 s16 s16 s16 t8 f8 |]3
+        [v12 k8 h8 S8 h8 k16 k16 h8 S8 o8 |]7 v12 k8 h8 S8 S8 s16 s16 s16 s16 S8 S8 |` },
+      { id: 'gong', type: 'drum', mml: `r1 | r1 | r1 | r1 | L ${gongs(32)}` },
+    ],
+  };
+}
+
+// 檮杌：天にあふれる洪水。重い太鼓と、琴の旋律
+{
+  const intro = 'Em Em C D';
+  const A = 'Em Em C D Em G Am B';
+  const A2 = 'Em Em C D C D Em Em';
+  const B = 'Am Em Am Em C D B7sus4 B7';
+  const C = 'Em Em D D C C B7 B7';
+  const tpl = 'R4. R8 r8 R8 O4';
+  SONGS.uzan = {
+    bpm: 118,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.2, echo: [36, 0.35, 0.5], mml: `
+        r1 | r1 | r1 | r1 | L
+        @koto v14
+        o5 e4. g8 a4 b4 | >d4. <b8 a4 g4 | e4. g8 >c4 <b4 | a2 f+4 d4 | e4. g8 b4 >d4 | d4. <b8 g4 d4 | e4. a8 >c4 <a4 | b2 f+4 d+4 |
+        e4. g8 a4 b4 | >d4. e8 d4 <b4 | >c4. <b8 g4 e4 | f+4. a8 d4 <a4 | >g4. e8 c4 e4 | f+4. a8 >d4 f+4 | e2 d4 <b4 | e2. r4 |
+        @bamboo v13
+        a4. >c8 e4 a4 | g4. e8 d4 <b4 | >c4. <a8 e4 a4 | g4. e8 b4 g4 | e4. g8 >c4 e4 | d4. <a8 f+4 a4 | e2 f+4 e4 | d+2 f+4 a4 |
+        @bamboo v12
+        b1 | a2 g2 | f+1 | a2 f+2 | g1 | e2 c2 | d+1 | f+2 b2 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @koto v9 ${arp(intro, { lo: 52, pat: WAVE })} L
+        ${arp(A, { lo: 52, pat: [0, 1, 2, 3, 2, 1, 2, 3], len: 8 })}
+        ${arp(A2, { lo: 52, pat: [0, 1, 2, 3, 2, 1, 2, 3], len: 8 })}
+        @bell v10 ${pads(B, { lo: 64 })}
+        @koto v10 ${arp(C, { lo: 57, pat: RISE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, tpl, { lo: 35, hi: 50 })} L
+        ${bass(A, tpl, { lo: 35, hi: 50 })}
+        ${bass(A2, tpl, { lo: 35, hi: 50 })}
+        ${bass(B, 'R8 R8 O8 R8 R8 R8 O8 R8', { lo: 35, hi: 50 })}
+        ${bass(C, tpl, { lo: 35, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [v12 J4 r4 v9 t4 m4 |]3 v12 J8 J8 S8 S8 t8 m8 f8 f8 | L
+        [[v12 J4 r8 j8 r8 j8 S4 |]7 v12 J8 j8 S8 S8 s16 s16 s16 s16 t8 f8 |]2
+        [v12 J8 j8 j8 r8 S4 j8 j8 |]7 v12 J8 j8 S8 S8 s16 s16 s16 s16 S8 S8 |
+        [v12 J8 J8 S8 j8 J8 j8 S8 S8 |]7 v12 J8 J8 S8 S8 J8 S8 S8 S8 |` },
+      { id: 'gong', type: 'drum', mml: `r1 | r1 | r1 | r1 | L ${gongs(32)}` },
+    ],
+  };
+}
+
+// 饕餮：青銅の祭器を打つ。鐘の旋律
+{
+  const intro = 'Am Am F G';
+  const A = 'Am Am F G Am Em F E';
+  const A2 = 'Am Am F G C G F E';
+  const B = 'F G Em Am Dm G C E7';
+  const C = 'Am F Am F Dm E Am E';
+  const tpl = 'R4 r8 R8 F4 O4';
+  SONGS.sanki = {
+    bpm: 104,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.2, echo: [36, 0.38, 0.55], mml: `
+        r1 | r1 | r1 | r1 | L
+        @bell v14
+        o5 a4 >c4 e4 c4 | d4. c8 <a2 | a4 >c4 f4 e4 | d2 <b4 g4 | a4 >c4 e4 g4 | e4. d8 <b2 | a4. g8 f4 c4 | e2. r4 |
+        a4 >c4 e4 c4 | d4. e8 c2 | <a4 >c4 f4 a4 | g2 d4 <b4 | >c4. <b8 g4 e4 | >d4. <b8 g4 b4 | a4. g8 f4 a4 | g+2. r4 |
+        >c4. <a8 f4 a4 | b4. >d8 g4 d4 | <b4. >e8 g4 e4 | c2 <a2 | f4. e8 d4 a4 | b4. a8 g4 d4 | e4. g8 >c4 e4 | d2 <b4 g+4 |
+        a2. e4 | f2 a2 | e2. c4 | a1 | f2 d2 | e2 g+2 | a2 e2 | g+1 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @pluck v9 ${arp(intro, { lo: 57, pat: [0, 1, 2, 3, 2, 1, 2, 3], len: 8 })} L
+        @pluck12 v9 ${arp(A, { lo: 57, pat: [0, 1, 2, 3, 2, 1, 2, 3], len: 8 })}
+        ${arp(A2, { lo: 57, pat: [0, 1, 2, 3, 2, 1, 2, 3], len: 8 })}
+        @koto v9 ${arp(B, { lo: 57, pat: WAVE })}
+        ${arp(C, { lo: 57, pat: RISE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, tpl, { lo: 33, hi: 50 })} L
+        ${bass(A, tpl, { lo: 33, hi: 50 })}
+        ${bass(A2, tpl, { lo: 33, hi: 50 })}
+        ${bass(B, tpl, { lo: 33, hi: 50 })}
+        ${bass(C, 'R2 F4 O4', { lo: 33, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        v6 [z4 z8 z8 z4 z8 z8 |]3 v11 s8 s8 s8 s8 t8 t8 f8 f8 | L
+        [[v12 k4 v6 h8 h8 v10 s4 v6 h8 z8 |]7 v12 k4 v10 s8 s8 s16 s16 s16 s16 t8 f8 |]3
+        [v12 k4 v6 z8 z8 v12 k4 v10 s4 |]7 v12 k4 v10 s8 s8 t8 m8 f8 f8 |` },
+      { id: 'gong', type: 'drum', mml: `r1 | r1 | r1 | r1 | L ${gongs(32)}` },
+    ],
+  };
+}
+
+// 渾沌：歌と舞の祭り。140 BPM（渾沌の輪の弾がこの拍で出る）
+{
+  const intro = 'C C F G';
+  const A = 'C Am F G C Am Dm G';
+  const A2 = 'C Am F G Em Am Dm,G C';
+  const B = 'F G Em Am Dm Em F G';
+  const C = 'C C F G C Am F,G C';
+  const tpl = 'R8 O8 F8 O8 R8 O8 F8 O8';
+  SONGS.chuou = {
+    bpm: 140,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.2, echo: [24, 0.3, 0.45], mml: `
+        r1 | r1 | r1 | r1 | L
+        @flute v13
+        o5 g8 a8 >c8 d8 e4 d8 c8 | <a4. g8 e4 g4 | a8 >c8 d8 c8 <a4 g8 a8 | g2 d4 e4 | g8 a8 >c8 d8 e4 g4 | e4. d8 c4 <a4 | d8 f8 a8 >c8 d4 c8 <a8 | g2. r4 |
+        g8 a8 >c8 d8 e4 d8 c8 | <a4. g8 e4 g4 | a8 >c8 d8 c8 <a4 g8 a8 | g2 a4 b4 | >e4. d8 <b4 g4 | a4. >c8 e4 c4 | d4 f4 d4 <b4 | >c2. r4 |
+        f8 e8 d8 c8 <a4 >c4 | d4. e8 d4 <b4 | g8 a8 b8 >d8 e4 d4 | c4. <a8 e4 a4 | f8 g8 a8 >c8 d4 c4 | <b4. a8 g4 e4 | f8 g8 a8 >c8 f4 e4 | d2 <b4 g4 |
+        @bamboo v13
+        >c8 d8 e8 g8 e8 d8 c8 d8 | e4. d8 c4 <g4 | a8 >c8 d8 f8 d8 c8 <a8 >c8 | d4. c8 <b4 g4 |
+        >c8 d8 e8 g8 a8 g8 e8 d8 | e4. d8 c4 <a4 | a4 >c4 <b4 >d4 | c2. r4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @koto v9 ${arp(intro, { lo: 60, pat: WAVE })} L
+        ${arp(A, { lo: 60, pat: [0, 2, 1, 3, 2, 4, 3, 5], len: 8 })}
+        ${arp(A2, { lo: 60, pat: [0, 2, 1, 3, 2, 4, 3, 5], len: 8 })}
+        @stab v9 ${arp(B, { lo: 62, pat: ['r', 0, 'r', 1, 'r', 2, 'r', 1], len: 8 })}
+        @koto v10 ${arp(C, { lo: 60, pat: RISE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, tpl, { lo: 36, hi: 52 })} L
+        ${bass(A, tpl, { lo: 36, hi: 52 })}
+        ${bass(A2, tpl, { lo: 36, hi: 52 })}
+        ${bass(B, tpl, { lo: 36, hi: 52 })}
+        ${bass(C, tpl, { lo: 36, hi: 52 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [v12 k8 v6 h8 v11 X8 v6 h8 v12 k8 k8 v11 X8 v6 h8 |]3 v11 s16 s16 s16 s16 t8 t8 m8 m8 f8 f8 | L
+        [[v12 k8 v6 h8 v11 X8 v6 h8 v12 k8 k8 v11 X8 v6 h8 |]7 v12 k8 v6 h8 v11 X8 x8 s16 s16 s16 s16 t8 f8 |]4` },
+      { id: 'gong', type: 'drum', mml: `r1 | r1 | r1 | r1 | L ${gongs(32, 8)}` },
+    ],
+  };
+}
+
+// 四凶との戦い（第3章の最終ボス）
+{
+  const intro = 'Am Am F E';
+  const A = 'Am F Dm E Am F G E';
+  const A2 = 'Am F Dm E F G Am Am';
+  const B = 'Dm Am G C F Dm E7sus4 E7';
+  const C = 'F G Em Am F G E E7';
+  const drive = 'R8 O8 R8 O8 R8 O8 R8 O8';
+  SONGS.shikyou = {
+    bpm: 166,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [24, 0.28, 0.45], mml: `
+        r1 | r1 | r1 | r1 | L
+        @brass v14
+        o5 a8 >c8 e8 a8 g4 e4 | f4. e8 c4 <a4 | d8 f8 a8 >d8 c4 <a4 | b4. g+8 e4 b4 | >c4. <b8 a4 e4 | f4 a4 >c4 <a4 | b4. a8 g4 d4 | e4 g+4 b4 >d4 |
+        <a8 >c8 e8 a8 g4 e4 | f4. e8 c4 <a4 | d8 f8 a8 >d8 c4 <a4 | g+4. a8 b4 >e4 | f4. e8 c4 <a4 | b4. >d8 g4 b4 | a2 e4 c4 | <a2. r4 |
+        f4. e8 d4 a4 | >c4. <b8 a4 e4 | g4. a8 b4 >d4 | e2 c4 <g4 | a4. g8 f4 >c4 | <a4. >d8 f4 a4 | a2 e4 d4 | <g+2 b4 >d4 |
+        c4. <a8 f4 a4 | b4. >d8 g4 d4 | e4. g8 b4 g4 | a2 e4 c4 | c4. d8 c4 <a4 | b4. a8 g4 b4 | >e2 d4 <b4 | g+2. r4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @koto v10 ${arp(intro, { lo: 57, pat: RISE })} L
+        ${arp(A, { lo: 57, pat: WAVE })}
+        ${arp(A2, { lo: 57, pat: WAVE })}
+        @stab v10 ${arp(B, { lo: 62, pat: ['r', 0, 'r', 1, 'r', 2, 'r', 1], len: 8 })}
+        @pad v10 ${pads(C, { lo: 64 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, drive, { lo: 33, hi: 50 })} L
+        ${bass(A, drive, { lo: 33, hi: 50 })}
+        ${bass(A2, drive, { lo: 33, hi: 50 })}
+        ${bass(B, drive, { lo: 33, hi: 50 })}
+        ${bass(C, drive, { lo: 33, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [v12 J4 J4 J8 J8 J4 |]3 v12 s16 s16 s16 s16 s16 s16 s16 s16 t8 m8 f8 f8 | L
+        [[v12 J8 v6 h8 v11 S8 v6 h8 v12 j8 j8 v11 S8 v6 h8 |]7 v12 J8 h8 S8 h8 s16 s16 s16 s16 S8 S8 |]4` },
+      { id: 'gong', type: 'drum', mml: `r1 | r1 | r1 | r1 | L ${gongs(32)}` },
+    ],
+  };
+}
+
+// ボス戦（第1・2章の中ボス）：A と B♭ の半音でにじり寄る
+{
+  const intro = 'Am Am';
+  const A = 'Am Am F F Dm Dm E E';
+  const A2 = 'Am Am F G Am F Bb E7';
+  const B = 'Dm Am Bb Am Dm Am Bb E7';
+  const C = 'Am Am F E Am Am F E';
+  SONGS.boss = {
+    bpm: 152,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    pat: {
+      R1: '[a16 a16 >c16 <a16 >e16 <a16 >d+16 <a16]2',
+      R2: '[f16 f16 a16 f16 >c16 <f16 b16 f16]2',
+      R3: '[e16 e16 g+16 e16 b16 e16 >d16 <e16]2',
+    },
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [24, 0.28, 0.4], mml: `
+        r1 | r1 | L
+        @lead v14
+        o5 a4 a8 b8 >c4 <b8 a8 | e4. f8 e4 d+8 e8 | f4 f8 g8 a4 g8 f8 | c2 <a4 >c4 | d4 d8 e8 f4 e8 d8 | a4. g8 f4 d4 | e4 f8 g+8 b4 >d4 | e2 d4 <b4 |
+        a4 a8 b8 >c4 <b8 a8 | >e4. f8 e4 d8 c8 | <a4. g8 f4 c4 | d4 g4 b4 >d4 | e4. d8 c4 <a4 | >c4. <a8 f4 a4 | b-4 >d4 f4 d4 | <b2 g+4 e4 |
+        @brass v14
+        >f2 e4 d4 | e2 c4 <a4 | b-2 >d4 f4 | e2. r4 | f4. e8 d4 a4 | g4. e8 c4 e4 | f4. d8 <b-4 >d4 | e2 d4 <b4 |
+        @chug v11
+        o4 $R1 | $R1 | $R2 | $R3 | $R1 | $R1 | $R2 | $R3 |` },
+      { id: 'p2', type: 'pulse', pan: 0.25, mml: `
+        @chug v9 o5 $R1 | $R1 | L
+        @stab v9 ${arp(A, { lo: 62, pat: ['r', 0, 'r', 1, 'r', 2, 'r', 1], len: 8 })}
+        ${arp(A2, { lo: 62, pat: ['r', 0, 'r', 1, 'r', 2, 'r', 1], len: 8 })}
+        @pad v10 ${pads(B, { lo: 64 })}
+        @chug v8 o5 $R1 | $R1 | $R2 | $R3 | $R1 | $R1 | $R2 | $R3 |` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 33, hi: 50 })} L
+        ${bass(A, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 33, hi: 50 })}
+        ${bass(A2, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 33, hi: 50 })}
+        ${bass(B, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 33, hi: 50 })}
+        ${bass(C, 'R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16', { lo: 33, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [k8 k8 S8 k8 k16 k16 k8 S8 k8 |]2 L
+        [C8 h8 S8 h8 k8 k8 S8 h8 | [k8 h8 S8 h8 k8 k8 S8 h8 |]6 k8 h8 S8 h8 s16 s16 s16 s16 S8 S8 |]2
+        C4 h8 h8 S4 h8 k8 | [K4 h8 h8 S4 h8 k8 |]6 k8 k8 S8 k8 s16 s16 s16 s16 S8 S8 |
+        [k16 k16 h8 S8 h8 k16 k16 h8 S8 h8 |]7 s16 s16 s16 s16 s16 s16 s16 s16 S8 S8 C4 |` },
+    ],
+  };
+}
+
+// 最終ボス戦（第1・2章）：タイトルの主題が、戦いの中で短調になって帰ってくる
+{
+  const intro = 'Am Am F E';
+  const A = 'Am F Dm E Am F G E';
+  const A2 = 'Am F Dm E F G E7 E7';
+  const B = 'F G Em Am F G E E';
+  const C = 'FM7 Em7 Dm7 CM7 BbM7 Am7 AbM7 G7sus4,G7';
+  const drive = 'R8 O8 R8 O8 R8 O8 R8 O8';
+  SONGS.final = {
+    bpm: 164,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B} ${C}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [24, 0.28, 0.45], mml: `
+        r1 | r1 | r1 | r1 | L
+        @brass v14
+        o5 r8 e8 a8 b8 >c4. <b8 | a4 f4 c4 f4 | r8 d8 a8 b8 >c4. d8 | e4. d8 <b4 g+4 | a4. b8 >c4 e4 | f4. e8 c4 <a4 | b4. >c8 d4 g4 | e2. r4 |
+        <r8 e8 a8 b8 >c8 e8 d8 c8 | <a4 >c4 f4 e4 | d4. c8 <a4 f4 | g+4. a8 b4 >e4 | c4. <a8 f4 a4 | b4. a8 g4 b4 | >d4. c8 <b4 g+4 | e2. r4 |
+        a4. b8 >c4 f4 | e4. d8 <b4 >d4 | e4. f+8 g4 b4 | a2 e4 c4 | c4. d8 e4 f4 | g4. f8 d4 <b4 | >e2 g+4 b4 | e2. r4 |
+        @lead v14
+        o5 r8 e8 a8 b8 >c4. <b8 | g4 e4 d8 e4. | r8 d8 a8 b8 >c4. d8 | e4. d8 <b2 | >d4. c8 <a+8 a8 f4 | g4. e8 c8 d8 e4 | g2 f8 e-8 c8 e-8 | d4. c8 <b2 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @arp v9 ${arp(intro, { lo: 57, pat: RISE })} L
+        ${arp(A, { lo: 57, pat: WAVE })}
+        ${arp(A2, { lo: 57, pat: WAVE })}
+        @pad25 v10 ${pads(B, { lo: 62 })}
+        @arp12 v9 ${arp(C, { lo: 60, pat: WAVE })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R8 R8 R8 R8 R8 R8 R8 R8', { lo: 33, hi: 50 })} L
+        ${bass(A, drive, { lo: 33, hi: 50 })}
+        ${bass(A2, drive, { lo: 33, hi: 50 })}
+        ${bass(B, drive, { lo: 33, hi: 50 })}
+        ${bass(C, 'R8 R8 O8 R8 R8 O8 F8 O8', { lo: 31, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [v12 J4 J4 J4 J4 |]3 s16 s16 s16 s16 s16 s16 s16 s16 t8 m8 f8 f8 | L
+        [C8 h8 S8 h8 k8 k8 S8 h8 | [k8 h8 S8 h8 k8 k8 S8 h8 |]6 k8 h8 S8 h8 s16 s16 s16 s16 S8 S8 |]2
+        C8 h8 S8 h8 k16 k16 h8 S8 o8 | [k8 h8 S8 h8 k16 k16 h8 S8 o8 |]6 k8 k8 S8 S8 s16 s16 s16 s16 S8 S8 |
+        C8 h8 S8 h8 k8 k8 S8 o8 | [k8 h8 S8 h8 k8 k8 S8 o8 |]6 k8 h8 S8 S8 s16 s16 s16 s16 t8 f8 |` },
+    ],
+  };
+}
+
+// リザルト：タイトルの主題を長調で。明るく、少しだけ名残惜しく
+{
+  const intro = 'FM7 G';
+  const A = 'C G/B Am7 Em/G F C/E Dm7 G7sus4,G7';
+  const A2 = 'FM7 G6 Em7 Am7 Dm7 G7 C C';
+  const B = 'FM7 Em7 Dm7 CM7 FM7 Em7 Dm7,G7 C';
+  SONGS.result = {
+    bpm: 120,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B}`,
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [36, 0.3, 0.45], mml: `
+        @brass v13 o5 a8 a8 a8 >c8 r8 c4 <b8 | >d2. r4 | L
+        @lead v13
+        o5 r8 g8 >c8 d8 e4. d8 | <b4 g4 d8 e8 g4 | r8 e8 a8 b8 >c4. d8 | e4. d8 <b2 | >c4. <b8 a8 g8 f4 | g4. e8 c4 e4 | f4 a4 >c4 d4 | c4. d8 <b2 |
+        r8 a8 >c8 d8 e4. d8 | <b4 g4 e8 d8 e4 | r8 b8 >d8 e8 g4. f+8 | e4. d8 c2 | d4. e8 f4 a4 | g4. f8 d4 <b4 | >c2. <g4 | >c2. r4 |
+        @lead50 v12
+        <a2 g4 e4 | g2 e4 d4 | f2 e4 c4 | e2. d4 | a4. b8 >c4 e4 | d4. c8 <b4 g4 | a4 f4 g4 b4 | >c2. r4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.3, mml: `
+        @stab v9 ${arp(intro, { lo: 60, pat: [0, 'r', 1, 'r', 2, 'r', 3, 'r'], len: 8 })} L
+        @arp12 v7 ${arp(A, { lo: 60, pat: WAVE })}
+        @pluck v9 ${arp(A2, { lo: 57, pat: [0, 2, 1, 3, 2, 4, 3, 1], len: 8 })}
+        @pad v9 ${pads(B, { lo: 62 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, 'R4 r4 R4 r4', { lo: 36, hi: 50 })} L
+        ${bass(A, 'R4 O8 R8 F4 O4', { lo: 33, hi: 50 })}
+        ${bass(A2, 'R8 O8 R8 O8 F8 O8 R8 O8', { lo: 33, hi: 50 })}
+        ${bass(B, 'R2. F4', { lo: 33, hi: 50 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        v12 C4 h8 h8 s8 s8 s8 s8 | s16 s16 s16 s16 t8 m8 f4 C4 | L
+        [v12 k8 v6 h8 v11 s8 v6 h8 v12 k8 k8 v11 s8 v6 h8 |]7 v12 k8 h8 s8 h8 s16 s16 s16 s16 t8 f8 |
+        v12 C8 v6 h8 v11 s8 v6 h8 v12 k8 k8 v11 s8 v6 o8 | [v12 k8 v6 h8 v11 s8 v6 h8 v12 k8 k8 v11 s8 v6 o8 |]6 v12 k8 v11 s8 s8 s8 s16 s16 s16 s16 s8 s8 |
+        [v11 k4 v6 h8 h8 v10 s4 v6 h8 h8 |]7 v11 k4 v10 s8 s8 t8 m8 f4 |` },
+    ],
+  };
+}
+
+// 経営：スウィングする午後の事務所。オルゴールのような音と、歩くベース
+{
+  const intro = 'FM7 Em7,A7 Dm7 Gm7,C7';
+  const A = 'FM7 Em7,A7 Dm7 Cm7,F7 BbM7 Bbm6 Am7,D7 Gm7,C7';
+  const A2 = 'FM7 Em7,A7 Dm7 Cm7,F7 BbM7 Eb9 Gm7,C7 F6';
+  const B = 'Dm7 G7 Gm7 C7 Am7 D7 Gm7 C7';
+  const comp = ['r', 'r', 1, 'r', 'r', 2, 'r', 'r', 1, 'r', 'r', 3];
+  const walk = 'R4 T4 F4 L4';
+  SONGS.business = {
+    bpm: 104,
+    melody: 'p1',
+    chords: `${intro} ${A} ${A2} ${B}`,
+    inst: { cel: { duty: [0.125, 0.25], dl: 0, env: [14, 12, 10, 9, 8, 7, 6, 6, 5, 5, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1, 0], rel: 4 } },
+    ch: [
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [32, 0.32, 0.45], mml: `
+        r1 | r1 | r1 | r1 | L
+        @cel v14
+        o5 c6 d12 f6 a12 >c4 <a4 | b6 a12 g6 e12 c+4 e4 | f6 e12 f6 a12 >c4 d4 | e-4 c4 <a4 f4 | d6 f12 a6 >c12 d4 <a4 | >d-4. c8 <b-4 g4 | a6 g12 e6 c12 f+4 a4 | b-4 g4 e4 c4 |
+        c6 d12 f6 a12 >c4 <a4 | b6 a12 g6 e12 c+4 e4 | f6 e12 f6 a12 >c4 f4 | e-4 c4 <a4 >c4 | d6 c12 <b-6 a12 f4 d4 | e-6 f12 g6 b-12 >d-4 c4 | <b-4 g4 e4 g4 | f2. r4 |
+        a6 g12 f6 e12 d4 a4 | b4. a8 g6 f12 d4 | b-6 a12 b-6 >d12 f4 d4 | e4. d8 c4 <b-4 | >c6 <b12 a6 g12 e4 c4 | f+4. a8 >c4 d4 | <b-6 a12 g6 f12 d4 f4 | e4 g4 b-4 >c4 |` },
+      { id: 'p2', type: 'pulse', pan: 0.25, mml: `
+        @stab v8 ${arp(intro, { lo: 60, pat: comp, len: 12 })} L
+        ${arp(A, { lo: 60, pat: comp, len: 12 })}
+        ${arp(A2, { lo: 60, pat: comp, len: 12 })}
+        @pad v8 ${pads(B, { lo: 62 })}` },
+      { id: 'tri', type: 'tri', mml: `
+        @bass ${bass(intro, walk, { lo: 36, hi: 52 })} L
+        ${bass(A, walk, { lo: 36, hi: 52 })}
+        ${bass(A2, walk, { lo: 36, hi: 52 })}
+        ${bass(B, walk, { lo: 36, hi: 52 })}` },
+      { id: 'dr', type: 'drum', mml: `
+        [v9 k4 v6 h6 h12 v7 s4 v6 h6 h12 |]4 L
+        [[v9 k4 v6 h6 h12 v7 s4 v6 h6 h12 |]7 v9 k4 v6 h6 h12 v7 s6 s12 s6 s12 |]3` },
+    ],
+  };
+}
