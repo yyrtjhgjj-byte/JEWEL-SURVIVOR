@@ -210,6 +210,8 @@ export class Game {
     this.computeStats();
     this.player.hp = this.stats.maxHp;
     this.rerolls = this.stats.reroll;
+    // オートセレクト（上位工房）。ランごとに OFF から始め、ポーズとレベルアップの画面で切り替える
+    this.autoPick = false;
     this.skips = this.stats.skip;
     this.banishes = this.stats.banish;
     this.revives = this.stats.revive;
@@ -2034,6 +2036,28 @@ export class Game {
     return out;
   }
 
+  // 候補のレア度（カードの色）。ui.js のカードとオートセレクトで共通
+  choiceRar(c) {
+    if (c.type === 'evo') return 'UR';
+    if (c.type === 'wnew') return this.hasPassive(WEAPONS[c.id].evo.with) ? 'SR' : 'R';
+    if (c.type === 'wup') return c.double ? 'SSR' : this.getWeapon(c.id).level + 1 >= WEAPON_MAX ? 'SR' : 'N';
+    if (c.type === 'pnew') return this.weapons.some((w) => !w.evolved && WEAPONS[w.id].evo.with === c.id) ? 'UR' : 'R';
+    if (c.type === 'pup') return c.double ? 'SSR' : 'N';
+    if (c.type === 'lb' || c.type === 'plb') return 'R';
+    return 'N';
+  }
+  // オートセレクトが使えて ON か（BOSS モードとトレーニングにはレベルアップがない）
+  get autoOn() { return this.autoPick && this.stats.autoPick > 0 && !this.rush && !this.train; }
+  // オートセレクトの選び方：レア度のいちばん高い候補。同じ色なら無作為。HP 25% 回復は選ばない
+  autoChoice(cs) {
+    const RANK = { UR: 5, SSR: 4, SR: 3, R: 2, N: 1 };
+    const ok = cs.filter((c) => c.type !== 'heal25');
+    if (!ok.length) return cs[0];
+    const top = Math.max(...ok.map((c) => RANK[this.choiceRar(c)]));
+    const best = ok.filter((c) => RANK[this.choiceRar(c)] === top);
+    return best[Math.floor(Math.random() * best.length)];
+  }
+
   // リミットブレイク：Lv8 の武器の小さな強化を 1 つ選ぶ。
   // 未進化の武器には、もう進化できないとき（進化用のチャームがなく、チャーム枠が埋まっているか、そのチャームを外した）だけ出す
   // free：トレーニング用（進化できるかどうかを見ずに選ぶ）
@@ -2220,7 +2244,7 @@ export class Game {
       feverGauge: this.feverGauge, feverNeed: this.feverNeed, fevers: this.fevers, evolvedCount: this.evolvedCount, bosses: this.bosses, miracles: this.miracles,
       weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved, lb: w.lb, lbN: w.lbN })),
       passives: this.passives.map((x) => ({ id: x.id, level: x.level, lbN: x.lbN })),
-      arts: [...this.arts], revives: this.revives, revBuff: this.revBuff, rerolls: this.rerolls, skips: this.skips, banishes: this.banishes, banished: [...this.banished], spent: [...this.spent],
+      arts: [...this.arts], revives: this.revives, revBuff: this.revBuff, rerolls: this.rerolls, skips: this.skips, banishes: this.banishes, banished: [...this.banished], spent: [...this.spent], autoPick: this.autoPick,
       roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
       hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big, ...(m.plus ? { plus: m.plus } : {}) })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
@@ -2230,7 +2254,7 @@ export class Game {
   }
   restore(s) {
     const S = ['level', 'xp', 'kills', 'coins', 'totalDmg', 'maxCombo', 'feverGauge', 'feverNeed', 'fevers', 'evolvedCount', 'bosses', 'miracles', 'revBuff', 'rerolls', 'skips', 'banishes',
-      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext', 'endlessBoss', 'hurt', 'rushKills', 'rushNextT', 'rushFrom'];
+      'healedTotal', 'moved', 'charmed', 'milestoneIdx', 'nextEndlessBoss', 'nextEndlessEvent', 'lodestoneNext', 'hopeNext', 'endlessBoss', 'hurt', 'rushKills', 'rushNextT', 'rushFrom', 'autoPick'];
     this.weapons = [];
     for (const x of s.weapons) {
       const w = this.addWeapon(x.id);

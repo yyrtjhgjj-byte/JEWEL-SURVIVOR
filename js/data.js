@@ -221,7 +221,7 @@ export const WEAPONS = {
     gem: 'amber', name: 'ゴールド・レイン',
     dmgMul: 1.66, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
     lowBoost: -0.25, // 低レベル時の補正（Lv1 で ×0.75、Lv8 で ×1）
-    desc: '敵の頭上に金貨を落とす。この武器で倒すとコインをドロップ',
+    desc: '敵の頭上に金貨を落とす。このウェポンで倒すとコインをドロップ',
     base: { dmg: 120, cd: 1.7, amount: 2, area: 1 },
     levels: [
       { dmg: 40, t: 'ダメージ +40' },
@@ -498,7 +498,7 @@ export const MAX_CHARMS = 6;
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
-  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, startLv: 0, choice: 0, art2: 0, charmLb: 0, chestPlus: 0, bossChest: 0, heatCoin: 0, roughUp: 0, feverUp: 0, breakUp: 0, lbUp: 0, hpMul: 0, healUp: 0, dmgUp: 0, reroll: 2, skip: 1, banish: 1, guard: 0,
+  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, startLv: 0, choice: 0, art2: 0, charmLb: 0, chestPlus: 0, bossChest: 0, heatCoin: 0, roughUp: 0, feverUp: 0, breakUp: 0, lbUp: 0, hpMul: 0, healUp: 0, dmgUp: 0, reroll: 2, skip: 1, banish: 1, guard: 0, autoPick: 0,
 };
 
 // ---------------------------------------------------------------------
@@ -664,7 +664,7 @@ export const SHOP = [
   { id: 'skip', name: 'スキップ', gem: 'peridot', max: 3, base: 150, per: { skip: 1 }, t: 'スキップ回数 +1' },
   { id: 'banish', name: 'バニッシュ', gem: 'obsidian', max: 3, base: 250, per: { banish: 1 }, t: 'バニッシュ回数 +1' },
   { id: 'revive', name: 'リバイブ', gem: 'angelite', max: 1, base: 3000, per: { revive: 1 }, t: '倒れても1度だけ復活' },
-  { id: 'amount', name: '弾数', gem: 'nephrite', max: 1, base: 5000, per: { amount: 1 }, t: '全武器の弾数 +1' },
+  { id: 'amount', name: '弾数', gem: 'nephrite', max: 1, base: 5000, per: { amount: 1 }, t: '全ウェポンの弾数 +1' },
 ];
 export function shopCost(item, lv) {
   return Math.round(item.base * [1, 2.2, 3.8, 6, 9, 13][lv] / 10) * 20;
@@ -681,8 +681,9 @@ export const UPPER_SHOP = [
   { id: 'roughUp', name: '原石の目利き', max: 5, cost: [6000, 9000, 12000, 15000, 18000], per: { roughUp: 0.2 }, t: '原石の出やすさ +20%' },
   { id: 'feverUp', name: 'フィーバー延長', max: 5, cost: [5000, 8000, 11000, 14000, 17000], per: { feverUp: 1 }, t: 'フィーバーの時間 +1秒' },
   { id: 'breakUp', name: 'ブレイク強化', max: 5, cost: [5000, 8000, 11000, 14000, 17000], per: { breakUp: 0.1 }, t: 'ブレイクゲージのたまりやすさ +10%' },
-  { id: 'lbUp', name: 'リミットブレイク強化', max: 2, cost: [25000, 50000], per: { lbUp: 0.5 }, t: '武器のリミットブレイクの強化量 +50%' },
+  { id: 'lbUp', name: 'リミットブレイク強化', max: 2, cost: [25000, 50000], per: { lbUp: 0.5 }, t: 'ウェポンのリミットブレイクの強化量 +50%' },
   { id: 'charmLb', name: 'チャーム・リミットブレイク', max: 1, cost: [100000], per: { charmLb: 1 }, t: '最大レベルのチャームも、リミットブレイクで強化できる' },
+  { id: 'autoPick', name: 'オートセレクト', max: 1, cost: [50000], per: { autoPick: 1 }, t: 'レベルアップの強化を、色の良い順に自動で選べる（ラン中にポーズとレベルアップの画面で ON／OFF）' },
   // ここから下はラン外の強化（採掘・研磨工房）。効果は ui.js ／ atelier-ui.js で upperLv を見て切り替える
   { id: 'mine100', name: '採掘の極意', max: 1, cost: [60000], per: {}, t: '採掘に 100 連（秘石 5 つ以上確定）が加わる' },
   { id: 'blackAuction', name: '裏オークション', max: 1, cost: [80000], per: {}, t: '研磨工房に、品質の高い宝石が出る裏オークションが開く' },
@@ -744,8 +745,8 @@ export const ACHIEVEMENTS = [
   { id: 'hyperclear', m: 1, name: 'ハイパー・ドライブ', t: 'HYPER でステージをクリア', coins: 1000, check: (r) => r.cleared && r.hyper },
   { id: 'hurryclear', m: 1, name: 'タイム・アタッカー', t: 'HURRY でステージをクリア', coins: 800, check: (r) => r.cleared && r.hurry },
   // 縛りクリア
-  { id: 'solo', m: 1, name: 'ミニマリスト', t: '武器2つ以下でステージをクリア', coins: 1500, check: (r) => r.cleared && r.weaponCount <= 2 },
-  { id: 'onegem', m: 2, name: 'ワン・ジュエル', t: '武器1つだけでステージをクリア', coins: 3000, check: (r) => r.cleared && r.weaponCount <= 1 },
+  { id: 'solo', m: 1, name: 'ミニマリスト', t: 'ウェポン2つ以下でステージをクリア', coins: 1500, check: (r) => r.cleared && r.weaponCount <= 2 },
+  { id: 'onegem', m: 2, name: 'ワン・ジュエル', t: 'ウェポン1つだけでステージをクリア', coins: 3000, check: (r) => r.cleared && r.weaponCount <= 1 },
   { id: 'scratch', m: 2, name: 'かすり傷', t: '受けたダメージ100以下でステージをクリア', coins: 3000, check: (r) => r.cleared && (r.hurt || 0) <= 100 },
   // ボス
   { id: 'boss1', m: 0, name: 'レジサイド', t: 'ボスを倒す', coins: 150, check: (r) => r.bosses >= 1 },
@@ -762,8 +763,8 @@ export const ACHIEVEMENTS = [
   { id: 'finale3_6', m: 2, meta: true, name: 'ヘヴンリー・オンスロート', t: '第3章の最終ボス連戦（BOSS モード）で 5 周クリア', coins: 50000, check: (r, s) => rushLaps(s, 'finale3') >= 5 },
   { id: 'finale3_10', m: 3, meta: true, name: 'ヘヴンリー・アポセオシス', t: '第3章の最終ボス連戦（BOSS モード）で 7 周クリア', coins: 80000, check: (r, s) => rushLaps(s, 'finale3') >= 7 },
   // 装備・進化
-  { id: 'full', m: 0, name: 'フルセット', t: '武器を4種類そろえる', coins: 200, check: (r) => r.weaponCount >= 4 },
-  { id: 'evo', m: 0, name: 'エヴォリューション', t: '武器を進化させる', coins: 200, check: (r) => r.evolved >= 1 },
+  { id: 'full', m: 0, name: 'フルセット', t: 'ウェポンを4種類そろえる', coins: 200, check: (r) => r.weaponCount >= 4 },
+  { id: 'evo', m: 0, name: 'エヴォリューション', t: 'ウェポンを進化させる', coins: 200, check: (r) => r.evolved >= 1 },
   { id: 'evo3', m: 1, name: 'トリプル・エヴォ', t: '1回のプレイで3つ進化', coins: 800, check: (r) => r.evolved >= 3 },
   { id: 'evo4', m: 2, name: 'フル・エヴォリューション', t: '1回のプレイで4つ進化', coins: 1500, check: (r) => r.evolved >= 4 },
   // フィーバー・コンボ
