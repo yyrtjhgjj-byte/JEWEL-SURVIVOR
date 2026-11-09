@@ -21,7 +21,7 @@ import { syncNav, refreshNav, showHub } from './menu.js';
 import { stageScene, stageSceneCached } from './scene-art.js';
 import { showcaseBack, showcaseFront } from './case-art.js';
 import { openSpec } from './gem-spec.js';
-import { BREAK_TIME, trainDummyHp } from './game.js';
+import { BREAK_TIME, trainDummyHp, CHAOS } from './game.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 function el(html) {
@@ -436,6 +436,13 @@ export const upperLv = (id) => ((save.upgrades2Off || {})[id] ? 0 : (save.upgrad
 
 // ================================================================== ステージ選択
 function stageRec(id) { return save.stages[id] || {}; }
+// CHAOS は全ステージをクリアすると選べる
+const chaosOpen = () => STAGES.every((s) => stageRec(s.id).cleared);
+// CHAOS の記録（ふつうの記録とは別）
+function chaosNote(id) {
+  const c = (save.chaosRec || {})[id];
+  return c && c.best ? `<br>記録：${c.cleared ? 'クリア ・ ' : ''}最長 ${fmtTime(c.best)}` : '';
+}
 export function stageUnlocked(st) {
   return st.no === 1 || !!stageRec(STAGES[st.no - 2].id).cleared;
 }
@@ -616,14 +623,15 @@ export function showStageSelect() {
         <div class="heat-ctl"><button class="iconbtn" id="hm" ${h <= 0 ? 'disabled' : ''}>−</button><b class="heat-val h${h}">${h}</b><button class="iconbtn" id="hp" ${h >= maxHeat ? 'disabled' : ''}>＋</button></div></div>
       ${rec.cleared ? `<div class="toggle-row" style="margin-top:10px"><span>ENDLESS<small>最終ボス撃破後も続行（敵が際限なく強化）</small></span><button class="switch ${save.endless ? 'on' : ''}" id="en"></button></div>
       <div class="toggle-row" style="margin-top:10px"><span>HYPER<small>自機・敵の移動速度 ×1.65、敵弾 ×1.2、獲得コイン ×1.5</small></span><button class="switch ${save.hyper ? 'on' : ''}" id="hy"></button></div>
-      <div class="toggle-row" style="margin-top:10px"><span>HURRY<small>ステージの時間が 2 倍速で進む</small></span><button class="switch ${save.hurry ? 'on' : ''}" id="hu"></button></div>` : ''}`;
+      <div class="toggle-row" style="margin-top:10px"><span>HURRY<small>ステージの時間が 2 倍速で進む</small></span><button class="switch ${save.hurry ? 'on' : ''}" id="hu"></button></div>` : ''}
+      ${rec.cleared && chaosOpen() ? `<div class="toggle-row" style="margin-top:10px"><span>CHAOS<small>全装備で開始<br>強化・宝箱・敵の強さ ×${CHAOS}${chaosNote(sel)}</small></span><button class="switch ${save.chaos ? 'on' : ''}" id="ch"></button></div>` : ''}`;
     const hm = $('#hm', node), hp = $('#hp', node);
     hm.onclick = () => { hs[sel] = Math.max(0, h - 1); audio.tap(); persist(); renderOpts(); };
     hp.onclick = () => { hs[sel] = Math.min(maxHeat, h + 1); audio.tap(); persist(); renderOpts(); };
     artWire(renderOpts);
     const en = $('#en', node);
     if (en) en.onclick = () => { save.endless = !save.endless; en.classList.toggle('on', save.endless); audio.tap(); persist(); };
-    for (const [id, k] of [['#hy', 'hyper'], ['#hu', 'hurry']]) {
+    for (const [id, k] of [['#hy', 'hyper'], ['#hu', 'hurry'], ['#ch', 'chaos']]) {
       const b = $(id, node);
       if (b) b.onclick = () => { save[k] = !save[k]; b.classList.toggle('on', save[k]); audio.tap(); persist(); };
     }
@@ -763,7 +771,7 @@ export function showStageSelect() {
     save.selectedStage = sel;
     persist();
     const rec = stageRec(sel);
-    app.startGame(save.selected, { stageId: sel, heat: Math.min((save.heatSels || {})[sel] ?? 0, rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0), endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
+    app.startGame(save.selected, { stageId: sel, heat: Math.min((save.heatSels || {})[sel] ?? 0, rec.cleared ? Math.min(HEAT_MAX, (rec.heat ?? 0) + 1) : 0), endless: !!rec.cleared && save.endless, hyper: !!rec.cleared && save.hyper, hurry: !!rec.cleared && save.hurry, chaos: !!rec.cleared && chaosOpen() && !!save.chaos, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
   };
 }
 
@@ -1708,7 +1716,9 @@ function autoPicked(g, c) {
   const p = g.player;
   if (c.type === 'heal25') return;
   const info = choiceInfo(g, c);
-  g.fx.text(p.x, p.y - 40, `${info.name} ${info.lv}`, { size: 13, color: RAR_TEXT[info.rar], rainbow: info.rar === 'UR', life: 1.2, vy: -40 });
+  // CHAOS は続けて選ぶので、何回目かで高さをずらす
+  const k = (g.curModal && g.curModal.pick) || 1;
+  g.fx.text(p.x, p.y - 40 - (k - 1) * 15, `${info.name} ${info.lv}`, { size: 13, color: RAR_TEXT[info.rar], rainbow: info.rar === 'UR', life: 1.2, vy: -40 });
 }
 
 export function levelUp(g, done) {
@@ -1727,7 +1737,7 @@ export function levelUp(g, done) {
       <div class="rays-clip"><div class="rays"></div></div>
       ${helpBtn('levelup', 'corner')}
       <div class="big-title prism-text">LEVEL UP</div>
-      <div class="sub-title"><b>LV ${g.level - g.pendingLevels}</b>　強化を1つ選択</div>
+      <div class="sub-title"><b>LV ${g.level - g.pendingLevels}</b>　${g.chaos && g.curModal && g.curModal.pick ? `強化を選択（${g.curModal.pick} / ${CHAOS}）` : '強化を1つ選択'}</div>
       <div class="lvl-order">良い順 ${RARITY_ORDER}</div>
       <div class="cards" id="cards"></div>
       <div class="lvl-actions"><button class="btn small" id="reroll"></button><button class="btn small" id="skip"></button><button class="btn small" id="banish"></button>${g.stats.autoPick > 0 ? '<button class="btn small auto-btn" id="auto">AUTO</button>' : ''}</div>
@@ -1907,11 +1917,15 @@ function autoChest(g, big, done, plus) {
   const res = g.rollChest(big, plus);
   const p = g.player;
   const tiles = chestTiles(res.items.filter((c) => c.type !== 'coins'), true);
+  // 進化を先に。多いとき（CHAOS）は 5 行までにして、残りは数だけ出す
+  tiles.sort((a, b) => (b.c.type === 'evo') - (a.c.type === 'evo'));
+  const more = tiles.length > 6 ? tiles.splice(5).reduce((a, t) => a + t.k, 0) : 0;
   const lines = tiles.map(({ c }) => {
     const def = c.type === 'wup' || c.type === 'evo' || c.type === 'lb' ? WEAPONS[c.id] : PASSIVES[c.id];
     const name = c.type === 'evo' ? def.evo.name : c.type === 'lb' && g.getWeapon(c.id).evolved ? def.evo.name : def.name;
     return { str: `${name} ${itemLabel(g, c)}`, color: c.type === 'evo' ? '#fff' : c.type === 'lb' || c.type === 'plb' ? RAR_TEXT.R : RAR_TEXT.N, rainbow: c.type === 'evo' };
   });
+  if (more) lines.push({ str: `ほか ${more} 件の強化`, color: RAR_TEXT.N });
   lines.push({ str: `+${fmt(g.coins - c0)} COIN`, color: '#ffd24a' });
   lines.forEach((l, i) => g.fx.text(p.x, p.y - 40 - (lines.length - 1 - i) * 15, l.str, { size: 12, color: l.color, rainbow: l.rainbow, life: 1.4, vy: -40 }));
   audio.coin();
@@ -1938,7 +1952,7 @@ export function chest(g, big, done, plus = 0) {
       <button class="btn big primary hidden" id="ok">OK</button>
     </div>`);
   // 枠が多くなりそうなら、開ける前から小さめの見た目にしておく（開けたあとに実際の数で決め直す）
-  node.classList.toggle('many', plus >= 3);
+  node.classList.toggle('many', plus >= 3 || !!g.chaos);
   screens().appendChild(node);
   const chestEl = $('#chest', node);
   // BOSS モードは開ける回数が多いので演出を短くする（fast）。開けている途中で画面を押すと、残りを飛ばして結果を出す
@@ -1959,7 +1973,7 @@ export function chest(g, big, done, plus = 0) {
     const res = g.rollChest(big, plus);
     const hasEvo = res.items.some((c) => c.type === 'evo');
     // BOSS モードは倒すたびに枠が増えるので、枠の数を出す
-    if (g.rush) $('#cn', node).textContent = `${res.n} 枠`;
+    if (g.rush || g.chaos) $('#cn', node).textContent = `${res.n} 枠`;
     const tiles = chestTiles(res.items);
     node.classList.toggle('many', tiles.length > 5 || res.items.length > 5);
     const beam = $('#beam', node);
@@ -2113,7 +2127,7 @@ export function resumePrompt(res, onResume, onSettle) {
       <div class="big-title prism-text">RESUME</div>
       <div class="sub-title">中断したランがあります</div>
       <div class="panel" style="min-width:260px">
-        <div class="rrow"><span>ステージ</span><b>${res.rush ? `BOSS ・ ${stageTag(st)}` : st.name}${res.heat ? `　HEAT ${res.heat}` : ''}</b></div>
+        <div class="rrow"><span>ステージ</span><b>${res.rush ? `BOSS ・ ${stageTag(st)}` : st.name}${res.heat ? `　HEAT ${res.heat}` : ''}${res.chaos ? '　CHAOS' : ''}</b></div>
         <div class="rrow"><span>ジュエル</span><b>${GEMS[res.charId].jp}</b></div>
         <div class="rrow"><span>経過時間</span><b>${fmtTime(r.time)}</b></div>
         ${res.rush ? `<div class="rrow"><span>倒したボス</span><b>${res.rush.kills} 体</b></div>` : `<div class="rrow"><span>レベル</span><b>LV ${r.level}</b></div>`}
@@ -2171,7 +2185,8 @@ export function results(res, cleared, extra) {
       <div class="rays"></div>
       <div class="result-head">
         ${res.rush ? '<div class="big-title prism-text">BOSS RUSH</div>' : cleared ? '<div class="big-title prism-text">STAGE CLEAR</div>' : '<div class="big-title lose">GAME OVER</div>'}
-        <div class="sub-title" style="margin-top:6px">${res.rush ? 'BOSS ・ ' : ''}${stageTag(STAGE_BY_ID[res.stageId])}　${STAGE_BY_ID[res.stageId].name}${res.heat ? `　HEAT ${res.heat}` : ''}${res.endless ? '　ENDLESS' : ''}${res.hyper ? '　HYPER' : ''}${res.hurry ? '　HURRY' : ''}</div>
+        <div class="sub-title" style="margin-top:6px">${res.rush ? 'BOSS ・ ' : ''}${stageTag(STAGE_BY_ID[res.stageId])}　${STAGE_BY_ID[res.stageId].name}${res.heat ? `　HEAT ${res.heat}` : ''}${res.endless ? '　ENDLESS' : ''}${res.hyper ? '　HYPER' : ''}${res.hurry ? '　HURRY' : ''}${res.chaos ? '　CHAOS' : ''}</div>
+        ${extra.chaosBest ? '<div class="hint" style="margin-top:6px;color:#ffe39a">CHAOS の最長記録を更新</div>' : ''}
         ${extra.firstClear ? `<div class="hint" style="margin-top:6px;color:#ffe39a">初クリア報酬 ${fmt(STAGE_BY_ID[res.stageId].reward)} コイン${extra.unlocked ? ` ／ ${GEMS[extra.unlocked].jp} 解放` : ''}${extra.nextStage ? ` ／ ${extra.nextStage} 解放` : ''}</div>` : ''}
       </div>
       <div class="panel" id="rows"></div>
@@ -2188,7 +2203,7 @@ export function results(res, cleared, extra) {
     </div>`);
   show(node);
   guard($('.rbtns', node), 1500);
-  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, rush: res.rush ? { w: res.rush.w, p: res.rush.p, from: save.rushFromBest ? (save.bossRush || {})[res.stageId] || 0 : 0 } : null, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null }); };
+  $('#again', node).onclick = () => { audio.select(); app.startGame(res.charId, { stageId: res.stageId, heat: res.heat, endless: res.endless, hyper: res.hyper, hurry: res.hurry, chaos: res.chaos, rush: res.rush ? { w: res.rush.w, p: res.rush.p, from: save.rushFromBest ? (save.bossRush || {})[res.stageId] || 0 : 0 } : null, artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null }); };
   $('#stage', node).onclick = () => { audio.tap(); app.toStageSelect(res); };
   $('#home', node).onclick = () => { audio.tap(); app.toTitle(); };
   const rowsEl = $('#rows', node);
