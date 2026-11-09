@@ -210,7 +210,7 @@ export class Game {
     this.computeStats();
     this.player.hp = this.stats.maxHp;
     this.rerolls = this.stats.reroll;
-    // オートセレクト（上位工房）。ランごとに OFF から始め、ポーズとレベルアップの画面で切り替える
+    // オートコレクト（上位工房）。ランごとに OFF から始め、ポーズとレベルアップの画面で切り替える
     this.autoPick = false;
     this.skips = this.stats.skip;
     this.banishes = this.stats.banish;
@@ -2036,7 +2036,7 @@ export class Game {
     return out;
   }
 
-  // 候補のレア度（カードの色）。ui.js のカードとオートセレクトで共通
+  // 候補のレア度（カードの色）。ui.js のカードとオートコレクトで共通
   choiceRar(c) {
     if (c.type === 'evo') return 'UR';
     if (c.type === 'wnew') return this.hasPassive(WEAPONS[c.id].evo.with) ? 'SR' : 'R';
@@ -2046,9 +2046,9 @@ export class Game {
     if (c.type === 'lb' || c.type === 'plb') return 'R';
     return 'N';
   }
-  // オートセレクトが使えて ON か（BOSS モードとトレーニングにはレベルアップがない）
+  // オートコレクトが使えて ON か（BOSS モードとトレーニングは対象外）
   get autoOn() { return this.autoPick && this.stats.autoPick > 0 && !this.rush && !this.train; }
-  // オートセレクトの選び方：レア度のいちばん高い候補。同じ色なら無作為。HP 25% 回復は選ばない
+  // オートコレクトの選び方：レア度のいちばん高い候補。同じ色なら無作為。HP 25% 回復は選ばない
   autoChoice(cs) {
     const RANK = { UR: 5, SSR: 4, SR: 3, R: 2, N: 1 };
     const ok = cs.filter((c) => c.type !== 'heal25');
@@ -2168,11 +2168,12 @@ export class Game {
     this.state = 'modal';
     this.curModal = m;
     this.input.x = this.input.y = 0;
-    const done = () => {
+    // quiet：画面を出さずに済ませた（オートコレクト）ので、閉じたあとの無敵時間を付けない
+    const done = (quiet) => {
       if (this.state === 'over') return;
       this.state = 'play';
       this.curModal = null;
-      this.player.iT = Math.max(this.player.iT, 0.6);
+      if (!quiet) this.player.iT = Math.max(this.player.iT, 0.6);
       if (this.pendingClear) this.finishClear();
     };
     if (m.type === 'level') {

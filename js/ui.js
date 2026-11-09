@@ -1699,7 +1699,7 @@ export function artifactChoice(g, done) {
   pickArtifact(ids, (id) => { if (id) g.addArtifact(id); done(); }, false);
 }
 
-// オートセレクトで選んだことを自機の上に小さく出す
+// オートコレクトで選んだことを自機の上に小さく出す
 const RAR_TEXT = { UR: '#ffffff', SSR: '#ffd24a', SR: '#c78bff', R: '#7fd0ff', N: '#e8e6f2' };
 function autoPicked(g, c) {
   const p = g.player;
@@ -1715,7 +1715,7 @@ export function levelUp(g, done) {
     audio.select();
     const evolved = g.applyChoice(c);
     if (evolved) evolveScene(evolved, done);
-    else done();
+    else done(true);
     return;
   }
   haptic();
@@ -1736,7 +1736,7 @@ export function levelUp(g, done) {
   let locked = false;
   let banishMode = false;
   let cur = [];
-  // 今のカード（オートセレクトで押すため）
+  // 今のカード（オートコレクトで押すため）
   let cardEls = [];
   // バニッシュ：その武器・チャームをこのランの候補から外し、カードを消す
   const banish = (c) => {
@@ -1834,7 +1834,7 @@ export function levelUp(g, done) {
     audio.whoosh();
     render(g.rollChoices());
   };
-  // AUTO：オートセレクトを ON にして、今のカードからも選ぶ（OFF にはポーズ画面で）
+  // AUTO：オートコレクトを ON にして、今のカードからも選ぶ（OFF にはポーズ画面で）
   const au = $('#auto', node);
   if (au) au.onclick = () => {
     if (locked || banishMode) return;
@@ -1885,8 +1885,8 @@ function itemLabel(g, c) {
 }
 
 // 宝箱の中身が多いとき（BOSS モードの後半）は、同じ石の強化を 1 枠にまとめる（右上に回数。表示は最後の状態）
-function chestTiles(items) {
-  if (items.length <= 5) return items.map((c) => ({ c, k: 1 }));
+function chestTiles(items, merge = items.length > 5) {
+  if (!merge) return items.map((c) => ({ c, k: 1 }));
   const tiles = [], by = new Map();
   for (const c of items) {
     const key = c.type === 'evo' ? 'evo:' + c.id : c.type === 'coins' ? 'coins' : (c.type === 'wup' || c.type === 'lb' ? 'w:' : 'p:') + c.id;
@@ -1898,7 +1898,30 @@ function chestTiles(items) {
   return tiles;
 }
 
+// オートコレクト：宝箱の画面を出さずにその場で開け、中身（同じ石はまとめる）とコインを自機の上に小さく出す
+function autoChest(g, big, done, plus) {
+  const c0 = g.coins;
+  const res = g.rollChest(big, plus);
+  const p = g.player;
+  const tiles = chestTiles(res.items.filter((c) => c.type !== 'coins'), true);
+  const lines = tiles.map(({ c }) => {
+    const def = c.type === 'wup' || c.type === 'evo' || c.type === 'lb' ? WEAPONS[c.id] : PASSIVES[c.id];
+    const name = c.type === 'evo' ? def.evo.name : c.type === 'lb' && g.getWeapon(c.id).evolved ? def.evo.name : def.name;
+    return { str: `${name} ${itemLabel(g, c)}`, color: c.type === 'evo' ? '#fff' : c.type === 'lb' || c.type === 'plb' ? RAR_TEXT.R : RAR_TEXT.N, rainbow: c.type === 'evo' };
+  });
+  lines.push({ str: `+${fmt(g.coins - c0)} COIN`, color: '#ffd24a' });
+  lines.forEach((l, i) => g.fx.text(p.x, p.y - 40 - (lines.length - 1 - i) * 15, l.str, { size: 12, color: l.color, rainbow: l.rainbow, life: 1.4, vy: -40 }));
+  audio.coin();
+  const evos = res.items.filter((c) => c.type === 'evo');
+  if (!evos.length) { done(true); return; }
+  (async () => {
+    for (const e of evos) await new Promise((r) => evolveScene(g.getWeapon(e.id), r));
+    done();
+  })();
+}
+
 export function chest(g, big, done, plus = 0) {
+  if (g.autoOn) { autoChest(g, big, done, plus); return; }
   haptic();
   const node = el(`
     <div class="screen dim chest-screen">
@@ -2054,7 +2077,7 @@ export function pauseMenu(g, onResume, onQuit) {
       <button class="btn big primary" id="resume">RESUME</button>
       <div class="rbtns" style="margin:0">
         ${g.train ? '<button class="btn" id="treset">数値リセット</button>' : ''}
-        ${g.stats.autoPick > 0 && !g.rush && !g.train ? `<button class="btn" id="autosel">オートセレクト ${g.autoPick ? 'ON' : 'OFF'}</button>` : ''}
+        ${g.stats.autoPick > 0 && !g.rush && !g.train ? `<button class="btn" id="autosel">オートコレクト ${g.autoPick ? 'ON' : 'OFF'}</button>` : ''}
         <button class="btn" id="set">設定</button>
         <button class="btn" id="quit">${g.train ? '装備を変える' : 'リタイア'}</button>
       </div>
@@ -2063,7 +2086,7 @@ export function pauseMenu(g, onResume, onQuit) {
   $('#resume', node).onclick = () => { audio.tap(); node.remove(); onResume(); };
   $('#set', node).onclick = () => { audio.tap(); showSettings(null, true); };
   const as = $('#autosel', node);
-  if (as) as.onclick = () => { audio.tap(); g.autoPick = !g.autoPick; as.textContent = `オートセレクト ${g.autoPick ? 'ON' : 'OFF'}`; as.classList.toggle('on', g.autoPick); };
+  if (as) as.onclick = () => { audio.tap(); g.autoPick = !g.autoPick; as.textContent = `オートコレクト ${g.autoPick ? 'ON' : 'OFF'}`; as.classList.toggle('on', g.autoPick); };
   if (as) as.classList.toggle('on', g.autoPick);
   // トレーニング：数値と的を最初からにして再開
   const tr = $('#treset', node);
