@@ -70,7 +70,13 @@ export const INST = {
   pipa: { model: 'ks', bright: 0.9, t60: 1.2, damp: 0.15, pick: 0.1, cut: 9000, rel: 0.4, gain: 1.9 },
   yangqin: { model: 'ks', bright: 0.85, t60: 1.8, damp: 0.2, pick: 0.3, cut: 9000, rel: 1, gain: 2 },
   pizz: { model: 'ks', bright: 0.4, t60: 0.5, damp: 0.4, pick: 0.2, cut: 3500, rel: 0.15, gain: 1.9 },
-  cbass: { model: 'ks', bright: 0.3, t60: 1.6, damp: 0.45, tk: 0.3, cut: 1500, rel: 0.25, gain: 2.2 },
+  cbass: { model: 'ks', bright: 0.15, t60: 1, damp: 0.5, tk: 0.3, cut: 650, rel: 0.2, gain: 1.9 },
+  // 第2章の低音は曲ごとに楽器を変える（どの曲も同じコントラバスだと「またこの音」になるため）
+  synbass: { model: 'sub', n: 1, cut: 260, kt: 0.5, fenv: [420, 0.05, 0.3], q: 1.1, env: [0.015, 0.5, 0.8, 0.15], glide: 0.04, gain: 1.15 },
+  tuba: { model: 'sub', n: 1, cut: 520, kt: 0.5, fenv: [600, 0.05, 0.25], q: 0.8, noise: 0.01, env: [0.035, 0.4, 0.85, 0.12], scoop: [-0.3, 0.04], gain: 1.55 },
+  bassoon: { model: 'sub', n: 1, form: [[220, 1.2, 1], [500, 3, 0.8], [1150, 4, 0.35]], noise: 0.015, env: [0.03, 0.3, 0.8, 0.08], vib: [10, 5, 0.3], gain: 1.3 },
+  arcobass: { model: 'sub', n: 1, cut: 950, kt: 0.4, fenv: [500, 0.02, 0.15], q: 0.8, noise: 0.03, env: [0.04, 0.35, 0.8, 0.12], scoop: [-0.4, 0.06], gain: 1.3 },
+  lostr: { model: 'sub', n: 2, det: 8, cut: 800, kt: 0.4, fenv: [900, 0.01, 0.08], q: 0.7, noise: 0.025, env: [0.006, 0.15, 0.45, 0.06], gain: 2.3 },
   harpsi: { model: 'ks', bright: 0.95, t60: 1.6, damp: 0.08, pick: 0.15, cut: 9000, rel: 0.15, gain: 1.6 },
   guitar: { model: 'ks', bright: 0.5, t60: 2.4, damp: 0.3, pick: 0.18, cut: 5000, rel: 0.3, gain: 1.8 },
   // 鍵盤・打つ音程楽器
@@ -540,7 +546,7 @@ export const SONGS = {};
         v7 ${blocks(B, { lo: 53 })}
         v7 ${blocks(A, { lo: 55 })}` },
       { id: 'bass', type: 'inst', pan: 0, rev: 0.1, mml: `
-        @cbass v12 ${bass(intro, groove, { lo: 38, hi: 52 })} L
+        @synbass v12 ${bass(intro, groove, { lo: 38, hi: 52 })} L
         ${bass(A, groove, { lo: 38, hi: 52 })}
         ${bass(A2, groove, { lo: 38, hi: 52 })}
         ${bass(B, 'R4 F8 O8 R4 F8 L8', { lo: 38, hi: 52 })}
@@ -599,7 +605,7 @@ export const SONGS = {};
         @strings v8 ${blocks(C, { lo: 55 })}` },
       { id: 'bass', type: 'inst', pan: 0, rev: 0.15, mml: `
         @trb v11 ${bass(intro, 'R2. O4', { lo: 34, hi: 50 })} L
-        @cbass v12 ${bass(A, 'R8 R8 O8 R8 F8 R8 O8 F8', { lo: 34, hi: 50 })}
+        @tuba v12 ${bass(A, 'R8 R8 O8 R8 F8 R8 O8 F8', { lo: 34, hi: 50 })}
         ${bass(A2, 'R8 R8 O8 R8 F8 R8 O8 F8', { lo: 34, hi: 50 })}
         @cello v11 ${bass(B, 'R4. R8 O4 F4', { lo: 34, hi: 50 })}
         @trb v12 ${bass(C, 'R2. O4', { lo: 34, hi: 50 })}` },
@@ -662,7 +668,7 @@ export const SONGS = {};
         v6 ${blocks(B, { lo: 57 })}
         v6 ${blocks(A, { lo: 55 })}` },
       { id: 'bass', type: 'inst', pan: 0, rev: 0.1, mml: `
-        @cbass v12 ${bass(intro, 'R4 T4 F4 L4', { lo: 36, hi: 52 })} L
+        @bassoon v12 ${bass(intro, 'R4 T4 F4 L4', { lo: 36, hi: 52 })} L
         ${bass(A, 'R4 T4 F4 L4', { lo: 36, hi: 52 })}
         ${bass(A2, 'R4 T4 F4 L4', { lo: 36, hi: 52 })}
         ${bass(B, 'R4 T4 F4 L4', { lo: 36, hi: 52 })}
@@ -685,7 +691,7 @@ export const SONGS = {};
   const habR = ['8.', '16', '8', '8', '8.', '16', '8', '8'];
   const habR2 = ['8.', '16', '8', '8'];
   SONGS.carcosa = {
-    gain: 1.12,
+    gain: 1.09,
     bpm: 104,
     melody: ['lead', 'cnt'],
     chords: `${intro} ${A} ${A2} ${B} ${C}`,
@@ -719,7 +725,7 @@ export const SONGS = {};
         v7 ${blocks(B, { lo: 55 })}
         v8 ${blocks(C, { lo: 57 })}` },
       { id: 'bass', type: 'inst', pan: 0, rev: 0.1, mml: `
-        @cbass v13 ${bass(intro, hab, { lo: 33, hi: 50 })} L
+        @arcobass v13 ${bass(intro, hab, { lo: 33, hi: 50 })} L
         ${bass(A, hab, { lo: 33, hi: 50 })}
         ${bass(A2, hab, { lo: 33, hi: 50 })}
         ${bass(B, hab, { lo: 33, hi: 50 })}
@@ -774,7 +780,7 @@ export const SONGS = {};
         @subbass v11 ${bass(intro, 'R1', { lo: 36, hi: 50 })} L
         ${bass(A, 'R1', { lo: 32, hi: 48 })}
         @cello v11 ${bass(A2, 'R2 F2', { lo: 33, hi: 50 })}
-        @cbass v12 ${bass(B, 'R4. F8 O4 F4', { lo: 33, hi: 50 })}
+        @subbass v12 ${bass(B, 'R4. F8 O4 F4', { lo: 33, hi: 50 })}
         @trb v12 ${bass(A, 'R1', { lo: 32, hi: 48 })}` },
       { id: 'timp', type: 'inst', pan: 0.1, rev: 0.4, mml: `
         r1 | r1 | r1 | r1 | L
@@ -923,6 +929,11 @@ export const SONGS = {};
   const B = 'Am Em F C Am Em F B7';
   const C = 'Em F Em F Em F G B7';
   const ost = [0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 3];
+  const lowBow = `${bass(intro, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 33, hi: 50 })} L
+        ${bass(A, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 33, hi: 50 })}
+        ${bass(A, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 33, hi: 50 })}
+        ${bass(B, 'R4 O4 R4 O4', { lo: 33, hi: 50 })}
+        ${bass(C, 'R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16', { lo: 33, hi: 50 })}`;
   SONGS.boss2 = {
     gain: 1.12,
     bpm: 148,
@@ -961,12 +972,9 @@ export const SONGS = {};
         @strings v7 ${blocks(A, { lo: 55 })}
         ${blocks(B, { lo: 55 })}
         @brs v10 ${blocks(C, { lo: 52, rh: ['8', 'r8', 'r4', '8', 'r8', 'r4'] })}` },
-      { id: 'bass', type: 'inst', pan: 0, rev: 0.1, mml: `
-        @cbass v13 ${bass(intro, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 33, hi: 50 })} L
-        ${bass(A, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 33, hi: 50 })}
-        ${bass(A, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 33, hi: 50 })}
-        ${bass(B, 'R4 O4 R4 O4', { lo: 33, hi: 50 })}
-        ${bass(C, 'R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16 R16', { lo: 33, hi: 50 })}` },
+      // 低い弦を弓で刻む（コントラバスと、1 オクターブ上のチェロ）
+      { id: 'bass', type: 'inst', pan: -0.1, rev: 0.1, mml: `@lostr v13 ${lowBow}` },
+      { id: 'vc', type: 'inst', pan: 0.15, rev: 0.12, mml: `@lostr v9 k12 ${lowBow}` },
       { id: 'timp', type: 'inst', pan: 0.1, rev: 0.3, mml: `
         @timp v12 ${bass(intro, 'R8 R8 R4 R8 R8 R4', { lo: 40, hi: 52 })} L
         ${bass(A, 'R4 r2.', { lo: 40, hi: 52 })}
