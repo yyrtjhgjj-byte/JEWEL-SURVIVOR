@@ -1662,7 +1662,7 @@ export class Game {
     audio.bossDie();
     setTimeout(() => audio.bigWin(), 400);
     // 渾沌は七つ目の穴（口）が開いて死ぬ
-    this.hooks.banner(e.ai === 'konton' ? '七日ニシテ渾沌死ス' : e.ai === 'ouroboros' ? '賢者ノ石、成レリ' : 'BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
+    this.hooks.banner(e.ai === 'konton' ? '七日ニシテ渾沌死ス' : e.ai === 'ouroboros' ? '賢者の石、成れり' : 'BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     // BOSS モードは宝箱を拾わず、撃破の演出のあとそのまま BOSS TREASURE の画面を開く
     // 中身はそれまでに倒した数だけ多い（1 体目 +0、2 体目 +1 …。ユーザーの指定）
     if (this.rush) {
