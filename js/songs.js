@@ -396,12 +396,12 @@ export const SONGS = {};
       { id: 'p1', type: 'pulse', pan: -0.15, echo: [24, 0.28, 0.4], mml: `
         r1 | r1 | r1 | r1 | L
         @brass v14
-        o5 d4 a4 g8 a8 >c8 d8 | e8 d8 c8 <a8 f4 a4 | b-4. a8 b-8 >c8 d4 | c+2 e4 a4 |
-        o5 a4 >d4 f8 e8 d8 c8 | d4. <a8 f4 d4 | g4. a8 b-4 >d4 | c+4. <b-8 a4 g4 |
-        d4 a4 g8 a8 >c8 d8 | e4. d8 c4 <g4 | b-4. >c8 d4 f4 | e2 c+4 <a4 |
-        b-4. a8 g4 d4 | e4 g4 >c+4 e4 | d2 f4 a4 | d2. r4 |
-        o5 f4 b-4 >d4. c8 | e4. d8 c4 <g4 | a4. b8 >c4 e4 | d2 <a2 |
-        f4 b-4 >d4 f4 | e4. d8 e4 g4 | g2 b-4 g4 | a2 e4 c+4 |
+        o5 d8 e8 f4. e8 d4 | a2. g8 e8 | f8 g8 b-4. a8 g4 | a2. r4 |
+        d8 e8 f4. e8 d4 | a4 >d4^8 c8 <a4 | b-4. a8 g8 f8 e4 | c+4. d8 e4 r4 |
+        d8 e8 f4. e8 d4 | e8 f8 g4. f8 e4 | f8 g8 b-4. a8 b-4 | >c+2. <a8 b-8 |
+        >d4. c8 <b-8 a8 g8 f8 | e4. f8 e8 d8 c+4 | d2. r4 | r4 d8 e8 f8 g8 a8 >c8 |
+        d2. c8 d8 | e2 d4 c4 | <a2 b4 >c4 | d2. r4 |
+        f2. e8 f8 | g2 f8 e8 d4 | g2. f8 e-8 | f4 e4 c+4 r4 |
         @chug v11
         o4 [d16 d16 a16 d16]4 | [e-16 e-16 b-16 e-16]4 | [d16 d16 a16 d16]4 | [e-16 e-16 b-16 e-16]4 |
         [g16 g16 >d16 <g16]4 | [e-16 e-16 b-16 e-16]4 | [a16 a16 >e16 <a16]4 | a16 a16 >e16 <a16 >g16 e16 c+16 <a16 >c+8 e8 g8 b-8 |` },
@@ -476,15 +476,15 @@ export const SONGS = {};
       { id: 'p1', type: 'pulse', pan: -0.15, echo: [48, 0.3, 0.45], mml: `
         r1 | r1 | r1 | r1 | L
         @lead50 v13
-        o5 g2 >c2 | <b2 >d2 | e-2. d8 c8 | c2 <a2 | a-2 >c2 | <g2. f8 e-8 | f2 a-2 | b2 >d2 |
-        o5 g4. a-8 g4 >c4 | <b4. >c8 d4 f4 | e-2 g4 f8 e-8 | f4 c4 <a4 >c4 |
-        o6 c4. <b-8 a-4 f4 | g4. f8 e-4 c4 | d4 f4 a-4 >c4 | <b2. r4 |
+        o5 g4 >c2. | <b4 >d2. | e-2 d4 c4 | f2. e-8 d8 | c2. <a-4 | g2 >c4 e-4 | f2 d4 c4 | <b2. r4 |
+        g8 a-8 g8 b8 >c2 | <b8 >c8 <b8 g8 >d2 | e-4. f8 e-8 d8 c4 | f4. g8 f8 e-8 d4 |
+        c4 <a-8 b-8 >c8 d8 e-4 | g2 f8 e-8 d4 | f4. e-8 d8 c8 <a-4 | b2. r4 |
         @brass v14
-        o5 a-4. b-8 >c4 e-4 | d2 f4 d4 | <b-4. a8 g4 d4 | e-2 g4 >c4 |
-        c4. <b-8 a-4 f4 | a-4 f4 d4 f4 | g2 b-4 >d4 | d2 <b2 |
+        o6 c4 c8 d8 e-2 | d4 d8 e-8 f2 | g2 f8 e-8 d8 e-8 | c2. r4 |
+        <a-4 a-8 b-8 >c2 | <b-4 b-8 >c8 d2 | e-4 e-8 f8 g2 | a-2 g4 f4 |
         @lead50 v13
-        o4 g2 >c4 e-4 | f2 a-4 >d-4 | c2 <g4 e-4 | f2 d-4 <a-4 |
-        b-2 >d-4 f4 | e-2 g4 >c4 | <a-2 >c4 e-4 | d2 <b4 g4 |` },
+        o4 g4. a-8 g2 | a-4. b-8 a-2 | g4. a-8 b-4 >c4 | d-2. r4 |
+        f4. g-8 f2 | e-4. f8 e-2 | a-4. g8 f8 e-8 c4 | d2 <b2 |` },
       { id: 'p2', type: 'pulse', pan: 0.25, mml: `
         @arp v8 ${arp(intro, { lo: 55, pat: toc })} L
         ${arp(A, { lo: 55, pat: toc })}
@@ -498,8 +498,8 @@ export const SONGS = {};
         ${bass(B, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 32, hi: 48 })}
         ${bass(C, 'R4. R8 R4 L4', { lo: 34, hi: 48 })}` },
       { id: 'dr', type: 'drum', mml: `
-        r1 | r1 | r1 | s16 s16 s16 s16 s16 s16 s16 s16 t8 m8 f8 f8 | L
-        [v11 k4 v6 h4 v11 k4 v6 h4 |]7 v11 k4 v6 h4 v10 s8 s8 s8 s8 |
+        r1 | r1 | r1 | r1 | L
+        v12 c4 v6 h4 v11 k4 v6 h4 | [v11 k4 v6 h4 v11 k4 v6 h4 |]6 v11 k4 v6 h4 v10 s8 s8 s8 s8 |
         v12 [k8 h8 S8 h8 k8 k8 S8 h8 |]7 k8 h8 S8 h8 s16 s16 s16 s16 t8 f8 |
         C8 h8 S8 h8 k8 k8 S8 o8 | [k8 h8 S8 h8 k8 k8 S8 o8 |]6 k8 h8 S8 S8 S16 S16 S16 S16 S8 S8 |
         [J4 h8 h8 S4 t8 m8 |]7 J8 J8 S8 S8 t8 m8 f8 f8 |` },
@@ -1496,9 +1496,12 @@ const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / ev
       { id: 'p1', type: 'pulse', pan: -0.15, echo: [24, 0.28, 0.45], mml: `
         r1 | r1 | r1 | r1 | L
         @brass v14
-        o5 r8 e8 a8 b8 >c4. <b8 | a4 f4 c4 f4 | r8 d8 a8 b8 >c4. d8 | e4. d8 <b4 g+4 | a4. b8 >c4 e4 | f4. e8 c4 <a4 | b4. >c8 d4 g4 | e2. r4 |
-        <r8 e8 a8 b8 >c8 e8 d8 c8 | <a4 >c4 f4 e4 | d4. c8 <a4 f4 | g+4. a8 b4 >e4 | c4. <a8 f4 a4 | b4. a8 g4 b4 | >d4. c8 <b4 g+4 | e2. r4 |
-        a4. b8 >c4 f4 | e4. d8 <b4 >d4 | e4. f+8 g4 b4 | a2 e4 c4 | c4. d8 e4 f4 | g4. f8 d4 <b4 | >e2 g+4 b4 | e2. r4 |
+        o5 r8 e8 a8 b8 >c4. <b8 | a4 f4 e8 f4. | r8 d8 a8 b8 >c4. d8 | e4. d8 <b2 |
+        r8 e8 a8 b8 >c8 e8 d8 c8 | <a4 >c8 f8^4 e8 d8 | d8 e8 d8 <b8^4 g4 | g+2. r4 |
+        r8 e8 a8 b8 >c4. <b8 | a4 f4 e8 f4. | r8 d8 a8 b8 >c4. d8 | e2^8 f8 e8 d8 |
+        c4. d8 c8 <a8 f4 | g4. a8 b8 >c8 d4 | e4 d8 c8 <b4 >d4 | e2. r4 |
+        c2. <a8 >c8 | d2 <b4 >d4 | e2 g4. f+8 | e2. r4 |
+        f2. e8 f8 | g2 f4 d4 | e2^8 d8 c8 <b8 | g+2. r4 |
         @lead v14
         o5 r8 e8 a8 b8 >c4. <b8 | g4 e4 d8 e4. | r8 d8 a8 b8 >c4. d8 | e4. d8 <b2 | >d4. c8 <a+8 a8 f4 | g4. e8 c8 d8 e4 | g2 f8 e-8 c8 e-8 | d4. c8 <b2 |` },
       { id: 'p2', type: 'pulse', pan: 0.3, mml: `
@@ -1559,39 +1562,50 @@ const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / ev
   };
 }
 
-// 経営：スウィングする午後の事務所。オルゴールのような音と、歩くベース
+// 経営：明るい午後の事務所。はずむベースと裏拍の刻みの上に、跳ねる旋律（A・A・B・A）
 {
-  const intro = 'FM7 Em7,A7 Dm7 Gm7,C7';
-  const A = 'FM7 Em7,A7 Dm7 Cm7,F7 BbM7 Bbm6 Am7,D7 Gm7,C7';
-  const A2 = 'FM7 Em7,A7 Dm7 Cm7,F7 BbM7 Eb9 Gm7,C7 F6';
-  const B = 'Dm7 G7 Gm7 C7 Am7 D7 Gm7 C7';
-  const comp = ['r', 'r', 1, 'r', 'r', 2, 'r', 'r', 1, 'r', 'r', 3];
-  const walk = 'R4 T4 F4 L4';
+  const intro = 'C Am F G';
+  const A = 'C Em F G C Am Dm7 G7';
+  const A2 = 'C Em F G Am F G7 C';
+  const B = 'F G Em Am Dm7 Em7 F,G C';
+  const off = ['r', 2, 'r', 1, 'r', 2, 'r', 1];
+  const bounce = 'R4. O8 F4 O4';
+  const beat = 'v10 k8 v5 h8 v8 s8 v5 h8 v10 k8 k8 v8 s8 v5 h8 |';
   SONGS.business = {
-    bpm: 104,
+    gain: 1.12,
+    bpm: 128,
     melody: 'p1',
-    chords: `${intro} ${A} ${A2} ${B}`,
-    inst: { cel: { duty: [0.125, 0.25], dl: 0, env: [14, 12, 10, 9, 8, 7, 6, 6, 5, 5, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1, 0], rel: 4 } },
+    chords: `${intro} ${A} ${A2} ${B} ${A2}`,
     ch: [
-      { id: 'p1', type: 'pulse', pan: -0.15, echo: [32, 0.32, 0.45], mml: `
+      { id: 'p1', type: 'pulse', pan: -0.15, echo: [36, 0.3, 0.4], mml: `
         r1 | r1 | r1 | r1 | L
-        @cel v14
-        o5 c6 d12 f6 a12 >c4 <a4 | b6 a12 g6 e12 c+4 e4 | f6 e12 f6 a12 >c4 d4 | e-4 c4 <a4 f4 | d6 f12 a6 >c12 d4 <a4 | >d-4. c8 <b-4 g4 | a6 g12 e6 c12 f+4 a4 | b-4 g4 e4 c4 |
-        c6 d12 f6 a12 >c4 <a4 | b6 a12 g6 e12 c+4 e4 | f6 e12 f6 a12 >c4 f4 | e-4 c4 <a4 >c4 | d6 c12 <b-6 a12 f4 d4 | e-6 f12 g6 b-12 >d-4 c4 | <b-4 g4 e4 g4 | f2. r4 |
-        a6 g12 f6 e12 d4 a4 | b4. a8 g6 f12 d4 | b-6 a12 b-6 >d12 f4 d4 | e4. d8 c4 <b-4 | >c6 <b12 a6 g12 e4 c4 | f+4. a8 >c4 d4 | <b-6 a12 g6 f12 d4 f4 | e4 g4 b-4 >c4 |` },
+        @lead12 v13
+        o5 e8 g4 a8 g4 e4 | d8 e4 g8^2 | a8 >c4 d8 c4 <a4 | g8 a4 b8^2 |
+        e8 g4 a8 g4 >c4 | <b8 >c4 e8^2 | d8 c4 <a8 >c4 <a4 | g2. r4 |
+        e8 g4 a8 g4 e4 | d8 e4 g8^2 | a8 >c4 d8 c4 <a4 | g8 a4 b8^2 |
+        e8 a4 b8 >c4 <a4 | a8 >c4 d8^8 c8 <a4 | b4. a8 g8 a8 b8 >d8 | c2. r4 |
+        <a4. g8 a8 >c8^4 | <b4. a8 b8 >d8^4 | e4 d8 e8^8 d8 <b4 | >c2. r4 |
+        <a4. g8 a8 >d8^4 | <b4. a8 b8 >e8^4 | f4 e8 d8^4 <b4 | >c2. r4 |
+        <e8 g4 a8 g4 e4 | d8 e4 g8^2 | a8 >c4 d8 c4 <a4 | g8 a4 b8^2 |
+        e8 a4 b8 >c4 <a4 | a8 >c4 d8^8 c8 <a4 | b4. a8 g8 a8 b8 >d8 | c2. r4 |` },
       { id: 'p2', type: 'pulse', pan: 0.25, mml: `
-        @stab v8 ${arp(intro, { lo: 60, pat: comp, len: 12 })} L
-        ${arp(A, { lo: 60, pat: comp, len: 12 })}
-        ${arp(A2, { lo: 60, pat: comp, len: 12 })}
-        @pad v8 ${pads(B, { lo: 62 })}` },
+        @arp12 v7 ${arp(intro, { lo: 64, pat: RISE })} L
+        @stab v8 ${arp(A, { lo: 60, pat: off, len: 8 })}
+        ${arp(A2, { lo: 60, pat: off, len: 8 })}
+        @arp12 v7 ${arp(B, { lo: 64, pat: WAVE })}
+        @stab v8 ${arp(A2, { lo: 60, pat: off, len: 8 })}` },
       { id: 'tri', type: 'tri', mml: `
-        @bass ${bass(intro, walk, { lo: 36, hi: 52 })} L
-        ${bass(A, walk, { lo: 36, hi: 52 })}
-        ${bass(A2, walk, { lo: 36, hi: 52 })}
-        ${bass(B, walk, { lo: 36, hi: 52 })}` },
+        @bass ${bass(intro, bounce, { lo: 36, hi: 52 })} L
+        ${bass(A, bounce, { lo: 36, hi: 52 })}
+        ${bass(A2, bounce, { lo: 36, hi: 52 })}
+        ${bass(B, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 36, hi: 52 })}
+        ${bass(A2, bounce, { lo: 36, hi: 52 })}` },
       { id: 'dr', type: 'drum', mml: `
-        [v9 k4 v6 h6 h12 v7 s4 v6 h6 h12 |]4 L
-        [[v9 k4 v6 h6 h12 v7 s4 v6 h6 h12 |]7 v9 k4 v6 h6 h12 v7 s6 s12 s6 s12 |]3` },
+        [v9 k8 v5 h8 v7 s8 v5 h8 v9 k8 v5 h8 v7 s8 v5 h8 |]3 v9 k8 v5 h8 v7 s8 v5 h8 v9 k8 v7 s8 s16 s16 s8 | L
+        [${beat}]7 v10 k8 v5 h8 v8 s8 v5 h8 v10 k8 v8 s8 s8 v9 s8 |
+        [${beat}]7 v10 k8 v5 h8 v8 s8 v5 h8 v10 k8 v8 s8 s16 s16 v9 s8 |
+        [v10 k8 v6 o8 v8 s8 v6 o8 v10 k8 k8 v8 s8 v6 o8 |]7 v10 k8 v6 o8 v8 s8 s8 v10 k8 v8 s8 s16 s16 s8 |
+        [${beat}]7 v10 k8 v5 h8 v8 s8 v5 h8 v10 k8 v8 s8 s8 v9 s8 |` },
     ],
   };
 }
