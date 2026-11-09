@@ -6,43 +6,15 @@ import { TAU, rand } from './util.js';
 import { pillarSprite, softSprite, starSprite, enemySprite } from './render.js';
 import { audio } from './audio.js';
 import { warn } from './enemies.js';
+import { CHUNK, hashRng } from './gimmick-kit.js';
+import { G2 } from './hazards2.js';
 
-const CHUNK = 360;
+// 章ごとのギミック（kind ごとに init・terrain・update・描画などを持つ）
+const GIMMICKS = { ...G2 };
 // 濁流：横に流れる帯。RIVER_GAP ごとに幅 RIVER_W、向きは 1 本ごとに逆。自機は FLOW、雑魚は FLOW_E の速さで流される
 const RIVER_GAP = 520, RIVER_W = 120, FLOW = 80, FLOW_E = 60;
 // 炉：燃える範囲の半径。雫：落ちた所の半径
 const BURN_R = 95, DROP_R = 72;
-
-// 黒い星の夜の星（ぼかし付き）。毎フレーム shadowBlur で描くと重いので、大きさごとに 1 度だけ描いて使い回す
-const starCache = new Map();
-function blackStar(s) {
-  const key = Math.round(s);
-  let c = starCache.get(key);
-  if (c) return c;
-  const pad = key * 1.6;
-  const size = Math.ceil((key + pad) * 2);
-  c = document.createElement('canvas');
-  c.width = c.height = size;
-  const ctx = c.getContext('2d');
-  ctx.translate(size / 2, size / 2);
-  ctx.shadowColor = '#c78bff';
-  ctx.shadowBlur = key * 1.2;
-  ctx.fillStyle = '#07030c';
-  ctx.beginPath();
-  for (let j = 0; j < 10; j++) {
-    const a = (j / 10) * TAU - Math.PI / 2, rr = j % 2 ? key * 0.42 : key;
-    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = 'rgba(199,139,255,0.8)';
-  ctx.lineWidth = Math.max(1, key * 0.08);
-  ctx.stroke();
-  c.half = size / 2;
-  starCache.set(key, c);
-  return c;
-}
 
 // 饕餮の鼎（ためた経験値があると中身が光る。吐いたあとの休みの間は暗い）。絵は render.js の鼎（f=2 暗い・f=3 光る）
 function drawCauldron(ctx, o, t) {
@@ -113,18 +85,6 @@ function drawFurnace(ctx, o, t) {
   ctx.fill();
 }
 
-// 座標から決まる乱数（同じ場所には毎回同じ地形）
-function hashRng(cx, cy, salt) {
-  let h = (cx * 374761393 + cy * 668265263 + salt * 2246822519) | 0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    h ^= h >>> 16;
-    return (h >>> 0) / 4294967296;
-  };
-}
-
 export class Hazards {
   constructor(g, stage) {
     this.g = g;
@@ -139,12 +99,6 @@ export class Hazards {
     this.riftT = 30;
     this.rifts = [];
     this.lavaT = 0;
-    this.boostT = 0; // 泡の噴出口：入ると少しの間だけ速く泳げる
-    this.portalCd = 0; // 歪んだ門：続けて跳ばないように
-    this.stars = false; // 黒い星の夜：昇っている間は経験値 ×1.5
-    this.starsT = 30;
-    this.meteorT = 12; // 流れ星：通り道に経験値を落とす
-    this.meteors = [];
     this.whirls = []; // つむじ風
     this.whirlT = 6;
     this.whirlBoostT = 0;
@@ -157,6 +111,8 @@ export class Hazards {
     this.vaporT = 6;
     this.goldWaves = []; // 黄金の波
     this.goldT = 14;
+    this.gm = GIMMICKS[this.kind] || null;
+    if (this.gm && this.gm.init) this.gm.init(this);
   }
 
   // ---------------------------------------------------------- 地形（チャンク単位）
@@ -167,17 +123,11 @@ export class Hazards {
     c = [];
     const r = hashRng(cx, cy, this.kind === 'lava' ? 7 : 3);
     const ox = cx * CHUNK, oy = cy * CHUNK;
-    if (this.kind === 'pillars') {
+    if (this.gm) {
+      if (this.gm.terrain) this.gm.terrain(this, r, ox, oy, c);
+    } else if (this.kind === 'pillars') {
       const n = r() < 0.25 ? 0 : r() < 0.6 ? 1 : 2;
       for (let i = 0; i < n; i++) c.push({ x: ox + 40 + r() * (CHUNK - 80), y: oy + 40 + r() * (CHUNK - 80), r: 22 + r() * 22, seed: r() });
-    } else if (this.kind === 'chaos') {
-      if (r() < 0.45) c.push({ x: ox + 50 + r() * (CHUNK - 100), y: oy + 50 + r() * (CHUNK - 100), r: 20, seed: r() * TAU, popped: false });
-    } else if (this.kind === 'teatime') {
-      if (r() < 0.3) c.push({ x: ox + 70 + r() * (CHUNK - 140), y: oy + 70 + r() * (CHUNK - 140), r: 60, seed: r() * TAU });
-    } else if (this.kind === 'portals') {
-      if (r() < 0.4) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 26, seed: r() * TAU });
-    } else if (this.kind === 'bubbles') {
-      if (r() < 0.55) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 30 + r() * 10, seed: r() * TAU });
     } else if (this.kind === 'cauldron') {
       if (r() < 0.35) c.push({ x: ox + 60 + r() * (CHUNK - 120), y: oy + 60 + r() * (CHUNK - 120), r: 24, seed: r() * TAU, store: 0, cd: 0 });
     } else if (this.kind === 'dance') {
@@ -228,6 +178,7 @@ export class Hazards {
 
   // 柱から押し出す
   collide(obj, r) {
+    if (this.gm) { if (this.gm.collide) this.gm.collide(this, obj, r); return; }
     if (this.kind !== 'pillars') return;
     const list = this.around(obj.x, obj.y, this._c || (this._c = []));
     for (const o of list) {
@@ -243,6 +194,7 @@ export class Hazards {
   }
 
   blocks(x, y) {
+    if (this.gm) return this.gm.blocks ? this.gm.blocks(this, x, y) : false;
     if (this.kind !== 'pillars') return false;
     const list = this.around(x, y, this._b || (this._b = []));
     for (const o of list) if ((x - o.x) ** 2 + (y - o.y) ** 2 < o.r * o.r) return true;
@@ -251,6 +203,7 @@ export class Hazards {
 
   // (x, y) から角度 a へ伸びる長さ len の線が、最初に柱に当たるまでの長さ（ボスのレーザーを柱で遮る）
   rayCut(x, y, a, len) {
+    if (this.gm) return this.gm.rayCut ? this.gm.rayCut(this, x, y, a, len) : len;
     if (this.kind !== 'pillars') return len;
     const ax = Math.cos(a), ay = Math.sin(a);
     const ex = x + ax * len, ey = y + ay * len;
@@ -273,11 +226,13 @@ export class Hazards {
 
   // 経験値への補正
   xpMul() {
-    return this.kind === 'blackstars' && this.stars ? 1.5 : 1;
+    if (this.gm) return this.gm.xpMul ? this.gm.xpMul(this) : 1;
+    return 1;
   }
 
   // 与ダメージへの補正（舞の輪）
   dmgMul() {
+    if (this.gm) return this.gm.dmgMul ? this.gm.dmgMul(this) : 1;
     return this.kind === 'dance' && this.dancing ? 1.3 : 1;
   }
 
@@ -290,96 +245,37 @@ export class Hazards {
 
   // 移動速度への補正
   speedMul() {
-    if (this.kind === 'bubbles' && this.boostT > 0) return 1.35;
+    if (this.gm) return this.gm.speedMul ? this.gm.speedMul(this) : 1;
     if (this.kind === 'whirl' && this.whirlBoostT > 0) return 1.4;
     return this.kind === 'blizzard' && this.storm ? 0.72 : 1;
+  }
+
+  // 攻撃の速さへの補正（武器の時間の進み）
+  fireMul() {
+    return this.gm && this.gm.fireMul ? this.gm.fireMul(this) : 1;
+  }
+
+  // 雑魚の出現の数とペースへの補正
+  spawnMul() {
+    return this.gm && this.gm.spawnMul ? this.gm.spawnMul(this) : 1;
+  }
+
+  // 自動プレイ（テスト）がギミックを避ける向き [x, y]。なければ null
+  botAvoid(p) {
+    return this.gm && this.gm.avoid ? this.gm.avoid(this, p) : null;
   }
 
   // ---------------------------------------------------------- 更新
   update(dt) {
     const g = this.g, p = g.player;
     this.t += dt;
+    if (this.gm) { this.gm.update(this, dt); return; }
     if (this.kind === 'pillars') {
       this.collide(p, p.r);
       // 敵も柱を避ける（押し出し）
       for (const e of g.enemies) if (e.alive && !e.prop && !e.boss && !e.segment && g.inView(e, 120)) this.collide(e, e.r * 0.8);
       // 敵弾は柱で止まる
       for (const b of g.ebullets) if (this.blocks(b.x, b.y)) { b.life = 0; g.fx.burst(b.x, b.y, '#8ff0ff', 3, 80, 0.25, 6); }
-    } else if (this.kind === 'chaos') {
-      // 混沌の泡：触れるとはじけて、ランダムなアイテムを落とす（一度きり）
-      for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
-        if (o.popped || (p.x - o.x) ** 2 + (p.y - o.y) ** 2 > (o.r + p.r) ** 2) continue;
-        o.popped = true;
-        const kinds = ['heart', 'magnet', 'bomb', 'clock', 'coin', 'coin'];
-        g.dropPickup(kinds[Math.floor(Math.random() * kinds.length)], o.x, o.y, 5);
-        g.fx.burst(o.x, o.y, '#ff9ad2', 14, 200, 0.5, 10);
-        g.fx.ring(o.x, o.y, 6, 40, 0.3, '#c78bff', 4);
-        audio.pickup();
-      }
-    } else if (this.kind === 'meteor') {
-      this.meteorT -= dt;
-      if (this.meteorT <= 0) {
-        this.meteorT = rand(14, 20);
-        // 画面の外から自機の近くを横切る
-        const a = rand(TAU), off = rand(-90, 90);
-        const nx = -Math.sin(a), ny = Math.cos(a);
-        const R = g.viewR + 80;
-        this.meteors.push({ x: p.x - Math.cos(a) * R + nx * off, y: p.y - Math.sin(a) * R + ny * off, vx: Math.cos(a) * 520, vy: Math.sin(a) * 520, t: 0, drop: 0 });
-        audio.whoosh();
-      }
-      for (const m of this.meteors) {
-        m.t += dt;
-        m.x += m.vx * dt;
-        m.y += m.vy * dt;
-        m.drop -= dt;
-        if (m.drop <= 0 && g.inView(m, 40)) { m.drop = 0.06; g.dropXp(m.x + rand(-10, 10), m.y + rand(-10, 10), 3); }
-        if (Math.random() < 0.8) g.fx.add(m.x, m.y, -m.vx * 0.1, -m.vy * 0.1, 0.5, 5, '#fff2c0', 'dot');
-      }
-      this.meteors = this.meteors.filter((m) => m.t < 2.2);
-    } else if (this.kind === 'blackstars') {
-      this.starsT -= dt;
-      if (this.starsT <= 0) {
-        this.stars = !this.stars;
-        this.starsT = this.stars ? 12 : 30;
-        if (this.stars) g.hooks.banner('BLACK STARS', 'item', '黒い星が昇る — 経験値 ×1.5');
-      }
-    } else if (this.kind === 'teatime') {
-      // お茶会の席：近く（半径 60）にいる間、毎秒 2.5 回復
-      this.resting = false;
-      for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
-        if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 > o.r * o.r) continue;
-        this.resting = true;
-        g.heal(2.5 * dt, true);
-        if (Math.random() < 0.1) g.fx.add(p.x + rand(-10, 10), p.y - 10, 0, -30, 0.8, 5, '#ffe9c0', 'star');
-        break;
-      }
-    } else if (this.kind === 'portals') {
-      this.portalCd -= dt;
-      if (this.portalCd <= 0) {
-        for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
-          if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 > o.r * o.r) continue;
-          // 進んでいる向き（止まっていれば門の中心から外向き）へ 260 跳ぶ。着地の直後は少しだけ無敵
-          let dx = p.moving ? p.dirX : p.x - o.x, dy = p.moving ? p.dirY : p.y - o.y;
-          if (Math.hypot(dx, dy) < 0.01) { const a = rand(TAU); dx = Math.cos(a); dy = Math.sin(a); }
-          const d = Math.hypot(dx, dy);
-          g.fx.burst(p.x, p.y, '#3fe08a', 14, 200, 0.5, 10);
-          p.x = o.x + (dx / d) * 260;
-          p.y = o.y + (dy / d) * 260;
-          p.iT = Math.max(p.iT, 0.6);
-          g.fx.ring(p.x, p.y, 6, 60, 0.4, '#3fe08a', 6);
-          audio.whoosh();
-          this.portalCd = 1.5;
-          break;
-        }
-      }
-    } else if (this.kind === 'bubbles') {
-      this.boostT -= dt;
-      for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
-        if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 > o.r * o.r) continue;
-        if (this.boostT <= 0) { g.fx.burst(p.x, p.y, '#bfe8ff', 10, 160, 0.5, 8); audio.pickup(); }
-        this.boostT = 1.6;
-      }
-      if (this.boostT > 0 && p.moving && Math.random() < 0.4) g.fx.add(p.x + rand(-8, 8), p.y + rand(-8, 8), 0, -40, 0.6, 5, '#bfe8ff', 'dot');
     } else if (this.kind === 'lava') {
       // 時間停止中は、溶岩のダメージも噴火の予告も止める（止まっている間に予告がたまって、解除直後にまとめて噴火しないように）
       if (g.timeStopT > 0) return;
@@ -687,6 +583,7 @@ export class Hazards {
   // ---------------------------------------------------------- 描画（地面）
   drawGround(ctx) {
     const g = this.g, p = g.player;
+    if (this.gm) { if (this.gm.ground) this.gm.ground(this, ctx); return; }
     if (this.kind === 'flood') {
       const x0 = p.x - g.viewW / 2 - 40, W = g.viewW + 80;
       const k0 = Math.floor((p.y - g.viewH / 2 - RIVER_W) / RIVER_GAP), k1 = Math.floor((p.y + g.viewH / 2 + RIVER_W) / RIVER_GAP);
@@ -911,93 +808,6 @@ export class Hazards {
         ctx.globalAlpha = 1;
       }
     }
-    if (this.kind === 'teatime') {
-      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
-        // 回復の範囲（うすい円）
-        ctx.strokeStyle = 'rgba(255,233,192,0.18)';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([6, 8]);
-        ctx.beginPath();
-        ctx.arc(o.x, o.y, o.r, 0, TAU);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        // テーブル
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.beginPath();
-        ctx.ellipse(o.x, o.y + 12, 26, 8, 0, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = '#f4f0e6';
-        ctx.beginPath();
-        ctx.ellipse(o.x, o.y, 24, 12, 0, 0, TAU);
-        ctx.fill();
-        ctx.strokeStyle = '#e8c860';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        // カップとポット
-        ctx.fillStyle = '#c8b8d8';
-        ctx.beginPath();
-        ctx.ellipse(o.x - 9, o.y - 4, 5, 3, 0, 0, TAU);
-        ctx.ellipse(o.x + 10, o.y + 2, 5, 3, 0, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = '#e8c860';
-        ctx.beginPath();
-        ctx.arc(o.x + 2, o.y - 7, 5, 0, TAU);
-        ctx.fill();
-        // 湯気
-        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-        ctx.lineWidth = 1.2;
-        for (let i = 0; i < 2; i++) {
-          const k = (this.t * 0.6 + i * 0.5 + o.seed) % 1;
-          ctx.globalAlpha = 1 - k;
-          ctx.beginPath();
-          ctx.moveTo(o.x + 2 + i * 3, o.y - 12 - k * 16);
-          ctx.quadraticCurveTo(o.x + 6 + i * 3, o.y - 18 - k * 16, o.x + 2 + i * 3, o.y - 24 - k * 16);
-          ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
-      }
-      return;
-    }
-    if (this.kind === 'portals') {
-      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
-        const grd = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
-        grd.addColorStop(0, 'rgba(10,30,20,0.9)');
-        grd.addColorStop(0.75, 'rgba(40,200,120,0.3)');
-        grd.addColorStop(1, 'rgba(40,200,120,0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(o.x, o.y, o.r, 0, TAU);
-        ctx.fill();
-        // ねじれた縁（回る）
-        ctx.strokeStyle = 'rgba(120,255,180,0.7)';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 3; i++) {
-          const a = this.t * 1.5 + o.seed + (i / 3) * TAU;
-          ctx.beginPath();
-          ctx.arc(o.x, o.y, o.r * 0.85, a, a + 1.2);
-          ctx.stroke();
-        }
-      }
-      return;
-    }
-    if (this.kind === 'bubbles') {
-      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
-        const grd = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
-        grd.addColorStop(0, 'rgba(120,210,255,0.35)');
-        grd.addColorStop(0.7, 'rgba(40,120,200,0.18)');
-        grd.addColorStop(1, 'rgba(40,120,200,0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(o.x, o.y, o.r, 0, TAU);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(150,220,255,0.35)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.ellipse(o.x, o.y, o.r * 0.45, o.r * 0.22, 0, 0, TAU);
-        ctx.stroke();
-      }
-      return;
-    }
     if (this.kind === 'lava') {
       const list = this.inView(p.x, p.y, this._v || (this._v = []));
       for (const o of list) {
@@ -1048,6 +858,7 @@ export class Hazards {
 
   // 柱など（敵と同じ高さ）
   drawObjects(ctx) {
+    if (this.gm) { if (this.gm.objects) this.gm.objects(this, ctx); return; }
     if (this.kind === 'athanor') {
       const p = this.g.player;
       for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) drawFurnace(ctx, o, this.t);
@@ -1097,65 +908,6 @@ export class Hazards {
       for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) drawCauldron(ctx, o, this.t);
       return;
     }
-    if (this.kind === 'chaos') {
-      const p = this.g.player;
-      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
-        if (o.popped) continue;
-        const bob = Math.sin(this.t * 2 + o.seed) * 4;
-        const grd = ctx.createRadialGradient(o.x - 5, o.y - 6 + bob, 2, o.x, o.y + bob, o.r);
-        grd.addColorStop(0, 'rgba(255,255,255,0.7)');
-        grd.addColorStop(0.35, 'rgba(255,150,220,0.35)');
-        grd.addColorStop(1, 'rgba(120,90,255,0.25)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(o.x, o.y + bob, o.r, 0, TAU);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(220,190,255,0.8)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-      return;
-    }
-    if (this.kind === 'meteor') {
-      for (const m of this.meteors) {
-        const L = 90, d = Math.hypot(m.vx, m.vy);
-        const tx = m.x - (m.vx / d) * L, ty = m.y - (m.vy / d) * L;
-        const grd = ctx.createLinearGradient(tx, ty, m.x, m.y);
-        grd.addColorStop(0, 'rgba(255,240,190,0)');
-        grd.addColorStop(1, 'rgba(255,240,190,0.9)');
-        ctx.strokeStyle = grd;
-        ctx.lineWidth = 5;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(tx, ty);
-        ctx.lineTo(m.x, m.y);
-        ctx.stroke();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(m.x, m.y, 5, 0, TAU);
-        ctx.fill();
-      }
-      return;
-    }
-    if (this.kind === 'bubbles') {
-      // 噴出口から立ちのぼる泡
-      const p = this.g.player;
-      ctx.strokeStyle = 'rgba(190,235,255,0.6)';
-      ctx.lineWidth = 1.2;
-      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
-        for (let i = 0; i < 6; i++) {
-          const k = ((this.t * 0.7 + i / 6 + o.seed) % 1);
-          const x = o.x + Math.sin(o.seed * 5 + i * 2.1 + this.t * 2) * o.r * 0.45;
-          const y = o.y - k * 70;
-          ctx.globalAlpha = 1 - k;
-          ctx.beginPath();
-          ctx.arc(x, y, 2 + (i % 3) * 1.5, 0, TAU);
-          ctx.stroke();
-        }
-      }
-      ctx.globalAlpha = 1;
-      return;
-    }
     if (this.kind !== 'pillars') return;
     const p = this.g.player;
     const list = this.inView(p.x, p.y, this._v || (this._v = []));
@@ -1169,6 +921,7 @@ export class Hazards {
   // ---------------------------------------------------------- 画面全体（ワールド座標）
   drawOverlay(ctx) {
     const g = this.g, p = g.player;
+    if (this.gm) { if (this.gm.overlay) this.gm.overlay(this, ctx); return; }
     if (this.kind === 'sunmoon' && this.charge) {
       // 先に触れた印の光が、自機の周りを回る
       const col = this.charge.kind === 'sun' ? '#ffd23d' : '#cfd8ff';
@@ -1214,27 +967,7 @@ export class Hazards {
 
   // 画面座標
   drawScreen(ctx, CW, CH, dpr) {
-    if (this.kind === 'blackstars') {
-      // 黒い星が昇っている間：画面の上に黒い星、全体をうっすら暗く
-      const k = this.stars ? Math.min(1, (12 - this.starsT) / 1.5, this.starsT / 1.5) : 0;
-      if (k <= 0.01) return;
-      ctx.save();
-      ctx.fillStyle = `rgba(20,8,30,${0.18 * k})`;
-      ctx.fillRect(0, 0, CW, CH);
-      const S = Math.min(CW, CH) * 0.035;
-      ctx.globalAlpha = k;
-      for (let i = 0; i < 7; i++) {
-        const x = CW * (0.1 + i * 0.13) + Math.sin(i * 7.3) * CW * 0.03, y = CH * (0.06 + (i % 3) * 0.035);
-        const base = S * (0.7 + (i % 3) * 0.25);
-        const s = base * (1 + Math.sin(this.t * 2 + i) * 0.08);
-        // 星の絵は基本の大きさで作り、脈打つ分は拡大縮小で表す
-        const spr = blackStar(base);
-        const h = spr.half * (s / Math.round(base));
-        ctx.drawImage(spr, x - h, y - h, h * 2, h * 2);
-      }
-      ctx.restore();
-      return;
-    }
+    if (this.gm) { if (this.gm.screen) this.gm.screen(this, ctx, CW, CH, dpr); return; }
     if (this.kind !== 'blizzard') return;
     const g = this.g;
     const k = this.storm ? Math.min(1, (14 - this.stormT) / 1.5, this.stormT / 1.5) : 0;
