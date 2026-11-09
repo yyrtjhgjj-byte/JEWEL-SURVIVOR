@@ -56,14 +56,17 @@ function buildNav() {
   }));
 }
 
-// show() から呼ぶ。cat が無ければ隠す。メニューのある画面ではタイトルの曲に戻す（ジュークボックスは除く。経営は経営の曲）
+// show() から呼ぶ。cat が無ければ隠す。メニューのある画面ではタイトルの曲に戻す（ジュークボックスは除く。経営は経営の曲）。
+// ジュークボックスの FEVER で速くした曲も、ほかの画面に移ったらふつうの速さに戻す
 export function syncNav(cat, node) {
   if (!navEl) buildNav();
   navCat = cat || null;
   navEl.classList.toggle('hidden', !navCat);
   if (!navCat) return;
   refreshNav();
-  if (!(node && node.classList.contains('jukebox-screen'))) audio.playBgm(node && node.classList.contains('biz-screen') ? 'business' : 'title');
+  if (node && node.classList.contains('jukebox-screen')) return;
+  audio.tempoMul = 1;
+  audio.playBgm(node && node.classList.contains('biz-screen') ? 'business' : 'title');
 }
 
 // 光るカテゴリ・アイコン・印（宝石：磨いていない原石の数、経営：配当・満杯の倉庫・止まった工場）を、変わったところだけ描き直す

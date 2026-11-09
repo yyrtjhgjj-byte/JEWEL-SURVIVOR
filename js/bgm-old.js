@@ -107,7 +107,8 @@ export class OldBgm {
     const tr = this.track;
     const c = this.a.ctx;
     if (!tr || !c || c.state !== 'running') return;
-    const stepDur = 60 / tr.bpm / 4;
+    // フィーバー（ジュークボックスの FEVER）では速く
+    const stepDur = 60 / (tr.bpm * (this.a.tempoMul || 1)) / 4;
     while (this.next < c.currentTime + 0.12) {
       this.step(tr, this.n, this.next - c.currentTime);
       this.next += stepDur;

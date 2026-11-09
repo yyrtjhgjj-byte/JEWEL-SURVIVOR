@@ -18,7 +18,7 @@ const CAM_SCALE = +new URLSearchParams(location.search).get('cam') || 1; // 試�
 import { ELEMENTS, recalcElements, procElement, elementVs, tickElements, elementMove, blindDt, touchMul, onElementHit, onElementKill, updateElements, earthGuard, earthBreak } from './elements.js';
 import { LOGIC, weaponStats, drawArea } from './weapons.js';
 import { enemySprite, drawPlayer, xpSprite, itemSprite, roughSprite, backgroundTile, starSprite, dotSprite, softSprite } from './render.js';
-import { audio } from './audio.js';
+import { audio, FEVER_TEMPO } from './audio.js';
 import { save } from './save.js';
 
 // ------------------------------------------------------------------ 空間グリッド
@@ -1757,7 +1757,7 @@ export class Game {
     this.feverGauge = 0;
     this.feverNeed = Math.round(this.feverNeed * 1.35);
     audio.fever();
-    audio.tempoMul = 1.18;
+    audio.tempoMul = FEVER_TEMPO;
     this.hooks.fever(true, this.feverDur);
     this.fx.screenFlash(0.5, '#ffe6ff');
     this.fx.confetti(this.player.x, this.player.y, 50, 420);
