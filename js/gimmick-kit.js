@@ -47,7 +47,7 @@ export function drawBeamWarn(ctx, s) {
 
 // 予告の円（地面に描く。k は 0〜1 の進み具合）
 export function drawCircleWarn(ctx, x, y, r, k, color) {
-  ctx.globalAlpha = 0.2 + 0.3 * k;
+  ctx.globalAlpha = 0.12 + 0.26 * k;
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(x, y, r * k, 0, TAU);

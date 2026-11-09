@@ -550,8 +550,9 @@ const LAKE = {
       s.waveT = rand(36, 44);
       g.hooks.banner('SPINES OF GLAAKI', 'swarm', 'グラーキの棘 — 線の上から離れて');
       audio.warning();
+      s.spikeT = Math.max(s.spikeT, 3.5);
       const a0 = rand(TAU);
-      for (let i = 0; i < 6; i++) line(a0 + (i / 6) * Math.PI, (i % 2 ? 1 : -1) * rand(70, 120));
+      for (let i = 0; i < 5; i++) line(a0 + (i / 5) * Math.PI, (i % 2 ? 1 : -1) * rand(80, 130));
     }
     for (const sp of s.spikes) {
       sp.t += dt;
