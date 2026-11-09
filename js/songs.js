@@ -850,7 +850,8 @@ export const SONGS = {};
         @harp v7 ${arp(A, { lo: 50, pat: [0, 1, 2, 3, 4, 3, 2, 1], len: 8 })}
         ${arp(B, { lo: 50, pat: [0, 2, 1, 3, 2, 4, 3, 5], len: 8 })}
         v8 ${arp(C, { lo: 55, pat: RISE })}` },
-      { id: 'dr', type: 'perc', pan: 0, rev: 0.2, mml: `
+      // 心拍の太鼓は大きめに（ユーザーの希望）
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.2, gain: 1.45, mml: `
         ${beat} ${beat} L
         [${beat}]8
         [${beat}]7 v13 j8. v9 j16 r4 v13 j8. v6 t16 t16 m16 m16 f16 |
