@@ -292,7 +292,7 @@ export const STAGES = [
   // 曲はまだ作っていないので、仮に既存の曲を流す（tempBgm：ジュークボックスに出さない）
   ...[
     {
-      id: 'calcinatio', name: '偽リナク確カニシテ最モ真ナリ', en: 'Verum sine mendacio, certum et verissimum',
+      id: 'calcinatio', name: '偽りなく確かにして最も真なり', en: 'Verum sine mendacio, certum et verissimum',
       desc: '第一の工程、焼成。あちこちに据えられた炉（アタノール）の火が、近くを通る雑魚を焼いていく。',
       hazard: 'athanor', hazardText: '炉（近くの雑魚が燃える）',
       bgm: 'magma',
@@ -300,7 +300,7 @@ export const STAGES = [
       tint: '#8a4a3a', u: ['hinoko', 'fuigo'], b: ['saturnus', 'salamander', 'leoruber'],
     },
     {
-      id: 'solutio', name: '下ナルモノハ上ナルモノノ如シ', en: 'Quod est inferius est sicut quod est superius',
+      id: 'solutio', name: '下なるものは上なるものの如し', en: 'Quod est inferius est sicut quod est superius',
       desc: '第二の工程、溶解。空を映す溶媒の池に入った雑魚は、溶けて遅くなり、受けるダメージが増える。',
       hazard: 'solvent', hazardText: '溶媒の池（中の雑魚は遅くなり、受けるダメージ ×1.5）',
       bgm: 'deep',
@@ -308,7 +308,7 @@ export const STAGES = [
       tint: '#3a6a8a', u: ['ousui', 'shishiko'], b: ['iuppiter', 'undine', 'leoviridis'],
     },
     {
-      id: 'separatio', name: '汝、地ヲ火ヨリ分カツベシ', en: 'Separabis terram ab igne',
+      id: 'separatio', name: '汝、地を火より分かつべし', en: 'Separabis terram ab igne',
       desc: '第三の工程、分離。分離の環の中に 1 秒立つと、重いもの（敵）を押し返し、精妙なもの（経験値）を引き寄せる。',
       hazard: 'sieve', hazardText: '分離の環（1 秒立つと、敵を押し返して経験値を集める）',
       bgm: 'tundra',
@@ -316,7 +316,7 @@ export const STAGES = [
       tint: '#6a6a8a', u: ['washiko', 'hiki'], b: ['mars', 'sylph', 'bufo'], kin: ['aquila'],
     },
     {
-      id: 'coniunctio', name: '其ノ父ハ太陽、其ノ母ハ月', en: 'Pater eius est Sol, mater eius Luna',
+      id: 'coniunctio', name: '其の父は太陽、其の母は月', en: 'Pater eius est Sol, mater eius Luna',
       desc: '第四の工程、結合。地面の太陽の印と月の印の両方に触れると、結ばれた光が周りの敵を焼く。',
       hazard: 'sunmoon', hazardText: '日と月の印（両方に触れると、結合の光で周りの敵を焼く）',
       bgm: 'cavern',
@@ -324,7 +324,7 @@ export const STAGES = [
       tint: '#8a7a5a', u: ['kotaiyo', 'kotsuki'], b: ['venus', 'gnome', 'rebis'],
     },
     {
-      id: 'fermentatio', name: '風ハ其レヲ胎ニ運ベリ', en: 'Portavit illud ventus in ventre suo',
+      id: 'fermentatio', name: '風は其れを胎に運べり', en: 'Portavit illud ventus in ventre suo',
       desc: '第五の工程、発酵。落ちたまま 6 秒たった経験値は発酵して、1.5 倍になる。',
       hazard: 'ferment', hazardText: '発酵（落ちたまま 6 秒たった経験値は 1.5 倍）',
       bgm: 'lake',
@@ -332,7 +332,7 @@ export const STAGES = [
       tint: '#3a7a5a', u: ['hane', 'taru'], b: ['mercurius', 'corvus', 'pavo'],
     },
     {
-      id: 'distillatio', name: '地ヨリ天ニ昇リ、再ビ地ニ降ル', en: 'Ascendit a terra in coelum, iterumque descendit in terram',
+      id: 'distillatio', name: '地より天に昇り、再び地に降る', en: 'Ascendit a terra in coelum, iterumque descendit in terram',
       desc: '第六の工程、蒸留。地面から湯気が昇り、しばらくすると雫になって降ってきて、落ちた所の敵を打つ。',
       hazard: 'vapor', hazardText: '天と地を巡る雫（昇った湯気が雫になって降り、落ちた所の敵を打つ）',
       bgm: 'space',
@@ -340,7 +340,7 @@ export const STAGES = [
       tint: '#7a8a9a', u: ['alembic', 'retort'], b: ['luna', 'pelican', 'homunculus'],
     },
     {
-      id: 'coagulatio', name: '斯クテ汝ハ全世界ノ栄光ヲ得ン', en: 'Sic habebis gloriam totius mundi',
+      id: 'coagulatio', name: '斯くて汝は全世界の栄光を得ん', en: 'Sic habebis gloriam totius mundi',
       desc: '最後の工程、凝固。ときどき黄金の波が広がり、触れた雑魚は金になって止まる。金になった雑魚を倒すとコインを落とす。',
       hazard: 'gold', hazardText: '黄金の波（触れた雑魚は金になって止まり、倒すとコインを落とす）',
       bgm: 'void',
@@ -396,12 +396,12 @@ export const CHAPTERS = [...new Set(STAGES.map((s) => s.chapter))].map((no) => (
 // BOSS モードの「最終ボス連戦」：章ごとに、その章の各ステージの最終ボスだけを順に出す（STAGES には入れず、STAGE_BY_ID にだけ足す）。
 // ボスごとに、もとのステージ（home）の強さ・曲を使う（game.js の rushDirector）。背景・番号（原石の質）はその章の最後のステージ
 // 名前は章の作りに合わせる（第1章：場所の名前、第2章：パロディ（『八十日間世界一周』）、第3章：漢文の書き下し。en は元の白文。出典『左伝』。
-// 第4章：『エメラルド板』の一節の書き下し。en はラテン語の原文）
+// 第4章：『エメラルド板』の一節の書き下しを漢字と平仮名で。en はラテン語の原文）
 const FINALE_NAMES = {
   1: ['黄昏の闘技場', 'TWILIGHT ARENA'],
   2: ['五分間邪神一周', 'AROUND THE OLD ONES IN FIVE MINUTES'],
   3: ['四凶族ヲ流ス', '流四凶族'],
-  4: ['斯クテ世界ハ創ラレタリ', 'Sic mundus creatus est'],
+  4: ['斯くて世界は創られたり', 'Sic mundus creatus est'],
 };
 export const FINALE_STAGES = CHAPTERS.map((c) => {
   const sts = STAGES.filter((x) => x.chapter === c.no);
