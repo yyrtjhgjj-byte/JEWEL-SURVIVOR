@@ -112,7 +112,7 @@ class AudioEngine {
   suspend() { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); }
   resume() { if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => {}); }
 
-  // 戦闘中によく鳴る効果音は、1 度だけ録音（OfflineAudioContext）して、あとは録音を 1 つの音声ノードで鳴らす。
+  // 効果音はすべて、1 度だけ録音（OfflineAudioContext）して、あとは録音を 1 つの音声ノードで鳴らす。
   // 合成すると 1 回に 2〜14 個のノードを作るが、録音なら 1 個で済む（終盤は 1 秒に数百のノードを作っていて、
   // iOS で落ちる原因の候補）。音は合成と同じ。録音ができるまでは、その場で合成して鳴らす。
   // key は録音の名前（音の高さなどが違えば別の key）、dur は録音の長さ（秒）、synth(bus, when) は合成
@@ -259,7 +259,7 @@ class AudioEngine {
     });
   }
   heal() {
-    [72, 76, 79, 84].forEach((n, i) => this.tone(mtof(n), 0.18, { type: 'sine', vol: 0.08, when: i * 0.05 }));
+    this.sample('heal', 0.4, () => [72, 76, 79, 84].forEach((n, i) => this.tone(mtof(n), 0.18, { type: 'sine', vol: 0.08, when: i * 0.05 })));
   }
   hurt() {
     if (!this.throttle('hurt', 120)) return;
@@ -268,50 +268,67 @@ class AudioEngine {
       this.noise(0.12, { vol: 0.15, freq: 600, q: 0.8 });
     });
   }
+  // オートコレクトでは戦闘中にレベルアップが続くので、重なった分は鳴らさない
   levelUp() {
-    const seq = [72, 76, 79, 84, 88, 91, 96];
-    seq.forEach((n, i) => {
-      this.tone(mtof(n), 0.22, { type: 'square', vol: 0.05, when: i * 0.055 });
-      this.tone(mtof(n), 0.3, { type: 'sine', vol: 0.08, when: i * 0.055 });
+    if (!this.throttle('levelUp', 120)) return;
+    this.sample('levelUp', 0.8, () => {
+      [72, 76, 79, 84, 88, 91, 96].forEach((n, i) => {
+        this.tone(mtof(n), 0.22, { type: 'square', vol: 0.05, when: i * 0.055 });
+        this.tone(mtof(n), 0.3, { type: 'sine', vol: 0.08, when: i * 0.055 });
+      });
+      this.noise(0.6, { vol: 0.05, freq: 8000, type: 'highpass', when: 0.1 });
     });
-    this.noise(0.6, { vol: 0.05, freq: 8000, type: 'highpass', when: 0.1 });
   }
   select() {
-    this.tone(mtof(84), 0.1, { type: 'square', vol: 0.06 });
-    this.tone(mtof(91), 0.2, { type: 'square', vol: 0.06, when: 0.07 });
-    this.tone(mtof(96), 0.3, { type: 'sine', vol: 0.08, when: 0.14 });
+    if (!this.throttle('select', 120)) return;
+    this.sample('select', 0.5, () => {
+      this.tone(mtof(84), 0.1, { type: 'square', vol: 0.06 });
+      this.tone(mtof(91), 0.2, { type: 'square', vol: 0.06, when: 0.07 });
+      this.tone(mtof(96), 0.3, { type: 'sine', vol: 0.08, when: 0.14 });
+    });
   }
   tap() {
-    this.tone(mtof(88), 0.06, { type: 'triangle', vol: 0.08 });
+    this.sample('tap', 0.1, () => this.tone(mtof(88), 0.06, { type: 'triangle', vol: 0.08 }));
   }
   cardFlip(i = 0) {
-    this.tone(mtof(79 + i * 4), 0.08, { type: 'triangle', vol: 0.07 });
-    this.noise(0.06, { vol: 0.05, freq: 5000, type: 'highpass' });
+    this.sample(`flip${i}`, 0.12, () => {
+      this.tone(mtof(79 + i * 4), 0.08, { type: 'triangle', vol: 0.07 });
+      this.noise(0.06, { vol: 0.05, freq: 5000, type: 'highpass' });
+    });
   }
   bigWin() {
     // じゃーん！
-    const chord = [60, 64, 67, 72, 76, 79, 84];
-    chord.forEach((n, i) => this.tone(mtof(n), 1.2, { type: i % 2 ? 'square' : 'sawtooth', vol: 0.035, when: 0.02 * i }));
-    [84, 88, 91, 96, 100].forEach((n, i) => this.tone(mtof(n), 0.15, { type: 'sine', vol: 0.08, when: 0.3 + i * 0.07 }));
-    this.noise(1.0, { vol: 0.08, freq: 9000, type: 'highpass', when: 0.05 });
+    this.sample('bigWin', 1.4, () => {
+      const chord = [60, 64, 67, 72, 76, 79, 84];
+      chord.forEach((n, i) => this.tone(mtof(n), 1.2, { type: i % 2 ? 'square' : 'sawtooth', vol: 0.035, when: 0.02 * i }));
+      [84, 88, 91, 96, 100].forEach((n, i) => this.tone(mtof(n), 0.15, { type: 'sine', vol: 0.08, when: 0.3 + i * 0.07 }));
+      this.noise(1.0, { vol: 0.08, freq: 9000, type: 'highpass', when: 0.05 });
+    });
   }
   drumroll(dur = 1.2) {
-    for (let t = 0; t < dur; t += 0.045) {
-      this.noise(0.05, { vol: 0.05 + (t / dur) * 0.12, freq: 1500, q: 1, when: t });
-    }
+    this.sample(`drum${dur}`, dur + 0.1, () => {
+      for (let t = 0; t < dur; t += 0.045) {
+        this.noise(0.05, { vol: 0.05 + (t / dur) * 0.12, freq: 1500, q: 1, when: t });
+      }
+    });
   }
   slotTick(i = 0) {
     if (!this.throttle('slot', 40)) return;
-    this.tone(mtof(72 + (i % 12)), 0.05, { type: 'square', vol: 0.04 });
+    this.sample(`slot${i % 12}`, 0.08, () => this.tone(mtof(72 + (i % 12)), 0.05, { type: 'square', vol: 0.04 }));
   }
   chestOpen() {
-    this.noise(0.3, { vol: 0.2, freq: 400, slide: 4000, q: 1 });
-    [67, 72, 76, 79, 84].forEach((n, i) => this.tone(mtof(n), 0.25, { type: 'square', vol: 0.05, when: 0.15 + i * 0.06 }));
+    if (!this.throttle('chestOpen', 150)) return;
+    this.sample('chestOpen', 0.7, () => {
+      this.noise(0.3, { vol: 0.2, freq: 400, slide: 4000, q: 1 });
+      [67, 72, 76, 79, 84].forEach((n, i) => this.tone(mtof(n), 0.25, { type: 'square', vol: 0.05, when: 0.15 + i * 0.06 }));
+    });
   }
   evolve() {
-    this.noise(1.2, { vol: 0.15, freq: 200, slide: 9000, q: 2 });
-    [60, 67, 72, 79, 84, 91, 96].forEach((n, i) => this.tone(mtof(n), 0.6, { type: 'sawtooth', vol: 0.03, when: 0.4 + i * 0.05 }));
-    this.tone(mtof(48), 1.5, { type: 'sine', vol: 0.2, when: 0.4 });
+    this.sample('evolve', 2, () => {
+      this.noise(1.2, { vol: 0.15, freq: 200, slide: 9000, q: 2 });
+      [60, 67, 72, 79, 84, 91, 96].forEach((n, i) => this.tone(mtof(n), 0.6, { type: 'sawtooth', vol: 0.03, when: 0.4 + i * 0.05 }));
+      this.tone(mtof(48), 1.5, { type: 'sine', vol: 0.2, when: 0.4 });
+    });
   }
   // max：大きい音のグループで同時に鳴らす数の上限（灼熱鉱脈の噴火は 2）
   bomb(force, max = 3) {
@@ -348,41 +365,51 @@ class AudioEngine {
     this.sample(`miracle${k.toFixed(2)}`, 0.5, () => [84, 88, 91, 96, 100, 103, 108].forEach((n, i) => this.tone(mtof(n), 0.25, { type: 'sine', vol: 0.07 * k, when: i * 0.035 })));
   }
   jackpot() {
-    for (let i = 0; i < 14; i++) this.tone(mtof(i % 2 ? 88 : 83), 0.08, { type: 'square', vol: 0.05, when: i * 0.06 });
+    this.sample('jackpot', 0.95, () => {
+      for (let i = 0; i < 14; i++) this.tone(mtof(i % 2 ? 88 : 83), 0.08, { type: 'square', vol: 0.05, when: i * 0.06 });
+    });
     this.bigWin();
   }
   warning() {
-    for (let i = 0; i < 3; i++) {
-      this.tone(880, 0.35, { type: 'sawtooth', vol: 0.06, slide: 440, when: i * 0.45 });
-      this.tone(660, 0.35, { type: 'square', vol: 0.03, slide: 330, when: i * 0.45 });
-    }
+    this.sample('warning', 1.3, () => {
+      for (let i = 0; i < 3; i++) {
+        this.tone(880, 0.35, { type: 'sawtooth', vol: 0.06, slide: 440, when: i * 0.45 });
+        this.tone(660, 0.35, { type: 'square', vol: 0.03, slide: 330, when: i * 0.45 });
+      }
+    });
   }
   fever() {
-    [72, 76, 79, 83, 84, 88, 91, 95, 96].forEach((n, i) => this.tone(mtof(n), 0.18, { type: 'square', vol: 0.05, when: i * 0.04 }));
-    this.noise(0.8, { vol: 0.08, freq: 400, slide: 12000, q: 2 });
+    this.sample('fever', 0.85, () => {
+      [72, 76, 79, 83, 84, 88, 91, 95, 96].forEach((n, i) => this.tone(mtof(n), 0.18, { type: 'square', vol: 0.05, when: i * 0.04 }));
+      this.noise(0.8, { vol: 0.08, freq: 400, slide: 12000, q: 2 });
+    });
   }
   milestone() {
-    [79, 84, 88].forEach((n, i) => this.tone(mtof(n), 0.2, { type: 'square', vol: 0.05, when: i * 0.08 }));
+    this.sample('milestone', 0.4, () => [79, 84, 88].forEach((n, i) => this.tone(mtof(n), 0.2, { type: 'square', vol: 0.05, when: i * 0.08 })));
   }
   bossDie() {
-    for (let i = 0; i < 6; i++) this.noise(0.5, { vol: 0.2, freq: 800 - i * 100, q: 0.5, type: 'lowpass', when: i * 0.12 });
-    this.tone(60, 1.5, { type: 'sine', vol: 0.3, slide: 25 });
+    this.sample('bossDie', 1.55, () => {
+      for (let i = 0; i < 6; i++) this.noise(0.5, { vol: 0.2, freq: 800 - i * 100, q: 0.5, type: 'lowpass', when: i * 0.12 });
+      this.tone(60, 1.5, { type: 'sine', vol: 0.3, slide: 25 });
+    });
   }
   gameOver() {
-    [67, 64, 60, 55].forEach((n, i) => this.tone(mtof(n), 0.5, { type: 'triangle', vol: 0.1, when: i * 0.28 }));
+    this.sample('gameOver', 1.4, () => [67, 64, 60, 55].forEach((n, i) => this.tone(mtof(n), 0.5, { type: 'triangle', vol: 0.1, when: i * 0.28 })));
   }
   capsule(rank) {
-    this.tone(mtof(72 + rank * 5), 0.15, { type: 'square', vol: 0.06 });
+    this.sample(`capsule${rank}`, 0.2, () => this.tone(mtof(72 + rank * 5), 0.15, { type: 'square', vol: 0.06 }));
     if (rank >= 2) this.bigWin();
   }
   // BOSS モードの 3・2・1
   countdown() {
-    this.tone(mtof(84), 0.12, { type: 'square', vol: 0.05 });
-    this.tone(mtof(96), 0.18, { type: 'sine', vol: 0.07, when: 0.02 });
+    this.sample('countdown', 0.25, () => {
+      this.tone(mtof(84), 0.12, { type: 'square', vol: 0.05 });
+      this.tone(mtof(96), 0.18, { type: 'sine', vol: 0.07, when: 0.02 });
+    });
   }
   countTick() {
     if (!this.throttle('count', 45)) return;
-    this.tone(mtof(96), 0.03, { type: 'square', vol: 0.025 });
+    this.sample('countTick', 0.06, () => this.tone(mtof(96), 0.03, { type: 'square', vol: 0.025 }));
   }
 
   // ------------------------------------------------------------------ BGM
