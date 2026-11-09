@@ -2046,8 +2046,8 @@ export class Game {
     if (c.type === 'lb' || c.type === 'plb') return 'R';
     return 'N';
   }
-  // オートコレクトが使えて ON か（BOSS モードとトレーニングは対象外）
-  get autoOn() { return this.autoPick && this.stats.autoPick > 0 && !this.rush && !this.train; }
+  // オートコレクトが使えて ON か（トレーニングは対象外）
+  get autoOn() { return this.autoPick && this.stats.autoPick > 0 && !this.train; }
   // オートコレクトの選び方：レア度のいちばん高い候補。同じ色なら無作為。HP 25% 回復は選ばない
   autoChoice(cs) {
     const RANK = { UR: 5, SSR: 4, SR: 3, R: 2, N: 1 };

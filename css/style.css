@@ -387,7 +387,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 }
 #hudleft { display: flex; flex-direction: column; gap: 1px; font-weight: 700; }
 #lvtext { font-size: 15px; letter-spacing: 0.15em; color: #fff; }
-#lvtext .autotag { margin-left: 6px; padding: 1px 5px; border-radius: 4px; font-size: 10px; letter-spacing: 0.08em; color: #15121f; background: #ffd24a; vertical-align: 2px; }
+.autotag { margin-left: 6px; padding: 1px 5px; border-radius: 4px; font-size: 10px; letter-spacing: 0.08em; color: #15121f; background: #ffd24a; vertical-align: 2px; }
 .lvl-actions .auto-btn { color: #ffd24a; }
 #autosel.on { color: #ffd24a; border-color: rgba(255, 210, 74, 0.6); }
 #hud.rush #xpbar, #hud.rush #lvtext, #hud.rush #feverwrap { display: none; }
