@@ -443,3 +443,5 @@ class AudioEngine {
 }
 
 export const audio = new AudioEngine();
+// フィーバー中の BGM の速さ（ゲームのフィーバーと、ジュークボックスの FEVER）
+export const FEVER_TEMPO = 1.18;

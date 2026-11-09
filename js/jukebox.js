@@ -4,7 +4,7 @@
 // =====================================================================
 import { ENEMIES } from './data.js';
 import { STAGES, CHAPTERS } from './stages.js';
-import { audio } from './audio.js';
+import { audio, FEVER_TEMPO } from './audio.js';
 import { save, persist } from './save.js';
 import { show, el, $, topbar, stageUnlocked } from './ui.js';
 import { showHub } from './menu.js';
@@ -65,6 +65,7 @@ export function showJukebox() {
       <div class="tabs sub jb-mode">${[['new', '新曲'], ['old', '旧曲']].map(([k, n]) => `<button class="tab" data-m="${k}">${n}</button>`).join('')}</div>
       ${save.settings.bgm <= 0 ? '<div class="hint">BGM の音量が 0 です（設定で変更できます）</div>' : ''}
       <div class="jb-list" id="jbl"></div>
+      <div class="jb-fever-dock"><button class="jb-fever" id="jbf">FEVER</button></div>
     </div>`);
   show(node);
   const list = trackList();
@@ -73,6 +74,9 @@ export function showJukebox() {
   // 新曲（チップ音源）と旧曲（前の BGM）の切り替え。save.tabs.jbOld に覚える
   const isOld = () => !!save.tabs.jbOld;
   const play = (id) => (isOld() ? audio.playOldBgm(id) : audio.playBgm(id));
+  // FEVER：ゲームのフィーバーと同じ速さで流す（切り替え式。ほかの画面に移ると menu.js の syncNav が戻す）
+  let fever = false;
+  const tempo = () => { audio.tempoMul = fever ? FEVER_TEMPO : 1; };
   // 旧曲のときは、旧曲のない曲を押せなくする
   const avail = (t) => t.open && !(isOld() && NEW_ONLY.has(t.id));
   const enText = (t) => (!t.open ? t.lock || '🔒 ゲーム中に流れると解放' : !avail(t) ? '旧曲なし' : (t.no ? `STAGE ${t.no} ・ ` : '') + t.en);
@@ -105,7 +109,7 @@ export function showJukebox() {
     row.onclick = () => {
       if (!avail(t)) return;
       audio.unlock();
-      audio.tempoMul = 1;
+      tempo();
       if (playing() === t.id && !!(audio.bgmTrack && audio.bgmTrack.old) === isOld()) audio.stopBgm();
       else play(t.id);
       render();
@@ -122,11 +126,19 @@ export function showJukebox() {
       save.tabs.jbOld = old;
       persist();
       const cur = audio.bgmTrack && audio.bgmTrack.name;
-      if (cur && byId[cur] && avail(byId[cur])) { audio.unlock(); audio.tempoMul = 1; play(cur); }
+      if (cur && byId[cur] && avail(byId[cur])) { audio.unlock(); tempo(); play(cur); }
       else if (cur && byId[cur]) audio.stopBgm();
       render();
     };
   });
+  const fb = $('#jbf', node);
+  fb.onclick = () => {
+    fever = !fever;
+    audio.unlock();
+    audio.tap();
+    tempo();
+    fb.classList.toggle('on', fever);
+  };
   $('#back', node).onclick = () => { audio.tap(); showHub('archive'); };
   render();
 }
