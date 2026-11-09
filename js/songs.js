@@ -804,7 +804,8 @@ export const SONGS = {};
 }
 
 // 外なる奏者：呪われた笛の単調な調べ（フリギア）。主題は前の曲の笛の旋律。
-// 旧曲のように、澄んだ笛と心拍のような太鼓が主役（ユーザーの希望）。笛は残響を少なくして前に出し、伴奏は小さく。
+// 旧曲のように、澄んだ笛と心拍のような太鼓が主役（ユーザーの希望）。笛は残響を少なくして前に出し、伴奏は笛の下に
+// （伴奏を小さくしすぎたので、チャンネルの gain で 3〜4 dB 戻してある。ユーザーの指摘）。
 // 1 回目は笛と心拍と低い持続音だけ、2 回目はアルトフルートが 4 度下を平行に吹き、ガラスの鐘の分散和音が加わる
 // （竪琴ははじく音がアコースティックギターのようで、雰囲気に合わなかった。ユーザーの指摘）
 {
@@ -815,7 +816,7 @@ export const SONGS = {};
   // 心拍（ドクン・ドクン）：1 小節に 2 回
   const beat = 'v13 j8. v9 j16 r4 v13 j8. v9 j16 r4 |';
   SONGS.pipers = {
-    gain: 1.25,
+    gain: 1.12,
     bpm: 80,
     melody: 'fl',
     chords: `Dm Dm ${chk} ${chk} ${B} Dmb6 Eb Dm Eb Dm Eb Bbm A`,
@@ -829,25 +830,25 @@ export const SONGS = {};
         @flc v14 $T $T
         @flc v13 o6 r2 d4. e-8 | c+2 e2 | d2 <b-2 | >c+1 | d2 f2 | e2 c+2 | <b-2 >e-4 d4 | c+2 e4 c+4 |
         @flc v14 o5 [a16 b-16]4 a2 | [b-16 >c16 <]4 b-2 | [a16 b-16]4 >d2 | e-4. d8 c4 <b-4 | a4. g8 f4 d4 | e-4. f8 g4 b-4 | >d-4. c8 <b-4 a-4 | a2. r4 |` },
-      { id: 'afl', type: 'inst', pan: 0.3, rev: 0.35, mml: `
+      { id: 'afl', type: 'inst', pan: 0.3, rev: 0.35, gain: 1.4, mml: `
         r1 | r1 | L
         r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
         @afl v8 k-5 $T k0
         @afl v8 o4 g4. a8 b-4 a4 | g4 f4 e4 c+4 | d4. e-8 f4 g4 | a2 e2 | f4. g8 a4 b-4 | >c+4. <b-8 a4 g4 | g4. f8 e-4 b-4 | a2 >c+2 |
         @afl v7 o4 f1 | g1 | a1 | b-1 | a2 f2 | g2 b-2 | b-2 a-2 | a1 |` },
-      { id: 'cho', type: 'inst', pan: 0, rev: 0.55, poly: 6, mml: `
+      { id: 'cho', type: 'inst', pan: 0, rev: 0.55, poly: 6, gain: 1.6, mml: `
         r1 | r1 | L
         r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
         @cho v4 ${blocks(A, { lo: 50 })}
         v5 ${blocks(B, { lo: 50 })}
         @cha v5 ${blocks(C, { lo: 52 })}` },
-      { id: 'low', type: 'inst', pan: 0.05, rev: 0.25, mml: `
+      { id: 'low', type: 'inst', pan: 0.05, rev: 0.25, gain: 1.6, mml: `
         @cello v6 ${bass('Dm Dm', 'R1', { lo: 38, hi: 50 })} L
         ${bass(A, 'R1', { lo: 38, hi: 50 })}
         ${bass(A, 'R2 R2', { lo: 38, hi: 50 })}
         v7 ${bass(B, 'R2 F2', { lo: 38, hi: 50 })}
         @cbass v8 ${bass(C, 'R4 R4 R4 R4', { lo: 38, hi: 50 })}` },
-      { id: 'glass', type: 'inst', pan: 0.35, rev: 0.5, mml: `
+      { id: 'glass', type: 'inst', pan: 0.35, rev: 0.5, gain: 1.2, mml: `
         r1 | r1 | L
         r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
         @glass v7 ${arp(A, { lo: 50, pat: [0, 1, 2, 3, 4, 3, 2, 1], len: 8 })}
@@ -860,7 +861,7 @@ export const SONGS = {};
         [${beat}]7 v13 j8. v9 j16 r4 v13 j8. v6 t16 t16 m16 m16 f16 |
         [${beat}]7 v13 j8. v9 j16 r4 v13 j8. v6 t16 t16 m16 m16 f16 |
         [v14 j8. v10 j16 v5 t8 m8 v14 j8. v10 j16 v5 m8 f8 |]7 v14 j16 j16 j16 j16 v8 t16 t16 m16 m16 v12 f8 f8 j8 C8 |` },
-      { id: 'gong', type: 'perc', pan: 0, rev: 0.45, mml: `v8 g1 | r1 | L [v8 g1 | r1 | r1 | r1 | v6 e1 | r1 | r1 | r1 |]4` },
+      { id: 'gong', type: 'perc', pan: 0, rev: 0.45, gain: 1.4, mml: `v8 g1 | r1 | L [v8 g1 | r1 | r1 | r1 | v6 e1 | r1 | r1 | r1 |]4` },
     ],
   };
 }
