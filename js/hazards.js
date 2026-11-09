@@ -1,6 +1,6 @@
 // =====================================================================
 //  ステージギミック：水晶柱 / 溶岩 / 吹雪 / 暗闇 / 泡の噴出口 / 歪んだ門 / お茶会の席 / 黒い星の夜 / 流れ星 / 混沌の泡 /
-//  つむじ風 / 濁流 / 饕餮の鼎 / 舞の輪
+//  つむじ風 / 濁流 / 饕餮の鼎 / 舞の輪 / 炉 / 溶媒の池 / 分離の環 / 日と月の印 / 発酵 / 雫 / 黄金の波
 // =====================================================================
 import { TAU, rand } from './util.js';
 import { pillarSprite, softSprite, starSprite, enemySprite } from './render.js';
@@ -10,6 +10,8 @@ import { warn } from './enemies.js';
 const CHUNK = 360;
 // 濁流：横に流れる帯。RIVER_GAP ごとに幅 RIVER_W、向きは 1 本ごとに逆。自機は FLOW、雑魚は FLOW_E の速さで流される
 const RIVER_GAP = 520, RIVER_W = 120, FLOW = 80, FLOW_E = 60;
+// 炉：燃える範囲の半径。雫：落ちた所の半径
+const BURN_R = 95, DROP_R = 72;
 
 // 黒い星の夜の星（ぼかし付き）。毎フレーム shadowBlur で描くと重いので、大きさごとに 1 度だけ描いて使い回す
 const starCache = new Map();
@@ -59,6 +61,58 @@ function drawCauldron(ctx, o, t) {
   ctx.drawImage(spr, o.x - L / 2, o.y - L / 2, L, L);
 }
 
+// 炉（アタノール）：レンガの塔と、焚き口の炎。光は加算で重ねる
+function drawFurnace(ctx, o, t) {
+  const x = o.x, y = o.y, r = o.r;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.5 + Math.sin(t * 7 + o.seed) * 0.12;
+  ctx.drawImage(softSprite('#ff7a3d'), x - r * 1.8, y - r * 2.3, r * 3.6, r * 3.6);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#3a2a24';
+  ctx.strokeStyle = '#8a6a58';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x - r, y + r * 0.6);
+  ctx.lineTo(x - r * 0.8, y - r * 0.6);
+  ctx.quadraticCurveTo(x, y - r * 1.4, x + r * 0.8, y - r * 0.6);
+  ctx.lineTo(x + r, y + r * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // レンガの目地
+  ctx.strokeStyle = 'rgba(140,100,80,0.6)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x - r * 0.9, y - r * 0.1);
+  ctx.lineTo(x + r * 0.9, y - r * 0.1);
+  ctx.moveTo(x - r * 0.85, y - r * 0.45);
+  ctx.lineTo(x + r * 0.85, y - r * 0.45);
+  ctx.stroke();
+  // 焚き口と炎
+  ctx.fillStyle = '#1a0a06';
+  ctx.beginPath();
+  ctx.arc(x, y + r * 0.2, r * 0.42, Math.PI, 0);
+  ctx.lineTo(x + r * 0.42, y + r * 0.6);
+  ctx.lineTo(x - r * 0.42, y + r * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  const f = Math.sin(t * 9 + o.seed) * 0.15;
+  ctx.fillStyle = '#ff8a3d';
+  ctx.beginPath();
+  ctx.moveTo(x - r * 0.32, y + r * 0.6);
+  ctx.quadraticCurveTo(x - r * 0.2, y - r * (0.1 + f), x, y - r * (0.25 + f));
+  ctx.quadraticCurveTo(x + r * 0.2, y - r * (0.1 - f), x + r * 0.32, y + r * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ffd23d';
+  ctx.beginPath();
+  ctx.moveTo(x - r * 0.16, y + r * 0.6);
+  ctx.quadraticCurveTo(x, y - r * (0.05 + f), x + r * 0.16, y + r * 0.6);
+  ctx.closePath();
+  ctx.fill();
+}
+
 // 座標から決まる乱数（同じ場所には毎回同じ地形）
 function hashRng(cx, cy, salt) {
   let h = (cx * 374761393 + cy * 668265263 + salt * 2246822519) | 0;
@@ -95,6 +149,14 @@ export class Hazards {
     this.whirlT = 6;
     this.whirlBoostT = 0;
     this.dancing = false; // 舞の輪の中にいるか
+    // 第4章
+    this.burnT = 0; // 炉：燃やす間隔
+    this.solvT = 0; // 溶媒の池：中にいる雑魚の印を付け直す間隔
+    this.charge = null; // 日と月の印：先に触れた印（kind・残り秒・seal）
+    this.drops = []; // 雫（昇る湯気 → 降る雫）
+    this.vaporT = 6;
+    this.goldWaves = []; // 黄金の波
+    this.goldT = 14;
   }
 
   // ---------------------------------------------------------- 地形（チャンク単位）
@@ -122,9 +184,27 @@ export class Hazards {
       if (r() < 0.32) c.push({ x: ox + 80 + r() * (CHUNK - 160), y: oy + 80 + r() * (CHUNK - 160), r: 72, seed: r() * TAU });
     } else if (this.kind === 'lava') {
       if (r() < 0.6) c.push({ x: ox + 70 + r() * (CHUNK - 140), y: oy + 70 + r() * (CHUNK - 140), r: 42 + r() * 36, seed: r() * TAU });
+    } else if (this.kind === 'athanor') {
+      if (r() < 0.4) c.push({ x: ox + 70 + r() * (CHUNK - 140), y: oy + 70 + r() * (CHUNK - 140), r: 24, seed: r() * TAU });
+    } else if (this.kind === 'solvent') {
+      if (r() < 0.42) c.push({ x: ox + 90 + r() * (CHUNK - 180), y: oy + 90 + r() * (CHUNK - 180), r: 62 + r() * 26, seed: r() * TAU });
+    } else if (this.kind === 'sieve') {
+      if (r() < 0.36) c.push({ x: ox + 70 + r() * (CHUNK - 140), y: oy + 70 + r() * (CHUNK - 140), r: 54, seed: r() * TAU, hold: 0, cd: 0 });
+    } else if (this.kind === 'sunmoon') {
+      // 太陽の印と月の印を 1 組で置く
+      if (r() < 0.42) {
+        const x = ox + 110 + r() * (CHUNK - 220), y = oy + 110 + r() * (CHUNK - 220), a = r() * TAU;
+        const sun = { x: x - Math.cos(a) * 75, y: y - Math.sin(a) * 75, r: 26, kind: 'sun', seed: r() * TAU, cd: 0 };
+        const moon = { x: x + Math.cos(a) * 75, y: y + Math.sin(a) * 75, r: 26, kind: 'moon', seed: r() * TAU, cd: 0 };
+        sun.pair = moon;
+        moon.pair = sun;
+        c.push(sun, moon);
+      }
     }
     // 開始地点の近くには置かない
     for (let i = c.length - 1; i >= 0; i--) if (Math.hypot(c[i].x, c[i].y) < 130) c.splice(i, 1);
+    // 日と月の印は、相方が消えたら一緒に消す
+    if (this.kind === 'sunmoon') for (let i = c.length - 1; i >= 0; i--) if (!c.includes(c[i].pair)) c.splice(i, 1);
     this.chunks.set(k, c);
     return c;
   }
@@ -410,6 +490,156 @@ export class Hazards {
         break;
       }
       if (this.dancing && Math.random() < 0.25) g.fx.add(p.x + rand(-12, 12), p.y + rand(-6, 6), 0, -50, 0.7, 5, '#ffd27a', 'star');
+    } else if (this.kind === 'athanor') {
+      // 炉：近く（半径 BURN_R）を通る雑魚が燃える（0.5 秒ごとに最大 HP の 6%）
+      this.burnT -= dt;
+      if (this.burnT <= 0) {
+        this.burnT = 0.5;
+        const fs = this.around(p.x, p.y, this._c || (this._c = []));
+        if (fs.length) {
+          for (const e of g.enemies) {
+            if (!e.alive || e.boss || e.prop || e.segment) continue;
+            for (const o of fs) {
+              if ((e.x - o.x) ** 2 + (e.y - o.y) ** 2 > BURN_R * BURN_R) continue;
+              e.athT = 0.6;
+              g.damage(e, e.maxHp * 0.06, { dot: true, silent: true });
+              break;
+            }
+          }
+        }
+      }
+      for (const e of g.enemies) {
+        if (!(e.athT > 0)) continue;
+        e.athT -= dt;
+        if (e.alive && Math.random() < 0.15 && g.inView(e, 20)) g.fx.add(e.x + rand(-e.r, e.r) * 0.6, e.y - e.r * 0.4, rand(-10, 10), -rand(40, 80), 0.5, 5, '#ff8a3d', 'dot');
+      }
+    } else if (this.kind === 'solvent') {
+      // 溶媒の池：中にいる雑魚に印（e.solv）を付ける。印のある雑魚は遅くなり、受けるダメージ ×1.5（game.js の damage）
+      this.solvT -= dt;
+      if (this.solvT <= 0) {
+        this.solvT = 0.2;
+        const ps = this.inView(p.x, p.y, this._v2 || (this._v2 = []));
+        for (const e of g.enemies) {
+          if (!e.alive || e.boss || e.prop || e.segment) continue;
+          let inside = false;
+          for (const o of ps) if ((e.x - o.x) ** 2 + (e.y - o.y) ** 2 < o.r * o.r) { inside = true; break; }
+          e.solv = inside;
+          if (inside) {
+            if (!(e.slowT > 0) || e.slowMul > 0.6) e.slowMul = 0.6;
+            e.slowT = Math.max(e.slowT, 0.3);
+          }
+        }
+      }
+    } else if (this.kind === 'sieve') {
+      // 分離の環：1 秒立つと、重いもの（雑魚）を押し返し、精妙なもの（経験値）を引き寄せる。そのあと 9 秒休む
+      for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
+        if (o.cd > 0) { o.cd -= dt; continue; }
+        if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 > o.r * o.r) { o.hold = 0; continue; }
+        o.hold += dt;
+        if (o.hold < 1) continue;
+        o.hold = 0;
+        o.cd = 9;
+        for (const e of g.enemies) {
+          if (!e.alive || e.boss || e.prop || e.segment) continue;
+          const dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy) || 1;
+          if (d > 240) continue;
+          const k = (e.kbk ?? 1) * 520 * (1 - d / 300);
+          e.vx += (dx / d) * k;
+          e.vy += (dy / d) * k;
+        }
+        for (const pk of g.pickups) if (pk.kind === 'xp' && (pk.x - p.x) ** 2 + (pk.y - p.y) ** 2 < 480 * 480) pk.vac = true;
+        g.fx.ring(o.x, o.y, o.r, 240, 0.5, '#e8ecff', 6);
+        g.fx.burst(o.x, o.y, '#ffffff', 16, 260, 0.5, 9);
+        audio.whoosh();
+      }
+    } else if (this.kind === 'sunmoon') {
+      // 日と月の印：片方に触れると 12 秒だけその光をまとい、その間にもう片方の種類に触れると、結合の光で周りの敵を焼く。使った印は 14 秒休む
+      if (this.charge) { this.charge.t -= dt; if (this.charge.t <= 0) this.charge = null; }
+      for (const o of this.around(p.x, p.y, this._c || (this._c = []))) {
+        if (o.cd > 0) { o.cd -= dt; continue; }
+        if ((p.x - o.x) ** 2 + (p.y - o.y) ** 2 > (o.r + p.r) ** 2) continue;
+        if (this.charge && this.charge.kind !== o.kind) {
+          o.cd = 14;
+          this.charge.seal.cd = 14;
+          this.charge = null;
+          const R = 260;
+          for (const e of g.enemies) {
+            if (!e.alive || e.prop || e.segment) continue;
+            if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > (R + e.r) ** 2) continue;
+            g.damage(e, e.maxHp * (e.boss ? 0.015 : 0.85), { kb: 260 });
+          }
+          g.fx.ring(p.x, p.y, 10, R, 0.6, '#fff2c0', 10);
+          g.fx.ring(p.x, p.y, 10, R * 0.8, 0.5, '#cfd8ff', 6);
+          g.fx.screenFlash(0.35, '#fff2c0');
+          g.fx.shake(10);
+          g.hooks.banner('CONIUNCTIO', 'item', '太陽と月が結ばれた');
+          audio.bomb(true);
+        } else if (!this.charge || this.charge.seal !== o) {
+          this.charge = { kind: o.kind, t: 12, seal: o };
+          g.fx.ring(o.x, o.y, 6, 60, 0.4, o.kind === 'sun' ? '#ffd23d' : '#cfd8ff', 5);
+          audio.pickup();
+        }
+      }
+    } else if (this.kind === 'ferment') {
+      // 発酵：落ちたまま 6 秒たった経験値は 1.5 倍になる（1 度だけ）
+      for (const pk of g.pickups) {
+        if (pk.kind !== 'xp' || pk.fer || pk.vac || pk.t < 6) continue;
+        pk.fer = true;
+        pk.value = Math.max(pk.value + 1, Math.round(pk.value * 1.5));
+        if (Math.random() < 0.5 && g.inView(pk, 20)) g.fx.add(pk.x, pk.y - 6, 0, -40, 0.6, 5, '#7fffb0', 'star');
+      }
+    } else if (this.kind === 'vapor') {
+      // 天と地を巡る雫：地面から湯気が昇り（1.4 秒）、雫になって降る（1.2 秒）。落ちた所（半径 DROP_R）の敵を打つ
+      if (g.timeStopT > 0) return;
+      this.vaporT -= dt;
+      if (this.vaporT <= 0) {
+        this.vaporT = rand(6, 9);
+        const n = Math.random() < 0.5 ? 4 : 3;
+        for (let i = 0; i < n; i++) {
+          const a = rand(TAU), d = rand(80, 230);
+          this.drops.push({ x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d, t: -i * 0.25, hit: false });
+        }
+      }
+      for (const o of this.drops) {
+        o.t += dt;
+        if (o.t > 0 && o.t < 1.4 && Math.random() < 0.5 && g.inView(o, 40)) g.fx.add(o.x + rand(-14, 14), o.y - rand(0, 10), rand(-8, 8), -rand(60, 110), 0.7, 6, '#e8f8ff', 'dot');
+        if (!o.hit && o.t >= 2.6) {
+          o.hit = true;
+          for (const e of g.enemies) {
+            if (!e.alive || e.prop || e.segment) continue;
+            if ((e.x - o.x) ** 2 + (e.y - o.y) ** 2 > (DROP_R + e.r) ** 2) continue;
+            g.damage(e, e.maxHp * (e.boss ? 0.008 : 0.6));
+          }
+          g.fx.ring(o.x, o.y, 6, DROP_R, 0.4, '#bfe8ff', 6);
+          g.fx.burst(o.x, o.y, '#d0f0ff', 12, 200, 0.5, 9);
+          if (g.inView(o, 40)) audio.splash();
+        }
+      }
+      this.drops = this.drops.filter((o) => o.t < 3);
+    } else if (this.kind === 'gold') {
+      // 黄金の波：ときどき自機の近くから金色の輪が広がり、触れた雑魚は金になって 5 秒止まる。金の雑魚は倒すとコインを落とす（game.js の kill）
+      if (g.timeStopT > 0) return;
+      this.goldT -= dt;
+      if (this.goldT <= 0) {
+        this.goldT = rand(15, 21);
+        this.goldWaves.push({ x: p.x + rand(-100, 100), y: p.y + rand(-100, 100), t: 0, T: 1.5, R: 300 });
+        g.hooks.banner('CHRYSOPOEIA', 'item', '黄金の波 — 触れた雑魚が金に変わる');
+        audio.whoosh();
+      }
+      for (const w of this.goldWaves) {
+        w.t += dt;
+        const rr = (w.t / w.T) * w.R;
+        for (const e of g.enemies) {
+          if (!e.alive || e.boss || e.prop || e.segment || e.gold || e.ai === 'thief') continue;
+          const d = Math.hypot(e.x - w.x, e.y - w.y);
+          if (d > rr + e.r || d < rr - 40) continue;
+          e.gold = true;
+          e.frozenT = Math.max(e.frozenT, 5);
+          e.tint = '#e8c050';
+          if (g.inView(e, 20)) g.fx.burst(e.x, e.y, '#ffd23d', 4, 100, 0.35, 6);
+        }
+      }
+      this.goldWaves = this.goldWaves.filter((w) => w.t < w.T);
     } else if (this.kind === 'blizzard') {
       this.stormT -= dt;
       if (this.stormT <= 0) {
@@ -491,6 +721,170 @@ export class Hazards {
           }
         }
         ctx.stroke();
+      }
+    }
+    if (this.kind === 'athanor') {
+      // 炉の火が届く範囲（うすい光と点線）
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
+        ctx.globalAlpha = 0.16 + 0.05 * Math.sin(this.t * 4 + o.seed);
+        ctx.drawImage(softSprite('#ff7a3d'), o.x - BURN_R, o.y - BURN_R, BURN_R * 2, BURN_R * 2);
+        ctx.globalAlpha = 0.35;
+        ctx.strokeStyle = '#ff9a5a';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 7]);
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, BURN_R, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+    }
+    if (this.kind === 'solvent') {
+      // 溶媒の池：空を映す水面（ゆらぐ光の筋）
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
+        const grd = ctx.createRadialGradient(o.x, o.y, o.r * 0.2, o.x, o.y, o.r);
+        grd.addColorStop(0, 'rgba(60,170,220,0.26)');
+        grd.addColorStop(1, 'rgba(30,110,170,0.42)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(160,230,255,0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(220,245,255,0.35)';
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i < 3; i++) {
+          const yy = o.y - o.r * 0.4 + i * o.r * 0.35;
+          const w = Math.sqrt(Math.max(0, o.r * o.r - (yy - o.y) ** 2)) * 0.7;
+          const sh = Math.sin(this.t * 1.5 + o.seed + i) * 8;
+          ctx.beginPath();
+          ctx.moveTo(o.x - w + sh, yy);
+          ctx.lineTo(o.x + w * 0.5 + sh, yy);
+          ctx.stroke();
+        }
+      }
+    }
+    if (this.kind === 'sieve') {
+      // 分離の環：二重の輪と、回る火と水の記号（△・▽）。立っている間は進み具合の弧
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
+        const ready = o.cd <= 0;
+        ctx.globalAlpha = ready ? 0.75 : 0.22;
+        ctx.strokeStyle = '#e8ecff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, TAU);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r * 0.72, 0, TAU);
+        ctx.stroke();
+        const a0 = this.t * 0.6 + o.seed;
+        for (let i = 0; i < 4; i++) {
+          const a = a0 + (i / 4) * TAU;
+          const x = o.x + Math.cos(a) * o.r * 0.86, y = o.y + Math.sin(a) * o.r * 0.86;
+          const up = i % 2 ? -1 : 1;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 5 * up);
+          ctx.lineTo(x - 4.5, y + 4 * up);
+          ctx.lineTo(x + 4.5, y + 4 * up);
+          ctx.closePath();
+          ctx.stroke();
+        }
+        if (o.hold > 0) {
+          ctx.globalAlpha = 0.95;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(o.x, o.y, o.r, -Math.PI / 2, -Math.PI / 2 + Math.min(1, o.hold) * TAU);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+    if (this.kind === 'sunmoon') {
+      // 日と月の印：組を結ぶ点線と、☉・☽ の印（使ったあとの休みの間は暗い）
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) {
+        if (o.kind === 'sun') {
+          ctx.globalAlpha = 0.25;
+          ctx.strokeStyle = '#fff2c0';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 8]);
+          ctx.beginPath();
+          ctx.moveTo(o.x, o.y);
+          ctx.lineTo(o.pair.x, o.pair.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        const ready = o.cd <= 0;
+        const lit = this.charge && this.charge.seal === o;
+        const col = o.kind === 'sun' ? '#ffd23d' : '#cfd8ff';
+        ctx.globalAlpha = ready ? (lit ? 0.6 : 0.35) : 0.12;
+        ctx.drawImage(softSprite(col), o.x - o.r * 1.8, o.y - o.r * 1.8, o.r * 3.6, o.r * 3.6);
+        ctx.globalAlpha = ready ? 0.95 : 0.3;
+        ctx.strokeStyle = col;
+        ctx.fillStyle = col;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, TAU);
+        ctx.stroke();
+        if (o.kind === 'sun') {
+          ctx.beginPath();
+          ctx.arc(o.x, o.y, o.r * 0.5, 0, TAU);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(o.x, o.y, o.r * 0.13, 0, TAU);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(o.x, o.y, o.r * 0.55, Math.PI * 0.35, Math.PI * 1.65);
+          ctx.arc(o.x + o.r * 0.22, o.y, o.r * 0.42, Math.PI * 1.55, Math.PI * 0.45, true);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+    if (this.kind === 'ferment') {
+      // 発酵した経験値の下に、うすい緑の光
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.5;
+      const spr = softSprite('#5fe0a0');
+      for (const pk of g.pickups) {
+        if (!pk.fer || !g.inView(pk, 20)) continue;
+        ctx.drawImage(spr, pk.x - 13, pk.y - 13, 26, 26);
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    if (this.kind === 'vapor') {
+      // 雫の落ちる所（降ってくる間はくっきり）
+      for (const o of this.drops) {
+        if (o.t < 0 || o.hit) continue;
+        ctx.globalAlpha = o.t < 1.4 ? 0.25 : 0.25 + ((o.t - 1.4) / 1.2) * 0.5;
+        ctx.strokeStyle = '#d0f0ff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, DROP_R, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+    }
+    if (this.kind === 'gold') {
+      // 黄金の波
+      for (const w of this.goldWaves) {
+        const rr = (w.t / w.T) * w.R;
+        ctx.globalAlpha = Math.min(1, (w.T - w.t) / 0.4) * 0.85;
+        ctx.strokeStyle = '#ffd23d';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, rr, 0, TAU);
+        ctx.stroke();
+        ctx.strokeStyle = '#fff6c0';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
       }
     }
     if (this.kind === 'dance') {
@@ -654,6 +1048,29 @@ export class Hazards {
 
   // 柱など（敵と同じ高さ）
   drawObjects(ctx) {
+    if (this.kind === 'athanor') {
+      const p = this.g.player;
+      for (const o of this.inView(p.x, p.y, this._v || (this._v = []))) drawFurnace(ctx, o, this.t);
+      return;
+    }
+    if (this.kind === 'vapor') {
+      // 降ってくる雫（高い所から落ちる）
+      for (const o of this.drops) {
+        if (o.t < 1.4 || o.hit) continue;
+        const k = (o.t - 1.4) / 1.2;
+        const y = o.y - (1 - k) * 260;
+        ctx.fillStyle = '#e8f8ff';
+        ctx.beginPath();
+        ctx.moveTo(o.x, y - 14);
+        ctx.quadraticCurveTo(o.x + 9, y, o.x, y + 8);
+        ctx.quadraticCurveTo(o.x - 9, y, o.x, y - 14);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(120,190,230,0.9)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      return;
+    }
     if (this.kind === 'whirl') {
       const g = this.g;
       ctx.save();
@@ -752,6 +1169,18 @@ export class Hazards {
   // ---------------------------------------------------------- 画面全体（ワールド座標）
   drawOverlay(ctx) {
     const g = this.g, p = g.player;
+    if (this.kind === 'sunmoon' && this.charge) {
+      // 先に触れた印の光が、自機の周りを回る
+      const col = this.charge.kind === 'sun' ? '#ffd23d' : '#cfd8ff';
+      const a = this.t * 3, x = p.x + Math.cos(a) * 26, y = p.y + Math.sin(a) * 26;
+      ctx.globalAlpha = Math.min(1, this.charge.t / 2) * 0.9;
+      ctx.drawImage(softSprite(col), x - 10, y - 10, 20, 20);
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, TAU);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     if (this.kind === 'darkness') {
       const R = g.feverT > 0 ? 260 : 225;
       const grd = ctx.createRadialGradient(p.x, p.y, R * 0.45, p.x, p.y, R);

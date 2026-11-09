@@ -32,6 +32,9 @@ function warn(g, x, y, r, T, color, fn, owner = null) {
   g.warns.push({ x, y, r, t: 0, T, color, fn, owner });
 }
 
+// 孔雀の虹色（弾・光線・羽根の雨）
+const RAINBOW = ['#ff5f7a', '#ffb03d', '#ffe85f', '#7fff8a', '#5fd0ff', '#9a7fff'];
+
 // 渾沌の穴（竅）が開いたときの説明
 const HOLE_TEXT = [
   '目が開いた — 狙って撃ってくる',
@@ -922,6 +925,451 @@ export const AI = {
       const R = g.viewR * 0.8;
       for (let i = 0; i < 2; i++) { const a = rand(TAU); g.spawnEnemy('maiko', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
       for (let i = 0; i < (e.holes >= 3 ? 3 : 2); i++) { const a = rand(TAU); g.spawnEnemy('nomi', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+    }
+  },
+
+  // ================================================= 第4章：錬金術の獣たち
+  // 赤の獅子（焼成）：火の玉の扇（狙い）／炎の息・焼ける地面・続けざまの飛びかかり・眷属を順番に
+  leoruber(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.lrT === undefined) { e.lrT = 2; e.lr2 = 4; e.lrPat = 0; e.pounce = 0; e.breathT = 0; }
+    mv.spd *= e.breathT > 0 ? 0.3 : 0.85;
+    e.lrT -= dt * (enraged ? 1.3 : 1);
+    e.lr2 -= dt;
+    e.charging = e.windup > 0 || e.breathT > 0;
+    if (e.pounce > 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.pounce--;
+      startDash(e, p, enraged ? 0.45 : 0.55);
+    }
+    if (e.breathT > 0) {
+      // 炎の息：自機の方へ、首を振りながら火を吐き続ける
+      e.breathT -= dt;
+      e.fireT = (e.fireT || 0) - dt;
+      if (e.fireT <= 0) {
+        e.fireT = 0.07;
+        const a = Math.atan2(p.y - e.y, p.x - e.x) + Math.sin(g.time * 3.2) * 0.55;
+        shoot(g, e, a + rand(-0.06, 0.06), rand(190, 240), 8, { color: chance(0.5) ? '#ff7a3d' : '#ffd23d', mul: 0.45, life: 2.4 });
+      }
+    } else if (e.lrT <= 0) {
+      e.lrT = 2.3;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      const n = enraged ? 7 : 5;
+      for (let i = 0; i < n; i++) shoot(g, e, a0 + (i - (n - 1) / 2) * 0.17, 185, 8, { color: '#ff8a3d', mul: 0.6 });
+    }
+    if (e.lr2 <= 0 && !(e.dash > 0) && !(e.windup > 0) && !(e.pounce > 0) && !(e.breathT > 0)) {
+      e.lr2 = enraged ? 4.4 : 5.6;
+      e.lrPat = (e.lrPat + 1) % 4;
+      if (e.lrPat === 0) {
+        e.breathT = 2.2;
+        g.hooks.banner('FIRE BREATH', 'warning', '炎の息 — 首を振りながら火を吐く');
+        audio.warning();
+      } else if (e.lrPat === 1) {
+        // 焼ける地面：自機の周りの輪が燃え上がり、少し遅れて足元も燃える
+        const n = enraged ? 10 : 8, R = 120;
+        const cx = p.x, cy = p.y;
+        for (let i = 0; i <= n; i++) {
+          const a = (i / n) * TAU;
+          const x = i === n ? cx : cx + Math.cos(a) * R, y = i === n ? cy : cy + Math.sin(a) * R;
+          warn(g, x, y, 48, i === n ? 1.5 : 0.9 + i * 0.04, '#ff7a3d', (g2) => {
+            g2.fx.burst(x, y, '#ff8a3d', 10, 200, 0.45, 9);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 48 + g2.player.r) g2.hurtPlayer(e.dmg * 0.9);
+          }, e);
+        }
+        g.hooks.banner('CALCINATIO', 'warning', '焼ける地面 — 周りの輪と足元が燃え上がる');
+        audio.whoosh();
+      } else if (e.lrPat === 2) {
+        e.pounce = enraged ? 3 : 2;
+        g.hooks.banner('POUNCE', 'warning', '続けざまに飛びかかってくる');
+      } else {
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < (enraged ? 4 : 3); i++) { const a = rand(TAU); g.spawnEnemy('hinoko', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        for (let i = 0; i < 2; i++) { const a = rand(TAU); g.spawnEnemy('fuigo', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      }
+    }
+  },
+
+  // 緑の獅子（溶解）：溶媒の渦（螺旋）／太陽を呑む（引き寄せ → 酸の雨）・溶媒の輪・突進・眷属を順番に
+  leoviridis(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.lvT === undefined) { e.lvT = 2; e.lv2 = 4; e.lvPat = 0; }
+    mv.spd *= e.devourT > 0 ? 0 : 0.8;
+    e.lvT -= dt * (enraged ? 1.3 : 1);
+    e.lv2 -= dt;
+    if (e.devourT > 0) {
+      // 太陽を呑む：自機を少し引き寄せ、終わると呑んだ太陽を溶かした酸が降る
+      e.devourT -= dt;
+      e.charging = true;
+      const d = Math.hypot(e.x - p.x, e.y - p.y) || 1;
+      p.x += ((e.x - p.x) / d) * 60 * dt;
+      p.y += ((e.y - p.y) / d) * 60 * dt;
+      if (Math.random() < 0.6) {
+        const a = rand(TAU), R = rand(120, 240);
+        g.fx.add(e.x + Math.cos(a) * R, e.y + Math.sin(a) * R, -Math.cos(a) * R * 2, -Math.sin(a) * R * 2, 0.45, 5, '#ffd23d', 'dot');
+      }
+      if (e.devourT <= 0) {
+        e.charging = false;
+        const n = enraged ? 14 : 10;
+        for (let i = 0; i < n; i++) {
+          const a = rand(TAU), R = i < 2 ? rand(0, 25) : rand(50, 230);
+          const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
+          warn(g, x, y, 44, 1.0 + i * 0.08, '#9fff5f', (g2) => {
+            g2.fx.burst(x, y, '#9fff5f', 8, 160, 0.45, 8);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 44 + g2.player.r) g2.hurtPlayer(e.dmg * 0.85);
+          }, e);
+        }
+        g.hooks.banner('ACID RAIN', 'warning', '呑んだ太陽を溶かした酸が降る');
+      }
+      return;
+    }
+    e.charging = e.windup > 0;
+    if (e.lvT <= 0) {
+      e.lvT = 2.2;
+      e.spiral = (e.spiral || 0) + 0.45;
+      for (let w = 0; w < 2; w++) for (let i = 0; i < 7; i++) shoot(g, e, e.spiral + (i / 7) * TAU + w * 0.22, 115 + w * 35, 8, { color: '#7fe86a', mul: 0.55 });
+    }
+    if (e.lv2 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.lv2 = enraged ? 4.4 : 5.6;
+      e.lvPat = (e.lvPat + 1) % 4;
+      if (e.lvPat === 0) {
+        e.devourT = 2.6;
+        g.hooks.banner('DEVOUR THE SUN', 'warning', '太陽を呑み込む — このあと酸が降る');
+        audio.warning();
+      } else if (e.lvPat === 1) {
+        // 溶媒の輪：隙間のある遅い輪を重ねる
+        const n = 30, a0 = rand(TAU);
+        for (let w = 0; w < (enraged ? 3 : 2); w++) for (let i = 3; i < n; i++) shoot(g, e, a0 + (i / n) * TAU + w * 1.1, 90 + w * 28, 9, { color: '#9fff5f', mul: 0.55 });
+        g.fx.ring(e.x, e.y, e.r, e.r * 2.2, 0.4, '#9fff5f', 6);
+      } else if (e.lvPat === 2) {
+        startDash(e, p, 0.7);
+      } else {
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < (enraged ? 4 : 3); i++) { const a = rand(TAU); g.spawnEnemy('shishiko', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        for (let i = 0; i < 2; i++) { const a = rand(TAU); g.spawnEnemy('ousui', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      }
+    }
+  },
+
+  // 大蟇（分離）：泥の扇（狙い）／跳びかかり（着地で泥の輪）・舌・眷属を順番に。
+  // HP が半分を切ると、背の白鷲（aquila）が飛び立って二手に分かれる（HP は大蟇が持ち、鷲へのダメージは shareTo で大蟇へ渡す）
+  bufo(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.bfT === undefined) { e.bfT = 2.2; e.bf2 = 4; e.bfPat = 0; }
+    if (enraged && !e.eagle) {
+      const o = g.spawnEnemy('aquila', e.x, e.y - e.r);
+      o.shareTo = e;
+      o.hp = o.maxHp = 1e12;
+      o.dmg = e.dmg * 0.8;
+      e.eagle = o;
+      g.fx.burst(e.x, e.y - e.r, '#f4f8ff', 30, 260, 0.7, 12);
+      g.fx.shake(12);
+      g.hooks.banner('SEPARATIO', 'boss', '白鷲が飛び立った — 天のものと地のものが分かれる');
+      audio.evolve();
+    }
+    mv.spd *= 0.7;
+    e.bfT -= dt * (enraged ? 1.2 : 1);
+    e.bf2 -= dt;
+    e.charging = e.windup > 0;
+    // 絵のコマ：0 鷲を背負う・1 その構え・2 鷲が飛び立った後・3 その構え
+    e.sprFrame = (e.eagle ? 2 : 0) + (e.charging ? 1 : 0);
+    // 跳びかかりの着地：泥の輪
+    if (e.leapLand && !(e.dash > 0) && !(e.windup > 0)) {
+      e.leapLand = false;
+      const n = enraged ? 20 : 16, off = rand(TAU);
+      for (let i = 0; i < n; i++) shoot(g, e, off + (i / n) * TAU, 120, 9, { color: '#c8b07a', mul: 0.6 });
+      g.fx.ring(e.x, e.y, e.r * 0.6, e.r * 2.4, 0.4, '#c8b07a', 7);
+      g.fx.shake(8);
+    }
+    if (e.bfT <= 0) {
+      e.bfT = 2.4;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      for (let i = -2; i <= 2; i++) shoot(g, e, a0 + i * 0.2, 150, 9, { color: '#c8b07a', mul: 0.6 });
+    }
+    if (e.bf2 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.bf2 = enraged ? 4.6 : 5.4;
+      e.bfPat = (e.bfPat + 1) % 3;
+      if (e.bfPat === 0) {
+        startDash(e, p, 0.8);
+        e.leapLand = true;
+        g.hooks.banner('LEAP', 'warning', '跳びかかり — 着地で泥の輪');
+      } else if (e.bfPat === 1) {
+        // 舌：自機の方へ一直線（予告のあと伸びる）
+        laser(g, e, Math.atan2(p.y - e.y, p.x - e.x), { tele: 0.8, dur: 0.5, w: 22, len: 520, color: '#ff8aa0', mul: 0.9 });
+      } else {
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < (enraged ? 4 : 3); i++) { const a = rand(TAU); g.spawnEnemy('hiki', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        if (!e.eagle) for (let i = 0; i < 2; i++) { const a = rand(TAU); g.spawnEnemy('washiko', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      }
+    }
+  },
+  // 白鷲：大蟇と HP を共有。周りを飛び回り、羽根の扇と急降下
+  aquila(g, e, dt, dist, mv) {
+    const p = g.player;
+    const lead = e.shareTo;
+    if (!lead || !lead.alive) { e.alive = false; return; }
+    if (e.aqT === undefined) { e.aqT = 1.2; e.aq2 = 3; }
+    e.aqT -= dt;
+    e.aq2 -= dt;
+    if (e.aqT <= 0) {
+      e.aqT = 1.9;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      for (let i = -2; i <= 2; i++) shoot(g, e, a0 + i * 0.14, 210, 7, { color: '#e8f0ff', mul: 0.55 });
+    }
+    if (e.aq2 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.aq2 = 4.2;
+      startDash(e, p, 0.6);
+    }
+  },
+
+  // レビス（結合）：日の頭と月の頭が交互に目覚める（日：光の輪と狙い撃ち、月：三日月の波）。
+  // HP が半分を切ると両方の頭が目覚める（結合）。突進か眷属をときどき
+  rebis(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.rbMode === undefined) { e.rbMode = 0; e.rbSwap = 7; e.rbT = 1.5; e.rb2 = 2.5; e.rb3 = 6; }
+    mv.spd *= 0.8;
+    e.rbSwap -= dt;
+    if (!enraged && e.rbSwap <= 0) {
+      e.rbSwap = 7;
+      e.rbMode = 1 - e.rbMode;
+      g.hooks.banner(e.rbMode ? 'LUNA' : 'SOL', 'warning', e.rbMode ? '月の頭が目覚めた — 三日月の波' : '日の頭が目覚めた — 光の輪');
+    }
+    if (enraged && !e.rbBoth) {
+      e.rbBoth = true;
+      g.ebullets.length = 0;
+      g.fx.screenFlash(0.5, '#fff2c0');
+      g.hooks.banner('CONIUNCTIO', 'boss', '日と月が結ばれた — 両方の頭が目覚める');
+      audio.evolve();
+    }
+    const sun = enraged || e.rbMode === 0, moon = enraged || e.rbMode === 1;
+    // 絵のコマ：0 日の頭・1 月の頭・2 両方
+    e.sprFrame = enraged ? 2 : e.rbMode;
+    e.rbT -= dt;
+    e.rb2 -= dt;
+    e.rb3 -= dt;
+    if (sun && e.rbT <= 0) {
+      e.rbT = enraged ? 2.4 : 1.8;
+      const off = rand(TAU);
+      for (let i = 0; i < 16; i++) shoot(g, e, off + (i / 16) * TAU, 135, 8, { color: '#ffd23d', mul: 0.5 });
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      for (let i = -1; i <= 1; i++) shoot(g, e, a0 + i * 0.16, 200, 8, { color: '#fff2a0', mul: 0.55 });
+    }
+    if (moon && e.rb2 <= 0) {
+      // 三日月の波：真ん中ほど速い弾を弧に並べる（自機の方へ膨らんだ弧になる）
+      e.rb2 = enraged ? 2.8 : 2.1;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      for (let i = -5; i <= 5; i++) shoot(g, e, a0 + i * 0.09, 130 - Math.abs(i) * 6, 8, { color: '#cfd8ff', mul: 0.5 });
+    }
+    if (e.rb3 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.rb3 = enraged ? 5 : 6.5;
+      if (chance(0.5)) startDash(e, p, 0.7);
+      else {
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < 3; i++) { const a = rand(TAU); g.spawnEnemy(chance(0.5) ? 'kotaiyo' : 'kotsuki', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      }
+    }
+  },
+
+  // 孔雀（発酵）：虹色の輪／尾を広げて目玉模様から光線・羽根の雨・突進・眷属を順番に
+  pavo(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (e.pvT === undefined) { e.pvT = 2; e.pv2 = 4; e.pvPat = 0; e.fanT = 0; }
+    mv.spd *= e.fanT > 0 ? 0.2 : 0.85;
+    e.pvT -= dt * (enraged ? 1.3 : 1);
+    e.pv2 -= dt;
+    if (e.fanT > 0) e.fanT -= dt;
+    // 絵のコマ：0 尾を閉じる・1 尾を広げる
+    e.sprFrame = e.fanT > 0 ? 1 : 0;
+    if (e.pvT <= 0) {
+      e.pvT = 2.2;
+      e.spin = (e.spin || 0) + 0.3;
+      const n = enraged ? 24 : 18;
+      for (let i = 0; i < n; i++) shoot(g, e, e.spin + (i / n) * TAU, i % 2 ? 105 : 145, 7, { color: RAINBOW[i % 6], mul: 0.5 });
+    }
+    if (e.pv2 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.pv2 = enraged ? 4.6 : 5.8;
+      e.pvPat = (e.pvPat + 1) % 4;
+      if (e.pvPat === 0) {
+        // 孔雀の尾：尾を広げ、目玉模様から自機の方へ扇状の光線（少しずつ開いていく）
+        e.fanT = 2.6;
+        const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+        const n = enraged ? 5 : 4;
+        for (let i = 0; i < n; i++) {
+          const k = i - (n - 1) / 2;
+          laser(g, e, a0 + k * 0.42, { tele: 1.0, dur: 1.4, w: 14, len: 640, color: RAINBOW[(i * 2) % 6], mul: 0.7, va: k * 0.05 });
+        }
+        g.hooks.banner('CAUDA PAVONIS', 'warning', '尾を広げた — 目玉模様から光線');
+        audio.warning();
+      } else if (e.pvPat === 1) {
+        // 羽根の雨：自機の周りに羽根が刺さる
+        const n = enraged ? 12 : 9;
+        for (let i = 0; i < n; i++) {
+          const a = rand(TAU), R = i < 2 ? rand(0, 30) : rand(60, 220);
+          const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
+          const col = RAINBOW[i % 6];
+          warn(g, x, y, 38, 0.9 + i * 0.07, col, (g2) => {
+            g2.fx.burst(x, y, col, 8, 160, 0.4, 8);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 38 + g2.player.r) g2.hurtPlayer(e.dmg * 0.8);
+          }, e);
+        }
+      } else if (e.pvPat === 2) {
+        startDash(e, p, 0.65);
+      } else {
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < (enraged ? 4 : 3); i++) { const a = rand(TAU); g.spawnEnemy('hane', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        for (let i = 0; i < 2; i++) { const a = rand(TAU); g.spawnEnemy('taru', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      }
+    }
+  },
+
+  // ホムンクルス（蒸留）：フラスコの中の小人。湯気の扇（狙い）／昇って降る雫・泡の輪・眷属を順番に。
+  // HP が 2/3 を切るとフラスコにひびが入り、1/3 を切ると割れて外へ出てくる（ガラスの破片を撒き、速くなる）
+  homunculus(g, e, dt, dist, mv) {
+    const p = g.player;
+    const st = e.hp < e.maxHp / 3 ? 2 : e.hp < (e.maxHp * 2) / 3 ? 1 : 0;
+    if (e.hmT === undefined) { e.hmT = 2; e.hm2 = 4; e.hmPat = 0; e.flask = st; }
+    if (st > e.flask) {
+      e.flask = st;
+      g.fx.burst(e.x, e.y, '#d0f0ff', 24, 260, 0.6, 10);
+      g.fx.shake(10);
+      if (st === 2) {
+        g.ebullets.length = 0;
+        for (let i = 0; i < 24; i++) shoot(g, e, (i / 24) * TAU, rand(140, 220), 7, { color: '#e8f8ff', mul: 0.5, life: 2.5 });
+        g.hooks.banner('THE FLASK SHATTERS', 'boss', 'フラスコが割れた — ホムンクルスが外へ出る');
+        audio.evolve();
+      } else {
+        g.hooks.banner('CRACK', 'warning', 'フラスコにひびが入った');
+      }
+    }
+    // 絵のコマ：0 フラスコ・1 ひび・2 割れて外へ
+    e.sprFrame = e.flask;
+    const out = e.flask === 2;
+    mv.spd *= out ? 1.1 : 0.7;
+    e.hmT -= dt * (out ? 1.35 : 1);
+    e.hm2 -= dt;
+    if (e.hmT <= 0) {
+      e.hmT = 2.4;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      const n = out ? 7 : 5;
+      for (let i = 0; i < n; i++) shoot(g, e, a0 + (i - (n - 1) / 2) * 0.18, 175, 8, { color: '#d0f0ff', mul: 0.55 });
+    }
+    if (e.hm2 <= 0 && !(e.dash > 0) && !(e.windup > 0)) {
+      e.hm2 = out ? 4.4 : 5.6;
+      e.hmPat = (e.hmPat + 1) % 3;
+      if (e.hmPat === 0) {
+        // 昇って降る：湯気が昇り、少しして自機の周りに雫が降る
+        for (let i = 0; i < 10; i++) g.fx.add(e.x + rand(-e.r, e.r) * 0.6, e.y - e.r * 0.5, rand(-20, 20), -rand(260, 360), 0.8, 7, '#e8f8ff', 'dot');
+        const n = out ? 12 : 9;
+        for (let i = 0; i < n; i++) {
+          const a = rand(TAU), R = i < 2 ? rand(0, 25) : rand(50, 220);
+          const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
+          warn(g, x, y, 42, 1.3 + i * 0.06, '#9fdcff', (g2) => {
+            g2.fx.burst(x, y, '#d0f0ff', 10, 170, 0.45, 8);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 42 + g2.player.r) g2.hurtPlayer(e.dmg * 0.85);
+          }, e);
+        }
+        g.hooks.banner('ASCENDIT ・ DESCENDIT', 'warning', '湯気が昇り、雫になって降る');
+      } else if (e.hmPat === 1) {
+        // 泡の輪：大きくて遅い泡（外へ出たあとは突進も）
+        const n = 12, off = rand(TAU);
+        for (let i = 0; i < n; i++) shoot(g, e, off + (i / n) * TAU, 70, 13, { color: '#bfe8ff', mul: 0.6, life: 7 });
+        if (out) startDash(e, p, 0.6);
+      } else {
+        const R = g.viewR * 0.8;
+        for (let i = 0; i < 2; i++) { const a = rand(TAU); g.spawnEnemy('alembic', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+        for (let i = 0; i < (out ? 3 : 2); i++) { const a = rand(TAU); g.spawnEnemy('retort', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
+      }
+    }
+  },
+
+  // ウロボロス（凝固）：己の尾を噛む蛇。胴（ouroseg）で輪を作って自機を囲み、輪の中心は自機をゆっくり追う。
+  // 頭は輪の上を回りながら内側へ扇、胴はとびとびに内側へ弾。輪の締めつけと、牙の雨を交互に。
+  // HP が半分を切ると逆に回り出して速くなる。胴の位置は game.js の updateEnemies（h.ring）で決める
+  ouroboros(g, e, dt, dist, mv) {
+    const p = g.player;
+    const enraged = e.hp < e.maxHp * 0.5;
+    if (!e.ring) {
+      const N = 30;
+      // 輪の半径は画面の幅に合わせる（縦長の画面でも頭が画面の外へ出にくいように）
+      const R0 = Math.max(150, Math.min(250, g.viewW * 0.44));
+      e.ring = { cx: p.x, cy: p.y, R: R0, R0, step: TAU / (N + 1.6), dir: 1, sqT: 0 };
+      e.ang = Math.atan2(e.y - p.y, e.x - p.x);
+      e.segs = [];
+      for (let i = 0; i < N; i++) {
+        const s = g.spawnEnemy('ouroseg', e.x, e.y);
+        s.parent = e;
+        s.idx = i;
+        s.dmg = e.dmg * 0.4;
+        e.segs.push(s);
+      }
+      e.obT = 2; e.ob2 = 5; e.ob3 = 3; e.obPat = 0; e.obK = 0;
+    }
+    const ring = e.ring;
+    mv.spd = 0;
+    e.warpT = 0;
+    // 輪の中心は自機をゆっくり追う（輪の外へ出ても、また囲みに来る）
+    const dx = p.x - ring.cx, dy = p.y - ring.cy, d = Math.hypot(dx, dy) || 1;
+    const follow = Math.min(d, (d > ring.R ? 120 : 45) * dt);
+    ring.cx += (dx / d) * follow;
+    ring.cy += (dy / d) * follow;
+    // 締めつけ：半径を縮めて、しばらくしてから戻す
+    if (ring.sqT > 0) {
+      ring.sqT -= dt;
+      const target = ring.sqT > 1.6 ? ring.R0 * (enraged ? 0.62 : 0.7) : ring.R0;
+      ring.R += (target - ring.R) * Math.min(1, dt * 1.6);
+    } else ring.R += (ring.R0 - ring.R) * Math.min(1, dt * 1.2);
+    if (enraged && !e.obRev) {
+      e.obRev = true;
+      ring.dir = -1;
+      g.hooks.banner('UNUS EST OMNIA', 'boss', '一は全 — 輪が逆に回り出す');
+      audio.evolve();
+    }
+    e.ang += ring.dir * (enraged ? 0.62 : 0.45) * dt;
+    e.x = ring.cx + Math.cos(e.ang) * ring.R;
+    e.y = ring.cy + Math.sin(e.ang) * ring.R;
+    e.obT -= dt;
+    e.ob2 -= dt;
+    e.ob3 -= dt;
+    if (e.obT <= 0) {
+      // 頭：内側（自機）へ扇
+      e.obT = enraged ? 1.7 : 2.2;
+      const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+      const n = enraged ? 7 : 5;
+      for (let i = 0; i < n; i++) shoot(g, e, a0 + (i - (n - 1) / 2) * 0.15, 175, 8, { color: '#ff4a5f', mul: 0.55 });
+    }
+    if (e.ob3 <= 0) {
+      // 胴：とびとびの鱗から、輪の中心へ向けて弾
+      e.ob3 = enraged ? 2.6 : 3.4;
+      e.obK = (e.obK + 1) % 3;
+      for (let i = e.obK; i < e.segs.length; i += 3) {
+        const s = e.segs[i];
+        if (!s.alive) continue;
+        const a = Math.atan2(ring.cy - s.y, ring.cx - s.x);
+        g.ebullets.push({ x: s.x, y: s.y, vx: Math.cos(a) * 95, vy: Math.sin(a) * 95, r: 7, dmg: e.dmg * 0.5, life: 6, color: '#ffd27a' });
+      }
+    }
+    if (e.ob2 <= 0) {
+      e.ob2 = enraged ? 6 : 7.5;
+      e.obPat = (e.obPat + 1) % 2;
+      if (e.obPat === 0) {
+        ring.sqT = 4.2;
+        g.hooks.banner('COAGULATIO', 'warning', '輪が締めつけてくる — 体に触れないように');
+        audio.warning();
+      } else {
+        // 牙の雨：輪の中のあちこちに牙が突き刺さる
+        const n = enraged ? 8 : 6;
+        for (let i = 0; i < n; i++) {
+          const a = rand(TAU), R = i < 2 ? rand(0, 25) : rand(40, ring.R * 0.7);
+          const x = ring.cx + Math.cos(a) * R, y = ring.cy + Math.sin(a) * R;
+          warn(g, x, y, 40, 1.0 + i * 0.08, '#ff4a5f', (g2) => {
+            g2.fx.burst(x, y, '#ff6a7a', 10, 180, 0.4, 8);
+            if (Math.hypot(g2.player.x - x, g2.player.y - y) < 40 + g2.player.r) g2.hurtPlayer(e.dmg * 0.8);
+          }, e);
+        }
+      }
     }
   },
 

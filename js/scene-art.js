@@ -474,6 +474,288 @@ const SCENES = {
     }
     dots(ctx, R, 30, '#ffe0a0', 0.9);
   },
+  // ---------------------------------------------------------------- 第4章（錬金術）
+  // 焼成：灰の空と、火を噴く炉（アタノール）
+  calcinatio(ctx, R) {
+    sky(ctx, '#140806', '#3a160c');
+    glow(ctx, 255, 92, 120, 'rgba(255,110,40,0.45)');
+    ridge(ctx, R, 104, 10, 12, 8, '#1a0c08');
+    // 炉の塔
+    const x = 255, base = 118;
+    ctx.fillStyle = lin(ctx, x - 26, 0, x + 26, 0, [[0, '#2a1810'], [0.5, '#5a3424'], [1, '#22140c']]);
+    ctx.beginPath();
+    ctx.moveTo(x - 28, base);
+    ctx.lineTo(x - 22, base - 52);
+    ctx.quadraticCurveTo(x, base - 74, x + 22, base - 52);
+    ctx.lineTo(x + 28, base);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160,100,70,0.5)';
+    ctx.lineWidth = 0.8;
+    for (let y = base - 8; y > base - 56; y -= 9) {
+      ctx.beginPath();
+      ctx.moveTo(x - 26, y);
+      ctx.lineTo(x + 26, y);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#0c0402';
+    ctx.beginPath();
+    ctx.arc(x, base - 14, 11, Math.PI, 0);
+    ctx.lineTo(x + 11, base);
+    ctx.lineTo(x - 11, base);
+    ctx.fill();
+    glow(ctx, x, base - 10, 26, 'rgba(255,200,80,0.9)');
+    // 煙突の炎
+    ctx.fillStyle = '#ff8a3d';
+    ctx.beginPath();
+    ctx.moveTo(x - 8, base - 66);
+    ctx.quadraticCurveTo(x - 6, base - 90, x + 2, base - 104);
+    ctx.quadraticCurveTo(x + 6, base - 86, x + 8, base - 66);
+    ctx.fill();
+    glow(ctx, x, base - 78, 30, 'rgba(255,140,60,0.5)');
+    ctx.fillStyle = '#0a0503';
+    ctx.fillRect(0, base, W, H - base);
+    dots(ctx, R, 40, '#ffb070', 0.9, 110);
+  },
+  // 溶解：上の空がそのまま湖に映る（下なるものは上なるもののごとし）
+  solutio(ctx, R) {
+    const hy = 72;
+    sky(ctx, '#050c16', '#0a1e30');
+    glow(ctx, 250, 40, 80, 'rgba(120,200,255,0.35)');
+    ctx.fillStyle = '#e8f6ff';
+    ctx.beginPath();
+    ctx.arc(250, 38, 12, 0, TAU);
+    ctx.fill();
+    dots(ctx, R, 24, '#d8f0ff', 0.8, hy - 6);
+    // 水面より下は、空を上下にひっくり返した映り込み
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, hy, W, H - hy);
+    ctx.clip();
+    ctx.fillStyle = lin(ctx, 0, hy, 0, H, [[0, '#0a1e30'], [1, '#04101c']]);
+    ctx.fillRect(0, hy, W, H - hy);
+    glow(ctx, 250, hy * 2 - 40, 70, 'rgba(120,200,255,0.25)');
+    ctx.fillStyle = 'rgba(232,246,255,0.75)';
+    ctx.beginPath();
+    ctx.ellipse(250, hy * 2 - 38, 12, 11, 0, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200,240,255,0.35)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 9; i++) {
+      const y = hy + 6 + i * 6, x = 180 + R() * 60, w = 30 + R() * 80;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + w, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(180,230,255,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, hy);
+    ctx.lineTo(W, hy);
+    ctx.stroke();
+  },
+  // 分離：上は白く軽いもの（昇る鷲）、下は重い大地。境に光の筋
+  separatio(ctx, R) {
+    sky(ctx, '#1a1a24', '#3a3a4a');
+    glow(ctx, 250, 30, 110, 'rgba(240,240,255,0.3)');
+    // 白い鷲の影
+    ctx.fillStyle = 'rgba(245,248,255,0.9)';
+    const ex = 255, ey = 34;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey + 6);
+    ctx.quadraticCurveTo(ex - 18, ey - 10, ex - 40, ey - 4);
+    ctx.quadraticCurveTo(ex - 20, ey + 2, ex - 6, ey + 10);
+    ctx.lineTo(ex, ey + 18);
+    ctx.lineTo(ex + 6, ey + 10);
+    ctx.quadraticCurveTo(ex + 20, ey + 2, ex + 40, ey - 4);
+    ctx.quadraticCurveTo(ex + 18, ey - 10, ex, ey + 6);
+    ctx.fill();
+    dots(ctx, R, 20, '#ffffff', 0.7, 70);
+    // 境の光
+    ctx.fillStyle = lin(ctx, 0, 78, 0, 90, [[0, 'rgba(255,255,255,0)'], [0.5, 'rgba(235,240,255,0.7)'], [1, 'rgba(255,255,255,0)']]);
+    ctx.fillRect(0, 78, W, 12);
+    // 重い大地と岩
+    ctx.fillStyle = lin(ctx, 0, 88, 0, H, [[0, '#2a2620'], [1, '#0c0a08']]);
+    ctx.fillRect(0, 88, W, H - 88);
+    for (let i = 0; i < 6; i++) {
+      const x = 150 + i * 36 + R() * 14, w = 18 + R() * 16, h = 8 + R() * 10;
+      ctx.fillStyle = '#16120e';
+      ctx.beginPath();
+      ctx.ellipse(x, 104 + R() * 10, w, h, 0, 0, TAU);
+      ctx.fill();
+    }
+  },
+  // 結合：太陽と月が寄り添い、光が結ばれる
+  coniunctio(ctx, R) {
+    sky(ctx, '#0e0b06', '#2c2410');
+    glow(ctx, 250, 56, 110, 'rgba(255,220,140,0.35)');
+    dots(ctx, R, 26, '#fff2c0', 0.8, 90);
+    // 太陽
+    ctx.fillStyle = '#ffd23d';
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * TAU;
+      ctx.beginPath();
+      ctx.moveTo(228 + Math.cos(a - 0.12) * 18, 56 + Math.sin(a - 0.12) * 18);
+      ctx.lineTo(228 + Math.cos(a) * 30, 56 + Math.sin(a) * 30);
+      ctx.lineTo(228 + Math.cos(a + 0.12) * 18, 56 + Math.sin(a + 0.12) * 18);
+      ctx.fill();
+    }
+    ctx.fillStyle = rad(ctx, 224, 52, 20, [[0, '#fff6c0'], [1, '#ffb03d']]);
+    ctx.beginPath();
+    ctx.arc(228, 56, 19, 0, TAU);
+    ctx.fill();
+    // 月（太陽に重なる）
+    ctx.fillStyle = '#dfe6ff';
+    ctx.beginPath();
+    ctx.arc(266, 56, 19, Math.PI * 0.35, Math.PI * 1.65);
+    ctx.arc(276, 56, 15, Math.PI * 1.55, Math.PI * 0.45, true);
+    ctx.closePath();
+    ctx.fill();
+    glow(ctx, 248, 56, 30, 'rgba(255,255,255,0.45)');
+    ctx.fillStyle = lin(ctx, 0, 100, 0, H, [[0, '#2a2210'], [1, '#0a0804']]);
+    ctx.fillRect(0, 100, W, H - 100);
+    ctx.strokeStyle = 'rgba(255,230,160,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(248, 112, 70, 7, 0, 0, TAU);
+    ctx.stroke();
+  },
+  // 発酵：緑の霧の沼と、地平に広がる孔雀の尾の虹
+  fermentatio(ctx, R) {
+    sky(ctx, '#06100a', '#12301e');
+    const cols = ['#ff5f7a', '#ffb03d', '#ffe85f', '#7fff8a', '#5fd0ff', '#9a7fff'];
+    ctx.lineWidth = 5;
+    cols.forEach((c, i) => {
+      ctx.strokeStyle = c;
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.arc(250, 110, 92 - i * 7, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    // 目玉模様
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI * (1.12 + (i / 6) * 0.76);
+      const x = 250 + Math.cos(a) * 100, y = 110 + Math.sin(a) * 100;
+      ctx.fillStyle = '#e8c040';
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#2f6aa8';
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle = lin(ctx, 0, 96, 0, H, [[0, 'rgba(30,80,50,0.9)'], [1, '#04100a']]);
+    ctx.fillRect(0, 96, W, H - 96);
+    ctx.strokeStyle = 'rgba(180,255,210,0.6)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 12; i++) {
+      ctx.beginPath();
+      ctx.arc(140 + R() * 200, 100 + R() * 26, 1.5 + R() * 3, 0, TAU);
+      ctx.stroke();
+    }
+    glow(ctx, 250, 100, 120, 'rgba(120,255,170,0.18)');
+  },
+  // 蒸留：ガラスの蒸留器から昇る湯気と、降る雫
+  distillatio(ctx, R) {
+    sky(ctx, '#0a0e12', '#1e2a34');
+    glow(ctx, 250, 40, 100, 'rgba(200,235,255,0.3)');
+    // 雲
+    ctx.fillStyle = 'rgba(220,235,245,0.35)';
+    for (const [x, y, w] of [[220, 26, 40], [260, 22, 46], [300, 28, 34]]) {
+      ctx.beginPath();
+      ctx.ellipse(x, y, w, 10, 0, 0, TAU);
+      ctx.fill();
+    }
+    // 雫
+    ctx.fillStyle = 'rgba(210,240,255,0.85)';
+    for (let i = 0; i < 10; i++) {
+      const x = 180 + R() * 150, y = 38 + R() * 40;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 4);
+      ctx.quadraticCurveTo(x + 2.5, y, x, y + 2.5);
+      ctx.quadraticCurveTo(x - 2.5, y, x, y - 4);
+      ctx.fill();
+    }
+    // 蒸留器（ガラスの球と首）
+    const x = 250, y = 106;
+    ctx.strokeStyle = 'rgba(220,245,255,0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = 'rgba(160,220,255,0.18)';
+    ctx.beginPath();
+    ctx.arc(x, y, 18, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y - 17);
+    ctx.lineTo(x - 4, y - 32);
+    ctx.quadraticCurveTo(x + 10, y - 44, x + 36, y - 30);
+    ctx.moveTo(x + 4, y - 17);
+    ctx.lineTo(x + 4, y - 29);
+    ctx.quadraticCurveTo(x + 14, y - 36, x + 36, y - 24);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(120,200,255,0.55)';
+    ctx.beginPath();
+    ctx.arc(x, y, 16, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(235,248,255,0.5)';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - 6 + i * 6, y - 36);
+      ctx.bezierCurveTo(x - 12 + i * 6, y - 52, x + i * 6, y - 60, x - 6 + i * 6, y - 74);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#0a0e12';
+    ctx.fillRect(0, 124, W, 6);
+  },
+  // 凝固：紅の空に浮かぶ賢者の石と、それを囲む己の尾を噛む蛇
+  coagulatio(ctx, R) {
+    sky(ctx, '#140406', '#3a0c14');
+    glow(ctx, 250, 62, 110, 'rgba(255,60,80,0.45)');
+    dots(ctx, R, 30, '#ffd27a', 0.9, 120);
+    // 輪になった蛇
+    ctx.strokeStyle = '#3a8a4a';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(250, 62, 40, 0.35, TAU - 0.1);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,215,120,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.arc(250, 62, 40, 0.35, TAU - 0.1);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#4a9a5a';
+    ctx.beginPath();
+    ctx.ellipse(250 + Math.cos(0.2) * 40, 62 + Math.sin(0.2) * 40, 8, 6, 0.2 + Math.PI / 2, 0, TAU);
+    ctx.fill();
+    // 賢者の石（赤い宝石）
+    const sx = 250, sy = 62;
+    ctx.fillStyle = lin(ctx, sx - 16, sy - 18, sx + 16, sy + 18, [[0, '#ffb0c0'], [0.5, '#d82a4a'], [1, '#5a0a1a']]);
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - 22);
+    ctx.lineTo(sx + 16, sy - 6);
+    ctx.lineTo(sx + 10, sy + 18);
+    ctx.lineTo(sx - 10, sy + 18);
+    ctx.lineTo(sx - 16, sy - 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,220,230,0.8)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - 22);
+    ctx.lineTo(sx, sy + 18);
+    ctx.moveTo(sx - 16, sy - 6);
+    ctx.lineTo(sx + 16, sy - 6);
+    ctx.stroke();
+    glow(ctx, sx, sy, 34, 'rgba(255,120,140,0.5)');
+    ctx.fillStyle = lin(ctx, 0, 112, 0, H, [[0, '#2a0a0e'], [1, '#0a0204']]);
+    ctx.fillRect(0, 112, W, H - 112);
+  },
 };
 
 // ステージの風景の dataURL（JPEG。キャッシュする）

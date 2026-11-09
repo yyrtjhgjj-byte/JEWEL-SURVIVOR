@@ -68,7 +68,8 @@ class Grid {
 // ステージの色に 敵を染める
 const BASE_COL = { slime: '#7a64a8', bat: '#5a4a80', ghost: '#9c90c8', toge: '#6a3a70', golem: '#7a6a60', knight: '#3c3456',
   spawn: '#5a5a70', byakhee: '#4a4a62', eyes: '#4e4c66', thorn: '#5a3a5a', crawler: '#7a5a5a', cultist: '#2a2438',
-  moryo: '#5a2a32', kochou: '#5a4a38', chimi: '#4a6a5a', kyubi: '#b8783a', kui: '#3a5a7a', keiten: '#6a5040' };
+  moryo: '#5a2a32', kochou: '#5a4a38', chimi: '#4a6a5a', kyubi: '#b8783a', kui: '#3a5a7a', keiten: '#6a5040',
+  sulphur: '#b8902a', quicksilver: '#8a90a0', salt: '#a8b0c0', misbirth: '#a07a6a', ashman: '#6a6460', leadknight: '#4a4e5a' };
 const tintCache = {};
 function TINT(type, tint) {
   const k = type + tint;
@@ -81,7 +82,7 @@ function TINT(type, tint) {
 export const RUSH_GAP = 5;
 
 // 羽ばたく敵（絵のコマを交互に切り替える）
-const FLAP = new Set(['bat', 'byakhee', 'kochou']);
+const FLAP = new Set(['bat', 'byakhee', 'kochou', 'washiko', 'aquila']);
 
 // ボスの HP の全体倍率（data.js の hp に掛ける）と、ブレイクに必要な量（最大 HP に対する割合、ブレイクのたびに掛ける倍率）
 const BOSS_HP = 2.7;
@@ -972,10 +973,17 @@ export class Game {
         if (Math.hypot(e.x - p.x, e.y - p.y) > this.viewR * 2.5) { e.alive = false; }
         continue;
       }
-      // ワームの胴体は頭の通った道をなぞる
+      // ワームの胴体は頭の通った道をなぞる（ウロボロスの胴体は、頭から輪に沿って並ぶ）
       if (e.segment) {
         const h = e.parent;
         if (!h || !h.alive) { e.alive = false; continue; }
+        if (h.ring) {
+          const a = h.ang - (e.idx + 1) * h.ring.step * h.ring.dir;
+          e.x = h.ring.cx + Math.cos(a) * h.ring.R;
+          e.y = h.ring.cy + Math.sin(a) * h.ring.R;
+          if (!stop && !(h.breakT > 0) && Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r - 2) this.hurtPlayer(e.dmg * touchMul(this, h), { src: 'touch:ouroboros' });
+          continue;
+        }
         const tr = h.trail;
         const want = (e.idx + 1) * 24;
         let acc = 0, px = h.x, py = h.y;
@@ -1430,7 +1438,8 @@ export class Game {
       e.flash = 0.08;
       if (!e.parent || !e.parent.alive) return 0;
       e = e.parent;
-      amount *= 0.1; // 範囲攻撃が何節にも同時に当たるので低め
+      // 範囲攻撃が何節にも同時に当たるので低め。ウロボロス（一にして全）は胴を撃っても届きやすい
+      amount *= e.ring ? 0.35 : 0.1;
       o = { ...o, kb: 0 };
     }
     if (e.invulnT > 0) return 0;
@@ -1444,6 +1453,7 @@ export class Game {
     dmg *= 1 + this.stats.dmgUp; // 百獣の種類数
     if (e.breakT > 0) dmg *= 2; // ブレイク中のボスは被ダメージ 2 倍
     dmg *= this.hazards.dmgMul(); // 舞の輪（渾沌のステージ）
+    if (e.solv) dmg *= 1.5; // 溶媒の池の中の雑魚（溶解のステージ）
     const ev = elementVs(this, e);
     dmg *= ev.mul;
     // オブシディアンの攻撃はクリティカル率 -10%（一撃が重い代わり）
@@ -1594,6 +1604,8 @@ export class Game {
     }
     // ゴールドフィーバー中は倒した敵がコインを落とす
     if (this.goldFeverT > 0 && chance(0.35)) this.dropPickup('coin', e.x, e.y, randi(1, 3));
+    // 黄金の波で金になった雑魚（凝固のステージ）
+    if (e.gold) for (let i = 0; i < 2; i++) this.dropPickup('coin', e.x, e.y, randi(1, 3));
     // コイン
     const coinP = (0.05 + (this.stats.coinDrop || 0) + (wid === 'amber' ? 0.25 : 0) + (wid === 'amber' && this.getWeapon('amber')?.evolved ? 0.75 : 0)) * this.stats.luck;
     if (chance(coinP)) this.dropPickup('coin', e.x, e.y, randi(1, 3));
@@ -1650,7 +1662,7 @@ export class Game {
     audio.bossDie();
     setTimeout(() => audio.bigWin(), 400);
     // 渾沌は七つ目の穴（口）が開いて死ぬ
-    this.hooks.banner(e.ai === 'konton' ? '七日ニシテ渾沌死ス' : 'BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
+    this.hooks.banner(e.ai === 'konton' ? '七日ニシテ渾沌死ス' : e.ai === 'ouroboros' ? '賢者ノ石、成レリ' : 'BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     // BOSS モードは宝箱を拾わず、撃破の演出のあとそのまま BOSS TREASURE の画面を開く
     // 中身はそれまでに倒した数だけ多い（1 体目 +0、2 体目 +1 …。ユーザーの指定）
     if (this.rush) {
@@ -2279,7 +2291,7 @@ export class Game {
       hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big, ...(m.plus ? { plus: m.plus } : {}), ...(m.pick ? { pick: m.pick } : {}) })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
       endlessBoss: this.endlessBoss || null, cleared: this.cleared, hurt: this.hurt, rushKills: this.rushKills, rushNextT: this.rushNextT, rushFrom: this.rushFrom,
-      bossList: this.enemies.filter((e) => e.alive && e.boss && e.ai !== 'piper').map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1, woke: !!e.azWoke })),
+      bossList: this.enemies.filter((e) => e.alive && e.boss && e.ai !== 'piper' && !e.shareTo).map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1, woke: !!e.azWoke })),
     };
   }
   restore(s) {
@@ -2673,7 +2685,8 @@ export class Game {
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
-      if (e.frozenT > 0 || this.timeStopT > 0) {
+      // 凍った敵（黄金の波で金になって止まった敵は、氷を描かない）
+      if ((e.frozenT > 0 && !e.gold) || this.timeStopT > 0) {
         ctx.fillStyle = 'rgba(150,230,255,0.35)';
         ctx.strokeStyle = 'rgba(220,250,255,0.9)';
         ctx.lineWidth = 1.5;

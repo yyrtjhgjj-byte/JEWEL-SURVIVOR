@@ -436,8 +436,8 @@ export const upperLv = (id) => ((save.upgrades2Off || {})[id] ? 0 : (save.upgrad
 
 // ================================================================== ステージ選択
 function stageRec(id) { return save.stages[id] || {}; }
-// CHAOS は全ステージをクリアすると選べる
-const chaosOpen = () => STAGES.every((s) => stageRec(s.id).cleared);
+// CHAOS は全ステージをクリアすると選べる（一度開いたら、あとで章を足しても閉じない。save.chaosOpen）
+const chaosOpen = () => save.chaosOpen || (save.chaosOpen = STAGES.every((s) => stageRec(s.id).cleared));
 // CHAOS の記録（ふつうの記録とは別）
 function chaosNote(id) {
   const c = (save.chaosRec || {})[id];

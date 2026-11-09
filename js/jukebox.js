@@ -34,6 +34,8 @@ export function trackList() {
     { id: 'business', name: '経営', en: 'BUSINESS', color: '#4ade9a', open: heard('business') || !!save.biz, lock: '🔒 経営を開くと解放' },
   ];
   for (const ch of CHAPTERS) {
+    // 曲をまだ作っていない章（ステージの tempBgm。仮に既存の曲を流している）は出さない
+    if (STAGES.some((s) => s.chapter === ch.no && s.tempBgm)) continue;
     list.push({ sec: ch.name });
     for (const st of STAGES.filter((s) => s.chapter === ch.no)) {
       const open = stageUnlocked(st);
