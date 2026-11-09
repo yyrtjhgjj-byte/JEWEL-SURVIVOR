@@ -780,6 +780,45 @@ Object.assign(ICON, {
     ctx.restore();
     plus(ctx, 30, 22, 11, '#ffffff');
   },
+  // オートコレクト：めぐる矢印の輪の中で、開いた宝箱から光るカードが浮かぶ
+  autoPick(ctx) {
+    // ほかのアイコンと大きさをそろえるため、少し縮めて描く
+    ctx.save(); ctx.scale(0.84, 0.84);
+    halo(ctx, 0, 2, 46, 'rgba(110,220,255,0.3)');
+    // 矢印の輪（時計回りに 2 本）
+    const R = 38;
+    const arrow = (a0, a1) => {
+      ctx.strokeStyle = lin(ctx, -R, -R, R, R, [[0, '#bff4ff'], [0.5, '#5ad2ff'], [1, '#2a7ad0']]);
+      ctx.lineWidth = 5;
+      glow(ctx, '#6fdcff', 10);
+      ctx.beginPath(); ctx.arc(0, 2, R, a0, a1); ctx.stroke();
+      // 矢じり（輪の接線の向き）
+      const x = Math.cos(a1) * R, y = 2 + Math.sin(a1) * R;
+      const tx = -Math.sin(a1), ty = Math.cos(a1), nx = Math.cos(a1), ny = Math.sin(a1);
+      ctx.fillStyle = '#dffaff';
+      ctx.beginPath();
+      ctx.moveTo(x + tx * 10, y + ty * 10);
+      ctx.lineTo(x - tx * 2 + nx * 8, y - ty * 2 + ny * 8);
+      ctx.lineTo(x - tx * 2 - nx * 8, y - ty * 2 - ny * 8);
+      ctx.closePath(); ctx.fill();
+      noGlow(ctx);
+    };
+    arrow(-Math.PI * 0.95, -Math.PI * 0.12);
+    arrow(Math.PI * 0.05, Math.PI * 0.88);
+    // 宝箱から浮かぶ金のカード
+    ctx.save();
+    ctx.translate(0, -8); ctx.rotate(-0.12);
+    glow(ctx, '#ffd24a', 14);
+    ctx.fillStyle = lin(ctx, 0, -18, 0, 16, [[0, '#fff4c4'], [1, '#c79a2a']]);
+    ctx.strokeStyle = '#ffe39a'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.roundRect(-11, -18, 22, 32, 4); ctx.fill(); ctx.stroke();
+    noGlow(ctx);
+    gemlet(ctx, 0, -3, 6, '#ffffff', '#ffffff', '#c79a2a', 4);
+    ctx.restore();
+    chestAt(ctx, 0, 22, 40, true);
+    star(ctx, -16, -26, 3.2, '#ffe39a'); star(ctx, 18, -20, 2.4); star(ctx, 14, 2, 2, '#ffe39a');
+    ctx.restore();
+  },
   // 採掘の極意：交差したつるはしと、こぼれる原石
   mine100(ctx) {
     halo(ctx, 0, 0, 46, 'rgba(255,214,245,0.3)');

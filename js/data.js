@@ -683,7 +683,7 @@ export const UPPER_SHOP = [
   { id: 'breakUp', name: 'ブレイク強化', max: 5, cost: [5000, 8000, 11000, 14000, 17000], per: { breakUp: 0.1 }, t: 'ブレイクゲージのたまりやすさ +10%' },
   { id: 'lbUp', name: 'リミットブレイク強化', max: 2, cost: [25000, 50000], per: { lbUp: 0.5 }, t: 'ウェポンのリミットブレイクの強化量 +50%' },
   { id: 'charmLb', name: 'チャーム・リミットブレイク', max: 1, cost: [100000], per: { charmLb: 1 }, t: '最大レベルのチャームも、リミットブレイクで強化できる' },
-  { id: 'autoPick', name: 'オートセレクト', max: 1, cost: [50000], per: { autoPick: 1 }, t: 'レベルアップの強化を、色の良い順に自動で選べる（ラン中にポーズとレベルアップの画面で ON／OFF）' },
+  { id: 'autoPick', name: 'オートコレクト', max: 1, cost: [50000], per: { autoPick: 1 }, t: 'レベルアップを色の良い順に自動で選び、宝箱はその場で開ける（ラン中に ON／OFF）' },
   // ここから下はラン外の強化（採掘・研磨工房）。効果は ui.js ／ atelier-ui.js で upperLv を見て切り替える
   { id: 'mine100', name: '採掘の極意', max: 1, cost: [60000], per: {}, t: '採掘に 100 連（秘石 5 つ以上確定）が加わる' },
   { id: 'blackAuction', name: '裏オークション', max: 1, cost: [80000], per: {}, t: '研磨工房に、品質の高い宝石が出る裏オークションが開く' },
