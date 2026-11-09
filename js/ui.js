@@ -1525,8 +1525,9 @@ export function hud(g) {
   if (g.rush) {
     // 周と、いま出ているボス（次のボスが出るまでは倒したボス）が 1 周の何体目か
     const n = g.rushOrder.length, c = g.rushCur ?? g.rushKills;
-    const lt = `${Math.floor(c / n) + 1} 周目 ・ ${(c % n) + 1} / ${n}`;
-    if (H.rushlap.textContent !== lt) H.rushlap.textContent = lt;
+    // BOSS モードは LV を出さないので、オートコレクトの印はここに付ける
+    const lt = `${Math.floor(c / n) + 1} 周目 ・ ${(c % n) + 1} / ${n}${g.autoOn ? '<span class="autotag">AUTO</span>' : ''}`;
+    if (H.rushlap.innerHTML !== lt) H.rushlap.innerHTML = lt;
   }
   if (g.kills !== lastKills) { H.kills.textContent = fmt(g.kills); lastKills = g.kills; }
   if (g.coins !== lastCoins) {
@@ -2079,7 +2080,7 @@ export function pauseMenu(g, onResume, onQuit) {
       <button class="btn big primary" id="resume">RESUME</button>
       <div class="rbtns" style="margin:0">
         ${g.train ? '<button class="btn" id="treset">数値リセット</button>' : ''}
-        ${g.stats.autoPick > 0 && !g.rush && !g.train ? `<button class="btn" id="autosel">オートコレクト ${g.autoPick ? 'ON' : 'OFF'}</button>` : ''}
+        ${g.stats.autoPick > 0 && !g.train ? `<button class="btn" id="autosel">オートコレクト ${g.autoPick ? 'ON' : 'OFF'}</button>` : ''}
         <button class="btn" id="set">設定</button>
         <button class="btn" id="quit">${g.train ? '装備を変える' : 'リタイア'}</button>
       </div>
