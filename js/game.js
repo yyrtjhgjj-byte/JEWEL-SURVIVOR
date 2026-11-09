@@ -1468,6 +1468,17 @@ export class Game {
         if (e.breakT > 0) e.breakT = 0; // ダウン中に境目まで削ったら、すぐ起き上がって形態変化する（被ダメージ 2 倍を無駄にしない）
       }
     }
+    // 渾沌の穴も AI で開くので、ブレイク中（AI が止まっている間）に削り切って穴を飛ばさないよう、次の穴の境目で止める。
+    // AI がまだ動いていない（再開した直後）なら、穴の数は HP から決める
+    if (e.ai === 'konton') {
+      const h = e.holes ?? Math.max(0, Math.min(6, Math.floor((1 - hp0 / e.maxHp) * 7)));
+      const floor = Math.min(hp0, (e.maxHp * (6 - h)) / 7 - 1);
+      if (h < 6 && e.hp < floor) {
+        dealt = Math.max(0, hp0 - floor);
+        e.hp = floor;
+        if (e.breakT > 0) e.breakT = 0;
+      }
+    }
     e.flash = 0.08;
     if (o.kb) {
       let kx = o.kx, ky = o.ky;
