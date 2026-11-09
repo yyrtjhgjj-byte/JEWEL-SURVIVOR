@@ -582,11 +582,13 @@ export const SONGS = {};
       { id: 'lead', type: 'inst', pan: -0.15, rev: 0.3, mml: `
         r1 | r1 | r1 | r1 | L
         @horn v13
-        o5 b4. g8 e4 b4 | b-4. f8 d4 b-4 | >e4. d8 <b4 g4 | f4. e8 d4 <b-4 | >c4. e8 g4 b4 | a+4. f+8 e4 c+4 | e4. g8 c4 a4 | b4 a4 f+4 d+4 |
+        o5 r8 e8 g8 a8 b2 | b-4. a8 f2 | r8 e8 g8 a8 b4 >e4 | d4. c8 <b-4 r4 |
+        g4 a8 b8 >c4. e8 | e2 d8 c+8 <a+4 | r8 a8 >c8 e8 d4. c8 | <b2. r4 |
         @tpt v12
-        b4. g8 e4 b4 | b-4. f8 d4 b-4 | >d4. c8 <b-4 g4 | a-4. f8 d-4 f4 | e4. g8 b4 >e4 | c+4. <a+8 f+4 e4 | e4 g4 >c4 e4 | d+2 f+4 <b4 |
+        r8 e8 g8 a8 b2 | b-4. a8 f4 d4 | r8 d8 g8 a8 b-4. a8 | a-2 f4 r4 |
+        r8 e8 g8 b8 >c4. d8 | e4. f+8 e8 d8 c+4 | c4. <b8 a4 g4 | f+2. r4 |
         @strings v13
-        o5 g4. a8 b4 >d4 | d-4. e-8 f4 a-4 | g4. f+8 d4 <b4 | >d-4. c8 <a-4 f4 | g4. b-8 >e-4 g4 | a4. e8 c+4 <a4 | >c4. <b-8 g4 e-4 | d+2 f+4 a4 |
+        o5 b2. a8 g8 | a-2 f4. e-8 | d2. g8 a8 | b-4 a-4 f2 | g2 b-4. >c8 | c+2 <a4 b4 | >c2 <b-4. a-8 | g4 f+2 r4 |
         @cha v12
         o4 b2 g2 | b-2 f2 | b2 >e2 | d2 <b-2 | >c2 e2 | c+2 <a+2 | b1 | b1 |` },
       { id: 'cnt', type: 'inst', pan: 0.25, rev: 0.3, mml: `
