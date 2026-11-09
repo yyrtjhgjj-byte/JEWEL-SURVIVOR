@@ -833,6 +833,207 @@ function seaEmperor(ctx, r, col, tool, eyeCol) {
   ctx.restore();
 }
 
+// ------------------------------------------------------------------ 第4章の絵の部品
+// 原点から離れた形（頭など）の体のグラデーション。bodyGrad と同じ色の付け方で、中心を (x, y) にする
+function gradAt(ctx, x, y, r, base) {
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.45, r * 0.1, x, y, r * 1.2);
+  g.addColorStop(0, mix(base, '#ffffff', 0.45));
+  g.addColorStop(0.6, base);
+  g.addColorStop(1, mix(base, '#000000', 0.55));
+  return g;
+}
+// 惑星（金属）の記号：sun ☉ / moon ☽ / mercury ☿ / venus ♀ / mars ♂ / jupiter ♃ / saturn ♄。線で描く（文字は端末で形が変わるため）
+function planetMark(ctx, x, y, s, kind, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = Math.max(1, s * 0.16);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const line = (x0, y0, x1, y1) => { ctx.beginPath(); ctx.moveTo(x0 * s, y0 * s); ctx.lineTo(x1 * s, y1 * s); ctx.stroke(); };
+  if (kind === 'sun') {
+    ctx.beginPath(); ctx.arc(0, 0, s * 0.7, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, s * 0.16, 0, TAU); ctx.fill();
+  } else if (kind === 'moon') {
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.75, Math.PI * 0.3, Math.PI * 1.7);
+    ctx.arc(s * 0.3, 0, s * 0.58, Math.PI * 1.6, Math.PI * 0.4, true);
+    ctx.closePath();
+    ctx.fill();
+  } else if (kind === 'venus' || kind === 'mercury') {
+    ctx.beginPath(); ctx.arc(0, -s * 0.25, s * 0.42, 0, TAU); ctx.stroke();
+    line(0, 0.17, 0, 0.95);
+    line(-0.32, 0.6, 0.32, 0.6);
+    if (kind === 'mercury') { ctx.beginPath(); ctx.arc(0, -s * 0.95, s * 0.32, Math.PI * 0.1, Math.PI * 0.9); ctx.stroke(); }
+  } else if (kind === 'mars') {
+    ctx.beginPath(); ctx.arc(-s * 0.15, s * 0.15, s * 0.45, 0, TAU); ctx.stroke();
+    line(0.17, -0.17, 0.75, -0.75);
+    line(0.75, -0.75, 0.3, -0.75);
+    line(0.75, -0.75, 0.75, -0.3);
+  } else if (kind === 'jupiter') {
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.6, -s * 0.55);
+    ctx.quadraticCurveTo(-s * 0.1, -s * 1.0, -s * 0.05, -s * 0.45);
+    ctx.quadraticCurveTo(-s * 0.1, -s * 0.05, -s * 0.65, s * 0.3);
+    ctx.lineTo(s * 0.75, s * 0.3);
+    ctx.stroke();
+    line(0.4, -0.85, 0.4, 0.95);
+  } else if (kind === 'saturn') {
+    line(-0.35, -0.95, -0.35, 0.55);
+    line(-0.7, -0.6, 0.05, -0.6);
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.35, -s * 0.05);
+    ctx.quadraticCurveTo(s * 0.45, -s * 0.45, s * 0.35, s * 0.3);
+    ctx.quadraticCurveTo(s * 0.25, s * 0.75, s * 0.6, s * 0.85);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// 七つの惑星の金属の王（2:00 の中ボス）。col が金属の色、planet が胸と杖の記号。
+// crown：king（とがった冠）・old（冠と白いひげ）・queen（丸い冠とヴェール）・wing（翼の帽子）・sun（光の冠）
+function metalKing(ctx, r, col, planet, crown) {
+  const light = mix(col, '#ffffff', 0.5), dark = mix(col, '#000000', 0.35);
+  // ヴェール（女王）
+  if (crown === 'queen') {
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.35, -r * 0.75);
+    ctx.quadraticCurveTo(-r * 0.75, -r * 0.1, -r * 0.7, r * 0.55);
+    ctx.lineTo(r * 0.7, r * 0.55);
+    ctx.quadraticCurveTo(r * 0.75, -r * 0.1, r * 0.35, -r * 0.75);
+    ctx.closePath();
+    ctx.fillStyle = rgba(light, 0.45);
+    ctx.fill();
+  }
+  // 外套
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.25, -r * 0.3);
+  ctx.quadraticCurveTo(-r * 1.15, r * 0.25, -r * 1.05, r * 1.12);
+  ctx.lineTo(r * 1.05, r * 1.12);
+  ctx.quadraticCurveTo(r * 1.15, r * 0.25, r * 0.25, -r * 0.3);
+  ctx.closePath();
+  ctx.fillStyle = bodyGrad(ctx, r * 1.1, dark);
+  ctx.fill();
+  ctx.strokeStyle = RIM;
+  ctx.lineWidth = r * 0.035;
+  ctx.stroke();
+  // 金属の胴（縦の光沢）
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.45, r * 1.08);
+  ctx.lineTo(-r * 0.5, -r * 0.18);
+  ctx.quadraticCurveTo(0, -r * 0.42, r * 0.5, -r * 0.18);
+  ctx.lineTo(r * 0.45, r * 1.08);
+  ctx.closePath();
+  const gm = ctx.createLinearGradient(-r * 0.5, 0, r * 0.5, 0);
+  gm.addColorStop(0, dark);
+  gm.addColorStop(0.42, light);
+  gm.addColorStop(0.55, col);
+  gm.addColorStop(1, dark);
+  ctx.fillStyle = gm;
+  ctx.fill();
+  ctx.stroke();
+  planetMark(ctx, 0, r * 0.38, r * 0.3, planet, '#fff6d0');
+  // 杖
+  ctx.strokeStyle = light;
+  ctx.lineWidth = r * 0.08;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(r * 0.88, r * 1.05);
+  ctx.lineTo(r * 0.88, -r * 0.62);
+  ctx.stroke();
+  glowBlob(ctx, r * 0.88, -r * 0.95, r * 0.42, light, 0.35);
+  planetMark(ctx, r * 0.88, -r * 0.95, r * 0.26, planet, '#ffffff');
+  // 頭
+  ctx.beginPath();
+  ctx.arc(0, -r * 0.58, r * 0.36, 0, TAU);
+  ctx.fillStyle = gradAt(ctx, 0, -r * 0.58, r * 0.36, mix(col, '#ffffff', 0.25));
+  ctx.fill();
+  ctx.strokeStyle = RIM;
+  ctx.lineWidth = r * 0.035;
+  ctx.stroke();
+  if (crown === 'old') {
+    // 白いひげ
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, -r * 0.48);
+    ctx.quadraticCurveTo(-r * 0.25, r * 0.05, 0, r * 0.15);
+    ctx.quadraticCurveTo(r * 0.25, r * 0.05, r * 0.3, -r * 0.48);
+    ctx.quadraticCurveTo(0, -r * 0.3, -r * 0.3, -r * 0.48);
+    ctx.fillStyle = '#e8e8f0';
+    ctx.fill();
+  }
+  // 冠
+  ctx.fillStyle = crown === 'sun' ? '#ffd23d' : light;
+  ctx.strokeStyle = RIM;
+  ctx.lineWidth = r * 0.03;
+  if (crown === 'king' || crown === 'old') {
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.34, -r * 0.82);
+    for (let i = 0; i <= 4; i++) {
+      const x = -r * 0.34 + (i / 4) * r * 0.68;
+      ctx.lineTo(x, -r * (i % 2 ? 1.0 : 1.18));
+      if (i < 4) ctx.lineTo(x + r * 0.085, -r * 0.98);
+    }
+    ctx.lineTo(r * 0.34, -r * 0.82);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  } else if (crown === 'queen') {
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.88, r * 0.32, r * 0.1, 0, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, -r * 1.02, r * 0.09, 0, TAU);
+    ctx.fill();
+  } else if (crown === 'wing') {
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.3, -r * 0.75);
+      ctx.quadraticCurveTo(s * r * 0.75, -r * 1.25, s * r * 0.85, -r * 1.05);
+      ctx.quadraticCurveTo(s * r * 0.65, -r * 0.95, s * r * 0.78, -r * 0.82);
+      ctx.quadraticCurveTo(s * r * 0.55, -r * 0.8, s * r * 0.3, -r * 0.62);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.82, r * 0.36, r * 0.16, 0, Math.PI, TAU);
+    ctx.fill();
+  } else if (crown === 'sun') {
+    for (let i = 0; i < 11; i++) {
+      const a = Math.PI * (1.08 + (i / 10) * 0.84);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - 0.08) * r * 0.36, -r * 0.58 + Math.sin(a - 0.08) * r * 0.36);
+      ctx.lineTo(Math.cos(a) * r * (i % 2 ? 0.62 : 0.78), -r * 0.58 + Math.sin(a) * r * (i % 2 ? 0.62 : 0.78));
+      ctx.lineTo(Math.cos(a + 0.08) * r * 0.36, -r * 0.58 + Math.sin(a + 0.08) * r * 0.36);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  eyes(ctx, 0, -r * 0.58, r * 0.16, { color: crown === 'sun' ? '#fff2a0' : '#ffffff', gap: 1.0 });
+}
+
+// 鳥の頭（横向きでなく正面。くちばしは下へ）
+function birdHead(ctx, x, y, s, col, beak, eyeCol) {
+  ctx.beginPath();
+  ctx.arc(x, y, s, 0, TAU);
+  ctx.fillStyle = gradAt(ctx, x, y, s, col);
+  ctx.fill();
+  ctx.strokeStyle = RIM;
+  ctx.lineWidth = s * 0.12;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x - s * 0.35, y + s * 0.2);
+  ctx.quadraticCurveTo(x, y + s * 0.05, x + s * 0.35, y + s * 0.2);
+  ctx.quadraticCurveTo(x + s * 0.12, y + s * 0.8, x, y + s * 1.05);
+  ctx.quadraticCurveTo(x - s * 0.12, y + s * 0.8, x - s * 0.35, y + s * 0.2);
+  ctx.closePath();
+  ctx.fillStyle = beak;
+  ctx.fill();
+  eyes(ctx, x, y - s * 0.15, s * 0.5, { color: eyeCol, gap: 1.0 });
+}
+
 const ENEMY_DRAW = {
   // トレーニングの木人：丸太の胴に腕木、頭は的
   dummy(ctx, r) {
@@ -4326,6 +4527,1591 @@ const ENEMY_DRAW = {
     drawGem(ctx, r * 0.11, GEMS.topaz);
     ctx.restore();
   },
+  // ================================================ 第4章：錬金術（共通の雑魚。ai なしで、ステージの tint で色が変わる）
+  sulphur(ctx, r, col) {
+    // 硫黄：でこぼこの黄色い塊（スライムの役）。硫黄は青い炎で燃える
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.35, -r * 0.55);
+    ctx.quadraticCurveTo(-r * 0.45, -r * 1.15, 0, -r * 1.55);
+    ctx.quadraticCurveTo(r * 0.08, -r * 1.1, r * 0.38, -r * 1.28);
+    ctx.quadraticCurveTo(r * 0.48, -r * 0.85, r * 0.35, -r * 0.55);
+    ctx.closePath();
+    ctx.fillStyle = '#5fb8ff';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.15, -r * 0.6);
+    ctx.quadraticCurveTo(-r * 0.12, -r * 1.02, r * 0.04, -r * 1.18);
+    ctx.quadraticCurveTo(r * 0.2, -r * 0.88, r * 0.15, -r * 0.6);
+    ctx.closePath();
+    ctx.fillStyle = '#e0f4ff';
+    ctx.fill();
+    ctx.beginPath();
+    const n = 14;
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * TAU;
+      const rr = r * (i % 2 ? 0.86 : 0.98);
+      const x = Math.cos(a) * rr, y = r * 0.12 + Math.sin(a) * rr * 0.86;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    shine(ctx, r);
+    eyes(ctx, 0, r * 0.08, r * 0.32, { color: '#ff7a2a' });
+  },
+  quicksilver(ctx, r, col) {
+    // 水銀：銀色の液体の粒（コウモリの役。蛇行して群れで来る）。小さな粒を連れている
+    for (const [x, y, s] of [[-r * 1.08, r * 0.5, 0.22], [r * 1.1, r * 0.35, 0.18], [-r * 0.75, -r * 0.85, 0.15]]) {
+      ctx.beginPath();
+      ctx.arc(x, y, r * s, 0, TAU);
+      ctx.fillStyle = mix(col, '#ffffff', 0.4);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.05);
+    ctx.bezierCurveTo(r * 0.55, -r * 0.55, r * 0.95, r * 0.05, r * 0.85, r * 0.45);
+    ctx.bezierCurveTo(r * 0.7, r * 0.98, -r * 0.7, r * 0.98, -r * 0.85, r * 0.45);
+    ctx.bezierCurveTo(-r * 0.95, r * 0.05, -r * 0.55, -r * 0.55, 0, -r * 1.05);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(-r, -r, r, r);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.35, mix(col, '#ffffff', 0.45));
+    g.addColorStop(0.62, mix(col, '#000000', 0.3));
+    g.addColorStop(1, mix(col, '#ffffff', 0.2));
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.08;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = r * 0.08;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(0, r * 0.2, r * 0.58, Math.PI * 1.1, Math.PI * 1.5);
+    ctx.stroke();
+    eyes(ctx, 0, r * 0.32, r * 0.28, { color: '#5fe0ff' });
+  },
+  salt(ctx, r, col) {
+    // 塩：透きとおった立方体の結晶（レイスの役）
+    const s = r * 0.95;
+    const face = (pts, c) => {
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * s, y * s) : ctx.moveTo(x * s, y * s)));
+      ctx.closePath();
+      ctx.fillStyle = c;
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.06;
+      ctx.stroke();
+    };
+    // 小さな結晶
+    ctx.save();
+    ctx.translate(r * 0.95, r * 0.75);
+    ctx.scale(0.35, 0.35);
+    face([[0, -1], [0.87, -0.5], [0, 0], [-0.87, -0.5]], mix(col, '#ffffff', 0.55));
+    face([[-0.87, -0.5], [0, 0], [0, 1], [-0.87, 0.5]], mix(col, '#ffffff', 0.15));
+    face([[0, 0], [0.87, -0.5], [0.87, 0.5], [0, 1]], mix(col, '#000000', 0.2));
+    ctx.restore();
+    ctx.globalAlpha = 0.95;
+    face([[0, -1], [0.87, -0.5], [0, 0], [-0.87, -0.5]], mix(col, '#ffffff', 0.6));
+    face([[-0.87, -0.5], [0, 0], [0, 1], [-0.87, 0.5]], mix(col, '#ffffff', 0.2));
+    face([[0, 0], [0.87, -0.5], [0.87, 0.5], [0, 1]], mix(col, '#000000', 0.15));
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = r * 0.05;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.55, -s * 0.38);
+    ctx.lineTo(-s * 0.2, -s * 0.18);
+    ctx.moveTo(-s * 0.1, -s * 0.72);
+    ctx.lineTo(s * 0.25, -s * 0.55);
+    ctx.stroke();
+    eyes(ctx, 0, s * 0.38, r * 0.26, { color: '#7fe8ff' });
+  },
+  misbirth(ctx, r, col) {
+    // 出来損ない：フラスコから這い出した小人（九尾狐の役：接触ダメージが高い）。大きな頭に小さな体、割れたガラスをかぶる
+    ctx.strokeStyle = mix(col, '#000000', 0.25);
+    ctx.lineCap = 'round';
+    ctx.lineWidth = r * 0.18;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.25, r * 0.45);
+      ctx.quadraticCurveTo(s * r * 0.75, r * 0.5, s * r * 0.95, r * 0.95);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.15, r * 0.75);
+      ctx.lineTo(s * r * 0.32, r * 1.25);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.6, r * 0.38, r * 0.35, 0, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, r * 0.6, r * 0.38, col);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.22, r * 0.85, r * 0.72, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, mix(col, '#ffffff', 0.12));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.7, -r * 0.62);
+    ctx.lineTo(-r * 0.45, -r * 1.18);
+    ctx.lineTo(-r * 0.15, -r * 0.92);
+    ctx.lineTo(r * 0.1, -r * 1.3);
+    ctx.lineTo(r * 0.35, -r * 0.98);
+    ctx.lineTo(r * 0.6, -r * 1.12);
+    ctx.lineTo(r * 0.72, -r * 0.6);
+    ctx.quadraticCurveTo(0, -r * 0.95, -r * 0.7, -r * 0.62);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(190,235,255,0.45)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(230,250,255,0.9)';
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    oneEye(ctx, -r * 0.32, -r * 0.18, r * 0.22, '#ff6a5f');
+    oneEye(ctx, r * 0.34, -r * 0.24, r * 0.15, '#ff6a5f');
+    ctx.strokeStyle = 'rgba(40,10,10,0.85)';
+    ctx.lineWidth = r * 0.06;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.25, r * 0.18);
+    ctx.quadraticCurveTo(0, r * 0.06, r * 0.25, r * 0.2);
+    ctx.stroke();
+  },
+  ashman(ctx, r, col) {
+    // 灰の人形：焼き尽くされた灰の人形（夔の役：鈍重でタフ）。ひびから残り火がのぞく
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.98, r * 0.18, r * 0.28, r * 0.55, s * 0.25, 0, TAU);
+      ctx.fillStyle = gradAt(ctx, s * r * 0.98, r * 0.18, r * 0.5, mix(col, '#000000', 0.12));
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.05;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.75, r * 0.98);
+    ctx.lineTo(-r * 0.86, -r * 0.3);
+    ctx.quadraticCurveTo(-r * 0.6, -r * 0.98, 0, -r * 0.98);
+    ctx.quadraticCurveTo(r * 0.6, -r * 0.98, r * 0.86, -r * 0.3);
+    ctx.lineTo(r * 0.75, r * 0.98);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    glowBlob(ctx, 0, r * 0.1, r * 0.9, '#ff7a3d', 0.16);
+    ctx.strokeStyle = '#ff8a3d';
+    ctx.lineWidth = r * 0.055;
+    ctx.lineCap = 'round';
+    for (const pts of [[[-0.5, -0.35], [-0.3, -0.05], [-0.48, 0.32]], [[0.42, 0.1], [0.2, 0.38], [0.36, 0.72]], [[-0.1, 0.5], [0.06, 0.78]]]) {
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * r, y * r) : ctx.moveTo(x * r, y * r)));
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(225,220,215,0.7)';
+    for (const [x, y] of [[-0.6, -0.78], [0.5, -0.9], [0.1, -1.15], [-0.28, -1.25], [0.32, -1.32]]) {
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, r * 0.055, 0, TAU);
+      ctx.fill();
+    }
+    eyes(ctx, 0, -r * 0.45, r * 0.24, { color: '#ff9a3d' });
+  },
+  leadknight(ctx, r, col) {
+    // 鉛の騎士：鉛の鎧の騎士（刑天の役）。盾に土星（鉛）の印、胸には金のしみ（いつか金になる夢）
+    ctx.save();
+    ctx.translate(r * 0.85, r * 0.1);
+    ctx.rotate(0.35);
+    ctx.fillStyle = '#c8ccd8';
+    ctx.fillRect(-r * 0.07, -r * 1.25, r * 0.14, r * 1.38);
+    ctx.fillStyle = mix(col, '#000000', 0.3);
+    ctx.fillRect(-r * 0.26, r * 0.1, r * 0.52, r * 0.11);
+    ctx.restore();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.55, r * 1.02);
+    ctx.lineTo(-r * 0.58, -r * 0.2);
+    ctx.lineTo(r * 0.58, -r * 0.2);
+    ctx.lineTo(r * 0.55, r * 1.02);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    ctx.fillStyle = '#ffd23d';
+    ctx.beginPath();
+    ctx.arc(r * 0.2, r * 0.38, r * 0.09, 0, TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.46, -r * 0.12);
+    ctx.lineTo(-r * 0.5, -r * 0.85);
+    ctx.quadraticCurveTo(0, -r * 1.28, r * 0.5, -r * 0.85);
+    ctx.lineTo(r * 0.46, -r * 0.12);
+    ctx.closePath();
+    ctx.fillStyle = gradAt(ctx, 0, -r * 0.6, r * 0.55, mix(col, '#ffffff', 0.12));
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(-r * 0.36, -r * 0.64, r * 0.72, r * 0.13);
+    eyes(ctx, 0, -r * 0.575, r * 0.17, { color: '#ffd23d', gap: 1.0 });
+    // 盾（手前）
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.18, -r * 0.35);
+    ctx.lineTo(-r * 0.52, -r * 0.45);
+    ctx.lineTo(-r * 0.52, r * 0.35);
+    ctx.quadraticCurveTo(-r * 0.72, r * 0.88, -r * 0.92, r * 0.98);
+    ctx.quadraticCurveTo(-r * 1.18, r * 0.6, -r * 1.18, -r * 0.35);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#ffffff', 0.2);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    planetMark(ctx, -r * 0.84, r * 0.15, r * 0.28, 'saturn', 'rgba(255,255,255,0.75)');
+  },
+  // ================================================ 第4章：ステージ専用の雑魚
+  hinoko(ctx, r, col) {
+    // 火の粉：炉から舞い上がった火の粉の精（遠距離型）
+    glowBlob(ctx, 0, 0, r * 1.5, '#ff8a3d', 0.35);
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.45);
+    ctx.quadraticCurveTo(r * 0.35, -r * 0.8, r * 0.9, -r * 0.65);
+    ctx.quadraticCurveTo(r * 0.75, -r * 0.2, r * 0.9, r * 0.3);
+    ctx.quadraticCurveTo(r * 0.6, r * 0.95, 0, r * 0.95);
+    ctx.quadraticCurveTo(-r * 0.6, r * 0.95, -r * 0.9, r * 0.3);
+    ctx.quadraticCurveTo(-r * 0.75, -r * 0.2, -r * 0.9, -r * 0.65);
+    ctx.quadraticCurveTo(-r * 0.35, -r * 0.8, 0, -r * 1.45);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, '#ff6a2a');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.25, r * 0.5, r * 0.55, 0, 0, TAU);
+    ctx.fillStyle = '#ffd23d';
+    ctx.fill();
+    eyes(ctx, 0, r * 0.2, r * 0.26, { color: '#7a1a0a', angry: true });
+    void col;
+  },
+  fuigo(ctx, r, col, f) {
+    // 鞴：炉に風を送る革の袋（突進型）。f=1 は息を吸い込んで膨らむ
+    const k = f === 1 ? 1.15 : 1;
+    ctx.fillStyle = '#7a5032';
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.15, s * r * 0.85 * k);
+      ctx.lineTo(r * 0.95, s * r * 0.75 * k);
+      ctx.lineTo(r * 1.15, s * r * 0.95 * k);
+      ctx.lineTo(-r * 0.25, s * r * 1.05 * k);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.2, -r * 0.85 * k);
+    ctx.quadraticCurveTo(r * 0.5, -r * 0.95 * k, r * 0.95, -r * 0.7 * k);
+    ctx.quadraticCurveTo(r * 1.1 * k, 0, r * 0.95, r * 0.7 * k);
+    ctx.quadraticCurveTo(r * 0.5, r * 0.95 * k, -r * 0.2, r * 0.85 * k);
+    ctx.quadraticCurveTo(-r * 0.6, 0, -r * 0.2, -r * 0.85 * k);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, '#a8784a');
+    ctx.fill();
+    ctx.stroke();
+    // 革のひだ
+    ctx.strokeStyle = 'rgba(60,30,15,0.6)';
+    ctx.lineWidth = r * 0.05;
+    for (const x of [0.2, 0.5]) {
+      ctx.beginPath();
+      ctx.moveTo(x * r, -r * 0.75 * k);
+      ctx.quadraticCurveTo((x + 0.12) * r, 0, x * r, r * 0.75 * k);
+      ctx.stroke();
+    }
+    // 吹き口
+    ctx.fillStyle = '#b8b8c0';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.4, -r * 0.18);
+    ctx.lineTo(-r * 1.4, -r * 0.08);
+    ctx.lineTo(-r * 1.4, r * 0.08);
+    ctx.lineTo(-r * 0.4, r * 0.18);
+    ctx.closePath();
+    ctx.fill();
+    eyes(ctx, r * 0.42, -r * 0.1, r * 0.24, { color: '#ffb03d' });
+    void col;
+  },
+  ousui(ctx, r, col) {
+    // 王水の雫：金をも溶かす酸の雫（遠距離型）。泡を立てている
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.35);
+    ctx.bezierCurveTo(r * 0.45, -r * 0.7, r * 0.95, -r * 0.1, r * 0.9, r * 0.35);
+    ctx.bezierCurveTo(r * 0.8, r * 1.0, -r * 0.8, r * 1.0, -r * 0.9, r * 0.35);
+    ctx.bezierCurveTo(-r * 0.95, -r * 0.1, -r * 0.45, -r * 0.7, 0, -r * 1.35);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, '#7fe83a');
+    ctx.globalAlpha = 0.92;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(240,255,220,0.8)';
+    ctx.lineWidth = r * 0.05;
+    for (const [x, y, s] of [[-0.35, 0.55, 0.14], [0.3, 0.65, 0.1], [0.45, -0.1, 0.12], [-0.5, -0.05, 0.08]]) {
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, s * r, 0, TAU);
+      ctx.stroke();
+    }
+    shine(ctx, r);
+    eyes(ctx, 0, r * 0.2, r * 0.28, { color: '#f0ff5f' });
+    void col;
+  },
+  shishiko(ctx, r, col, f) {
+    // 緑の獅子の仔（突進型）。f=1 は飛びかかる構え（口を開ける）
+    ctx.beginPath();
+    for (let i = 0; i <= 18; i++) {
+      const a = (i / 18) * TAU;
+      const rr = r * (i % 2 ? 0.95 : 1.15);
+      ctx.lineTo(Math.cos(a) * rr, -r * 0.05 + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#3f8a3a';
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.05, r * 0.68, r * 0.62, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.7, '#8fd85a');
+    ctx.fill();
+    ctx.stroke();
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(s * r * 0.45, -r * 0.5, r * 0.15, 0, TAU);
+      ctx.fillStyle = '#8fd85a';
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.32, r * 0.28, r * (f === 1 ? 0.22 : 0.14), 0, 0, TAU);
+    ctx.fillStyle = f === 1 ? '#2a0a10' : '#d8f0c0';
+    ctx.fill();
+    if (f === 1) { fang(ctx, -r * 0.12, r * 0.18, r * 0.07, r * 0.14); fang(ctx, r * 0.12, r * 0.18, r * 0.07, r * 0.14); }
+    eyes(ctx, 0, -r * 0.1, r * 0.22, { color: '#ffe85f', gap: 1.1 });
+    void col;
+  },
+  washiko(ctx, r, col, f) {
+    // 白鷲の雛（遠距離型。羽ばたく）
+    const up = f === 1;
+    for (const s of [-1, 1]) featherWing(ctx, s, r * 0.25, -r * 0.1, r * 1.5, up ? -r * 0.95 : -r * 0.15, r * 0.35, r * 0.4, 4, '#dfe6f4', r * 0.24);
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.15, r * 0.48, r * 0.6, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, '#f4f6ff');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    // うぶ毛
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = r * 0.06;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.1, -r * 0.85);
+    ctx.lineTo(-r * 0.05, -r * 1.1);
+    ctx.moveTo(r * 0.08, -r * 0.85);
+    ctx.lineTo(r * 0.16, -r * 1.08);
+    ctx.stroke();
+    birdHead(ctx, 0, -r * 0.48, r * 0.36, '#ffffff', '#ffc84a', '#3a5aff');
+    void col;
+  },
+  hiki(ctx, r, col, f) {
+    // 蟇：ひきがえる（突進型）。f=1 は跳びかかる構え
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.82, r * 0.55, r * 0.38, r * 0.24, s * 0.5, 0, TAU);
+      ctx.fillStyle = '#5a6a3a';
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.04;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.1, r * 1.0, r * (f === 1 ? 0.85 : 0.78), 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, '#7a8a4a');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    // いぼ
+    ctx.fillStyle = 'rgba(60,70,30,0.7)';
+    for (const [x, y, s] of [[-0.5, -0.25, 0.1], [0.45, -0.3, 0.08], [-0.15, 0.45, 0.07], [0.55, 0.3, 0.09], [-0.6, 0.25, 0.07]]) {
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, s * r, 0, TAU);
+      ctx.fill();
+    }
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(s * r * 0.42, -r * 0.55, r * 0.26, 0, TAU);
+      ctx.fillStyle = '#8a9a5a';
+      ctx.fill();
+      ctx.stroke();
+    }
+    oneEye(ctx, -r * 0.42, -r * 0.57, r * 0.17, '#ffd23d');
+    oneEye(ctx, r * 0.42, -r * 0.57, r * 0.17, '#ffd23d');
+    ctx.strokeStyle = 'rgba(30,30,10,0.85)';
+    ctx.lineWidth = r * 0.06;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.55, r * 0.05);
+    ctx.quadraticCurveTo(0, r * (f === 1 ? 0.35 : 0.2), r * 0.55, r * 0.05);
+    ctx.stroke();
+    void col;
+  },
+  kotaiyo(ctx, r, col) {
+    // 小さな太陽（遠距離型）：顔のある太陽
+    glowBlob(ctx, 0, 0, r * 1.6, '#ffd23d', 0.35);
+    ctx.fillStyle = '#ffb03d';
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * TAU;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - 0.14) * r * 0.75, Math.sin(a - 0.14) * r * 0.75);
+      ctx.lineTo(Math.cos(a) * r * (i % 2 ? 1.2 : 1.45), Math.sin(a) * r * (i % 2 ? 1.2 : 1.45));
+      ctx.lineTo(Math.cos(a + 0.14) * r * 0.75, Math.sin(a + 0.14) * r * 0.75);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.82, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.85, '#ffd23d');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.06;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,120,80,0.45)';
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * r * 0.45, r * 0.2, r * 0.13, 0, TAU); ctx.fill(); }
+    eyes(ctx, 0, -r * 0.08, r * 0.26, { color: '#a83a0a', angry: false });
+    ctx.strokeStyle = '#a83a0a';
+    ctx.lineWidth = r * 0.07;
+    ctx.beginPath();
+    ctx.arc(0, r * 0.2, r * 0.22, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+    void col;
+  },
+  kotsuki(ctx, r, col) {
+    // 小さな月（突進型）：顔のある三日月
+    glowBlob(ctx, 0, 0, r * 1.5, '#cfd8ff', 0.25);
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 1.05, Math.PI * 0.3, Math.PI * 1.7);
+    ctx.arc(r * 0.45, -r * 0.05, r * 0.8, Math.PI * 1.55, Math.PI * 0.45, true);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, '#dfe6ff');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(160,170,220,0.5)';
+    for (const [x, y, s] of [[-0.75, 0.35, 0.1], [-0.5, -0.6, 0.08]]) { ctx.beginPath(); ctx.arc(x * r, y * r, s * r, 0, TAU); ctx.fill(); }
+    oneEye(ctx, -r * 0.55, -r * 0.08, r * 0.17, '#5f7fff');
+    ctx.strokeStyle = '#3a3a7a';
+    ctx.lineWidth = r * 0.06;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.78, r * 0.25);
+    ctx.quadraticCurveTo(-r * 0.6, r * 0.35, -r * 0.45, r * 0.22);
+    ctx.stroke();
+    void col;
+  },
+  hane(ctx, r, col) {
+    // 孔雀の羽根（遠距離型）：目玉模様の羽根
+    ctx.strokeStyle = '#d8d0a0';
+    ctx.lineWidth = r * 0.08;
+    ctx.beginPath();
+    ctx.moveTo(0, r * 1.45);
+    ctx.quadraticCurveTo(r * 0.1, r * 0.4, 0, -r * 0.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.45);
+    ctx.bezierCurveTo(r * 1.05, -r * 1.1, r * 1.0, r * 0.4, 0, r * 0.95);
+    ctx.bezierCurveTo(-r * 1.0, r * 0.4, -r * 1.05, -r * 1.1, 0, -r * 1.45);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, '#2a8a6a');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    // 羽枝
+    ctx.strokeStyle = 'rgba(160,255,210,0.45)';
+    ctx.lineWidth = r * 0.03;
+    for (let i = -3; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, r * 0.7);
+      ctx.lineTo(i * r * 0.28, -r * 0.9);
+      ctx.stroke();
+    }
+    // 目玉模様
+    for (const [rr, c] of [[0.55, '#e8c040'], [0.42, '#2f6aa8'], [0.3, '#5fd0ff'], [0.16, '#1a1040']]) {
+      ctx.beginPath();
+      ctx.ellipse(0, -r * 0.4, r * rr * 0.9, r * rr, 0, 0, TAU);
+      ctx.fillStyle = c;
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    ctx.arc(-r * 0.05, -r * 0.48, r * 0.05, 0, TAU);
+    ctx.fill();
+    void col;
+  },
+  taru(ctx, r, col, f) {
+    // 葡萄酒の樽（突進型）：中で葡萄酒が発酵している。f=1 は転がる構え
+    ctx.save();
+    if (f === 1) ctx.rotate(-0.3);
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.75, -r * 0.95);
+    ctx.quadraticCurveTo(-r * 1.0, 0, -r * 0.75, r * 0.95);
+    ctx.lineTo(r * 0.75, r * 0.95);
+    ctx.quadraticCurveTo(r * 1.0, 0, r * 0.75, -r * 0.95);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, '#9a5a2a');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(60,30,10,0.6)';
+    ctx.lineWidth = r * 0.04;
+    for (const x of [-0.4, 0, 0.4]) {
+      ctx.beginPath();
+      ctx.moveTo(x * r, -r * 0.95);
+      ctx.quadraticCurveTo(x * r * 1.25, 0, x * r, r * 0.95);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#8a8a96';
+    ctx.lineWidth = r * 0.12;
+    for (const y of [-0.62, 0.62]) {
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.86, y * r);
+      ctx.lineTo(r * 0.86, y * r);
+      ctx.stroke();
+    }
+    // 栓からこぼれる葡萄酒
+    ctx.fillStyle = '#8a1a3a';
+    ctx.beginPath();
+    ctx.arc(r * 0.35, r * 0.2, r * 0.12, 0, TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(r * 0.3, r * 0.28);
+    ctx.quadraticCurveTo(r * 0.38, r * 0.6, r * 0.32, r * 0.75);
+    ctx.quadraticCurveTo(r * 0.45, r * 0.6, r * 0.4, r * 0.28);
+    ctx.fill();
+    eyes(ctx, -r * 0.1, -r * 0.2, r * 0.24, { color: '#ff5f9a' });
+    ctx.restore();
+    void col;
+  },
+  alembic(ctx, r, col) {
+    // 蒸留器（遠距離型）：銅の釜と、長い管の付いた兜（アランビック）
+    ctx.strokeStyle = '#6a4a30';
+    ctx.lineWidth = r * 0.1;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.45, r * 0.7);
+      ctx.lineTo(s * r * 0.7, r * 1.3);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(0, r * 0.3, r * 0.75, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.8, '#c8783a');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    // 兜と管
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.4, -r * 0.35);
+    ctx.quadraticCurveTo(0, -r * 1.2, r * 0.4, -r * 0.35);
+    ctx.closePath();
+    ctx.fillStyle = gradAt(ctx, 0, -r * 0.6, r * 0.45, '#d89a5a');
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#b8783a';
+    ctx.lineWidth = r * 0.13;
+    ctx.beginPath();
+    ctx.moveTo(r * 0.2, -r * 0.75);
+    ctx.quadraticCurveTo(r * 0.9, -r * 1.0, r * 1.4, -r * 0.2);
+    ctx.stroke();
+    // 湯気
+    ctx.fillStyle = 'rgba(230,248,255,0.8)';
+    for (const [x, y, s] of [[1.45, -0.05, 0.13], [1.35, 0.25, 0.09]]) { ctx.beginPath(); ctx.arc(x * r, y * r, s * r, 0, TAU); ctx.fill(); }
+    eyes(ctx, 0, r * 0.25, r * 0.26, { color: '#d0f0ff' });
+    void col;
+  },
+  retort(ctx, r, col, f) {
+    // レトルト（突進型）：首の曲がったガラスの蒸留瓶。中に青い液体。f=1 は突っ込む構え
+    ctx.save();
+    if (f === 1) ctx.rotate(0.25);
+    ctx.strokeStyle = 'rgba(200,240,255,0.85)';
+    ctx.lineWidth = r * 0.22;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(r * 0.2, -r * 0.55);
+    ctx.quadraticCurveTo(r * 0.5, -r * 1.35, r * 1.4, -r * 0.6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-r * 0.15, r * 0.2, r * 0.82, 0, TAU);
+    ctx.fillStyle = 'rgba(190,235,255,0.35)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(220,248,255,0.95)';
+    ctx.lineWidth = r * 0.07;
+    ctx.stroke();
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(-r * 0.15, r * 0.2, r * 0.75, 0, TAU);
+    ctx.clip();
+    ctx.fillStyle = '#3a8ae8';
+    ctx.fillRect(-r, r * 0.25, r * 2, r);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.45, -r * 0.2, r * 0.18, r * 0.08, -0.6, 0, TAU);
+    ctx.fill();
+    eyes(ctx, -r * 0.15, r * 0.05, r * 0.24, { color: '#ff5fa0' });
+    ctx.restore();
+    void col;
+  },
+  kakera(ctx, r, col) {
+    // 石のかけら（遠距離型）：生まれかけの賢者の石のかけら（赤い結晶）
+    glowBlob(ctx, 0, 0, r * 1.5, '#ff4a5f', 0.35);
+    ctx.save();
+    ctx.rotate(0.3);
+    drawGem(ctx, r * 1.05, { color: '#d82a4a', light: '#ffb0c0', dark: '#5a0a1a' }, 'long');
+    ctx.restore();
+    eyes(ctx, 0, r * 0.05, r * 0.26, { color: '#fff0a0' });
+    void col;
+  },
+  kogane(ctx, r, col, f) {
+    // 黄金虫（突進型）：太陽の玉を転がす黄金の甲虫。f=1 は突っ込む構え
+    // 太陽の玉
+    ctx.beginPath();
+    ctx.arc(0, -r * (f === 1 ? 1.05 : 0.95), r * 0.45, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, -r * (f === 1 ? 1.05 : 0.95), r * 0.45, '#ff9a3d');
+    ctx.fill();
+    glowBlob(ctx, 0, -r * 0.95, r * 0.7, '#ffd23d', 0.3);
+    ctx.strokeStyle = '#3a2a10';
+    ctx.lineWidth = r * 0.07;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) {
+      for (const y of [-0.15, 0.25, 0.65]) {
+        ctx.beginPath();
+        ctx.moveTo(s * r * 0.5, y * r);
+        ctx.lineTo(s * r * 1.05, (y - 0.25) * r);
+        ctx.lineTo(s * r * 1.25, (y + 0.05) * r);
+        ctx.stroke();
+      }
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.3, r * 0.68, r * 0.8, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.8, '#e8b030');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(90,50,0,0.6)';
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.2);
+    ctx.lineTo(0, r * 1.05);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.35, r * 0.4, r * 0.25, 0, 0, TAU);
+    ctx.fillStyle = '#b8801a';
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.38, r * 0.2, { color: '#ffffff', gap: 1.1 });
+    void col;
+  },
+  // ================================================ 第4章：中ボス（2:00 は七つの惑星の金属の王）
+  saturnus(ctx, r, col) { metalKing(ctx, r, col, 'saturn', 'old'); },
+  iuppiter(ctx, r, col) { metalKing(ctx, r, col, 'jupiter', 'king'); },
+  mars(ctx, r, col) { metalKing(ctx, r, col, 'mars', 'king'); },
+  venus(ctx, r, col) { metalKing(ctx, r, col, 'venus', 'queen'); },
+  mercurius(ctx, r, col) { metalKing(ctx, r, col, 'mercury', 'wing'); },
+  luna(ctx, r, col) { metalKing(ctx, r, col, 'moon', 'queen'); },
+  sol(ctx, r, col) { metalKing(ctx, r, col, 'sun', 'sun'); },
+  // 4:00 は四大精霊と錬金術の鳥
+  salamander(ctx, r, col) {
+    // サラマンダー：炎の中に棲む火蜥蜴。背中から炎が立つ
+    ctx.strokeStyle = mix(col, '#000000', 0.2);
+    ctx.lineWidth = r * 0.28;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, r * 0.6);
+    ctx.quadraticCurveTo(r * 0.2, r * 1.25, r * 0.9, r * 1.2);
+    ctx.quadraticCurveTo(r * 1.35, r * 1.1, r * 1.2, r * 0.7);
+    ctx.stroke();
+    for (const [s, y] of [[-1, -0.15], [1, -0.15], [-1, 0.55], [1, 0.55]]) {
+      ctx.strokeStyle = mix(col, '#000000', 0.15);
+      ctx.lineWidth = r * 0.16;
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.3, y * r);
+      ctx.lineTo(s * r * 0.85, (y - 0.15) * r);
+      ctx.lineTo(s * r * 1.0, (y + 0.15) * r);
+      ctx.stroke();
+    }
+    // 背中の炎
+    for (let i = 0; i < 5; i++) {
+      const y = -r * 0.55 + i * r * 0.28, h = r * (0.55 - i * 0.06);
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.18, y + r * 0.1);
+      ctx.quadraticCurveTo(-r * 0.32, y - h * 0.6, (i % 2 ? -1 : 1) * r * 0.12, y - h);
+      ctx.quadraticCurveTo(r * 0.3, y - h * 0.4, r * 0.18, y + r * 0.1);
+      ctx.closePath();
+      ctx.fillStyle = i % 2 ? '#ffd23d' : '#ff7a3d';
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.15, r * 0.42, r * 0.72, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.7, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 頭
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.72, r * 0.4, r * 0.34, 0, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, -r * 0.72, r * 0.4, mix(col, '#ffffff', 0.15));
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffd23d';
+    for (const [x, y] of [[-0.2, 0.1], [0.15, 0.4], [-0.1, 0.7]]) { ctx.beginPath(); ctx.arc(x * r, y * r, r * 0.07, 0, TAU); ctx.fill(); }
+    glowBlob(ctx, 0, -r * 0.2, r * 1.2, '#ff7a3d', 0.22);
+    eyes(ctx, 0, -r * 0.76, r * 0.18, { color: '#ffd23d', gap: 1.2 });
+  },
+  undine(ctx, r, col) {
+    // ウンディーネ：水の精霊。水の髪と、魚の尾
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.35, r * 0.2);
+    ctx.quadraticCurveTo(-r * 0.4, r * 0.9, r * 0.2, r * 1.15);
+    ctx.quadraticCurveTo(r * 0.75, r * 1.35, r * 1.05, r * 1.0);
+    ctx.quadraticCurveTo(r * 0.75, r * 1.05, r * 0.55, r * 0.95);
+    ctx.quadraticCurveTo(r * 0.3, r * 0.75, r * 0.35, r * 0.2);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, mix(col, '#2a8aa8', 0.4));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 水の髪
+    ctx.globalAlpha = 0.85;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.15, -r * 1.05);
+      ctx.bezierCurveTo(s * r * 1.0, -r * 1.1, s * r * 1.15, -r * 0.2, s * r * 0.85, r * 0.45);
+      ctx.bezierCurveTo(s * r * 0.75, r * 0.1, s * r * 0.55, -r * 0.4, s * r * 0.25, -r * 0.45);
+      ctx.closePath();
+      ctx.fillStyle = bodyGrad(ctx, r, '#5fd0ff');
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.35, r * 0.25);
+    ctx.quadraticCurveTo(-r * 0.4, -r * 0.3, 0, -r * 0.35);
+    ctx.quadraticCurveTo(r * 0.4, -r * 0.3, r * 0.35, r * 0.25);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 0.5, '#bfeaff');
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.65, r * 0.32, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, -r * 0.65, r * 0.32, '#dff4ff');
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = r * 0.04;
+    for (const [x, y, s] of [[-1.05, -0.6, 0.1], [1.15, -0.3, 0.08], [-0.9, 0.7, 0.07]]) { ctx.beginPath(); ctx.arc(x * r, y * r, s * r, 0, TAU); ctx.stroke(); }
+    eyes(ctx, 0, -r * 0.66, r * 0.15, { color: '#2a6aff', gap: 1.1, angry: false });
+    void col;
+  },
+  sylph(ctx, r, col) {
+    // シルフ：風の精霊。とんぼのような羽と、渦巻く風
+    ctx.strokeStyle = 'rgba(220,240,255,0.55)';
+    ctx.lineWidth = r * 0.05;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(0, r * 0.2, r * (0.95 + i * 0.22), Math.PI * (0.15 + i * 0.3), Math.PI * (0.85 + i * 0.3));
+      ctx.stroke();
+    }
+    for (const s of [-1, 1]) {
+      for (const [a, len, w] of [[-0.55, 1.45, 0.32], [0.25, 1.15, 0.26]]) {
+        ctx.save();
+        ctx.rotate(s * (Math.PI / 2 + a));
+        ctx.beginPath();
+        ctx.ellipse(0, -r * len * 0.55, r * w, r * len * 0.55, 0, 0, TAU);
+        ctx.fillStyle = 'rgba(200,235,255,0.5)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(240,250,255,0.9)';
+        ctx.lineWidth = r * 0.03;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.25, r * 0.95);
+    ctx.quadraticCurveTo(-r * 0.35, r * 0.1, 0, -r * 0.3);
+    ctx.quadraticCurveTo(r * 0.35, r * 0.1, r * 0.25, r * 0.95);
+    ctx.quadraticCurveTo(0, r * 1.2, -r * 0.25, r * 0.95);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 0.7, mix(col, '#e8f4ff', 0.6));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.55, r * 0.3, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, -r * 0.55, r * 0.3, '#f4faff');
+    ctx.fill();
+    ctx.stroke();
+    // 風になびく髪
+    ctx.strokeStyle = '#cfe8ff';
+    ctx.lineWidth = r * 0.07;
+    ctx.lineCap = 'round';
+    for (const k of [0, 1, 2]) {
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.15 + k * r * 0.12, -r * 0.8);
+      ctx.quadraticCurveTo(r * (0.3 + k * 0.2), -r * (1.15 + k * 0.08), r * (0.9 + k * 0.15), -r * (0.95 - k * 0.05));
+      ctx.stroke();
+    }
+    eyes(ctx, 0, -r * 0.55, r * 0.14, { color: '#5fd0ff', gap: 1.1, angry: false });
+    void col;
+  },
+  gnome(ctx, r, col) {
+    // ノーム：地の精霊。とんがり帽子とひげ、手には水晶
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.85, r * 1.05);
+    ctx.quadraticCurveTo(-r * 0.95, r * 0.1, -r * 0.5, -r * 0.2);
+    ctx.lineTo(r * 0.5, -r * 0.2);
+    ctx.quadraticCurveTo(r * 0.95, r * 0.1, r * 0.85, r * 1.05);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, mix(col, '#6a4a2a', 0.5));
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    ctx.fillStyle = '#3a2a1a';
+    ctx.fillRect(-r * 0.85, r * 0.45, r * 1.7, r * 0.14);
+    ctx.fillStyle = '#e8c040';
+    ctx.fillRect(-r * 0.12, r * 0.42, r * 0.24, r * 0.2);
+    // 顔とひげ
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.42, r * 0.36, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, -r * 0.42, r * 0.36, '#e8b890');
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.38, -r * 0.4);
+    ctx.quadraticCurveTo(-r * 0.4, r * 0.25, 0, r * 0.4);
+    ctx.quadraticCurveTo(r * 0.4, r * 0.25, r * 0.38, -r * 0.4);
+    ctx.quadraticCurveTo(0, -r * 0.15, -r * 0.38, -r * 0.4);
+    ctx.fillStyle = '#e8e4dc';
+    ctx.fill();
+    // とんがり帽子
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.48, -r * 0.6);
+    ctx.quadraticCurveTo(-r * 0.2, -r * 1.25, r * 0.35, -r * 1.55);
+    ctx.quadraticCurveTo(r * 0.3, -r * 1.1, r * 0.48, -r * 0.6);
+    ctx.closePath();
+    ctx.fillStyle = gradAt(ctx, 0, -r * 1.05, r * 0.5, '#a8402a');
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ff9a8a';
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.33, r * 0.08, 0, TAU);
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.47, r * 0.13, { color: '#ffd23d', gap: 1.2 });
+    // 水晶
+    ctx.save();
+    ctx.translate(r * 0.95, r * 0.15);
+    ctx.rotate(0.2);
+    drawGem(ctx, r * 0.38, GEMS.amethyst, 'long');
+    ctx.restore();
+    void col;
+  },
+  corvus(ctx, r, col) {
+    // 黒い鴉：腐敗（黒化）の始まりを告げる鴉。大きく翼を広げる
+    for (const s of [-1, 1]) {
+      featherWing(ctx, s, r * 0.3, -r * 0.3, r * 1.62, -r * 0.95, r * 0.45, r * 0.55, 6, '#16141e', r * 0.26);
+      featherWing(ctx, s, r * 0.3, -r * 0.2, r * 1.25, -r * 0.55, r * 0.4, r * 0.3, 4, '#2a2638', r * 0.2);
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, r * 0.5);
+    ctx.lineTo(-r * 0.35, r * 1.2);
+    ctx.lineTo(0, r * 1.05);
+    ctx.lineTo(r * 0.35, r * 1.2);
+    ctx.lineTo(r * 0.3, r * 0.5);
+    ctx.closePath();
+    ctx.fillStyle = '#1a1824';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.15, r * 0.45, r * 0.62, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, '#2e2a3e');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    birdHead(ctx, 0, -r * 0.48, r * 0.36, '#2e2a3e', '#3a3a48', '#ff3d3d');
+    void col;
+  },
+  pelican(ctx, r, col) {
+    // ペリカン：自らの胸を裂き、その血で雛を養う鳥
+    for (const s of [-1, 1]) featherWing(ctx, s, r * 0.3, -r * 0.2, r * 1.55, -r * 0.6, r * 0.45, r * 0.55, 5, '#e8ecf4', r * 0.22);
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.25, r * 0.55, r * 0.75, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.7, '#ffffff');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 胸の傷と、血のしずく
+    ctx.fillStyle = '#d82a3a';
+    ctx.beginPath();
+    ctx.moveTo(0, r * 0.05);
+    ctx.lineTo(-r * 0.08, r * 0.3);
+    ctx.lineTo(r * 0.02, r * 0.35);
+    ctx.closePath();
+    ctx.fill();
+    for (const [x, y, s] of [[0.0, 0.55, 0.07], [-0.08, 0.8, 0.05], [0.06, 1.0, 0.045]]) {
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, s * r, 0, TAU);
+      ctx.fill();
+    }
+    // 頭と長いくちばし（喉袋）
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.65, r * 0.3, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, -r * 0.65, r * 0.3, '#ffffff');
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.1, -r * 0.55);
+    ctx.lineTo(r * 0.1, -r * 0.55);
+    ctx.lineTo(r * 0.06, r * 0.05);
+    ctx.quadraticCurveTo(0, r * 0.15, -r * 0.06, r * 0.05);
+    ctx.closePath();
+    ctx.fillStyle = '#ffb03d';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.18, r * 0.09, r * 0.2, 0, 0, TAU);
+    ctx.fillStyle = '#ff8a5a';
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.72, r * 0.13, { color: '#3a3a3a', gap: 1.2, angry: false });
+    void col;
+  },
+  phoenix(ctx, r, col) {
+    // 不死鳥：炎の中から甦る赤い鳥（赤化）。炎の翼と長い尾羽
+    glowBlob(ctx, 0, 0, r * 1.6, '#ff5a3d', 0.3);
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, r * 0.5);
+      ctx.quadraticCurveTo(i * r * 0.3, r * 1.0, i * r * 0.45, r * 1.5);
+      ctx.quadraticCurveTo(i * r * 0.2 + r * 0.08, r * 1.0, r * 0.08, r * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = i % 2 ? '#ffd23d' : '#ff6a3d';
+      ctx.fill();
+    }
+    for (const s of [-1, 1]) {
+      featherWing(ctx, s, r * 0.3, -r * 0.25, r * 1.62, -r * 1.15, r * 0.45, r * 0.4, 6, '#e83a2a', r * 0.26);
+      featherWing(ctx, s, r * 0.3, -r * 0.2, r * 1.25, -r * 0.7, r * 0.4, r * 0.2, 4, '#ffb03d', r * 0.18);
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.1, r * 0.42, r * 0.6, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, '#ff5a3d');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 冠羽
+    ctx.fillStyle = '#ffd23d';
+    for (const s of [-1, 0, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.08, -r * 0.75);
+      ctx.quadraticCurveTo(s * r * 0.25, -r * 1.15, s * r * 0.15 + r * 0.02, -r * 1.3);
+      ctx.quadraticCurveTo(s * r * 0.05, -r * 1.0, s * r * 0.08 + r * 0.06, -r * 0.75);
+      ctx.fill();
+    }
+    birdHead(ctx, 0, -r * 0.5, r * 0.34, '#ff6a3d', '#ffd23d', '#fff2a0');
+    void col;
+  },
+  // ================================================ 第4章：最終ボス（錬金術の作業を象徴する獣たち）
+  leoruber(ctx, r, col, f) {
+    // 赤の獅子：燃える硫黄の獅子。たてがみは炎。f=1 は炎の息・飛びかかりの構え（口を開ける）
+    const open = f === 1;
+    for (let i = 0; i < 22; i++) {
+      const a = (i / 22) * TAU;
+      const L = r * (i % 2 ? 1.3 : 1.55);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - 0.2) * r * 0.75, -r * 0.05 + Math.sin(a - 0.2) * r * 0.75);
+      ctx.quadraticCurveTo(Math.cos(a - 0.05) * L * 0.85, -r * 0.05 + Math.sin(a - 0.05) * L * 0.85, Math.cos(a + 0.06) * L, -r * 0.05 + Math.sin(a + 0.06) * L);
+      ctx.quadraticCurveTo(Math.cos(a + 0.12) * L * 0.8, -r * 0.05 + Math.sin(a + 0.12) * L * 0.8, Math.cos(a + 0.2) * r * 0.75, -r * 0.05 + Math.sin(a + 0.2) * r * 0.75);
+      ctx.closePath();
+      ctx.fillStyle = i % 2 ? '#ffd23d' : '#ff6a2a';
+      ctx.fill();
+    }
+    glowBlob(ctx, 0, 0, r * 1.5, '#ff7a3d', 0.25);
+    // 前足
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.5, r * 1.0, r * 0.28, r * 0.18, 0, 0, TAU);
+      ctx.fillStyle = mix(col, '#ffffff', 0.15);
+      ctx.fill();
+      for (let k = -1; k <= 1; k++) fang(ctx, s * r * 0.5 + k * r * 0.1, r * 1.08, r * 0.06, r * 0.1);
+    }
+    // 顔
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.78, -r * 0.25);
+    ctx.quadraticCurveTo(-r * 0.75, -r * 0.85, 0, -r * 0.85);
+    ctx.quadraticCurveTo(r * 0.75, -r * 0.85, r * 0.78, -r * 0.25);
+    ctx.quadraticCurveTo(r * 0.85, r * 0.45, r * 0.4, r * 0.68);
+    ctx.quadraticCurveTo(0, r * 0.82, -r * 0.4, r * 0.68);
+    ctx.quadraticCurveTo(-r * 0.85, r * 0.45, -r * 0.78, -r * 0.25);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.85, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.035;
+    ctx.stroke();
+    // 鼻すじと鼻
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.12, -r * 0.35);
+    ctx.lineTo(-r * 0.2, r * 0.1);
+    ctx.quadraticCurveTo(0, r * 0.2, r * 0.2, r * 0.1);
+    ctx.lineTo(r * 0.12, -r * 0.35);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#ffffff', 0.2);
+    ctx.fill();
+    ctx.fillStyle = '#3a0a0a';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.14, r * 0.08);
+    ctx.lineTo(r * 0.14, r * 0.08);
+    ctx.lineTo(0, r * 0.2);
+    ctx.closePath();
+    ctx.fill();
+    // 口
+    if (open) {
+      ctx.beginPath();
+      ctx.ellipse(0, r * 0.45, r * 0.32, r * 0.22, 0, 0, TAU);
+      ctx.fillStyle = '#2a0606';
+      ctx.fill();
+      glowBlob(ctx, 0, r * 0.47, r * 0.3, '#ffd23d', 0.7);
+      fang(ctx, -r * 0.18, r * 0.27, r * 0.08, r * 0.18);
+      fang(ctx, r * 0.18, r * 0.27, r * 0.08, r * 0.18);
+      fang(ctx, -r * 0.15, r * 0.64, r * 0.07, r * 0.13, true);
+      fang(ctx, r * 0.15, r * 0.64, r * 0.07, r * 0.13, true);
+    } else {
+      ctx.strokeStyle = '#3a0a0a';
+      ctx.lineWidth = r * 0.04;
+      ctx.beginPath();
+      ctx.moveTo(0, r * 0.2);
+      ctx.lineTo(0, r * 0.35);
+      ctx.moveTo(-r * 0.28, r * 0.42);
+      ctx.quadraticCurveTo(-r * 0.12, r * 0.36, 0, r * 0.35);
+      ctx.quadraticCurveTo(r * 0.12, r * 0.36, r * 0.28, r * 0.42);
+      ctx.stroke();
+      fang(ctx, -r * 0.14, r * 0.36, r * 0.06, r * 0.13);
+      fang(ctx, r * 0.14, r * 0.36, r * 0.06, r * 0.13);
+    }
+    eyes(ctx, 0, -r * 0.32, r * (open ? 0.24 : 0.2), { color: '#ffd23d', gap: 1.3 });
+    ctx.save();
+    ctx.translate(0, -r * 0.66);
+    drawGem(ctx, r * 0.11, GEMS.ruby);
+    ctx.restore();
+  },
+  leoviridis(ctx, r, col, f) {
+    // 緑の獅子：太陽を喰らう獅子（金をも溶かす溶媒）。口に太陽をくわえ、血がしたたる。f=1 は太陽を呑み込む（太陽が輝く）
+    const open = f === 1;
+    ctx.beginPath();
+    for (let i = 0; i <= 28; i++) {
+      const a = (i / 28) * TAU;
+      const rr = r * (i % 2 ? 1.05 : 1.4);
+      ctx.lineTo(Math.cos(a) * rr, -r * 0.05 + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r * 1.4, '#2f7a2a');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.03;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.78, -r * 0.25);
+    ctx.quadraticCurveTo(-r * 0.75, -r * 0.85, 0, -r * 0.85);
+    ctx.quadraticCurveTo(r * 0.75, -r * 0.85, r * 0.78, -r * 0.25);
+    ctx.quadraticCurveTo(r * 0.85, r * 0.45, r * 0.4, r * 0.68);
+    ctx.quadraticCurveTo(0, r * 0.82, -r * 0.4, r * 0.68);
+    ctx.quadraticCurveTo(-r * 0.85, r * 0.45, -r * 0.78, -r * 0.25);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.85, col);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.12, -r * 0.35);
+    ctx.lineTo(-r * 0.2, r * 0.05);
+    ctx.quadraticCurveTo(0, r * 0.15, r * 0.2, r * 0.05);
+    ctx.lineTo(r * 0.12, -r * 0.35);
+    ctx.closePath();
+    ctx.fillStyle = mix(col, '#ffffff', 0.25);
+    ctx.fill();
+    ctx.fillStyle = '#0a2a0a';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.13, r * 0.03);
+    ctx.lineTo(r * 0.13, r * 0.03);
+    ctx.lineTo(0, r * 0.14);
+    ctx.closePath();
+    ctx.fill();
+    // 口の太陽
+    const sy = r * 0.52, sr = r * (open ? 0.36 : 0.3);
+    ctx.beginPath();
+    ctx.ellipse(0, sy, r * 0.42, r * (open ? 0.3 : 0.22), 0, 0, TAU);
+    ctx.fillStyle = '#1a0606';
+    ctx.fill();
+    glowBlob(ctx, 0, sy, sr * 2.2, '#ffd23d', open ? 0.8 : 0.45);
+    ctx.fillStyle = '#ffb03d';
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * TAU;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - 0.2) * sr * 0.8, sy + Math.sin(a - 0.2) * sr * 0.8);
+      ctx.lineTo(Math.cos(a) * sr * 1.35, sy + Math.sin(a) * sr * 1.35);
+      ctx.lineTo(Math.cos(a + 0.2) * sr * 0.8, sy + Math.sin(a + 0.2) * sr * 0.8);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(0, sy, sr * 0.8, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, sy, sr * 0.8, '#ffd23d');
+    ctx.fill();
+    fang(ctx, -r * 0.22, sy - r * 0.2, r * 0.08, r * 0.17);
+    fang(ctx, r * 0.22, sy - r * 0.2, r * 0.08, r * 0.17);
+    // したたる血
+    ctx.fillStyle = '#c81a2a';
+    for (const [x, y, s] of [[-0.3, 0.86, 0.05], [0.28, 0.92, 0.045], [-0.26, 1.04, 0.035]]) {
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, s * r, 0, TAU);
+      ctx.fill();
+    }
+    eyes(ctx, 0, -r * 0.34, r * 0.21, { color: '#d8ff5f', gap: 1.3 });
+    ctx.save();
+    ctx.translate(0, -r * 0.66);
+    drawGem(ctx, r * 0.11, GEMS.emerald);
+    ctx.restore();
+  },
+  bufo(ctx, r, col, f) {
+    // 大蟇：大地の重いもの。f=0・1 は背に白鷲をのせる（1 は跳ぶ構え・口を開ける）、f=2・3 は鷲が飛び立った後
+    const eagle = f < 2, open = f % 2 === 1;
+    if (eagle) {
+      // 背の白鷲（翼を広げる）
+      for (const s of [-1, 1]) featherWing(ctx, s, r * 0.2, -r * 0.85, r * 1.5, -r * 1.5, r * 0.45, -r * 0.6, 5, '#e8eef8', r * 0.2);
+      birdHead(ctx, 0, -r * 1.2, r * 0.26, '#ffffff', '#ffc84a', '#3a5aff');
+    }
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * r * 0.95, r * 0.75, r * 0.42, r * 0.26, s * 0.4, 0, TAU);
+      ctx.fillStyle = mix(col, '#000000', 0.15);
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.03;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.2, r * 1.15, r * (open ? 0.92 : 0.85), 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 1.1, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(40,40,15,0.55)';
+    for (const [x, y, s] of [[-0.6, -0.15, 0.09], [0.55, -0.2, 0.08], [-0.2, 0.55, 0.07], [0.6, 0.35, 0.09], [-0.75, 0.3, 0.07], [0.25, 0.05, 0.06], [-0.35, 0.15, 0.05]]) {
+      ctx.beginPath();
+      ctx.arc(x * r, y * r, s * r, 0, TAU);
+      ctx.fill();
+    }
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(s * r * 0.48, -r * 0.5, r * 0.26, 0, TAU);
+      ctx.fillStyle = mix(col, '#ffffff', 0.15);
+      ctx.fill();
+      ctx.stroke();
+      oneEye(ctx, s * r * 0.48, -r * 0.52, r * 0.18, '#ffd23d');
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.75, r * 0.2);
+    ctx.quadraticCurveTo(0, r * (open ? 0.75 : 0.45), r * 0.75, r * 0.2);
+    if (open) {
+      ctx.quadraticCurveTo(0, r * 0.3, -r * 0.75, r * 0.2);
+      ctx.fillStyle = '#3a0a14';
+      ctx.fill();
+      ctx.fillStyle = '#ff8aa0';
+      ctx.beginPath();
+      ctx.ellipse(0, r * 0.5, r * 0.18, r * 0.1, 0, 0, TAU);
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = 'rgba(30,30,10,0.85)';
+      ctx.lineWidth = r * 0.04;
+      ctx.stroke();
+    }
+    ctx.save();
+    ctx.translate(0, -r * 0.18);
+    drawGem(ctx, r * 0.1, GEMS.jasper || GEMS.garnet);
+    ctx.restore();
+  },
+  aquila(ctx, r, col, f) {
+    // 白鷲：大蟇の背から飛び立った白い鷲（揮発するもの）。羽ばたく
+    const up = f === 1;
+    for (const s of [-1, 1]) {
+      featherWing(ctx, s, r * 0.3, -r * 0.2, r * 1.62, up ? -r * 1.2 : -r * 0.35, r * 0.45, r * 0.45, 6, '#e8eef8', r * 0.24);
+      featherWing(ctx, s, r * 0.3, -r * 0.15, r * 1.2, up ? -r * 0.8 : -r * 0.15, r * 0.4, r * 0.25, 4, '#ffffff', r * 0.18);
+    }
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.28, r * 0.5);
+    ctx.lineTo(-r * 0.4, r * 1.2);
+    ctx.lineTo(0, r * 1.05);
+    ctx.lineTo(r * 0.4, r * 1.2);
+    ctx.lineTo(r * 0.28, r * 0.5);
+    ctx.closePath();
+    ctx.fillStyle = '#f4f6ff';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.12, r * 0.42, r * 0.6, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, '#ffffff');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    birdHead(ctx, 0, -r * 0.5, r * 0.34, '#ffffff', '#ffc84a', '#ffb03d');
+    ctx.save();
+    ctx.translate(0, r * 0.15);
+    drawGem(ctx, r * 0.12, GEMS.diamond);
+    ctx.restore();
+    void col;
+  },
+  rebis(ctx, r, col, f) {
+    // レビス：太陽の王と月の女王が結ばれた、二つの頭を持つ者。左は金の翼と日の頭、右は銀の翼と月の頭。
+    // f=0 は日の頭が、f=1 は月の頭が目覚める。f=2 は両方
+    const sunOn = f !== 1, moonOn = f !== 0;
+    featherWing(ctx, -1, r * 0.35, -r * 0.3, r * 1.6, -r * 1.0, r * 0.5, r * 0.45, 5, '#d8a830', r * 0.24);
+    featherWing(ctx, 1, r * 0.35, -r * 0.3, r * 1.6, -r * 1.0, r * 0.5, r * 0.45, 5, '#a8b0c8', r * 0.24);
+    // 衣（左が金、右が銀）
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.35);
+    ctx.lineTo(-r * 0.55, -r * 0.25);
+    ctx.quadraticCurveTo(-r * 0.85, r * 0.6, -r * 0.7, r * 1.15);
+    ctx.lineTo(0, r * 1.15);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, '#e8b830');
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.35);
+    ctx.lineTo(r * 0.55, -r * 0.25);
+    ctx.quadraticCurveTo(r * 0.85, r * 0.6, r * 0.7, r * 1.15);
+    ctx.lineTo(0, r * 1.15);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, '#c8d0e8');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.035;
+    ctx.stroke();
+    planetMark(ctx, -r * 0.3, r * 0.45, r * 0.22, 'sun', '#7a4a0a');
+    planetMark(ctx, r * 0.3, r * 0.45, r * 0.22, 'moon', '#3a4a7a');
+    // 二つの頭
+    for (const [s, sun] of [[-1, true], [1, false]]) {
+      const on = sun ? sunOn : moonOn;
+      const x = s * r * 0.36, y = -r * 0.62;
+      if (on) glowBlob(ctx, x, y, r * 0.7, sun ? '#ffd23d' : '#cfd8ff', 0.5);
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.3, 0, TAU);
+      ctx.fillStyle = gradAt(ctx, x, y, r * 0.3, sun ? '#ffe0a0' : '#e8ecff');
+      ctx.fill();
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = r * 0.03;
+      ctx.stroke();
+      if (sun) {
+        ctx.fillStyle = '#ffd23d';
+        for (let i = 0; i < 9; i++) {
+          const a = Math.PI * (1.1 + (i / 8) * 0.8);
+          ctx.beginPath();
+          ctx.moveTo(x + Math.cos(a - 0.1) * r * 0.3, y + Math.sin(a - 0.1) * r * 0.3);
+          ctx.lineTo(x + Math.cos(a) * r * (i % 2 ? 0.5 : 0.62), y + Math.sin(a) * r * (i % 2 ? 0.5 : 0.62));
+          ctx.lineTo(x + Math.cos(a + 0.1) * r * 0.3, y + Math.sin(a + 0.1) * r * 0.3);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = '#e8ecff';
+        ctx.beginPath();
+        ctx.arc(x, y - r * 0.42, r * 0.2, Math.PI * 0.1, Math.PI * 0.9, true);
+        ctx.arc(x, y - r * 0.5, r * 0.17, Math.PI * 0.85, Math.PI * 0.15);
+        ctx.closePath();
+        ctx.fill();
+      }
+      if (on) eyes(ctx, x, y, r * 0.13, { color: sun ? '#ff7a2a' : '#5f7fff', gap: 1.0 });
+      else {
+        ctx.strokeStyle = 'rgba(60,40,40,0.8)';
+        ctx.lineWidth = r * 0.03;
+        for (const k of [-1, 1]) {
+          ctx.beginPath();
+          ctx.arc(x + k * r * 0.12, y - r * 0.02, r * 0.06, 0.2, Math.PI - 0.2);
+          ctx.stroke();
+        }
+      }
+    }
+    void col;
+  },
+  pavo(ctx, r, col, f) {
+    // 孔雀：発酵の終わりに現れる、虹色の尾を持つ孔雀（孔雀の尾）。f=1 は尾を広げて目玉模様から光線
+    const fan = f === 1;
+    if (fan) {
+      for (let i = 0; i < 15; i++) {
+        const a = Math.PI * (1.02 + (i / 14) * 0.96);
+        const L = r * 1.62;
+        ctx.save();
+        ctx.rotate(a + Math.PI / 2);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(r * 0.28, -L * 0.6, 0, -L);
+        ctx.quadraticCurveTo(-r * 0.28, -L * 0.6, 0, 0);
+        ctx.fillStyle = i % 2 ? '#1f8a6a' : '#2a7aa0';
+        ctx.fill();
+        for (const [rr, c] of [[0.2, '#e8c040'], [0.15, '#2f6aa8'], [0.1, '#5fd0ff'], [0.05, '#1a1040']]) {
+          ctx.beginPath();
+          ctx.ellipse(0, -L * 0.85, r * rr * 0.8, r * rr, 0, 0, TAU);
+          ctx.fillStyle = c;
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    } else {
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * r * 0.05, r * 0.5);
+        ctx.quadraticCurveTo(i * r * 0.25, r * 1.1, i * r * 0.3, r * 1.6);
+        ctx.quadraticCurveTo(i * r * 0.12, r * 1.1, i * r * 0.05 + r * 0.1, r * 0.5);
+        ctx.closePath();
+        ctx.fillStyle = i % 2 ? '#1f8a6a' : '#2a7aa0';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(i * r * 0.27, r * 1.42, r * 0.08, r * 0.1, 0, 0, TAU);
+        ctx.fillStyle = '#e8c040';
+        ctx.fill();
+      }
+    }
+    for (const s of [-1, 1]) featherWing(ctx, s, r * 0.25, -r * 0.1, r * 0.95, r * 0.15, r * 0.3, r * 0.55, 4, '#2a5a8a', r * 0.18);
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.2, r * 0.4, r * 0.6, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.6, '#2a6ad8');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.035;
+    ctx.stroke();
+    // 首と頭と冠羽
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.16, -r * 0.2);
+    ctx.quadraticCurveTo(-r * 0.2, -r * 0.55, -r * 0.05, -r * 0.75);
+    ctx.lineTo(r * 0.12, -r * 0.7);
+    ctx.quadraticCurveTo(r * 0.1, -r * 0.45, r * 0.16, -r * 0.2);
+    ctx.closePath();
+    ctx.fillStyle = '#2a7ae8';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.8, r * 0.2, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, -r * 0.8, r * 0.2, '#3a8af0');
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#5fd0ff';
+    ctx.lineWidth = r * 0.025;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.95);
+      ctx.lineTo(i * r * 0.1, -r * 1.25);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(i * r * 0.1, -r * 1.27, r * 0.035, 0, TAU);
+      ctx.fillStyle = '#5fd0ff';
+      ctx.fill();
+    }
+    ctx.fillStyle = '#e8d8a0';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.05, -r * 0.75);
+    ctx.lineTo(r * 0.05, -r * 0.75);
+    ctx.lineTo(0, -r * 0.62);
+    ctx.closePath();
+    ctx.fill();
+    eyes(ctx, 0, -r * 0.83, r * 0.09, { color: '#ffffff', gap: 1.1 });
+    ctx.save();
+    ctx.translate(0, r * 0.15);
+    drawGem(ctx, r * 0.12, GEMS.opal);
+    ctx.restore();
+    void col;
+  },
+  homunculus(ctx, r, col, f) {
+    // ホムンクルス：フラスコの中で生まれた小人。f=0 はフラスコの中、f=1 はひびが入る、f=2 はフラスコが割れて外へ出てくる
+    const broken = f === 2;
+    const fy = r * 0.25;
+    if (!broken) {
+      // 首とガラスの球
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.2, -r * 1.4);
+      ctx.lineTo(-r * 0.2, -r * 0.62);
+      ctx.lineTo(r * 0.2, -r * 0.62);
+      ctx.lineTo(r * 0.2, -r * 1.4);
+      ctx.fillStyle = 'rgba(190,230,255,0.3)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(220,245,255,0.9)';
+      ctx.lineWidth = r * 0.04;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, fy, r * 0.95, 0, TAU);
+      ctx.fillStyle = 'rgba(170,220,255,0.22)';
+      ctx.fill();
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(0, fy, r * 0.9, 0, TAU);
+      ctx.clip();
+      const lg = ctx.createLinearGradient(0, fy, 0, fy + r);
+      lg.addColorStop(0, 'rgba(120,230,200,0.75)');
+      lg.addColorStop(1, 'rgba(40,140,160,0.85)');
+      ctx.fillStyle = lg;
+      ctx.fillRect(-r, fy + r * 0.05, r * 2, r);
+      ctx.restore();
+    }
+    // 小人（フラスコの中では丸まって小さく、外では大きく立つ）
+    ctx.save();
+    ctx.translate(0, broken ? 0 : fy);
+    ctx.scale(broken ? 1.25 : 0.75, broken ? 1.25 : 0.75);
+    ctx.strokeStyle = '#e8b0a8';
+    ctx.lineWidth = r * 0.14;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.2, r * 0.05);
+      ctx.quadraticCurveTo(s * r * 0.55, r * (broken ? 0.1 : 0.25), s * r * 0.5, r * (broken ? -0.3 : 0.4));
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.12, r * 0.42);
+      ctx.lineTo(s * r * 0.22, r * 0.78);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.2, r * 0.25, r * 0.32, 0, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r * 0.3, '#f0c0b8');
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.3, r * 0.32, 0, TAU);
+    ctx.fillStyle = gradAt(ctx, 0, -r * 0.3, r * 0.32, '#f8d0c8');
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.03;
+    ctx.stroke();
+    eyes(ctx, 0, -r * 0.3, r * 0.14, { color: broken ? '#ff3d6a' : '#5fe0ff', gap: 1.0, angry: broken });
+    ctx.restore();
+    if (!broken) {
+      // ガラスの光
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = r * 0.05;
+      ctx.beginPath();
+      ctx.arc(0, fy, r * 0.8, Math.PI * 1.1, Math.PI * 1.45);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, fy, r * 0.95, 0, TAU);
+      ctx.strokeStyle = 'rgba(220,245,255,0.95)';
+      ctx.lineWidth = r * 0.045;
+      ctx.stroke();
+      if (f === 1) {
+        // ひび
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = r * 0.03;
+        for (const pts of [[[0.5, -0.45], [0.3, -0.1], [0.45, 0.2], [0.25, 0.45]], [[-0.7, 0.1], [-0.4, 0.25], [-0.55, 0.55]], [[0.1, 1.0], [0.0, 0.75], [0.2, 0.6]]]) {
+          ctx.beginPath();
+          pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * r, fy + y * r) : ctx.moveTo(x * r, fy + y * r)));
+          ctx.stroke();
+        }
+      }
+    } else {
+      // 割れたガラスの破片
+      ctx.fillStyle = 'rgba(200,240,255,0.55)';
+      ctx.strokeStyle = 'rgba(235,250,255,0.95)';
+      ctx.lineWidth = r * 0.025;
+      for (const [x, y, s, a] of [[-1.0, 0.9, 0.3, 0.3], [0.95, 0.85, 0.35, -0.4], [-0.6, 1.2, 0.22, 1.2], [0.5, 1.2, 0.25, 2.0], [1.2, 0.1, 0.18, 0.8], [-1.25, 0.2, 0.2, -0.6]]) {
+        ctx.save();
+        ctx.translate(x * r, y * r);
+        ctx.rotate(a);
+        ctx.beginPath();
+        ctx.moveTo(-s * r, 0);
+        ctx.lineTo(0, -s * r * 0.6);
+        ctx.lineTo(s * r * 0.7, s * r * 0.3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      glowBlob(ctx, 0, 0, r * 1.2, '#ff3d6a', 0.2);
+    }
+    ctx.save();
+    ctx.translate(0, broken ? -r * 0.92 : -r * 1.45);
+    drawGem(ctx, r * 0.1, GEMS.aquamarine);
+    ctx.restore();
+    void col;
+  },
+  ouroboros(ctx, r, col) {
+    // ウロボロス：己の尾を噛む蛇の頭。金と緑の鱗、赤い目
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.2);
+    ctx.bezierCurveTo(r * 0.85, -r * 1.15, r * 1.05, -r * 0.2, r * 0.75, r * 0.45);
+    ctx.quadraticCurveTo(r * 0.45, r * 0.95, 0, r * 1.0);
+    ctx.quadraticCurveTo(-r * 0.45, r * 0.95, -r * 0.75, r * 0.45);
+    ctx.bezierCurveTo(-r * 1.05, -r * 0.2, -r * 0.85, -r * 1.15, 0, -r * 1.2);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad(ctx, r, col);
+    ctx.fill();
+    ctx.strokeStyle = RIM;
+    ctx.lineWidth = r * 0.04;
+    ctx.stroke();
+    // 鱗
+    ctx.strokeStyle = 'rgba(255,230,140,0.45)';
+    ctx.lineWidth = r * 0.03;
+    for (let row = 0; row < 4; row++) {
+      for (let k = -2; k <= 2; k++) {
+        const x = k * r * 0.28 + (row % 2) * r * 0.14, y = -r * 0.8 + row * r * 0.28;
+        if (Math.abs(x) > r * 0.7 - row * r * 0.05) continue;
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.13, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+      }
+    }
+    // 口と牙（尾を噛んでいる）
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.62, r * 0.42, r * 0.24, 0, 0, TAU);
+    ctx.fillStyle = '#3a0a12';
+    ctx.fill();
+    fang(ctx, -r * 0.22, r * 0.45, r * 0.09, r * 0.24);
+    fang(ctx, r * 0.22, r * 0.45, r * 0.09, r * 0.24);
+    eyes(ctx, 0, -r * 0.18, r * 0.24, { color: '#ff3d4a', gap: 1.5 });
+    ctx.save();
+    ctx.translate(0, -r * 0.72);
+    drawGem(ctx, r * 0.15, GEMS.ruby);
+    ctx.restore();
+  },
+  ouroseg(ctx, r) {
+    // ウロボロスの胴：金と緑の鱗の輪
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, TAU);
+    ctx.fillStyle = bodyGrad(ctx, r, '#3a8a4a');
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,220,120,0.8)';
+    ctx.lineWidth = r * 0.12;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.7);
+    ctx.lineTo(r * 0.55, 0);
+    ctx.lineTo(0, r * 0.7);
+    ctx.lineTo(-r * 0.55, 0);
+    ctx.closePath();
+    ctx.fillStyle = '#d8b040';
+    ctx.fill();
+    ctx.fillStyle = '#7a1a1a';
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.16, 0, TAU);
+    ctx.fill();
+  },
   crystal(ctx, r) {
     const cols = [
       { color: '#ffd6f5', light: '#ffffff', dark: '#d07bb8' },
@@ -4435,6 +6221,12 @@ const ENEMY_COLORS = {
   hippou: '#3a6ab8', yokko: '#3a4a6a', bunyo: '#3a7ab0', tsuchi: '#7a5a3a', kanae: '#4f8a72', seicho: '#3a7ad8', houkyou: '#c8c0b0', maiko: '#f0b030', nomi: '#9aa0b0',
   kyuei: '#4a3a5a', taifu: '#4a5a7a', fuki: '#5a3a2a', shuda: '#2a4a3a', atsuyu: '#8a2a2a', sakushi: '#6a5a4a', shuku: '#a83a2a', kotsu: '#2a2a5a',
   kyuki: '#2a3a5a', tokotsu: '#3a4a3a', totetsu: '#3f6a5a', konton: '#f0b030',
+  sulphur: '#b8902a', quicksilver: '#8a90a0', salt: '#a8b0c0', misbirth: '#a07a6a', ashman: '#6a6460', leadknight: '#4a4e5a',
+  hinoko: '#ff6a2a', fuigo: '#a8784a', ousui: '#7fe83a', shishiko: '#8fd85a', washiko: '#f4f6ff', hiki: '#7a8a4a', kotaiyo: '#ffd23d', kotsuki: '#dfe6ff',
+  hane: '#2a8a6a', taru: '#9a5a2a', alembic: '#c8783a', retort: '#3a8ae8', kakera: '#d82a4a', kogane: '#e8b030',
+  saturnus: '#5a5e6a', iuppiter: '#8a96a8', mars: '#8a4a40', venus: '#c8784a', mercurius: '#b8c0d0', luna: '#c8d0e8', sol: '#e8b830',
+  salamander: '#c83a1a', undine: '#3a8ab8', sylph: '#c8e0f0', gnome: '#6a4a2a', corvus: '#2e2a3e', pelican: '#e8ecf4', phoenix: '#e83a2a',
+  leoruber: '#c8402a', leoviridis: '#4a9a3a', bufo: '#6a7a3a', aquila: '#e8eef8', rebis: '#c8a860', pavo: '#2a6ad8', homunculus: '#a8d8f0', ouroboros: '#3a8a4a', ouroseg: '#3a8a4a',
 };
 
 // ------------------------------------------------------------------ プレイヤー

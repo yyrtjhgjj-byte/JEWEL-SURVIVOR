@@ -491,6 +491,13 @@ function migrateSave() {
     }
     persist();
   }
+  // CHAOS は全ステージのクリアで開き、一度開いたら閉じない（save.chaosOpen）。第4章を足す前に第3章までをすべて
+  // クリアしていたセーブは、第4章が増えても開いたままにする
+  if (!mig.chaos4) {
+    mig.chaos4 = true;
+    if (STAGES.filter((st) => st.chapter <= 3).every((st) => (save.stages[st.id] || {}).cleared)) save.chaosOpen = true;
+    persist();
+  }
   // 解放条件を実績に移したキャラ：すでにその実績を持っていれば解放しておく
   for (const a of ACHIEVEMENTS) {
     if (a.unlock && save.achievements[a.id] && !save.unlocked[a.unlock]) {
