@@ -1548,9 +1548,11 @@ export function hud(g) {
   if (key !== lastSlots) {
     lastSlots = key;
     const empty = (n, max) => '<div class="slotico empty"></div>'.repeat(Math.max(0, max - n));
-    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}"><b>${w.evolved ? '★' : w.level}${w.lbN ? `<i>+${w.lbN}</i>` : ''}</b></div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
+    // CHAOS は絵が小さいので、リミットブレイクしたものは回数だけ（+n）を出す
+    const lv = (x, base) => (g.chaos && x.lbN ? `<b class="lbn">+${x.lbN}</b>` : `<b>${base}${x.lbN ? `<i>+${x.lbN}</i>` : ''}</b>`);
+    H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}">${lv(w, w.evolved ? '★' : w.level)}</div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
       '<i style="grid-column:1/-1;height:0"></i>' +
-      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}"><b>${p.level}${p.lbN ? `<i>+${p.lbN}</i>` : ''}</b></div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
+      g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}">${lv(p, p.level)}</div>`).join('') + empty(g.passives.length, MAX_CHARMS) +
       // 残りの復活の回数（チャームの下にハートで並べる）
       (lives > 0 ? `<div class="lives">${LIFE_HEART.repeat(lives)}</div>` : '') +
       (g.arts.length ? '<i style="grid-column:1/-1;height:0"></i>' + g.arts.map((id) => `<div class="slotico art"><img src="${artifactIcon(id, 48)}"></div>`).join('') : '');
