@@ -147,8 +147,8 @@ export const STAGES = [
   // ---------------------------------------------------------------- 第2章
   {
     id: 'deep', no: 6, chapter: 2, name: 'ドキドキ！？深海探索ツアー！', en: 'HEART-POUNDING!? DEEP SEA TOUR!', time: 600,
-    desc: '光の届かない海の底へご招待。泡の噴き出す場所に入ると、しばらく速く泳げる。',
-    hazard: 'bubbles', hazardText: '泡の噴出口（入ると加速）',
+    desc: '光の届かない海の底へご招待。ときどき大渦が巻き起こり、何もかもが中心へ引き込まれる。中心まで行った雑魚は潰れるが、自機も中心は痛い。泡の噴き出す場所に入ると、勢いよく泳いで渦から抜けられる。',
+    hazard: 'bubbles', hazardText: '大渦（中心へ引き込む。中心は痛い）・泡の噴出口（入ると加速）',
     hp: 1.4, dmg: 1.45, reward: 6000, bgm: 'deep', bossBgm: 'boss2', finalBgm: 'final2', unlockChar: 'pectolite',
     pal: { bg: '#02060c', grid: '60,140,220', mark: '90,190,255', dust: '160,220,255', glow: 'rgba(20,90,180,0.28)', accent: '#3fa8ff' },
     tint: null,
@@ -161,8 +161,8 @@ export const STAGES = [
   },
   {
     id: 'rlyeh', no: 7, chapter: 2, name: 'ワクワク！？ルルイエ探検ツアー！', en: "SO EXCITING!? R'LYEH EXPEDITION TOUR!", time: 600,
-    desc: '海の底から浮かび上がった、角度の狂った石の都。歪んだ門に入ると、その先へ跳ばされる。',
-    hazard: 'portals', hazardText: '歪んだ門（入ると先へ跳ぶ）',
+    desc: '海の底から浮かび上がった、角度の狂った石の都。ひびの予告のあと石柱が突き上がり、しばらく壁になる。ときどき一斉に突き上がって迷路になる。歪んだ門に入ると、矢印の先にあるもう片方の門から出る。',
+    hazard: 'portals', hazardText: '突き上がる石柱（壁になる）・歪んだ門（矢印の先へ出る）',
     hp: 1.6, dmg: 1.55, reward: 7000, bgm: 'rlyeh', bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#08140f', grid: '80,220,150', mark: '120,255,180', dust: '160,255,200', glow: 'rgba(30,160,90,0.26)', accent: '#3fe08a' },
     tint: '#3a8a6a',
@@ -175,8 +175,8 @@ export const STAGES = [
   },
   {
     id: 'lake', no: 8, chapter: 2, name: 'ハリ湖のほとりでお茶しましょ？', en: 'SHALL WE HAVE TEA BY LAKE HALI?', time: 600,
-    desc: '霧の立ちこめる黄昏の湖畔で、優雅なお茶会を。お茶会の席の近くにいると、少しずつ体力が戻る。',
-    hazard: 'teatime', hazardText: 'お茶会の席（近くにいると回復）',
+    desc: '霧の立ちこめる黄昏の湖畔で、優雅なお茶会を。湖からグラーキの棘が一直線に突き出す。お茶会の席に 3 秒座ると「お茶の時間」になり、10 秒間、回復しながら攻撃力が上がる。',
+    hazard: 'teatime', hazardText: 'グラーキの棘（線の上は危ない）・お茶会の席（3 秒座ると回復と攻撃力アップ）',
     hp: 1.8, dmg: 1.65, reward: 8000, bgm: 'lake', bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#0e1219', grid: '170,190,230', mark: '200,215,255', dust: '220,225,255', glow: 'rgba(120,140,200,0.22)', accent: '#a9b8ff' },
     tint: '#6a7aa8',
@@ -189,8 +189,8 @@ export const STAGES = [
   },
   {
     id: 'carcosa', no: 9, chapter: 2, name: 'ぶらりカルコサ巡りの旅', en: 'NEXT STOP, CARCOSA', time: 600,
-    desc: '双子の太陽が沈む黄昏の都。黒い星が昇っている間は、経験値が多く手に入る。',
-    hazard: 'blackstars', hazardText: '黒い星の夜（経験値 ×1.5）',
+    desc: '双子の太陽が沈む黄昏の都。夜になると暗くなり、雑魚が増えて黒い星が降ってくるが、経験値は 2 倍。夜の地面に浮かぶ黄の印を踏むと、周りの雑魚が狂って逃げ惑う。',
+    hazard: 'blackstars', hazardText: '昼と夜（夜は暗く、雑魚が増え、星が降る。経験値 ×2）・黄の印',
     hp: 2.0, dmg: 1.75, reward: 9000, bgm: 'carcosa', bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#16120a', grid: '230,200,110', mark: '255,220,130', dust: '255,230,170', glow: 'rgba(200,160,40,0.22)', accent: '#ffd24a' },
     tint: '#a08a3a',
@@ -203,8 +203,8 @@ export const STAGES = [
   },
   {
     id: 'space', no: 10, chapter: 2, name: '2026年宇宙の旅', en: '2026: A SPACE ODYSSEY', time: 600,
-    desc: '星々の彼方、黒い石板が待つ宇宙の果てへ。ときどき流れ星が横切り、通り道に経験値を落としていく。',
-    hazard: 'meteor', hazardText: '流れ星（通り道に経験値）',
+    desc: '星々の彼方、黒い石板が待つ宇宙の果てへ。ときどき隕石雨が降る。どこかに立つモノリスに触れると「進化」して、15 秒間大きく強くなる。流れ星は通り道に経験値を落としていく。',
+    hazard: 'meteor', hazardText: '隕石雨・モノリス（触れると 15 秒間強くなる）・流れ星',
     hp: 2.2, dmg: 1.85, reward: 10000, bgm: 'space', bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#05050c', grid: '150,170,255', mark: '190,205,255', dust: '230,235,255', glow: 'rgba(100,110,220,0.22)', accent: '#8fa8ff' },
     tint: '#7a9ab8',
@@ -217,8 +217,8 @@ export const STAGES = [
   },
   {
     id: 'azathoth', no: 11, chapter: 2, name: '宇宙の中心で惰眠を貪るけもの', en: 'THE BEAST THAT SLUMBERED AT THE HEART OF THE UNIVERSE', time: 600,
-    desc: '狂った笛の音が響く宇宙の中心。漂う混沌の泡に触れると、何かが出てくる。',
-    hazard: 'chaos', hazardText: '混沌の泡（触れるとアイテム）',
+    desc: '狂った笛の音が響く宇宙の中心。20 秒ごとに、何が起きるか分からない出来事が 1 つ起きる（引力の井戸・アイテムの雨・狂騒・星の雨・時の淀み・混沌の閃光）。漂う混沌の泡に触れると、何かが出てくる。',
+    hazard: 'chaos', hazardText: '混沌のルーレット（20 秒ごとに何かが起きる）・混沌の泡',
     hp: 2.4, dmg: 1.95, reward: 15000, bgm: 'pipers', keepBgm: true, bossBgm: 'boss2', finalBgm: 'final2',
     pal: { bg: '#07040c', grid: '190,130,255', mark: '220,170,255', dust: '240,210,255', glow: 'rgba(160,80,240,0.24)', accent: '#c78bff' },
     tint: '#8a5ac8',

@@ -500,7 +500,8 @@ export class Game {
     this.hazards.update(dt);
 
     // ---- ぶき
-    const wdt = this.artSet.has('wheel') && p.moving ? dt * 1.5 : dt; // 秘宝「研磨ホイール」
+    // 秘宝「研磨ホイール」・ギミックの攻撃速度アップ（モノリスの進化など）
+    const wdt = (this.artSet.has('wheel') && p.moving ? dt * 1.5 : dt) * this.hazards.fireMul();
     for (const w of this.weapons) LOGIC[w.id].update(this, w, w.s, wdt);
     this.updateArtifacts(dt);
 
@@ -606,6 +607,10 @@ export class Game {
     }
     // ボス戦の間は雑魚の同時出現数と出現ペースを絞る（ボスに集中できるように）
     if (this.boss && this.boss.alive) { max = Math.round(max * BOSS_TRASH); rate *= BOSS_TRASH; }
+    // ギミックで雑魚が増える間（カルコサの夜など）
+    const sm = this.hazards.spawnMul();
+    max = Math.round(max * sm);
+    rate *= sm;
     let alive = 0;
     for (const e of this.enemies) if (e.alive && !e.prop) alive++;
     this.spawnAcc += rate * dt;
@@ -2452,6 +2457,8 @@ export class Game {
       const nx = p.x - (o.x + ax * t), ny = p.y - (o.y + ay * t), d = Math.hypot(nx, ny) || 1;
       if (d < 70) { fx += (nx / d) * 0.25 + ay * Math.sign(L.va || 1) * 0.1; fy += (ny / d) * 0.25 - ax * Math.sign(L.va || 1) * 0.1; }
     }
+    const hv = this.hazards.botAvoid(p);
+    if (hv) { fx += hv[0]; fy += hv[1]; }
     if (this.hazards.kind === 'lava') {
       for (const o of this.hazards.around(p.x, p.y, this._bl || (this._bl = []))) {
         const dx = p.x - o.x, dy = p.y - o.y, d = Math.hypot(dx, dy) || 1;
