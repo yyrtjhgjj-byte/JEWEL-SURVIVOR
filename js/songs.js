@@ -522,14 +522,14 @@ export const SONGS = {};
     chords: `${intro} ${A} ${A2} ${B} ${A}`,
     reverb: { size: 0.85, damp: 0.3 },
     pat: {
-      MA: 'o5 a4. b8 a8 f8 d4 | e4. f+8 g4 b4 | a4. b8 >c8 <a8 f4 | g4 e4 r8 b8 a8 g8 | f4. a8 >c4 d4 | e4. d8 c4 <a4 | b-4. a8 g4 f4 | e4 c+4 <a2 |',
+      MA: 'o5 f4. e8 f8 a8^4 | g4. f+8 g8 b8^4 | a4. g8 f8 e8 f8 g8 | e2. r4 | f4. e8 f8 a8^4 | >c4. <b8 >c8 e8^4 | d4 c8 <b-8^4 a8 g8 | a2. r4 |',
     },
     ch: [
       { id: 'lead', type: 'inst', pan: -0.15, rev: 0.35, mml: `
         r1 | r1 | r1 | r1 | L
         @vibes v13 $MA
-        @fl v12 o5 a4. b8 a8 f8 d4 | e4. f+8 g4 b4 | a4. b8 >c8 d8 e4 | d2 <b4 g4 | a4. f8 d4 f4 | g4. e8 c4 b-4 | a2 e4 c4 | c+2. r4 |
-        @cello v13 o4 b-4. >d8 f4 a4 | g4. f8 e4 d4 | e4. c8 <a4 >c4 | d2 f4 a4 | b-4. a8 g4 e4 | c+4 e4 g4 b-4 | a2 f4 d4 | e2 c+4 <a4 |
+        @fl v12 o5 f4. e8 f8 a8^4 | g4. f+8 g8 b8^4 | >c4. <b8 a8 g8 f8 a8 | g2. r4 | f4 d8 f8^8 a8 g8 f8 | e4. f8 g8 b-8^4 | a4. g8 f8 e8 c4 | c+2. r4 |
+        @cello v13 o4 f2. g8 a8 | b-2. a8 g8 | a4 g8 f8^2 | r4 c8 d8 e8 f8 g8 a8 | b-2. a8 g8 | a4 g8 f8^4 e4 | d2. f4 | e4 d8 c+8^2 |
         @fl v12 k12 $MA k0` },
       { id: 'lead2', type: 'inst', pan: 0.25, rev: 0.35, poly: 6, mml: `
         r1 | r1 | r1 | r1 | L
@@ -646,19 +646,20 @@ export const SONGS = {};
     chords: `${intro} ${A} ${A2} ${B} ${A}`,
     reverb: { size: 0.6, damp: 0.45 },
     pat: {
-      MA: 'o5 a6 g12 a6 >c12 e4 d4 | c4 <a6 f+12 a4 >c4 | <b-4. a8 g6 f12 d4 | e4 g4 b-4 a6 g12 | >c4. <a8 g4 e6 c12 | d4 f+4 a4 >c4 | <b-4. a8 g6 a12 b-6 >d12 | c2 r4 r6 <a12 |',
+      MA: 'o5 c6 d12 e6 f12 a2 | a6 g12 f+6 g12 a4 r4 | d6 e12 f6 g12 b-2 | b-6 a12 g6 a12 b-4 r4 | >c2 <b6 a12 g6 e12 | f+6 g12 a6 >c12^4 <a4 | b-4 a6 g12 f4 d4 | e2 r2 |',
+      MA2: 'o5 c6 d12 e6 f12 a2 | >c4 <a6 g12 e-2 | d6 e-12 f6 g12 a2 | f2 e-6 d-12^4 | c6 d12 e6 g12^4 e4 | f6 e12 d6 <b12^2 | >d6 e12 f6 g12 b-4 a4 | g2 r2 |',
     },
     ch: [
       { id: 'lead', type: 'inst', pan: -0.15, rev: 0.25, mml: `
-        r1 | r1 | r1 | r2 r4 r6 @fl v12 o5 a12 | L
+        r1 | r1 | r1 | r1 | L
         @fl v12 $MA
-        a6 g12 a6 >c12 e4 d4 | c4 <a6 f12 e-4 c4 | d4. f8 a4 >c4 | d-4. f8 g4 <b-4 | a4 g4 e4 c4 | <b4 >d4 f4 a-4 | g4. f8 d6 e12 f6 g12 | e2 r2 |
-        @violin v13 f6 e12 f6 a12 >c4 <a4 | b4 g6 f12 d4 <b4 | >c6 d12 e6 g12 b4 g4 | a4. g8 e4 c4 | d6 e12 f6 a12 >c4 d4 | <b4 >d6 c12 <b4 g4 | b-4. a8 g4 f4 | e4 g4 b-4 >c4 |
+        $MA2
+        @violin v13 o5 a2. g6 a12 | b2. a6 b12 | >c2 <b6 a12 g4 | e2 r2 | f6 g12 a6 >c12^2 | <b2 a6 g12 f4 | b-2 a6 g12 f6 d12 | e2 r2 |
         @violin v13 $MA` },
       { id: 'lead2', type: 'inst', pan: 0.3, rev: 0.3, mml: `
         r1 | r1 | r1 | r1 | L
         r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
-        @celesta v8 k12 o5 a6 g12 a6 >c12 e4 d4 | c4 <a6 f12 e-4 c4 | d4. f8 a4 >c4 | d-4. f8 g4 <b-4 | a4 g4 e4 c4 | <b4 >d4 f4 a-4 | g4. f8 d6 e12 f6 g12 | e2 r2 | k0
+        @celesta v8 k12 $MA2 k0
         @cello v9 ${pads(B, { lo: 50 })}
         @fl v10 k12 $MA k0` },
       { id: 'harpsi', type: 'inst', pan: 0.35, rev: 0.2, poly: 8, mml: `
@@ -702,22 +703,24 @@ export const SONGS = {};
     melody: ['lead', 'cnt'],
     chords: `${intro} ${A} ${A2} ${B} ${C}`,
     reverb: { size: 0.7, damp: 0.4 },
+    pat: {
+      MC: 'o5 a6 a6 a6 >d2 | c6 <b-6 a6 f2 | a4 b8 >c8 d2 | d6 c6 <b-6 a-2 | a2 >c4. <b8 | b4 a8 g+8^2 | a4. b8 >c8 d8 e4 | d4 c8 <b8^2 |',
+    },
     ch: [
       { id: 'lead', type: 'inst', pan: -0.2, rev: 0.25, mml: `
         r1 | r1 | r1 | r1 | L
         @bando v13
-        o5 e4. f8 e8 d+8 e4 | a4. b8 a8 g+8 a4 | >c4. <b8 a8 g8 f+4 | a4 e-4 c4 <a4 | >g+4. a8 b4 >d4 | c4. <b8 g+4 e4 | a2. g+8 a8 | b2. r4 |
-        e4. f8 e8 d+8 e4 | a4. b8 a8 g+8 a4 | >c4. d8 e4 <a4 | >e-4. d8 c4 <a4 | g+2 b4 >d4 | d4. <a-8 f4 d4 | e2. d+8 e8 | a2. r4 |
+        o5 e2. d+8 e8 | >c4. <b8 a8 g+8 a8 b8 | >c2 <a4. e8 | e-2. r4 | g+8. a16 b8 >c8 d4 <b4 | >d4. c8 <b8 a8 g+8 f8 | e2 a4. g+8 | b2. r4 |
+        e2. d+8 e8 | >c4. <b8 a8 g+8 a8 b8 | >c2 e4. d8 | e-2. r4 | d8. e16 d8 c8 <b4 g+4 | a-2 f4. d8 | e4 c8 <b8 a2 | r2 r8 >e8 f8 g8 |
         @violin v13
-        f4. e8 f4 a4 | g4. f8 d4 <b4 | >e4. d8 e4 g4 | a2 >c4 e4 | d4. c8 <a4 f4 | g+4. a8 b4 >d4 | c4. <b8 a4 e4 | c+2 e4 g4 |
-        @violin v14
-        a6 a6 a6 >d4 f4 | e6 d6 c6 <a2 | b6 b6 b6 >d4 f4 | a-6 f6 d6 <b-2 | >c4. <b8 a4 e4 | f4. e8 g+4 b4 | a2 >c4 e4 | d2 <b4 g+4 |` },
+        o5 a4. g8 f2 | g4 f8 e8 f2 | e2. d8 e8 | a2 r4 a8 b8 | >d4. c8 <a2 | g+4 a8 b8 >d4 <b4 | >c2 <a4. e8 | c+2. r4 |
+        @violin v14 $MC` },
       { id: 'cnt', type: 'inst', pan: 0.3, rev: 0.3, mml: `
         r1 | r1 | r1 | r1 | L
         r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
         @violin v10 o5 c1 | <b1 | a1 | a1 | b1 | a-1 | >c1 | e1 |
         @bando v9 ${pads(B, { lo: 60 })}
-        @bando v11 k-12 o5 a6 a6 a6 >d4 f4 | e6 d6 c6 <a2 | b6 b6 b6 >d4 f4 | a-6 f6 d6 <b-2 | >c4. <b8 a4 e4 | f4. e8 g+4 b4 | a2 >c4 e4 | d2 <b4 g+4 | k0` },
+        @bando v11 k-12 $MC k0` },
       { id: 'piano', type: 'inst', pan: 0.2, rev: 0.2, poly: 8, mml: `
         @epiano v10 ${blocks(intro, { lo: 55, rh: habR, rh2: habR2 })} L
         ${blocks(A, { lo: 55, rh: habR, rh2: habR2 })}
@@ -756,13 +759,13 @@ export const SONGS = {};
     melody: ['lead', 'lead2'],
     chords: `${intro} ${A} ${A2} ${B} ${A}`,
     reverb: { size: 0.95, damp: 0.25 },
-    pat: { MA: 'o5 c2 g2 | f+1 | e-2 b-2 | a1 | a-2 >e-2 | d1 | c2 d2 | <b1 |' },
+    pat: { MA: 'o5 e2. f+8 g8 | a1 | b-4. a-8 g2 | a4 g4 f2 | >c2. d8 e-8 | f2 d2 | d2 c2 | <b1 |' },
     ch: [
       { id: 'lead', type: 'inst', pan: -0.15, rev: 0.45, mml: `
         r1 | r1 | r1 | r1 | L
         @theremin v12 $MA
-        @fl v12 o5 e4. d8 e4 g4 | a4. f+8 d2 | b4. a8 g4 e4 | >c2 <a2 | a4. g8 a4 >c4 | d2 <b2 | g2 >c+2 | d2 <b2 |
-        @glock v12 o6 c4 e4 g4 e4 | d4 <b4 g4 b4 | a4 >c4 e4 c4 | <b4 g4 e4 g4 | a4 >c4 f4 c4 | <b4 >d4 g4 d4 | e2 c2 | d2 <b2 |
+        @fl v12 o5 e8 f+8 g8 b8^2 | a4. f+8 d2 | e8 f+8 g8 b8^4 a4 | >c2. r4 | <a8 b8 >c8 e8^2 | d4. <b8 g2 | g4. f+8 e8 g8 >c+4 | d4 c4 <b2 |
+        @glock v12 o6 c4. <b8 a8 b8 >c8 e8 | d2 <b2 | a4. g8 f8 g8 a8 >c8 | <b2 g2 | a8 b8 >c8 d8^2 | e4 d8 <b8^2 | >c2 e4. d8 | c2 <b2 |
         @horn v13 k-12 $MA k0` },
       { id: 'lead2', type: 'inst', pan: 0.25, rev: 0.45, mml: `
         r1 | r1 | r1 | r1 | L
@@ -883,9 +886,9 @@ export const SONGS = {};
     chords: `${intro} ${A} ${A2} ${B} ${chk}`,
     reverb: { size: 0.8, damp: 0.4 },
     pat: {
-      MA: 'o5 d8 f8 a8 >d8 c+4 d4 | e-8 d8 <b-8 g8 b-4 >e-4 | d8 c+8 d8 f8 a4 g+4 | a-4. g-8 e-4 c4 | <d8 f8 a8 >d8 f4 e4 | e-4. f8 g4 b-4 | a4. f8 d4 <b-4 | >c+4. <b-8 a4 e4 |',
-      MA2: 'o5 d8 f8 a8 >d8 c+4 d4 | e-8 d8 <b-8 g8 b-4 >e-4 | d8 c+8 d8 f8 a4 g+4 | a-4. g-8 e-4 c4 | <b-8 >d8 g8 b-8 a4 g4 | e4 c+4 <a4 g4 | f4 d4 a4 f4 | e4 g4 b-4 >c+4 |',
-      MB: 'o5 d4. f8 b-4 >d4 | <e4. g8 >c4 e4 | <f4. a-8 >d-4 f4 | <g4. b-8 >e-4 g4 | f2 d4 <b-4 | >c2 <g4 e4 | f2 a-4 >d-4 | c+2 e4 a4 |',
+      MA: 'o5 d4 a4 g8 f8 e8 f8 | g2 b-2 | a4 >d4 c8 <b-8 a8 g8 | a-2. r4 | d4 a4 g8 f8 e8 f8 | g4 b-4 >e-2 | d4. c8 <b-8 a8 g8 f8 | e4 f4 e2 |',
+      MA2: 'o5 d4 a4 g8 f8 e8 f8 | g2 b-2 | a4 >d4 c8 <b-8 a8 g8 | a-2. r4 | g2 b-4 >d4 | c+2. <a4 | >d2. c+8 d8 | e2. r4 |',
+      MB: 'o5 f2. e-8 d8 | g4. f8 e2 | a-2 g-8 f8 e-8 f8 | b-1 | >d2 c4 <b-4 | g2. a8 b-8 | a-2 >d-2 | c+1 |',
       T: 'o5 d4 e-4 d4 <b-4 | >d4 e-4 f4 e-8 d8 | <b-4 a4 b-4 >d4 | c+4 d4 e4 c+4 | a4 b-4 a4 f4 | a4 b-4 >c4 <b-8 a8 | f4 e-4 d4 <b-4 | >c+2 <a2 |',
     },
     ch: [
@@ -954,7 +957,7 @@ export const SONGS = {};
     chords: `${intro} ${A} ${A} ${B} ${C}`,
     reverb: { size: 0.7, damp: 0.4 },
     pat: {
-      MA: 'o5 e4. f+8 g4 b4 | >e2 d4 <b4 | >c4. <b8 a4 g4 | f+2 d+4 <b4 | o5 e4. f+8 g4 b4 | >g2 f+4 e4 | f4. e8 c4 <a4 | b2 a4 f+4 |',
+      MA: 'o5 e4 g8 a8 b4. a8 | g4 f+8 e8^2 | e4 g8 a8 b4. >c8 | <b2. r4 | e4 g8 a8 b4. >d8 | e2 d8 <b8 g4 | a2. g8 f8 | f+4 e8 d+8^2 |',
       RE: '[e16 f16 e16 g16 e16 f16 e16 b16]2 |',
       RF: '[f16 g16 f16 a16 f16 g16 f16 >c16 <]2 |',
       RG: '[g16 a16 g16 b16 g16 a16 g16 >d16 <]2 |',
@@ -965,7 +968,7 @@ export const SONGS = {};
         r1 | r1 | L
         @tpt v13 $MA
         @strings v13 $MA
-        @strings v13 o5 a2 >c4 e4 | d2 <b4 g4 | a2 >c4 f4 | e2 c4 <g4 | a4. b8 >c4 e4 | g2 f+4 e4 | f4. e8 c4 <a4 | b2 >d+2 |
+        @strings v13 o5 a2 >c4. <b8 | b4 a8 g8^2 | a2 >c4. d8 | e2. r4 | e4. d8 c8 <b8 a4 | g4. a8 b2 | >c2 <a4 f4 | f+2 d+2 |
         @trb v13 o3 e1 | f1 | e1 | f1 | e2 g2 | f2 a2 | g2 b2 | b1 |` },
       { id: 'lead2', type: 'inst', pan: 0.25, rev: 0.3, mml: `
         r1 | r1 | L
@@ -1017,15 +1020,15 @@ export const SONGS = {};
     chords: `${intro} ${A} ${A2} ${B} ${C}`,
     reverb: { size: 0.9, damp: 0.35 },
     pat: {
-      MA: 'o5 c2 e-2 | g2 f+4 g4 | a-2 g4 f4 | g1 | c2 e-2 | g2 b4 g4 | a-2 f2 | g2 f2 |',
-      MC: 'o5 c4 d4 e-4 f+4 | a4 f+4 e-4 c4 | c4 d4 e-4 f+4 | a4 >c4 e-4 f+4 | e-2 c2 | <b2 g2 | a-2 f2 | g4 a-4 b4 >d4 |',
-      MB: 'o5 b-4. g8 e-4 b-4 | >d2 c4 <b-4 | >c4. <b-8 g4 e-4 | a-2 >c2 | <b-4. a-8 g4 e-4 | f4 b-4 >d4 f4 | e-2 c4 <a-4 | >c2 <b2 |',
+      MA: 'o5 g2. a-8 g8 | f4 e-4 d4 e-4 | c2 e-2 | d1 | g2 a-8 g8 a-8 b-8 | >c2. d4 | d-2. c4 | <b1 |',
+      MC: 'o5 c4. d8 e-4. f+8 | a4 f+8 e-8^2 | c4. d8 e-4. f+8 | a4 >c8 e-8^2 | c4. <b-8 a-2 | g4 f+8 g8 b2 | a-2. g8 f8 | g4 a-4 b2 |',
+      MB: 'o5 e-4. f8 g2 | f4 d8 f8 b-2 | g2 >c4. <b-8 | a-2. r4 | g4. a-8 b-2 | >d4 c8 <b-8 f2 | a-8 b-8 >c8 e-8^2 | d2 <b2 |',
     },
     ch: [
       { id: 'lead', type: 'inst', pan: -0.15, rev: 0.4, mml: `
         r1 | r1 | r1 | r1 | L
         @cha v14 $MA
-        @strings v13 o5 c8 f8 a-8 >c8 <b-4 a-4 | g4. f8 e-4 c4 | c8 e-8 a-8 >c8 <b-4 a-4 | b4. a-8 g4 d4 | f8 a-8 >c8 f8 e-4 c4 | <g4. a-8 g4 e-4 | f4 a-4 >d-4 f4 | e-4 d4 <b4 g4 |
+        @strings v13 o5 a-4. g8 f8 g8 a-8 b-8 | >c2 <g2 | e-4. f8 g8 a-8 b-8 >c8 | d2. r4 | f4. e-8 d-8 c8 <b-8 a-8 | g2 >c2 | d-4. c8 <b-8 a-8 f4 | g4 a-8 g8 f4 d4 |
         @tpt v13 $MB
         @tpt v14 $MC` },
       { id: 'lead2', type: 'inst', pan: 0.25, rev: 0.4, mml: `
