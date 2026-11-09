@@ -1091,18 +1091,18 @@ const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / ev
       { id: 'dizi', type: 'inst', pan: -0.2, rev: 0.3, mml: `
         r1 | r1 | r1 | r1 | L
         @dizi v13
-        o5 d4. f8 g4 a4 | >c4. <a8 g4 e4 | d4 f4 a4 >c4 | <a2 e4 g4 | a4. >c8 d4 f4 | e4. d8 c4 <g4 | f4. g8 f4 d4 | e2. r4 |
-        d4. f8 g4 a4 | >c4. <a8 g4 e4 | d4 f4 a4 >d4 | c4. <a8 e4 a4 | >c4. d8 c4 <a4 | g4. e8 g4 >c4 | d4. c8 <b-4 g4 | a2. r4 |
+        o5 a4. g8 a8 >c8 <a4 | g4 e8 g8^2 | d4. f8 g8 a8 f8 d8 | e2. r4 | a4. >c8 d8 f8 d4 | e4 d8 c8^2 | <b-2 a8 g8 f8 g8 | a2. r4 |
+        a4. g8 a8 >c8 <a4 | g4 e8 g8^2 | a4 >c8 d8^8 c8 <a4 | >c4 <a8 g8 e2 | f4. g8 a8 >c8 <a4 | g4 e8 c8^2 | d4. f8 g8 b-8 a8 g8 | a2. r4 |
         r1 | r1 | r1 | r2 o6 c4 <a4 | r1 | r1 | r1 | r2 a4 >c+4 |
-        o5 d16 f16 g16 a16 >c16 <a16 g16 f16 d4 a4 | g16 a16 >c16 d16 e16 d16 c16 <a16 g4 e4 |
-        d16 f16 g16 a16 >c16 d16 f16 g16 a4 f4 | e16 d16 c16 <a16 g16 e16 d16 c16 e4 g4 |
-        f4. g8 b-4 >d4 | c4. <a8 g4 e4 | d4 f4 a4 >d4 | c+2. r4 |` },
+        o5 d16 f16 g16 a16 >c16 d16 c16 <a16 >d2 | e4 d8 c8^2 |
+        <a16 >c16 d16 f16 g16 f16 d16 c16 <a2 | g4 e8 g8^2 |
+        f4. g8 f8 d8 c8 d8 | e2 g4. a8 | a4 >c8 d8^8 f8 e8 d8 | c+2. r4 |` },
       { id: 'erhu', type: 'inst', pan: 0.25, rev: 0.3, mml: `
         r1 | r1 | r1 | r1 | L
         r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
         @erhu v11 o4 a2 f2 | g2 e2 | f2 a2 | e1 | f2 a2 | g1 | g2 b-2 | a1 |
-        v13 o5 f4. e8 d4 c4 | d4. c8 <a4 g4 | a4 >c4 d4 f4 | e2 c4 <a4 | b-4. a8 f4 d4 | f4. g8 a4 >c4 | d4 <b-4 g4 d4 | e2 c+4 e4 |
-        v11 a1 | g1 | a1 | g1 | f1 | e1 | f1 | e1 |` },
+        v13 o5 a2. g8 f8 | g2 e4. d8 | d4 f8 g8 a2 | e2 r2 | f2. d8 f8 | a2 >c4. <a8 | g4 b-8 a8^4 g4 | e2 r2 |
+        v11 o4 a1 | g1 | a1 | g1 | f1 | e1 | f1 | e1 |` },
       { id: 'zheng', type: 'inst', pan: 0.35, rev: 0.25, poly: 10, mml: `
         @zheng v10 ${arp(intro, { lo: 62, pat: WAVE })} L
         v9 ${arp(A, { lo: 57, pat: WAVE })}
@@ -1154,11 +1154,11 @@ const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / ev
       { id: 'lead', type: 'inst', pan: -0.2, rev: 0.3, mml: `
         r1 | r1 | r1 | r1 | L
         @zheng v14
-        o5 e4. g8 a4 b4 | >d4. <b8 a4 g4 | e4. g8 >c4 <b4 | a2 f+4 d4 | e4. g8 b4 >d4 | d4. <b8 g4 d4 | e4. a8 >c4 <a4 | b2 f+4 d+4 |
+        o5 e8 g8 a8 b8^4 a8 g8 | e2 r8 d8 e8 g8 | a4. g8 e8 g8 a8 >c8 | <b4 a8 f+8^2 | e8 g8 a8 b8^4 >d8 e8 | d4. <b8 a8 g8 e8 d8 | e8 g8 a8 >c8^4 <b8 a8 | b2. r4 |
         @erhu v13
-        e4. g8 a4 b4 | >d4. e8 d4 <b4 | >c4. <b8 g4 e4 | f+4. a8 d4 <a4 | >g4. e8 c4 e4 | f+4. a8 >d4 f+4 | e2 d4 <b4 | e2. r4 |
+        o5 b2 a8 g8 e8 g8 | a4. b8 g2 | g4 e8 g8 >c2 | <b8 a8 f+2. | g2 >c4. d8 | e4 d8 <a8^2 | b4. a8 g8 a8 g8 d8 | e2. r4 |
         @xiao v13
-        o4 a4. >c8 e4 a4 | g4. e8 d4 <b4 | >c4. <a8 e4 a4 | g4. e8 b4 g4 | e4. g8 >c4 e4 | d4. <a8 f+4 a4 | e2 f+4 e4 | d+2 f+4 a4 |
+        o4 a4. b8 >c2 | <b4 g8 a8 b2 | >c4. d8 e2 | d4 <b8 a8 g2 | g2. a8 b8 | >c4. <a8 f+2 | e2. f+8 e8 | d+2. r4 |
         @erhu v13
         o5 b1 | a2 g2 | f+1 | a2 f+2 | g1 | e2 c2 | d+1 | f+2 b2 |` },
       { id: 'lead2', type: 'inst', pan: 0.25, rev: 0.35, mml: `
@@ -1213,13 +1213,13 @@ const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / ev
       { id: 'lead', type: 'inst', pan: -0.2, rev: 0.4, mml: `
         r1 | r1 | r1 | r1 | L
         @bianzhong v14
-        o5 a4 >c4 e4 c4 | d4. c8 <a2 | a4 >c4 f4 e4 | d2 <b4 g4 | a4 >c4 e4 g4 | e4. d8 <b2 | a4. g8 f4 c4 | e2. r4 |
+        o5 e4. d8 c8 d8 e4 | a2. g8 e8 | f4. e8 c8 d8 f4 | g2. r4 | a4. g8 e8 g8 a4 | b4. a8 g2 | a4 >c4 <a8 g8 f4 | e2. r4 |
         @xiao v13
-        a4 >c4 e4 c4 | d4. e8 c2 | <a4 >c4 f4 a4 | g2 d4 <b4 | >c4. <b8 g4 e4 | >d4. <b8 g4 b4 | a4. g8 f4 a4 | g+2. r4 |
+        o5 c4 d8 e8^2 | a4. g8 e2 | c4 d8 f8^2 | g4. a8 b2 | >c2 <b8 a8 g4 | a4 g8 e8^4 d4 | c4. d8 c8 <a8 f4 | g+2. r4 |
         @erhu v13
-        >c4. <a8 f4 a4 | b4. >d8 g4 d4 | <b4. >e8 g4 e4 | c2 <a2 | f4. e8 d4 a4 | b4. a8 g4 d4 | e4. g8 >c4 e4 | d2 <b4 g+4 |
+        o5 a2. g8 f8 | g4. a8 b2 | >e4 d8 <b8^2 | a2. r4 | f2. e8 d8 | d4. e8 g2 | >c4 <b8 g8^2 | g+2. r4 |
         @bianzhong v14
-        a2. e4 | f2 a2 | e2. c4 | a1 | f2 d2 | e2 g+2 | a2 e2 | g+1 |` },
+        o5 a2. g8 e8 | f2. e8 c8 | e2 d4 c4 | <a1 | >d4 f4 a2 | g+4. a8 b2 | >c4. <b8 a2 | g+1 |` },
       { id: 'lead2', type: 'inst', pan: 0.25, rev: 0.4, mml: `
         r1 | r1 | r1 | r1 | L
         r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
@@ -1268,17 +1268,17 @@ const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / ev
     chords: `${intro} ${A} ${A2} ${B} ${C}`,
     reverb: { size: 0.7, damp: 0.4 },
     pat: {
-      MC: 'o6 c8 d8 e8 g8 e8 d8 c8 d8 | e4. d8 c4 <g4 | a8 >c8 d8 f8 d8 c8 <a8 >c8 | d4. c8 <b4 g4 | >c8 d8 e8 g8 a8 g8 e8 d8 | e4. d8 c4 <a4 | a4 >c4 <b4 >d4 | c2. r4 |',
+      MC: 'o6 c8 d8 e8 g8^4 a8 g8 | e4 d8 c8^2 | <a8 >c8 d8 f8^4 d8 c8 | d4. <b8 g2 | >g4. a8 g8 e8 d8 e8 | a4 g8 e8^2 | f4 e8 d8^4 <b4 | >c2. r4 |',
     },
     ch: [
       { id: 'lead', type: 'inst', pan: -0.2, rev: 0.25, mml: `
         r1 | r1 | r1 | r1 | L
         @suona v13
-        o5 g8 a8 >c8 d8 e4 d8 c8 | <a4. g8 e4 g4 | a8 >c8 d8 c8 <a4 g8 a8 | g2 d4 e4 | g8 a8 >c8 d8 e4 g4 | e4. d8 c4 <a4 | d8 f8 a8 >c8 d4 c8 <a8 | g2. r4 |
+        o5 e8 g8 a8 g8^4 e4 | d8 e8 c8 <a8^2 | >c8 d8 f8 d8^4 c4 | d2 r4 g8 a8 | >c4. <a8 g8 e8 g4 | a4 >c8 d8^8 e8 d8 c8 | d2 c8 <a8 f4 | g2. r4 |
         @dizi v13
-        g8 a8 >c8 d8 e4 d8 c8 | <a4. g8 e4 g4 | a8 >c8 d8 c8 <a4 g8 a8 | g2 a4 b4 | >e4. d8 <b4 g4 | a4. >c8 e4 c4 | d4 f4 d4 <b4 | >c2. r4 |
+        o5 e8 g8 a8 g8^4 e4 | d8 e8 c8 <a8^2 | >c8 d8 f8 d8^4 c4 | d2 r4 g8 a8 | b4. a8 g8 e8 g4 | a4 >c8 e8^8 d8 c8 <a8 | >d4. c8 <b8 a8 g4 | >c2. r4 |
         @pipa v14 k-12
-        o6 f8 e8 d8 c8 <a4 >c4 | d4. e8 d4 <b4 | g8 a8 b8 >d8 e4 d4 | c4. <a8 e4 a4 | f8 g8 a8 >c8 d4 c4 | <b4. a8 g4 e4 | f8 g8 a8 >c8 f4 e4 | d2 <b4 g4 | k0
+        o6 a8 a8 g8 a8^2 | b8 b8 a8 b8^2 | >e4. d8 <b8 a8 g4 | a2. r4 | f8 f8 e8 f8^2 | g8 g8 e8 g8^2 | a4 >c4 <a8 g8 f4 | g2. r4 | k0
         @dizi v13 $MC` },
       { id: 'lead2', type: 'inst', pan: 0.25, rev: 0.25, mml: `
         r1 | r1 | r1 | r1 | L
@@ -1328,10 +1328,10 @@ const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / ev
     chords: `${intro} ${A} ${A2} ${B} ${C}`,
     reverb: { size: 0.8, damp: 0.4 },
     pat: {
-      MA: 'o5 a8 >c8 e8 a8 g4 e4 | f4. e8 c4 <a4 | d8 f8 a8 >d8 c4 <a4 | b4. g+8 e4 b4 | >c4. <b8 a4 e4 | f4 a4 >c4 <a4 | b4. a8 g4 d4 | e4 g+4 b4 >d4 |',
-      MA2: 'o5 a8 >c8 e8 a8 g4 e4 | f4. e8 c4 <a4 | d8 f8 a8 >d8 c4 <a4 | g+4. a8 b4 >e4 | f4. e8 c4 <a4 | b4. >d8 g4 b4 | a2 e4 c4 | <a2. r4 |',
-      MB: 'o5 f4. e8 d4 a4 | >c4. <b8 a4 e4 | g4. a8 b4 >d4 | e2 c4 <g4 | a4. g8 f4 >c4 | <a4. >d8 f4 a4 | a2 e4 d4 | <g+2 b4 >d4 |',
-      MC: 'o6 c4. <a8 f4 a4 | b4. >d8 g4 d4 | e4. g8 b4 g4 | a2 e4 c4 | c4. d8 c4 <a4 | b4. a8 g4 b4 | >e2 d4 <b4 | g+2. r4 |',
+      MA: 'o5 a4 e8 a8^8 b8 >c4 | <a2. r4 | d4 <a8 >d8^8 e8 f4 | e2. r4 | a4 e8 a8^8 b8 >c4 | d4. c8 <a8 g8 f4 | g4 a8 b8^4 >d4 | e2. r4 |',
+      MA2: 'o5 a4 e8 a8^8 b8 >c4 | <a2. r4 | d4 <a8 >d8^8 e8 f4 | e2. r4 | >c4 <a8 >c8^8 d8 e4 | d2 <b4 g4 | a4. b8 >c8 d8 e4 | <a2. r4 |',
+      MB: 'o5 f2. e8 d8 | e2 a4. g8 | g2. a8 b8 | >c2. r4 | <a4 g8 f8^2 | d4 f8 a8^4 >d4 | e2. d8 c8 | <b2 g+2 |',
+      MC: 'o6 a2. g8 a8 | b2 >d4. c8 | <b4 g8 e8^2 | a2. r4 | >c2. <b8 a8 | b4 >d8 e8^4 d4 | e2. d8 <b8 | g+2. r4 |',
     },
     ch: [
       { id: 'lead', type: 'inst', pan: -0.15, rev: 0.3, mml: `
@@ -1392,21 +1392,23 @@ const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / ev
     chords: `${intro} ${A} ${A} ${B} ${C}`,
     reverb: { size: 0.75, damp: 0.4 },
     pat: {
-      MA: 'o5 d4. c8 d4 f4 | a4. g8 f4 d4 | f4. g8 b-4 a4 | g2 e4 c4 | d4. c8 d4 f4 | a4 >c4 d4 f4 | d4. c8 <b-4 g4 | a2 c+4 e4 |',
-      MC: 'o5 d16 f16 g16 a16 >c16 <a16 g16 f16 d4 a4 | g16 a16 >c16 d16 e16 d16 c16 <a16 g4 e4 | f16 g16 b-16 >d16 f16 d16 <b-16 g16 f4 d4 | e16 a16 >c+16 e16 a16 e16 c+16 <a16 e4 c+4 |',
+      MA: 'o5 d8 d8 r8 f8 a4 g8 f8 | g4 a2 r4 | f8 f8 r8 g8 b-4 a8 g8 | e4 g2 r4 | d8 d8 r8 f8 a4 >c8 d8 | f4. e8 d8 c8 <a4 | g8 b-8 a8 g8^4 d4 | c+4 d8 e8^4 r4 |',
+      MB: 'd4. f8 b-2 | a4 g8 f8^2 | g2 b-4. >c8 | <a2. r4 | >d4. c8 <b-2 | >c4 <b-8 g8^2 | a2 >d2 | c+2 e4 r4 |',
+      MC: 'o5 d16 f16 g16 a16 >c16 d16 c16 <a16 >d2 | e16 d16 c16 <a16 g16 a16 >c16 d16 e2 | f4. e8 d8 c8 <b-8 g8 | a2. r4 |',
+      MC2: 'o5 a16 >c16 d16 f16 a16 f16 d16 c16 d2 | c16 d16 e16 g16 a16 g16 e16 d16 e2 | f4. g8 f8 d8 <b-4 | a2 >c+2 |',
     },
     ch: [
       { id: 'lead', type: 'inst', pan: -0.15, rev: 0.3, mml: `
         r1 | r1 | L
         @erhu v13 $MA
         @dizi v13 $MA
-        @strings v13 o5 d2 f4 b-4 | a2 >c4 <a4 | b-4. a8 g4 d4 | f2 a2 | b-4. >c8 d4 f4 | e2 g4 e4 | d2 e4 d4 | c+2 e4 a4 |
-        @dizi v13 $MC $MC` },
+        @strings v13 o5 $MB
+        @dizi v13 $MC $MC2` },
       { id: 'lead2', type: 'inst', pan: 0.25, rev: 0.3, mml: `
         r1 | r1 | L
         r1 | r1 | r1 | r1 | r1 | r1 | r1 | r1 |
         @erhu v11 o4 a1 | f1 | f1 | e1 | a1 | a1 | b-1 | a1 |
-        @horn v12 o4 d2 f4 b-4 | a2 >c4 <a4 | b-4. a8 g4 d4 | f2 a2 | b-4. >c8 d4 f4 | e2 g4 e4 | d2 e4 d4 | c+2 e4 a4 |
+        @horn v12 o4 $MB
         @erhu v12 o4 a1 | g1 | f1 | e1 | a1 | g1 | f1 | e1 |` },
       { id: 'acc', type: 'inst', pan: 0.35, rev: 0.2, poly: 8, mml: `
         @pipa v11 ${arp(intro, { lo: 50, pat: ost })} L
