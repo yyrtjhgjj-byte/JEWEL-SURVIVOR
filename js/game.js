@@ -85,6 +85,8 @@ const FLAP = new Set(['bat', 'byakhee', 'kochou']);
 
 // ボスの HP の全体倍率（data.js の hp に掛ける）と、ブレイクに必要な量（最大 HP に対する割合、ブレイクのたびに掛ける倍率）
 const BOSS_HP = 2.7;
+// CHAOS：全ウェポン・全チャームを持って始め、レベルアップ 1 回の強化・宝箱の中身・敵の HP と攻撃力をこの倍にする（ユーザーの指定）
+export const CHAOS = 5;
 // ボスが生きている間の雑魚の同時出現数と出現ペースの倍率（ボス戦に集中できるように）
 const BOSS_TRASH = 0.5;
 const BREAK_NEED = 0.42;
@@ -118,6 +120,7 @@ export class Game {
     this.endless = !!opts.endless;
     this.hyper = !!opts.hyper; // 自機・敵の移動 ×1.65、敵弾 ×1.2、コイン ×1.5
     this.hurry = !!opts.hurry; // ステージの時計が 2 倍速で進む
+    this.chaos = !!opts.chaos && !opts.rush && !opts.train; // CHAOS（全ステージクリアで解放）
     this.banished = new Set(); // バニッシュした武器・チャーム（このランでは候補に出ない）
     this.spent = new Set(); // 身代わりに砕けたマラカイト（このランでは候補に出ない）
     // 秘宝
@@ -223,7 +226,13 @@ export class Game {
       for (const id of (this.rush.p || []).slice(0, MAX_CHARMS)) if (PASSIVES[id] && !this.getPassive(id)) this.addPassive(id);
       this.player.hp = this.stats.maxHp;
     } else if (this.train) this.trainSetup();
-    else this.addWeapon(CHARACTERS[this.charId].weapon);
+    else if (this.chaos) {
+      // CHAOS：ジュエルのウェポンを先頭に、全ウェポン・全チャームを Lv1 で持つ
+      this.addWeapon(this.startWeapon);
+      for (const id of WEAPON_IDS) if (!this.getWeapon(id)) this.addWeapon(id);
+      for (const id of PASSIVE_IDS) this.addPassive(id);
+      this.player.hp = this.stats.maxHp;
+    } else this.addWeapon(CHARACTERS[this.charId].weapon);
     this.lodestoneNext = (Math.floor(this.time / 120) + 1) * 120;
     this.hopeNext = this.time + 60;
     if (opts.artifact && ARTIFACT_BY_ID[opts.artifact]) this.addArtifact(opts.artifact, true);
@@ -923,12 +932,14 @@ export class Game {
     // 雑魚は時間の伸び（hpScale）× 自機の強さ（trashMul。大群イベント・エリート・シーフは連動させない）、エリートは雑魚の 2 倍
     // 最終ボス連戦では、いま戦っているボスのもとのステージの倍率を使う（ボスが呼ぶ雑魚も同じ）
     const st = this.rushHome || this.stage;
-    const mul = d.boss ? BOSS_HP * (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) * st.hp * this.heatM.hp
-      : d.prop ? 1 : this.hpScale() * (elite ? 2 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1);
+    // CHAOS は HP と攻撃力を CHAOS 倍（地形の小物は除く）
+    const cm = this.chaos && !d.prop ? CHAOS : 1;
+    const mul = cm * (d.boss ? BOSS_HP * (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) * st.hp * this.heatM.hp
+      : d.prop ? 1 : this.hpScale() * (elite ? 2 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1));
     // 敵の攻撃力（dmg）：雑魚・エリート 2 倍、ボス 1.5 倍（弾・レーザーもこれをもとにする）
     const e = {
       id: ++this.eid, type, x, y, r: d.r * (elite ? 1.5 : 1), hp: d.hp * mul, maxHp: d.hp * mul,
-      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * (this.rushHome ? this.rushHome.dmg * this.heatM.dmg : this.stageDmg) * (d.boss ? 1.5 : 2), xp: d.xp,
+      speed: d.speed * rand(0.9, 1.1) * (elite ? 0.9 : 1) * this.heatM.speed * (this.hyper ? 1.65 : 1), dmg: d.dmg * (1 + Math.min(this.progress(), 900) / 600) * (this.rushHome ? this.rushHome.dmg * this.heatM.dmg : this.stageDmg) * (d.boss ? 1.5 : 2) * cm, xp: d.xp,
       vx: 0, vy: 0, flash: 0, hitT: {}, alive: true, elite, boss: !!d.boss, prop: !!d.prop, segment: !!d.segment,
       frozenT: 0, slowT: 0, slowMul: 1, anim: rand(10), phase: rand(TAU),
       ai: d.ai || type, spr: d.sprite || type, weave: d.weave, kbk: kbWeight(d, elite),
@@ -1955,7 +1966,9 @@ export class Game {
       this.level++;
       this.xpNext = xpFor(this.level);
       this.pendingLevels++;
-      this.modalQueue.push({ type: 'level' });
+      // CHAOS はレベルアップ 1 回で CHAOS 回選ぶ（pick 回目。演出は 1 回目だけ）
+      if (this.chaos) for (let k = 1; k <= CHAOS; k++) this.modalQueue.push({ type: 'level', pick: k });
+      else this.modalQueue.push({ type: 'level' });
       if (this.artSet.has('musicbox')) this.starfall(); // 秘宝「流星のオルゴール」
     }
   }
@@ -2136,7 +2149,8 @@ export class Game {
   // plus：追加の枠（BOSS モード）。中のコインは追加の枠には付けない
   rollChest(big, plus = 0) {
     const base = this.chestCount(big);
-    const n = base + plus;
+    // CHAOS は中身の数を CHAOS 倍（コインは増やさない）
+    const n = (base + plus) * (this.chaos ? CHAOS : 1);
     const items = [];
     for (let i = 0; i < n; i++) {
       // しんか ゆうせん
@@ -2177,11 +2191,13 @@ export class Game {
       if (this.pendingClear) this.finishClear();
     };
     if (m.type === 'level') {
-      this.pendingLevels = Math.max(0, this.pendingLevels - 1);
+      const first = !(m.pick > 1);
+      if (first) this.pendingLevels = Math.max(0, this.pendingLevels - 1);
       const p = this.player;
       // もう えらぶものが ないときは じゃましない
       const cs = this.rollChoices();
       if (cs.every((c) => c.type === 'coins' || c.type === 'heal')) {
+        if (!first) { this.state = 'play'; this.curModal = null; return; }
         const v = Math.round(30 * this.stats.greed);
         this.coins += v;
         this.heal(20, true);
@@ -2191,9 +2207,11 @@ export class Game {
         this.state = 'play';
         return;
       }
-      this.fx.ring(p.x, p.y, 10, 120, 0.5, 'rainbow', 8);
-      this.fx.confetti(p.x, p.y, 20, 250);
-      audio.levelUp();
+      if (first) {
+        this.fx.ring(p.x, p.y, 10, 120, 0.5, 'rainbow', 8);
+        this.fx.confetti(p.x, p.y, 20, 250);
+        audio.levelUp();
+      }
       this.hooks.levelUp(this, done);
     } else if (m.type === 'artifact') {
       audio.chestOpen();
@@ -2247,7 +2265,7 @@ export class Game {
       passives: this.passives.map((x) => ({ id: x.id, level: x.level, lbN: x.lbN })),
       arts: [...this.arts], revives: this.revives, revBuff: this.revBuff, rerolls: this.rerolls, skips: this.skips, banishes: this.banishes, banished: [...this.banished], spent: [...this.spent], autoPick: this.autoPick,
       roughGot: { ...this.roughGot }, healedTotal: this.healedTotal, moved: this.moved, charmed: this.charmed || 0, milestoneIdx: this.milestoneIdx,
-      hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big, ...(m.plus ? { plus: m.plus } : {}) })),
+      hp: p.hp, modals: modals.map((m) => ({ type: m.type, big: !!m.big, ...(m.plus ? { plus: m.plus } : {}), ...(m.pick ? { pick: m.pick } : {}) })),
       nextEndlessBoss: this.nextEndlessBoss, nextEndlessEvent: this.nextEndlessEvent, lodestoneNext: this.lodestoneNext, hopeNext: this.hopeNext,
       endlessBoss: this.endlessBoss || null, cleared: this.cleared, hurt: this.hurt, rushKills: this.rushKills, rushNextT: this.rushNextT, rushFrom: this.rushFrom,
       bossList: this.enemies.filter((e) => e.alive && e.boss && e.ai !== 'piper').map((e) => ({ type: e.type, hp: e.hp, maxHp: e.maxHp, artChest: !!e.artChest, breakNeed: e.breakNeed || 1, woke: !!e.azWoke })),
@@ -2299,7 +2317,8 @@ export class Game {
     }
     this.modalQueue = []; // 開始時の初期強化の分は、保存したモーダルに含まれている
     for (const m of s.modals || []) this.modalQueue.push(m);
-    this.pendingLevels = this.modalQueue.filter((m) => m.type === 'level').length; // レベルアップ画面の「LV n」の表示用
+    // レベルアップ画面の「LV n」の表示用（CHAOS は 1 回のレベルアップで何度も選ぶので、1 回目の画面だけ数える）
+    this.pendingLevels = this.modalQueue.filter((m) => m.type === 'level' && !(m.pick > 1)).length;
   }
 
   pause() {
@@ -2315,7 +2334,7 @@ export class Game {
   results() {
     return {
       time: this.time, kills: this.kills, level: this.level, coins: this.coins, damage: this.totalDmg,
-      roughGot: { ...this.roughGot }, hyper: this.hyper, hurry: this.hurry, arts: [...this.arts], healed: this.healedTotal, moved: this.moved, maxCombo: this.maxCombo, fevers: this.fevers, evolved: this.evolvedCount, bosses: this.bosses,
+      roughGot: { ...this.roughGot }, hyper: this.hyper, hurry: this.hurry, chaos: this.chaos, arts: [...this.arts], healed: this.healedTotal, moved: this.moved, maxCombo: this.maxCombo, fevers: this.fevers, evolved: this.evolvedCount, bosses: this.bosses,
       miracles: this.miracles, weaponCount: this.weapons.length, cleared: this.cleared, dmgBy: { ...this.dmgBy },
       weapons: this.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved })),
       passives: this.passives.map((p) => ({ id: p.id, level: p.level })),

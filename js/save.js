@@ -18,6 +18,8 @@ function defaults() {
     endless: false,
     hyper: false, // ハイパーモード（ステージ選択の切り替え）
     hurry: false, // ハリーモード
+    chaos: false, // CHAOS（全ステージクリアで解放。ステージ選択の切り替え）
+    chaosRec: {}, // CHAOS の記録（ステージごとの { cleared, best }。ふつうの記録とは別）
     artSel: null, // 持ち込む秘宝
     artSel2: null, // 2 つ目の持ち込む秘宝（上位工房「秘宝の持ち込み」）
     upgradesOff: {}, // 工房：最大まで上げた強化のうち、無効にしているもの

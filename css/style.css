@@ -421,6 +421,11 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
   display: grid; grid-template-columns: repeat(6, 26px); gap: 3px;
 }
 .slotico { position: relative; width: 26px; height: 26px; border-radius: 6px; background: rgba(10,10,18,0.55); border: 1px solid var(--line); }
+/* CHAOS：ウェポン 18・チャーム 15 を小さく 9 列で */
+#hud.chaos #slots { grid-template-columns: repeat(9, 19px); gap: 2px; }
+#hud.chaos #slots .slotico { width: 19px; height: 19px; border-radius: 4px; }
+#hud.chaos #slots .slotico b { font-size: 8px; right: -1px; bottom: -2px; }
+#hud.chaos #slots .slotico b i { display: none; }
 #slots .lives { grid-column: 1 / -1; display: flex; gap: 3px; padding: 1px 0 1px 2px; }
 #slots .lives svg { width: 15px; height: 14px; fill: #ff4d8d; stroke: #fff; stroke-width: 1.8; filter: drop-shadow(0 0 3px rgba(255,77,141,0.7)); }
 .slotico img { width: 100%; height: 100%; }

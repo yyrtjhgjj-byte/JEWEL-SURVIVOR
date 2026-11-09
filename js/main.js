@@ -223,13 +223,15 @@ function startGame(charId, opt = {}) {
     ...botHooks,
     // トレーニングは実績も判定しない
     checkAchievements: (r, live) => { if (!opt.train) achDuringRun.push(...checkAchievements(r, live)); },
-  },{ charId, artifact: opt.artifact || null, artifact2: opt.artifact2 || null, endless: !opt.rush && !opt.train && !!opt.endless, hyper: !opt.train && !!opt.hyper, hurry: !opt.rush && !opt.train && !!opt.hurry, stageId: stage.id, heat: opt.rush || opt.train ? 0 : opt.heat || 0, rush: opt.rush || null, train: opt.train || null, bot: DEBUG.bot, god: DEBUG.god, startTime: opt.resume ? opt.resume.time : DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
+  },{ charId, artifact: opt.artifact || null, artifact2: opt.artifact2 || null, endless: !opt.rush && !opt.train && !!opt.endless, hyper: !opt.train && !!opt.hyper, hurry: !opt.rush && !opt.train && !!opt.hurry, chaos: !opt.rush && !opt.train && !!opt.chaos, stageId: stage.id, heat: opt.rush || opt.train ? 0 : opt.heat || 0, rush: opt.rush || null, train: opt.train || null, bot: DEBUG.bot, god: DEBUG.god, startTime: opt.resume ? opt.resume.time : DEBUG.start, build: DEBUG.build, noRender: DEBUG.norender });
   achDuringRun = [];
   window.__game = game; // デバッグ用
   UI.hudShow(true);
   // BOSS モードは経験値もフィーバーもないので、レベル・経験値バー・フィーバーのゲージを出さない
   document.getElementById('hud').classList.toggle('rush', !!game.rush || !!game.train);
   document.getElementById('hud').classList.toggle('train', !!game.train);
+  // CHAOS は装備が多いので、左上の装備の絵を小さく並べる
+  document.getElementById('hud').classList.toggle('chaos', !!game.chaos);
   if (opt.resume) game.restore(opt.resume); // 中断したランの続き（HUD の準備のあとに）
   else if (opt.rush) game.rushBegin(opt.rush.from || 0); // BOSS モードの開始時の宝箱（CHECKPOINT ならまとめて）
   moveHint = document.getElementById('movehint');
@@ -245,7 +247,7 @@ function startGame(charId, opt = {}) {
     if (!game.rushFrom) UI.banner('BOSS RUSH', 'start', `${stage.finale ? `第${stage.finale}章の最終ボス` : `STAGE ${stage.no} のボス`} ${game.rushOrder.length} 体 ・ 1 周ごとに ×${rushStep(stage)}`);
     save.stats.runs++;
   } else {
-    UI.banner(stage.en, 'start', `${m}:00 — ${ENEMIES[stage.finalBoss].name}を撃破せよ`);
+    UI.banner(stage.en, 'start', `${game.chaos ? 'CHAOS ・ ' : ''}${m}:00 — ${ENEMIES[stage.finalBoss].name}を撃破せよ`);
     save.stats.runs++;
   }
   persist();
@@ -276,7 +278,16 @@ function settleRun(res, cleared) {
     rushBest = res.rush.kills > (br[stage.id] || 0);
     if (rushBest) br[stage.id] = res.rush.kills;
   }
-  const rec = res.rush ? {} : save.stages[stage.id] || (save.stages[stage.id] = {});
+  // CHAOS：ふつうのクリア・ヒート・最長の記録とは別に、ステージごとのクリアと最長だけを残す（初クリアの報酬もなし）
+  let chaosBest = false;
+  if (res.chaos && !res.rush) {
+    const cr = save.chaosRec || (save.chaosRec = {});
+    const c = cr[stage.id] || (cr[stage.id] = {});
+    chaosBest = res.time > (c.best || 0);
+    c.best = Math.max(c.best || 0, res.time);
+    if (cleared) c.cleared = true;
+  }
+  const rec = res.rush || res.chaos ? { cleared: true } : save.stages[stage.id] || (save.stages[stage.id] = {});
   const firstClear = cleared && !rec.cleared;
   let unlocked = null, nextStage = null;
   if (cleared) {
@@ -300,7 +311,8 @@ function settleRun(res, cleared) {
   for (const [t, n] of Object.entries(res.roughGot || {})) save.rough[t] = (save.rough[t] || 0) + n;
   refreshLot();
   const newBest = {};
-  for (const k of ['time', 'kills', 'level', 'damage']) {
+  // 全体の最高記録（記録の画面）は、CHAOS では更新しない（装備も敵の強さも別物なので）
+  for (const k of res.chaos ? [] : ['time', 'kills', 'level', 'damage']) {
     const v = res[k];
     newBest[k] = v > (save.best[k] || 0) && save.stats.runs > 1;
     if (v > (save.best[k] || 0)) save.best[k] = v;
@@ -308,7 +320,7 @@ function settleRun(res, cleared) {
   const rankUp = DEBUG.bot ? null : addRankExp(runExp(res, cleared)); // ユーザーランクの経験値
   const newAch = checkAchievements(res, false);
   persist();
-  return { coinsEarned, newBest, newAch, firstClear, unlocked, nextStage, rankUp, rushBest };
+  return { coinsEarned, newBest, newAch, firstClear, unlocked, nextStage, rankUp, rushBest, chaosBest };
 }
 
 // 途中保存：ラン中の成績と状態を数秒ごとにセーブへ書いておく。アプリが落ちたり終了させられたりしても、
@@ -334,7 +346,7 @@ function recoverPendingRun() {
     UI.resumePrompt(res, () => {
       // 中断の記録はここでは消さない（再開した直後に落ちたり再読み込みされたりしても、もう一度再開できるように）。
       // 再開したランの途中保存で上書きされ、ランが終われば settleRun で消える
-      startGame(res.charId, { stageId: res.stageId, heat: res.heat || 0, endless: !!res.endless, hyper: !!res.hyper, hurry: !!res.hurry, rush: res.rush ? { w: res.rush.w, p: res.rush.p } : null, resume: res.resume });
+      startGame(res.charId, { stageId: res.stageId, heat: res.heat || 0, endless: !!res.endless, hyper: !!res.hyper, hurry: !!res.hurry, chaos: !!res.chaos, rush: res.rush ? { w: res.rush.w, p: res.rush.p } : null, resume: res.resume });
     }, () => { settle(); UI.refreshCoinPill(); });
   } else settle();
 }
@@ -510,7 +522,7 @@ const crashed = initDiag(() => {
   const g = game;
   if (g && g.state !== 'over') {
     info.run = {
-      stage: g.stage.id, time: Math.round(g.time), heat: g.heat, endless: g.endless, hyper: g.hyper, state: g.state, level: g.level,
+      stage: g.stage.id, time: Math.round(g.time), heat: g.heat, endless: g.endless, hyper: g.hyper, chaos: g.chaos, state: g.state, level: g.level,
       enemies: g.enemies.length, projs: g.projs.length, bullets: g.ebullets.length, pickups: g.pickups.length, parts: g.fx.parts.length,
       areas: g.areas.length, quality: g.quality || 0, fps: Math.round(1 / (g.frameAvg || 1 / 60)),
       boss: g.boss && g.boss.alive ? g.boss.type : null, auto: g.autoOn,
@@ -525,7 +537,7 @@ if (DEBUG.autostart) {
   if (save.pendingRun) { delete save.pendingRun; persist(); }
   const rs = DEBUG.rush !== null ? DEBUG.rush.split('/') : null;
   const rush = rs ? { w: (rs[0] || '').split(',').filter(Boolean), p: (rs[1] || '').split(',').filter(Boolean), from: +(rs[2] || 0) } : null;
-  startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), artifact: params.get('art'), stageId: DEBUG.stage, heat: DEBUG.heat, rush });
+  startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), chaos: params.has('chaos'), artifact: params.get('art'), stageId: DEBUG.stage, heat: DEBUG.heat, rush });
 } else {
   UI.showTitle();
   recoverPendingRun(); // 再開の確認はタイトル（ログインボーナス）の上に出す
