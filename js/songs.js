@@ -759,13 +759,13 @@ export const SONGS = {};
     melody: ['lead', 'lead2'],
     chords: `${intro} ${A} ${A2} ${B} ${A}`,
     reverb: { size: 0.95, damp: 0.25 },
-    pat: { MA: 'o5 e2. f+8 g8 | a1 | b-4. a-8 g2 | a4 g4 f2 | >c2. d8 e-8 | f2 d2 | d2 c2 | <b1 |' },
+    pat: { MA: 'o5 c2 g2 | f+1 | e-2 b-2 | a1 | a-2 >e-2 | d1 | c2 d2 | <b1 |' },
     ch: [
       { id: 'lead', type: 'inst', pan: -0.15, rev: 0.45, mml: `
         r1 | r1 | r1 | r1 | L
         @theremin v12 $MA
-        @fl v12 o5 e8 f+8 g8 b8^2 | a4. f+8 d2 | e8 f+8 g8 b8^4 a4 | >c2. r4 | <a8 b8 >c8 e8^2 | d4. <b8 g2 | g4. f+8 e8 g8 >c+4 | d4 c4 <b2 |
-        @glock v12 o6 c4. <b8 a8 b8 >c8 e8 | d2 <b2 | a4. g8 f8 g8 a8 >c8 | <b2 g2 | a8 b8 >c8 d8^2 | e4 d8 <b8^2 | >c2 e4. d8 | c2 <b2 |
+        @fl v12 o5 e4. d8 e4 g4 | a4. f+8 d2 | b4. a8 g4 e4 | >c2 <a2 | a4. g8 a4 >c4 | d2 <b2 | g2 >c+2 | d2 <b2 |
+        @glock v12 o6 c4 e4 g4 e4 | d4 <b4 g4 b4 | a4 >c4 e4 c4 | <b4 g4 e4 g4 | a4 >c4 f4 c4 | <b4 >d4 g4 d4 | e2 c2 | d2 <b2 |
         @horn v13 k-12 $MA k0` },
       { id: 'lead2', type: 'inst', pan: 0.25, rev: 0.45, mml: `
         r1 | r1 | r1 | r1 | L
