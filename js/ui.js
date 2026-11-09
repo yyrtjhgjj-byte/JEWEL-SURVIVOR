@@ -398,8 +398,10 @@ export function showCharSelect() {
         <div>
           <div class="name">${unlocked ? g.jp : '???'}</div>
           <div class="sub"><span class="en">${g.en}</span>${wordTag(sel)}</div>
-          <div class="row">ウェポン <b>${w.name}</b></div>
-          <div class="row">特性 <b>${c.perk}</b>${aw ? ` ／ 覚醒+${aw}（攻撃力+${aw * 5}%）` : ''}</div>
+          <div class="cd-spec">
+            <small>ウェポン</small><b>${w.name.replace('・', '・<wbr>')}</b>
+            <small>特性</small>${c.perk.split(' / ').map((s) => `<b>${s}</b>`).join('')}${aw ? `<span class="cd-aw">覚醒 +${aw}　攻撃力 +${aw * 5}%</span>` : ''}
+          </div>
         </div>
       </div>
       <div class="lore">${unlocked ? g.lore : '🔒 解放条件：' + (c.unlock || '???')}</div>`;

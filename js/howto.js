@@ -396,5 +396,5 @@ export function helpTopicHTML(id) {
 export function helpIndexHTML(groups = HELP_GROUPS) {
   const T = helpTopics();
   return groups.map((g) => `<div class="hp-group"><div class="hp-gh"><span>${g.en}</span>${g.jp}</div>
-    <div class="hp-tiles">${g.ids.map((id) => `<button class="hp-tile" data-topic="${id}">${iconHTML(T[id], 'hp-tic')}<span>${T[id].jp}</span></button>`).join('')}</div></div>`).join('');
+    <div class="hp-tiles">${g.ids.map((id) => `<button class="hp-tile" data-topic="${id}">${iconHTML(T[id], 'hp-tic')}<span>${T[id].jp.replace(/[との]/g, '$&<wbr>')}</span></button>`).join('')}</div></div>`).join('');
 }
