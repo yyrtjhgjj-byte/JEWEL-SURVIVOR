@@ -18,9 +18,11 @@ const BOSS_BGM = {
   final2: ['旧支配者との戦い', 'THE GREAT OLD ONES', '#7a6bff'],
   boss3: ['ボス戦', 'BOSS BATTLE', '#ffb03d'],
   shikyou: ['四凶との戦い', 'THE FOUR FIENDS', '#ff5a3d'],
+  boss4: ['ボス戦', 'BOSS BATTLE', '#c8ccff'],
+  opus: ['大いなる業', 'MAGNUM OPUS', '#ffd27a'],
 };
 // 旧曲のない曲（作り直したあとに足した曲）
-export const NEW_ONLY = new Set(['boss2', 'final2', 'boss3']);
+export const NEW_ONLY = new Set(['boss2', 'final2', 'boss3', 'calcinatio', 'solutio', 'separatio', 'coniunctio', 'fermentatio', 'distillatio', 'coagulatio', 'boss4', 'opus']);
 // その章の中ボスに会ったか・ステージをどれかクリアしたか
 const midSeen = (ch) => STAGES.some((s) => s.chapter === ch && s.events.some((e) => e.type === 'boss' && e.enemy !== s.finalBoss && save.seen.enemies && save.seen.enemies[e.enemy]));
 const chCleared = (ch) => STAGES.some((s) => s.chapter === ch && save.stages[s.id] && save.stages[s.id].cleared);

@@ -93,6 +93,18 @@ export const INST = {
   tubell: { model: 'add', parts: [[1, 1, 3], [2.76, 0.5, 2], [5.4, 0.25, 1.2], [8.93, 0.12, 0.6]], env: [0.001, 3.5, 0, 1.5], gain: 0.65 },
   timp: { model: 'add', parts: [[1, 1, 1.6], [1.5, 0.5, 1.1], [1.98, 0.35, 0.9], [2.44, 0.22, 0.7], [2.97, 0.1, 0.5]], noise: 0, chiff: 0.3, nf: 3, nq: 0.7, env: [0.002, 2, 0, 0.6], gain: 1.1 },
   subbass: { model: 'add', parts: [[1, 1], [2, 0.15]], env: [0.01, 0.3, 0.9, 0.12], gain: 1.2 },
+
+  // ---- 第4章の楽器（東方 Project 風）
+  // トランペット：明るく、速く深いビブラート
+  zpet: { model: 'sub', n: 2, det: 6, cut: 1800, kt: 0.5, fenv: [3000, 0.03, 0.25], q: 1.3, env: [0.018, 0.3, 0.88, 0.1], scoop: [-0.35, 0.045], vib: [26, 6.3, 0.09], glide: 0.03, gain: 1.0 },
+  // シンセの主旋律（矩形波）
+  zlead: { model: 'sub', osc: 'pulse', duty: 0.25, n: 2, det: 8, cut: 2600, kt: 0.4, fenv: [2000, 0.02, 0.2], q: 0.9, env: [0.01, 0.3, 0.85, 0.1], vib: [22, 6, 0.12], glide: 0.03, gain: 0.8 },
+  // ピアノ：倍音ごとに減衰の速さを変え、わずかにずらした基音でうなりを出す。打鍵の音は短いノイズ
+  piano: { model: 'add', parts: [[1, 1, 4], [1.0012, 0.4, 5], [2.003, 0.85, 3], [3.007, 0.6, 2], [4.013, 0.42, 1.4], [5.021, 0.3, 1], [6.032, 0.2, 0.8], [7.045, 0.13, 0.6]], chiff: 0.15, nf: 3.5, nq: 0.9, env: [0.002, 8, 0, 0.3], gain: 0.6 },
+  // 低音：ピックで弾く明るい音・指で弾く丸い音・矩形波の硬い音
+  ebass: { model: 'sub', n: 1, cut: 380, kt: 0.4, fenv: [1400, 0.005, 0.12], q: 1, env: [0.004, 0.35, 0.55, 0.05], gain: 1.4 },
+  fbass: { model: 'sub', n: 1, cut: 300, kt: 0.4, fenv: [600, 0.01, 0.15], q: 0.8, env: [0.008, 0.5, 0.5, 0.08], glide: 0.05, gain: 1.4 },
+  sqbass: { model: 'sub', osc: 'pulse', duty: 0.5, n: 1, cut: 500, kt: 0.4, fenv: [1800, 0.004, 0.1], q: 1.2, env: [0.003, 0.25, 0.6, 0.04], gain: 1.1 },
 };
 
 // ---------------------------------------------------------------- 和音から伴奏を作る
@@ -1434,6 +1446,685 @@ const gongs = (n, every = 4) => `[v13 g1 | ${'r1 | '.repeat(every - 1)}]${n / ev
         v12 C4 b8 b8 S4 b8 j8 | [v12 J4 b8 b8 S4 b8 j8 |]6 v12 j8 j8 S8 j8 s16 s16 s16 s16 S8 S8 |
         [v12 J16 j16 b8 S8 b8 j16 j16 b8 S8 u8 |]7 v12 s16 s16 s16 s16 s16 s16 s16 s16 S8 S8 C4 |` },
       { id: 'gong', type: 'perc', pan: 0, rev: 0.45, mml: `v12 g1 | r1 | L ${gongs(32)}` },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------- 第4章（錬金術）：東方 Project 風（ユーザーの希望。ほかの章の曲はまねない）
+// 旋律は自然短音階から第 6 音を抜いた音（＋ V の上の導音・終わりのピカルディの 3 度）。トランペット（zpet）・ピアノの刻み・8 分のベース・ドラムとシンバルは別のチャンネル
+const rep = (s, n) => Array(n).fill(s).join(' ');
+
+// 焼成（STAGE 16）：炉の炎のゆらぎを、上の声が隣の音を行き来するピアノの刻みに。トランペットがリフの上で歌い、サビは ♭VI→♭VII→i の上で主題を 3 回くり返して最高音へ登り、最後だけ長調で閉じる
+{
+  const PRE = 'Dm Dm Bb A';
+  const RIFF = 'Dm C Bb A';
+  const A = 'Dm C Bb A Dm C Bb,C Dm';
+  const B = 'Gm Am Bb A';
+  const CH1 = 'Bb C Dm Dm Bb C Dm A';
+  const CH2 = 'Bb C Am Dm Gm A Bb,C D';
+  // 炎のゆらぎ：上の声が隣の音を行き来し、下は和音の 5 度を打ち続ける 16 分の刻み。1 小節に 2 つの和音なら前半・後半を使う
+  const TOP = {
+    Dm: ['d', 'e', 'f', 'e', 'd', 'c', 'd', 'f'],
+    C: ['e', 'f', 'g', 'f', 'e', 'd', 'e', 'g'],
+    Bb: ['d', 'e', 'f', 'e', 'd', 'c', 'd', 'f'],
+    A: ['c+', 'd', 'e', 'd', 'c+', '<b-', 'c+', 'e'],
+  };
+  const PED = { Dm: 'a', C: 'g', Bb: 'f', A: 'e' };
+  const riff = (chords, o, vt, vp) => chords.trim().split(/\s+/).map((bar) => {
+    const cs = bar.split(',');
+    const out = [];
+    for (let j = 0; j < 8; j++) {
+      const c = cs[Math.floor((j * cs.length) / 8)];
+      const x = TOP[c][j];
+      const top = x.startsWith('<') ? `o${o - 1} ${x.slice(1)}` : `o${o} ${x}`;
+      out.push(`v${vt} ${top}16 v${vp} o${o - 1} ${PED[c]}16`);
+    }
+    return out.join(' ');
+  }).join(' | ') + ' |';
+  const oct8 = 'R8 O8 R8 O8 R8 O8 R8 O8';
+  // ドラム（バスドラ・スネア・タム）とシンバル類は別のチャンネルで同時に鳴らす
+  const KS = 'v12 k4 v11 s4 v12 k8 k8 v11 s4 |';
+  const KS2 = 'v12 k4 v11 s8 v12 k8 k8 k8 v11 s4 |';
+  const HH = 'v8 h8 h8 h8 h8 h8 h8 h8 h8 |';
+  const HC = 'v11 c4 v8 h8 h8 h8 h8 h8 h8 |';
+  const HO = 'v8 h8 h8 h8 o8 h8 h8 h8 o8 |';
+  const HOC = 'v11 c4 v8 h8 o8 h8 h8 h8 o8 |';
+  SONGS.calcinatio = {
+    bpm: 156,
+    melody: 'tp',
+    chords: `${PRE} ${RIFF} ${A} ${B} ${CH1} ${CH2}`,
+    reverb: { size: 0.7, damp: 0.4 },
+    gain: 1,
+    ch: [
+      { id: 'tp', type: 'inst', pan: 0.05, rev: 0.22, poly: 3, gain: 1.7, mml: `
+        @zpet q7 r1 | r1 | r1 | r1 | L
+        r1 | r1 | r1 | r1 |
+        v13 o4 a4. > d4. e8 f8 | g4. e8^2 | < a4. > d4. e8 f8 | g4. f8 e2 |
+        < a8 > d8 f4 d8 f8 a4 | g4 e8 d8 e4 c4 | f4. d8 e4. c8 | d2. r4 |
+        v13 d4. c8 d4 g4 | e4. d8 e4 a4 | f4. e8 f4 a4 | g8 f8 e8 d8 c+4. < a8 |
+        v14 > d8 f8 a4. g8 f4 | e4. c8 d8 e8 g4 | a2 g12 a12 g12 f4 | e4. d8^2 |
+        d8 f8 a4. g8 f4 | e4. g8 > c8 < a8 g4 | a8 g8 f8 e8 f4 d4 | e4. d8 c+4. e8 |
+        f8 a8 > c4. < g8 a4 | g8 a8 g8 e8 d8 e8 g4 | a4. g8 a4 > c4 | < a4. g8 a8 > c4 d8& |
+        d2. c8 < a8 | > c+4. < a8 e4 g4 | f4. d8 g4. e8 | f+2. r4 |` },
+      { id: 'hm', type: 'inst', pan: -0.3, rev: 0.25, poly: 3, gain: 1.1, mml: `
+        @zpet q7 r1 | r1 | r1 | r1 | L
+        [r1 |]24
+        v12 o5 d8 f8 a4. d8 f4 | e8 f8 e8 c8 < b-8 > c8 e4 | e4. e8 e4 a4 | f4. e8 f8 a4 a8 |
+        b-2. a8 f8 | a4. e8 c+4 e4 | d4. < b-8 > e4. c8 | d2. r4 |` },
+      { id: 'pf', type: 'inst', pan: 0.25, rev: 0.18, poly: 10, gain: 0.75, mml: `
+        @piano q8
+        ${riff('Dm Dm Bb A', 5, 12, 8)} L
+        ${riff(RIFF, 5, 13, 9)}
+        ${riff('Dm C Bb A Dm C Bb,C Dm', 4, 10, 7)}
+        v11 ${arp('Gm Am Bb', { lo: 57, pat: RISE })}
+        o4 e16 a16 > c+16 e16 a16 > c+16 e16 a16 v12 g24 f24 e24 d24 c+24 < b-24 a24 g24 f24 e24 d24 c+24 |
+        v11 ${arp(CH1, { lo: 50, pat: WAVE })}
+        v12 ${arp('Bb C Am Dm Gm A Bb,C', { lo: 50, pat: WAVE })}
+        ${arp('D', { lo: 50, pat: RISE })}` },
+      { id: 'str', type: 'inst', pan: -0.25, rev: 0.4, poly: 8, gain: 0.6, mml: `
+        @strings q8 r1 | r1 | v8 ${blocks('Bb A', { lo: 55 })} L
+        v9 ${blocks(RIFF, { lo: 55 })}
+        v7 ${blocks(A, { lo: 50 })}
+        v9 ${blocks('Gm', { lo: 55 })} v10 ${blocks('Am', { lo: 55 })} v11 ${blocks('Bb', { lo: 55 })} v12 ${blocks('A', { lo: 55 })}
+        v11 ${blocks(CH1, { lo: 57 })}
+        v12 ${blocks(CH2, { lo: 60 })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0, poly: 2, gain: 0.9, mml: `
+        @ebass q6 r1 | r1 | v13 ${bass('Bb A', oct8, { lo: 36, hi: 47 })} L
+        ${bass(`${RIFF} ${A} ${B} ${CH1} ${CH2}`, oct8, { lo: 36, hi: 47 })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.12, mml: `
+        r1 | r1 | ${KS} v12 k8 v10 s8 s8 s8 v11 s16 s16 s16 s16 v12 s8 s8 | L
+        ${rep(KS, 3)} v12 k4 v11 s4 v12 k8 k8 v11 s8 s8 |
+        ${rep(KS, 7)} v12 k4 v11 s4 v12 k8 k8 v11 s8 s8 |
+        ${rep(KS2, 2)} v12 k8 v10 s8 v12 k8 v10 s8 v12 k8 v11 s8 v12 k8 v11 s8 | v10 s16 s16 s16 s16 v11 s16 s16 s16 s16 v12 s8 s8 v13 s8 s8 |
+        ${rep(KS2, 7)} v12 k4 v11 s8 s8 v12 k8 v11 s16 s16 s8 s8 |
+        ${rep(KS2, 7)} v12 k4 v11 s8 s8 v11 t16 t16 m16 m16 f8 f8 |` },
+      { id: 'hh', type: 'perc', pan: 0.1, rev: 0.1, gain: 1.6, mml: `
+        r1 | v6 h8 h8 h8 h8 h8 h8 h8 h8 | ${HH} v8 h8 h8 h8 h8 r2 | L
+        ${HC} ${rep(HH, 3)}
+        ${HC} ${rep(HH, 3)} ${HC} ${rep(HH, 3)}
+        ${HC} ${HH} v8 h8 o8 h8 o8 h8 o8 h8 o8 | r1 |
+        ${HOC} ${rep(HO, 3)} ${HOC} ${rep(HO, 3)}
+        ${HOC} ${rep(HO, 3)} ${HOC} ${rep(HO, 2)} v11 c4 v8 h8 h8 r2 |` },
+    ],
+  };
+}
+
+// 溶解（STAGE 17）：水面に空が映る。A は笛が下から上へ、A2 はバイオリンが上から下へ映し返し、サビは付点 4 分の 3・3・2 で上って下る
+{
+  // さざ波：5 つ上がって 3 つ下がるのを 2 回
+  const RIPPLE = [0, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 5, 6, 5, 4, 3];
+  const PRE = 'Bm Bm G A';
+  const A = 'Bm G D A Bm G Em F#';
+  const A2 = 'G A Bm Bm G A Em F#';
+  const CH = 'G A Bm Bm G A D F# Em F#m G A Em F# G F#';
+  const D_A = 'v11 k4. k4. v10 s4 |';
+  const D_A2 = 'v11 k4. k4. v11 s4 |';
+  const D_CH = 'v12 k4. v12 k4. v11 s4 |';
+  const D_CH2 = 'v12 k8 k4 v11 s8 v12 k4 v11 s4 |';
+  const H8 = 'v7 h8 h8 h8 h8 h8 h8 h8 h8 |';
+  const H3 = 'v8 h8 h8 h8 o8 h8 h8 o8 h8 |';
+  const H3C = 'v11 c4 v8 h8 o8 h8 h8 o8 h8 |';
+  SONGS.solutio = {
+    bpm: 144,
+    melody: 'ld',
+    chords: `${PRE} ${A} ${A2} ${CH}`,
+    reverb: { size: 0.8, damp: 0.35 },
+    gain: 0.9,
+    ch: [
+      { id: 'ld', type: 'inst', pan: 0.05, rev: 0.3, poly: 3, gain: 1.3, mml: `
+        r1 | r1 | r1 | r1 | L
+        @fl q8 v13 o4 b4. > c+8 d4 f+4 | e4. d8 < b2 | a8 b8 > d4. e8 f+4 | e2 c+4 r4 |
+        < b4. > c+8 d4 f+4 | b4. a8 f+2 | e4. f+8 e8 d8 c+8 < b8 | > c+2. r4 |
+        @violin q7 v13 f+4. e8 d4 < b4 | > c+4. d8 e2 | f+4. e8 d4 c+4 | < b2 > d4 r4 |
+        f+4. e8 d4 < b4 | a4. > c+8 e2 | < b4. a8 b8 > c+8 d8 e8 | f+2. r4 |
+        v14 d4. e4. f+4 | e4. c+4. < a4 | b8 > c+8 d8 f+8 b4. a8 | f+2. e8 d8 |
+        d4. e4. f+4 | a4. e4. c+4 | d8 e8 f+8 a8 > d4. c+8 | c+4. < b8 a+2 |
+        b4. a8 f+4 e4 | > c+4. < b8 a4 f+4 | > d4. c+8 < b4 f+4 | > e2. d8 c+8 |
+        < b2. a8 f+8 | a+4. > c+8 < a+4 f+4 | > d4. < b8 f+4 d4 | c+4. < b8 a+2 |` },
+      { id: 'fl2', type: 'inst', pan: -0.3, rev: 0.4, poly: 3, gain: 0.7, mml: `
+        @fl q8 r1 | r1 | r1 | r1 | L
+        [r1 |]8
+        v10 o5 b1 | o6 c+1 | d1 | o5 b1 | b1 | o6 c+1 | o5 b1 | a+1 |
+        [r1 |]8
+        v11 o5 g4. f+8 d4 o4 b4 | o5 a4. f+8 f+4 c+4 | o5 b4. a8 g4 d4 | o6 c+2. o5 b8 a8 |
+        o5 g2. f+8 d8 | o5 f+4. a+8 f+4 c+4 | o5 b4. g8 d4 o4 b4 | o4 a+4. g8 f+2 |` },
+      { id: 'pf', type: 'inst', pan: 0.25, rev: 0.25, poly: 10, gain: 0.75, mml: `
+        @piano q8 v10 ${arp(PRE, { lo: 50, pat: RIPPLE })} L
+        v10 ${arp(A, { lo: 50, pat: RIPPLE })}
+        v11 ${arp(A2, { lo: 52, pat: RIPPLE })}
+        v12 ${arp(CH, { lo: 50, pat: RIPPLE })}` },
+      { id: 'str', type: 'inst', pan: -0.2, rev: 0.45, poly: 8, gain: 0.6, mml: `
+        @strings q8 r1 | r1 | v8 ${blocks('G A', { lo: 55 })} L
+        v8 ${blocks(A, { lo: 52 })}
+        v9 ${blocks(A2, { lo: 55 })}
+        v11 ${blocks(CH, { lo: 57 })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0, poly: 2, gain: 0.8, mml: `
+        @synbass q7 r1 | r1 | v13 ${bass('G A', 'R4. R4. O4', { lo: 35, hi: 46 })} L
+        ${bass(`${A} ${A2}`, 'R4. R4. O4', { lo: 35, hi: 46 })}
+        ${bass(CH, 'R8 R8 O8 R8 R8 O8 R8 O8', { lo: 35, hi: 46 })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.15, mml: `
+        r1 | r1 | ${D_A} v11 k4. k8 v10 s16 s16 s16 s16 v11 s8 s8 | L
+        ${rep(D_A, 8)}
+        ${rep(D_A2, 7)} v11 k4. k8 v10 s16 s16 s16 s16 v12 s8 s8 |
+        ${rep(D_CH, 7)} v12 k4. k8 v11 s8 s8 s16 s16 s8 |
+        ${rep(D_CH2, 7)} v12 k4. k8 v11 t16 t16 m16 m16 f8 f8 |` },
+      { id: 'hh', type: 'perc', pan: 0.1, rev: 0.12, gain: 1.6, mml: `
+        r1 | r1 | ${H8} v7 h8 h8 h8 h8 r2 | L
+        v10 c4 v7 h8 h8 h8 h8 h8 h8 | ${rep(H8, 7)}
+        ${H3C} ${rep(H3, 7)}
+        ${H3C} ${rep(H3, 7)}
+        ${H3C} ${rep(H3, 6)} v11 c4 v8 h8 h8 r2 |` },
+    ],
+  };
+}
+
+// 分離（STAGE 18）：同じ動機を地（低いトロンボーン）と火（高いシンセ）に分けて呼び交わす。2 つのサビの間は全員が止まって 1 小節ずつ交互に鳴らす
+{
+  const PRE = 'Gm Gm Eb D';
+  const RIFF = 'Gm Gm Eb F';
+  const A = 'Gm Eb Cm D Gm Eb F D';
+  const CH = 'Eb F Gm Gm Eb F D D';
+  const BRK = 'Cm Cm D D';
+  const CH2 = 'Eb F Gm Bb Cm D Eb,F D';
+  const OFF = { rh: ['r8', '8', 'r8', '8', 'r8', '8', 'r8', '8'], rh2: ['r8', '8', 'r8', '8'] };
+  const D_ST = 'v12 k8 k8 r8 v11 s8 r8 v12 k8 v11 s4 |';
+  const D_CH = 'v12 k4 v11 s4 v12 k8 k8 v11 s4 |';
+  const D_CH2 = 'v12 k8 k8 v11 s4 v12 k8 k8 v11 s4 |';
+  const H8 = 'v8 h8 h8 h8 h8 h8 h8 h8 h8 |';
+  const HC = 'v11 c4 v8 h8 h8 h8 h8 h8 h8 |';
+  const HO = 'v8 h8 o8 h8 o8 h8 o8 h8 o8 |';
+  const HOC = 'v11 c4 v8 h8 o8 h8 o8 h8 o8 |';
+  SONGS.separatio = {
+    bpm: 152,
+    melody: 'ld',
+    chords: `${PRE} ${RIFF} ${A} ${CH} ${BRK} ${CH2}`,
+    reverb: { size: 0.65, damp: 0.45 },
+    gain: 1.08,
+    ch: [
+      { id: 'ld', type: 'inst', pan: 0.1, rev: 0.2, poly: 3, gain: 1.5, mml: `
+        @zlead q7 r1 | r1 | r1 | r1 | L
+        r1 | v12 o5 g8 g8 r8 b-8 r8 > c8 d4 | r1 | < f8 f8 r8 a8 r8 b-8 > c4 |
+        v13 < g8 b-4 a8 g4 d4 | g8 b-4 > c8 < b-2 | > c8 d4 c8 < b-4 g4 | a4. f+8 d2 |
+        g8 b-4 a8 g4 d4 | g8 b-4 > c8 d2 | c4. < b-8 a4 f4 | a4. > c8 < a4 f+4 |
+        v14 g16 a16 b-8 > d4. c8 < b-4 | f16 g16 a8 > c4. < b-8 a4 | b-8 a8 g8 d8 g4. a8 | b-2. r4 |
+        g16 a16 b-8 > d4. c8 < b-4 | f16 g16 a8 > c4. d8 c4 | < a4. f+8 a4 > c4 | < a2. r4 |
+        r1 | v12 o5 c8 c8 r8 e-8 r8 f8 g4 | r1 | d8 d8 r8 f+8 r8 g8 a4 |
+        v14 b-16 > c16 d8 g4. f8 d4 | < a16 b-16 > c8 f4. d8 c4 | d8 c8 < b-8 g8 > d4. f8 | f2. d8 f8 |
+        g2. f8 d8 | f+4. d8 < a4 > d4 | c4 < b-4 a4 > c4 | < a4 f+4 d2 |` },
+      { id: 'lo', type: 'inst', pan: -0.25, rev: 0.2, poly: 3, gain: 1.3, mml: `
+        @trb q7 r1 | r1 | v13 o2 e-8 e-8 r8 g8 r8 b-8 > c4 | o2 d8 d8 r8 f+8 r8 a8 > d4 | L
+        v13 o2 g8 g8 r8 b-8 r8 > c8 d4 | r1 | o2 e-8 e-8 r8 g8 r8 b-8 > c4 | r1 |
+        r1 | r2 o3 e-8 d8 c8 < b-8 | r1 | r2 o3 d8 c8 < b-8 a8 |
+        r1 | r2 o3 g8 f8 e-8 d8 | r1 | o2 d2 r2 |
+        v9 o3 g1 | f1 | d1 | < b-1 | > e-1 | c1 | < a1 | f+1 |
+        v13 o2 c8 c8 r8 e-8 r8 f8 g4 | r1 | o2 d8 d8 r8 f+8 r8 g8 a4 | r1 |
+        v9 o3 g1 | a1 | b-1 | f1 | g1 | f+1 | g2 a2 | f+1 |` },
+      { id: 'pf', type: 'inst', pan: 0.25, rev: 0.18, poly: 10, gain: 0.7, mml: `
+        @piano q5 v11 ${blocks(PRE, { lo: 55, ...OFF })} L
+        v11 ${blocks(`${RIFF} ${A}`, { lo: 55, ...OFF })}
+        q8 v11 ${arp(CH, { lo: 50, pat: WAVE })}
+        v12 ${blocks(BRK, { lo: 55, rh: ['4', 'r2.'] })}
+        v12 ${arp(CH2, { lo: 50, pat: WAVE })}` },
+      { id: 'str', type: 'inst', pan: -0.15, rev: 0.4, poly: 8, gain: 0.55, mml: `
+        @strings q8 r1 | r1 | v8 ${blocks('Eb D', { lo: 55 })} L
+        v8 ${blocks(`${RIFF} ${A}`, { lo: 55 })}
+        v11 ${blocks(CH, { lo: 57 })}
+        @strst v12 ${blocks(BRK, { lo: 55, rh: ['4', 'r2.'] })}
+        @strings v12 ${blocks(CH2, { lo: 60 })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0, poly: 2, gain: 0.9, mml: `
+        @fbass q6 r1 | r1 | v13 ${bass('Eb D', 'R8 R8 r8 R8 r8 R8 O8 R8', { lo: 38, hi: 49 })} L
+        ${bass(`${RIFF} ${A}`, 'R8 R8 r8 R8 r8 R8 O8 R8', { lo: 38, hi: 49 })}
+        ${bass(CH, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 38, hi: 49 })}
+        ${bass(BRK, 'R4 r2.', { lo: 36, hi: 47 })}
+        ${bass(CH2, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 38, hi: 49 })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.12, mml: `
+        r1 | r1 | ${D_ST} v12 k8 k8 r8 v11 s8 s16 s16 s16 s16 v12 s8 s8 | L
+        ${rep(D_ST, 12)}
+        ${rep(D_CH, 7)} v12 k4 v11 s8 s8 v12 k8 v11 s16 s16 s8 s8 |
+        v13 k4 r2. | v13 k4 r2. | v13 k4 r2. | v13 k4 r4 v11 s16 s16 s16 s16 v12 s8 s8 |
+        ${rep(D_CH2, 7)} v12 k4 v11 s8 s8 v11 t16 t16 m16 m16 f8 f8 |` },
+      { id: 'hh', type: 'perc', pan: 0.1, rev: 0.1, gain: 1.6, mml: `
+        r1 | r1 | ${H8} v8 h8 h8 h8 h8 r2 | L
+        ${HC} ${rep(H8, 3)}
+        ${HC} ${rep(H8, 3)} ${HC} ${rep(H8, 3)}
+        ${HOC} ${rep(HO, 3)} ${HOC} ${rep(HO, 3)}
+        v11 c4 r2. | v11 c4 r2. | v11 c4 r2. | v11 c4 r2. |
+        ${HOC} ${rep(HO, 3)} ${HOC} ${rep(HO, 2)} v11 c4 v8 h8 h8 r2 |` },
+    ],
+  };
+}
+
+// 結合（STAGE 19）：化学の結婚のワルツ（3 拍子）。太陽のトランペットと月の笛が交互に歌い、サビで同じ旋律を重ねて 1 つになり、最後は 3 度でハモって長調で閉じる
+{
+  const PRE = 'F#m F#m D C#';
+  const RIFF = 'F#m D E C# F#m D Bm C#';
+  const A1 = 'A E F#m D A E D E';
+  const A2 = 'F#m C#m D C# F#m Bm D C#';
+  const B = 'Bm C#m D E Bm C# D C#';
+  const CH = 'D E F#m F#m D E C# C# Bm E A F#m D E F# F#';
+  const PAH = { rh: ['r4', '4', '4'] };
+  const CEL = [2, 1, 0, 1, 2, 3];
+  const R = 'r2. |';
+  SONGS.coniunctio = {
+    bpm: 176,
+    meter: 3,
+    melody: 'tp',
+    chords: `${PRE} ${RIFF} ${A1} ${A2} ${B} ${CH}`,
+    reverb: { size: 0.75, damp: 0.4 },
+    gain: 1,
+    ch: [
+      { id: 'tp', type: 'inst', pan: 0.15, rev: 0.25, poly: 3, gain: 1.5, mml: `
+        @zpet q7 ${rep(R, 4)} L
+        ${rep(R, 8)}
+        v13 o5 c+4 e4 a4 | g+4. f+8 e4 | f+2 c+4 | f+4. e8 c+4 | e4 a4 > c+4 | < b4. a8 g+4 | a4 f+4 e4 | e2. |
+        ${rep(R, 8)}
+        o5 f+4 b4 a4 | g+2 e4 | r2. | r2. | b4 f+4 b4 | > c+2 < g+4 | a4 b4 > c+4 | c+4 < b4 g+4 |
+        v14 f+4. g+8 a4 | b2 g+4 | a4 > c+4 < b4 | a2. | f+4. g+8 a4 | b4. > c+8 e4 | c+2 < g+4 | g+2. |
+        b4. a8 f+4 | g+4. a8 b4 | > c+2 e4 | c+4. < b8 a4 | f+4 a4 > c+4 | e2. | c+4. < a+8 f+4 | a+2. |` },
+      { id: 'fl2', type: 'inst', pan: -0.25, rev: 0.35, poly: 3, gain: 1.0, mml: `
+        @fl q8 ${rep(R, 4)} L
+        ${rep(R, 16)}
+        v13 o6 c+2 < a4 | g+4. a16 g+16 e4 | f+2 c+4 | f4. f+8 g+4 | a2 f+4 | f+4. g+8 a4 | a4. g+8 f+4 | f2. |
+        r2. | r2. | o5 a4 f+4 a4 | b2 g+4 | r2. | r2. | o5 a4 b4 > c+4 | c+4 < b4 g+4 |
+        v12 o5 f+4. g+8 a4 | b2 g+4 | a4 > c+4 < b4 | a2. | f+4. g+8 a4 | b4. > c+8 e4 | c+2 < g+4 | g+2. |
+        o6 d4. c+8 o5 a4 | o5 b4. o6 c+8 d4 | o6 e2 a4 | o6 e4. d8 c+4 | o5 a4 o6 d4 f+4 | o6 g+2. | o6 c+4. o5 a+8 f+4 | o5 a+2. |` },
+      { id: 'cel', type: 'inst', pan: 0.35, rev: 0.45, poly: 8, gain: 0.8, mml: `
+        @celesta q8 v9 ${arp(PRE, { lo: 66, pat: CEL, len: 8 })} L
+        v10 ${arp(RIFF, { lo: 66, pat: CEL, len: 8 })}
+        ${rep(R, 8)}
+        v10 ${arp(A2, { lo: 66, pat: CEL, len: 8 })}
+        ${rep(R, 8)}
+        v9 ${arp(CH, { lo: 69, pat: CEL, len: 8 })}` },
+      { id: 'pf', type: 'inst', pan: 0.2, rev: 0.2, poly: 10, gain: 0.7, mml: `
+        @piano q6 r2. | r2. | v10 ${blocks('D C#', { lo: 57, ...PAH })} L
+        v11 ${blocks(RIFF, { lo: 57, ...PAH })}
+        v10 ${blocks(`${A1} ${A2}`, { lo: 57, ...PAH })}
+        q8 v11 ${arp(B, { lo: 54, pat: [0, 1, 2, 3, 2, 1], len: 8 })}
+        q6 v12 ${blocks(CH, { lo: 60, ...PAH })}` },
+      { id: 'str', type: 'inst', pan: -0.2, rev: 0.45, poly: 8, gain: 0.55, mml: `
+        @strings q8 r2. | r2. | v8 ${blocks('D C#', { lo: 55, rh: ['2.'] })} L
+        v8 ${blocks(`${RIFF} ${A1}`, { lo: 55, rh: ['2.'] })}
+        v9 ${blocks(A2, { lo: 57, rh: ['2.'] })}
+        v10 ${blocks(B, { lo: 57, rh: ['2.'] })}
+        v12 ${blocks(CH, { lo: 60, rh: ['2.'] })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0.05, poly: 2, gain: 0.7, mml: `
+        @arcobass q8 r2. | r2. | v13 ${bass('D C#', 'R2.', { lo: 37, hi: 48 })} L
+        ${bass(`${RIFF} ${A1} ${A2}`, 'R2.', { lo: 37, hi: 48 })}
+        q7 ${bass(`${B} ${CH}`, 'R4 F4 O4', { lo: 37, hi: 48 })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.15, mml: `
+        r2. | r2. | v10 k4 r2 | v10 k4 v9 s8 s8 s8 s8 | L
+        ${rep('v11 k4 r2 |', 24)}
+        ${rep('v11 k4 r4 v9 s4 |', 7)} v11 k4 s8 s8 v10 s8 s8 |
+        ${rep('v12 k4 v9 s4 v10 s4 |', 7)} v12 k4 v10 s8 s8 v11 t8 f8 |
+        ${rep('v12 k4 v9 s4 v10 s4 |', 7)} v12 k4 v10 s8 s8 v11 t8 f8 |` },
+      { id: 'hh', type: 'perc', pan: 0.1, rev: 0.15, gain: 1.5, mml: `
+        r2. | r2. | r4 v7 h4 h4 | r4 v7 h4 h4 | L
+        v10 c4 v7 h4 h4 | ${rep('r4 v7 h4 h4 |', 15)}
+        v9 c4 v6 y4 y4 | ${rep('v6 y4 y4 y4 |', 7)}
+        v10 c4 v8 y4 y4 | ${rep('v8 y4 y4 y4 |', 7)}
+        ${rep(`v11 c4 v8 h4 o4 | ${rep('v8 y4 h4 o4 |', 3)}`, 4)}` },
+    ],
+  };
+}
+
+// 発酵（STAGE 20）：泡が弾けるような裏拍の跳ね（笛子・グロッケンの泡）。サビの後半は孔雀の尾の色が変わるように短 3 度上へ移る
+{
+  const PRE = 'C#m C#m A G#';
+  const RIFF = 'C#m A F#m G#';
+  const A = 'C#m A F#m G# C#m E B C#m';
+  const B = 'F#m G#m A G#';
+  const CH = 'A B C#m C#m A B G# G#';
+  const CH2 = 'C D Em Em C D Em G#';
+  const OFF = { rh: ['r8', '8', 'r8', '8', 'r8', '8', 'r8', '8'], rh2: ['r8', '8', 'r8', '8'] };
+  const BUB = [4, 'r', 'r', 2, 'r', 5, 'r', 'r', 3, 'r', 'r', 'r', 6, 'r', 1, 'r'];
+  const FUNK = 'R8 r16 R16 O8 R8 r8 R8 O8 R8';
+  const D_A = 'v12 k8. k16 v11 s8 v12 k8 r8 k8 v11 s4 |';
+  const D_CH = 'v12 k8 k8 v11 s8 v12 k8 r8 k8 v11 s4 |';
+  const H16 = 'v6 h16 h16 v8 h16 v6 h16 v6 h16 h16 v8 h16 v6 h16 v6 h16 h16 v8 h16 v6 h16 v6 h16 h16 v8 o16 v6 h16 |';
+  const H16C = 'v11 c8 v6 h16 h16 v6 h16 h16 v8 h16 v6 h16 v6 h16 h16 v8 h16 v6 h16 v6 h16 h16 v8 o16 v6 h16 |';
+  SONGS.fermentatio = {
+    bpm: 140,
+    melody: 'ld',
+    chords: `${PRE} ${RIFF} ${A} ${B} ${CH} ${CH2}`,
+    reverb: { size: 0.7, damp: 0.4 },
+    gain: 1,
+    ch: [
+      { id: 'ld', type: 'inst', pan: 0.05, rev: 0.25, poly: 3, gain: 1.4, mml: `
+        @dizi q7 r1 | r1 | r1 | r1 | L
+        r1 | r1 | r1 | r1 |
+        v13 o4 r8 g+8 > c+8 e8 r8 d+8 e4 | r8 c+8 e8 g+8 r8 f+8 e4 | r8 f+8 g+8 b8 r8 g+8 f+4 | g+4. f+8 d+4 c4 |
+        r8 < g+8 > c+8 e8 r8 d+8 e4 | r8 < b8 > e8 g+8 r8 f+8 g+4 | r8 d+8 f+8 b8 > c+8 < b8 f+4 | e4. d+8 c+2 |
+        f+8 g+8 b8 > c+8 < b4 g+4 | g+8 b8 > c+8 d+8 c+4 < b4 | > c+8 d+8 e8 c+8 < b4 g+4 | b+4. g+8 d+4 r4 |
+        v14 c+8. d+16 e8 g+8 b8 g+8 e4 | d+8. e16 f+8 b8 > d+8 < b8 f+4 | e8. f+16 g+8 > c+8 e8 c+8 < g+4 | f+8 e8 d+8 e8 c+2 |
+        c+8. d+16 e8 g+8 b8 g+8 e4 | d+8. e16 f+8 b8 > d+8 f+8 d+4 | c4. < g+8 d+4 c4 | g+2. r4 |
+        e8. f+16 g8 b8 > d8 < b8 g4 | f+8. g16 a8 > d8 f+8 d8 < a4 | g8. a16 b8 > e8 g8 e8 < b4 | a8 g8 f+8 g8 e2 |
+        e8. f+16 g8 b8 > d8 < b8 g4 | f+8. g16 a8 > d8 c8 < b8 a4 | g4. f+8 e4 < b4 | b+4. g+8 d+4 r4 |` },
+      { id: 'gl', type: 'inst', pan: 0.35, rev: 0.4, poly: 8, gain: 1.0, mml: `
+        @glock q8 v8 ${arp(PRE, { lo: 76, pat: BUB })} L
+        v8 ${arp(`${RIFF} ${A}`, { lo: 76, pat: BUB })}
+        ${rep('r1 |', 4)}
+        v9 ${arp(`${CH} ${CH2}`, { lo: 76, pat: BUB })}` },
+      { id: 'pf', type: 'inst', pan: 0.2, rev: 0.18, poly: 10, gain: 0.7, mml: `
+        @piano q5 v10 ${blocks(PRE, { lo: 56, ...OFF })} L
+        v11 ${blocks(`${RIFF} ${A} ${B}`, { lo: 56, ...OFF })}
+        q8 v11 ${arp(CH, { lo: 52, pat: WAVE })}
+        v12 ${arp(CH2, { lo: 52, pat: WAVE })}` },
+      { id: 'str', type: 'inst', pan: -0.2, rev: 0.45, poly: 8, gain: 0.55, mml: `
+        @strings q8 r1 | r1 | v8 ${blocks('A G#', { lo: 55 })} L
+        v8 ${blocks(`${RIFF} ${A}`, { lo: 55 })}
+        v10 ${blocks(B, { lo: 57 })}
+        v11 ${blocks(CH, { lo: 57 })}
+        v12 ${blocks(CH2, { lo: 59 })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0, poly: 2, gain: 0.9, mml: `
+        @fbass q6 r1 | r1 | v13 ${bass('A G#', FUNK, { lo: 37, hi: 48 })} L
+        ${bass(`${RIFF} ${A} ${B} ${CH} ${CH2}`, FUNK, { lo: 37, hi: 48 })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.12, mml: `
+        r1 | r1 | ${D_A} v12 k8. k16 v11 s8 s8 v10 s16 s16 s16 s16 v12 s8 s8 | L
+        ${rep(D_A, 15)} v12 k8. k16 v11 s8 s8 v10 s16 s16 s16 s16 v12 s8 s8 |
+        ${rep(D_CH, 7)} v12 k8 k8 v11 s8 s8 v12 k8 v11 s16 s16 s8 s8 |
+        ${rep(D_CH, 7)} v12 k8 k8 v11 s8 s8 v11 t16 t16 m16 m16 f8 f8 |` },
+      { id: 'hh', type: 'perc', pan: 0.1, rev: 0.1, gain: 1.6, mml: `
+        r1 | r1 | ${H16} v6 h16 h16 v8 h16 v6 h16 v6 h16 h16 v8 h16 v6 h16 r2 | L
+        ${H16C} ${rep(H16, 3)} ${H16C} ${rep(H16, 7)} ${H16C} ${rep(H16, 3)}
+        ${H16C} ${rep(H16, 7)} ${H16C} ${rep(H16, 6)} v11 c4 v8 h8 h8 r2 |` },
+    ],
+  };
+}
+
+// 蒸留（STAGE 21）：昇っては滴り落ちる旋律をピアノがオクターブで弾き、チェンバロの 16 分が上り下りを繰り返す。B はバイオリン
+{
+  const FALL = [6, 5, 4, 3, 5, 4, 3, 2, 4, 3, 2, 1, 3, 2, 1, 0];
+  const PRE = 'Am Am F E';
+  const A = 'Am C F G Am C Dm E';
+  const B = 'F G Em Am Dm Em F E';
+  const CH = 'F G Am Am F G Em Am F G C Am Dm E F,G E';
+  const LA = `o5 e4. a8 g8 e8 d8 c8 | d8 e8 g8 > c8 < b4 g4 | a4. g8 e8 d8 c8 d8 | < b4 > d4 g2 |
+          e4. a8 g8 e8 d8 c8 | d8 e8 g8 > c8 e4 d4 | c4. < a8 g8 e8 d8 e8 | b4. g+8 e2 |`;
+  const LC1 = `o4 a16 b16 > c16 d16 e8 a8 g4. e8 | d4. e8 g4 b4 | > c2. < b8 a8 | g8 e8 d8 c8 d8 e8 < a4 |
+          a16 b16 > c16 d16 e8 a8 g4. e8 | d4. e8 g4 > d4 | < b2. a8 g8 | e8 d8 c8 < b8 > c8 d8 e4 |`;
+  const LC2 = `o5 c16 d16 e16 g16 a8 > c8 < b4. a8 | g4. a8 b4 > d4 | e2. d8 c8 | c8 < b8 a8 g8 a8 b8 > c4 |
+          d4. c8 < a4 g4 | g+4. a8 b2 | > c4 < a4 b4 > d4 | < b2 g+4 e4 |`;
+  const D_A = 'v12 k4 v11 s4 v12 k4 v11 s4 |';
+  const D_B = 'v12 k4 v11 s4 v12 k8 k8 v11 s4 |';
+  const D_CH = 'v12 k8 k8 v11 s4 v12 k8 k8 v11 s4 |';
+  const H8 = 'v8 h8 h8 h8 h8 h8 h8 h8 h8 |';
+  const HC = 'v11 c4 v8 h8 h8 h8 h8 h8 h8 |';
+  const H16 = 'v7 h16 h16 v9 o8 v7 h16 h16 v9 h8 v7 h16 h16 v9 o8 v7 h16 h16 v9 h8 |';
+  const H16C = 'v11 c4 v7 h16 h16 v9 h8 v7 h16 h16 v9 o8 v7 h16 h16 v9 h8 |';
+  SONGS.distillatio = {
+    bpm: 164,
+    melody: ['pf', 'vn'],
+    chords: `${PRE} ${A} ${B} ${CH}`,
+    reverb: { size: 0.7, damp: 0.4 },
+    gain: 0.9,
+    ch: [
+      { id: 'pf', type: 'inst', pan: 0.1, rev: 0.2, poly: 6, gain: 1.3, mml: `
+        @piano q7 r1 | r1 | r1 | r1 | L
+        v14 ${LA}
+        ${rep('r1 |', 8)}
+        v14 ${LC1}
+        ${LC2}` },
+      { id: 'pf2', type: 'inst', pan: 0.1, rev: 0.2, poly: 6, gain: 0.8, mml: `
+        @piano q7 k-12 r1 | r1 | r1 | r1 | L
+        v12 ${LA}
+        ${rep('r1 |', 8)}
+        v12 ${LC1}
+        ${LC2}` },
+      { id: 'vn', type: 'inst', pan: -0.15, rev: 0.3, poly: 3, gain: 1.2, mml: `
+        @violin q8 r1 | r1 | r1 | r1 | L
+        ${rep('r1 |', 8)}
+        v13 o6 c4. < b8 a2 | b4. a8 g2 | g4. a8 b4 e4 | a2. r4 | > d4. c8 < a2 | > e4. d8 < b2 | > c4. < b8 a4 > c4 | < b2 g+4 e4 |
+        ${rep('r1 |', 8)}
+        v12 ${LC2}` },
+      { id: 'hp', type: 'inst', pan: 0.3, rev: 0.25, poly: 10, gain: 1.3, mml: `
+        @harpsi q8 v10 ${arp(PRE, { lo: 57, pat: RISE })} L
+        v10 ${arp(A, { lo: 57, pat: RISE })}
+        v11 ${arp(B, { lo: 55, pat: FALL })}
+        v11 ${arp(CH, { lo: 52, pat: WAVE })}` },
+      { id: 'str', type: 'inst', pan: -0.25, rev: 0.45, poly: 8, gain: 0.5, mml: `
+        @strings q8 r1 | r1 | v8 ${blocks('F E', { lo: 55 })} L
+        v8 ${blocks(A, { lo: 55 })}
+        v10 ${blocks(B, { lo: 52 })}
+        v11 ${blocks(CH, { lo: 57 })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0, poly: 2, gain: 0.85, mml: `
+        @ebass q6 r1 | r1 | v13 ${bass('F E', 'R8 R8 R8 O8 R8 R8 R8 O8', { lo: 33, hi: 45 })} L
+        ${bass(`${A} ${B} ${CH}`, 'R8 R8 R8 O8 R8 R8 R8 O8', { lo: 33, hi: 45 })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.12, mml: `
+        r1 | r1 | ${D_A} v12 k8 k8 v11 s8 s8 v10 s16 s16 s16 s16 v12 s8 s8 | L
+        ${rep(D_A, 7)} v12 k4 v11 s4 v12 k8 k8 v11 s8 s8 |
+        ${rep(D_B, 7)} v12 k8 k8 v11 s8 s8 v10 s16 s16 s16 s16 v12 s8 s8 |
+        ${rep(D_CH, 7)} v12 k4 v11 s8 s8 v12 k8 v11 s16 s16 s8 s8 |
+        ${rep(D_CH, 7)} v12 k4 v11 s8 s8 v11 t16 t16 m16 m16 f8 f8 |` },
+      { id: 'hh', type: 'perc', pan: 0.1, rev: 0.1, gain: 1.6, mml: `
+        r1 | r1 | ${H8} v8 h8 h8 h8 h8 r2 | L
+        ${HC} ${rep(H8, 7)}
+        ${HC} ${rep(H8, 7)}
+        ${H16C} ${rep(H16, 7)} ${H16C} ${rep(H16, 6)} v11 c4 v8 h8 h8 r2 |` },
+    ],
+  };
+}
+
+// 凝固（STAGE 22）：3 連のファンファーレが主題。サビの後半は同じ旋律を長調の響きで鳴らし、合唱とホルンを重ねて明るく閉じる
+{
+  const PRE = 'Em Em C B';
+  const RIFF = 'Em G C B';
+  const A = 'Em C D Bm Em C Am B';
+  const B = 'Am Bm C D';
+  const CH = 'Em C D Em C D B B';
+  const CH2 = 'C D G Em C D G G';
+  const FAN = { rh: ['12', '12', '12', '4.', '8', '4'] };
+  const D_A = 'v12 k4 v11 s4 v12 k8 k8 v11 s4 |';
+  const D_CH = 'v12 k8 k8 v11 s4 v12 k8 k8 v11 s4 |';
+  const H8 = 'v8 h8 h8 h8 h8 h8 h8 h8 h8 |';
+  const HC = 'v11 c4 v8 h8 h8 h8 h8 h8 h8 |';
+  const HO = 'v8 h8 o8 h8 o8 h8 o8 h8 o8 |';
+  const HOC = 'v12 c4 v8 h8 o8 h8 o8 h8 o8 |';
+  SONGS.coagulatio = {
+    bpm: 168,
+    melody: 'tp',
+    chords: `${PRE} ${RIFF} ${A} ${B} ${CH} ${CH2}`,
+    reverb: { size: 0.8, damp: 0.35 },
+    gain: 0.94,
+    ch: [
+      { id: 'tp', type: 'inst', pan: 0.05, rev: 0.25, poly: 3, gain: 1.6, mml: `
+        @zpet q7 r1 | r1 | r1 | r1 | L
+        r1 | r1 | r1 | r1 |
+        v13 o4 b4 > e4. f+8 g4 | g4. f+8 e2 | f+4 a4. g8 f+4 | d4. e8 f+2 |
+        < b4 > e4. f+8 g4 | b4. a8 g2 | a4. g8 e4 a4 | f+4. e8 d+2 |
+        e8 f+8 g8 a8 g4 e4 | f+8 g8 a8 b8 a4 f+4 | g8 a8 b8 > d8 < b4 g4 | f+4. a8 > d2 |
+        v14 < b12 b12 b12 > e4. d8 < b4 | g12 g12 g12 b4. a8 g4 | a12 a12 a12 > d4. < b8 a4 | g4. f+8 e2 |
+        b12 b12 b12 > e4. d8 < b4 | a12 a12 a12 > d4. e8 d4 | d+2 < f+4 b4 | f+2. r4 |
+        b12 b12 b12 > e4. d8 < b4 | a12 a12 a12 > d4. < b8 a4 | b4. a8 b4 > d4 | e2. d8 < b8 |
+        b12 b12 b12 > e4. d8 e4 | f+2. e8 d8 | d4. < b8 g4 b4 | g2. r4 |` },
+      { id: 'hm', type: 'inst', pan: -0.3, rev: 0.3, poly: 3, gain: 1.0, mml: `
+        @horn q8 r1 | r1 | r1 | r1 | L
+        [r1 |]24
+        v11 o4 g12 g12 g12 > c4. < b8 g4 | f+12 f+12 f+12 b4. g8 f+4 | g4. f+8 g4 b4 | b2. a8 g8 |
+        g12 g12 g12 > c4. < b8 > c4 | < a2. g8 f+8 | b4. g8 d4 g4 | b2. r4 |` },
+      { id: 'cho', type: 'inst', pan: 0, rev: 0.5, poly: 8, gain: 0.6, mml: `
+        @cha q8 r1 | r1 | r1 | r1 | L
+        ${rep('r1 |', 12)}
+        v9 ${blocks(B, { lo: 60 })}
+        v11 ${blocks(CH, { lo: 60 })}
+        v11 ${blocks(CH2, { lo: 62 })}` },
+      { id: 'pf', type: 'inst', pan: 0.25, rev: 0.2, poly: 10, gain: 0.7, mml: `
+        @piano q8 v10 ${arp(PRE, { lo: 52, pat: RISE })} L
+        v12 ${arp(RIFF, { lo: 52, pat: RISE })}
+        v10 ${arp(A, { lo: 50, pat: WAVE })}
+        v11 ${arp(B, { lo: 52, pat: RISE })}
+        v12 ${arp(`${CH} ${CH2}`, { lo: 52, pat: WAVE })}` },
+      { id: 'str', type: 'inst', pan: -0.2, rev: 0.4, poly: 8, gain: 0.6, mml: `
+        @strst q8 r1 | r1 | v11 ${blocks('C B', { lo: 55, ...FAN })} L
+        v12 ${blocks(RIFF, { lo: 55, ...FAN })}
+        @strings v8 ${blocks(A, { lo: 52 })}
+        v10 ${blocks(B, { lo: 55 })}
+        v11 ${blocks(CH, { lo: 55 })}
+        v12 ${blocks(CH2, { lo: 59 })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0, poly: 2, gain: 0.85, mml: `
+        @ebass q6 r1 | r1 | v13 ${bass('C B', 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 36, hi: 47 })} L
+        ${bass(`${RIFF} ${A} ${B} ${CH} ${CH2}`, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 36, hi: 47 })}` },
+      { id: 'tim', type: 'inst', pan: 0, rev: 0.3, poly: 3, gain: 0.9, mml: `
+        @timp q8 r1 | r1 | v12 ${bass('C B', 'R4 r2.', { lo: 40, hi: 51 })} L
+        v13 ${bass(RIFF, 'R12 R12 R12 R4. R8 R4', { lo: 40, hi: 51 })}
+        v11 ${bass(`${A} ${B}`, 'R4 r2.', { lo: 40, hi: 51 })}
+        v13 ${bass(`${CH} ${CH2}`, 'R4 r4 R4 r4', { lo: 40, hi: 51 })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.12, mml: `
+        r1 | r1 | ${D_A} v12 k8 k8 v11 s8 s8 v10 s16 s16 s16 s16 v12 s8 s8 | L
+        ${rep(D_A, 3)} v12 k4 v11 s4 v12 k8 k8 v11 s8 s8 |
+        ${rep(D_A, 7)} v12 k4 v11 s4 v12 k8 k8 v11 s8 s8 |
+        ${rep(D_CH, 3)} v12 k8 k8 v11 s8 s8 v10 s16 s16 s16 s16 v12 s8 s8 |
+        ${rep(D_CH, 7)} v12 k4 v11 s8 s8 v12 k8 v11 s16 s16 s8 s8 |
+        ${rep(D_CH, 7)} v12 k4 v11 s8 s8 v11 t16 t16 m16 m16 f8 f8 |` },
+      { id: 'hh', type: 'perc', pan: 0.1, rev: 0.12, gain: 1.6, mml: `
+        r1 | r1 | ${H8} v8 h8 h8 h8 h8 r2 | L
+        ${HC} ${rep(H8, 3)}
+        ${HC} ${rep(H8, 3)} ${HC} ${rep(H8, 3)}
+        ${HC} ${rep(H8, 3)}
+        ${HOC} ${rep(HO, 3)} ${HOC} ${rep(HO, 3)}
+        ${HOC} ${rep(HO, 3)} ${HOC} ${rep(HO, 2)} v12 c4 v8 h8 h8 r2 |` },
+    ],
+  };
+}
+
+// 第4章の中ボス：C の連打と跳ねるオクターブのリフ。サビは E♭→D→C と下りていく主題をシンセとトランペットで重ねる
+{
+  const JAG = [0, 4, 1, 5, 2, 6, 3, 7, 4, 7, 3, 6, 2, 5, 1, 4];
+  const PRE = 'Cm G';
+  const RIFF = 'Cm Ab Fm G';
+  const A = 'Cm Ab Bb Cm Fm G Ab G';
+  const B = 'Fm Gm Ab Bb';
+  const CH = 'Ab Bb Cm Cm Ab Bb G G Fm G Eb Ab Fm G Ab,Bb G';
+  const GAL = 'R16 R16 O8 R16 R16 O8 R16 R16 O8 R16 R16 O8';
+  const LCH = `o6 e-4. d8 c4 e-4 | d4. c8 < b-4 > d4 | c4. < b-8 g4 > c4 | < g8 b-8 > c8 d8 e-2 |
+          e-4. d8 c4 e-4 | d4. c8 < b-4 > d4 | < b4. > c8 d4 < b4 | > d2. r4 |
+          < f8 g8 > c4 c8 d8 e-4 | d8 c8 < b4 b8 > c8 d4 | < b-4. > c8 d4 e-4 | c4. d8 e-2 |
+          f2. e-8 c8 | d4. < b8 g4 b4 | > c4 e-4 d4 < b-4 | b2. r4 |`;
+  const D_R = 'v12 k8 k8 v11 s4 v12 k8 k8 v11 s4 |';
+  const D_A = 'v12 k4 v11 s4 v12 k8 k8 v11 s4 |';
+  const D_CH = 'v12 k8 v11 s8 v12 k8 v11 s8 v12 k8 v11 s8 v12 k8 v11 s8 |';
+  const H8 = 'v8 h8 h8 h8 h8 h8 h8 h8 h8 |';
+  const HC = 'v11 c4 v8 h8 h8 h8 h8 h8 h8 |';
+  const H16 = 'v7 h16 h16 v9 h8 v7 h16 h16 v9 o8 v7 h16 h16 v9 h8 v7 h16 h16 v9 o8 |';
+  const H16C = 'v12 c4 v7 h16 h16 v9 o8 v7 h16 h16 v9 h8 v7 h16 h16 v9 o8 |';
+  SONGS.boss4 = {
+    bpm: 172,
+    melody: ['ld', 'tp'],
+    chords: `${PRE} ${RIFF} ${A} ${B} ${CH}`,
+    reverb: { size: 0.6, damp: 0.45 },
+    gain: 1.08,
+    ch: [
+      { id: 'ld', type: 'inst', pan: 0.1, rev: 0.18, poly: 3, gain: 1.3, mml: `
+        @zlead q6 r1 | r1 | L
+        v12 o5 c8 > c8 < c8 b-8 c8 g8 b-8 > c8 | < c8 > c8 < c8 b-8 c8 g8 e-8 g8 | c8 > c8 < c8 b-8 c8 f8 g8 f8 | < b8 > b8 < b8 > g8 d8 g8 b8 > d8 |
+        q7 v13 < c8 e-8 g4. f8 e-4 | e-8 g8 > c4. < b-8 g4 | d8 f8 b-4. > c8 d4 | e-4. d8 c2 |
+        < f8 g8 > c4. < b-8 g4 | g8 b8 > d4. c8 < b4 | > c8 d8 e-4. d8 c4 | < b2. r4 |
+        r1 | r1 | r1 | r1 |
+        v14 ${LCH}` },
+      { id: 'tp', type: 'inst', pan: -0.15, rev: 0.22, poly: 3, gain: 1.2, mml: `
+        @zpet q7 r1 | r1 | L
+        [r1 |]12
+        v12 o5 f1 | g1 | > c1 | d1 |
+        v13 ${LCH}` },
+      { id: 'pf', type: 'inst', pan: 0.25, rev: 0.15, poly: 10, gain: 0.7, mml: `
+        @piano q8 v11 ${arp(PRE, { lo: 50, pat: JAG })} L
+        v12 ${arp(RIFF, { lo: 50, pat: JAG })}
+        v10 ${arp(A, { lo: 48, pat: WAVE })}
+        v11 ${arp(B, { lo: 52, pat: RISE })}
+        v12 ${arp(CH, { lo: 50, pat: JAG })}` },
+      { id: 'str', type: 'inst', pan: -0.25, rev: 0.4, poly: 8, gain: 0.5, mml: `
+        @strings q8 v9 ${blocks(PRE, { lo: 55 })} L
+        v9 ${blocks(`${RIFF} ${A}`, { lo: 55 })}
+        v10 ${blocks('Fm', { lo: 55 })} v11 ${blocks('Gm', { lo: 55 })} v12 ${blocks('Ab', { lo: 55 })} v13 ${blocks('Bb', { lo: 55 })}
+        v12 ${blocks(CH, { lo: 57 })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0, poly: 2, gain: 0.55, mml: `
+        @sqbass q6 v13 ${bass(PRE, GAL, { lo: 36, hi: 47 })} L
+        ${bass(`${RIFF} ${A} ${B} ${CH}`, GAL, { lo: 36, hi: 47 })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.1, mml: `
+        v12 k8 k8 v11 s4 v12 k8 k8 v11 s4 | v12 k8 v10 s16 s16 v11 s8 s8 s16 s16 s16 s16 v12 s8 s8 | L
+        ${rep(D_R, 3)} v12 k8 k8 v11 s4 v12 k8 v11 s16 s16 s8 s8 |
+        ${rep(D_A, 7)} v12 k4 v11 s4 v12 k8 k8 v11 s8 s8 |
+        ${rep(D_R, 3)} v10 s16 s16 s16 s16 v11 s16 s16 s16 s16 v12 s8 s8 v13 s8 s8 |
+        ${rep(D_CH, 7)} v12 k4 v11 s8 s8 v12 k8 v11 s16 s16 s8 s8 |
+        ${rep(D_CH, 7)} v12 k4 v11 s8 s8 v11 t16 t16 m16 m16 f8 f8 |` },
+      { id: 'hh', type: 'perc', pan: 0.1, rev: 0.1, gain: 1.6, mml: `
+        v11 c4 v8 h8 h8 h8 h8 h8 h8 | v8 h8 h8 h8 h8 r2 | L
+        ${H16C} ${rep(H16, 3)}
+        ${HC} ${rep(H8, 3)} ${HC} ${rep(H8, 3)}
+        ${HC} ${H8} ${H8} r1 |
+        ${H16C} ${rep(H16, 3)} ${H16C} ${rep(H16, 3)}
+        ${H16C} ${rep(H16, 3)} ${H16C} ${rep(H16, 2)} v12 c4 v8 h8 h8 r2 |` },
+    ],
+  };
+}
+
+// 大いなる業（第4章の最終ボス）：前半はバイオリンが流れるように歌い、後半で雰囲気を変えてトランペットとバイオリンが重なる激しいサビ。最後は長調の和音で光が差す
+{
+  const JAG = [0, 4, 1, 5, 2, 6, 3, 7, 4, 7, 3, 6, 2, 5, 1, 4];
+  const PRE = 'Fm Fm Db C';
+  const A = 'Fm Db Eb Fm Bbm C Db C';
+  const A2 = 'Fm Db Eb Cm Db Eb C C';
+  const CH = 'Db Eb Fm Fm Db Eb C C Bbm C Fm Db Bbm C Db,Eb F';
+  const LCH = `o5 f4 a-4 > c4. < b-8 | b-2 g4 > e-4 | c2. < b-8 a-8 | a-4. g8 f2 |
+          f4 a-4 > c4. < b-8 | b-4. > c8 e-4 c4 | e2 c4 < g4 | g2. r4 |
+          f8 b-8 > c4. < b-8 f4 | g8 > c8 e4. c8 < g4 | a-8 > c8 f2 e-8 c8 | c4. < b-8 a-2 |
+          b-4. a-8 f4 b-4 | > e4. c8 < b-4 g4 | a-4 f4 g4 b-4 | a2. r4 |`;
+  const D_H = 'v12 k4 r4 v11 s4 r4 |';
+  const D_A = 'v12 k4 v11 s4 v12 k8 k8 v11 s4 |';
+  const D_CH = 'v12 k8 k8 v11 s4 v12 k8 k8 v11 s4 |';
+  const H8 = 'v8 h8 h8 h8 h8 h8 h8 h8 h8 |';
+  const HC = 'v11 c4 v8 h8 h8 h8 h8 h8 h8 |';
+  const HO = 'v8 h8 o8 h8 o8 h8 o8 h8 o8 |';
+  const HOC = 'v12 c4 v8 h8 o8 h8 o8 h8 o8 |';
+  SONGS.opus = {
+    bpm: 176,
+    melody: ['vn', 'tp'],
+    chords: `${PRE} ${A} ${A2} ${CH}`,
+    reverb: { size: 0.8, damp: 0.35 },
+    gain: 0.88,
+    ch: [
+      { id: 'vn', type: 'inst', pan: -0.1, rev: 0.3, poly: 3, gain: 1.3, mml: `
+        @violin q8 r1 | r1 | r1 | r1 | L
+        v13 o5 c2 f4 g4 | a-4. g8 f2 | g2 b-4 g4 | f2. c4 | f4. g8 b-4 > c4 | c2 < b-4 g4 | a-4. b-8 > c2 | < g2. e4 |
+        f2 a-4 > c4 | c4. < b-8 a-2 | b-2 > e-4 < b-4 | > c2. < g4 | a-4. b-8 > c4 e-4 | e-2 < b-4 g4 | > c4. < b-8 g4 e4 | g2. r4 |
+        q7 v13 ${LCH}` },
+      { id: 'tp', type: 'inst', pan: 0.15, rev: 0.25, poly: 3, gain: 1.3, mml: `
+        @zpet q7 r1 | r1 | r1 | r1 | L
+        [r1 |]16
+        v14 ${LCH}` },
+      { id: 'cho', type: 'inst', pan: 0, rev: 0.5, poly: 8, gain: 0.55, mml: `
+        @cha q8 r1 | r1 | r1 | r1 | L
+        [r1 |]16
+        v11 ${blocks(CH, { lo: 60 })}` },
+      { id: 'pf', type: 'inst', pan: 0.25, rev: 0.18, poly: 10, gain: 0.7, mml: `
+        @piano q8 v11 ${arp(PRE, { lo: 50, pat: JAG })} L
+        v10 ${arp(A, { lo: 50, pat: WAVE })}
+        v11 ${arp(A2, { lo: 50, pat: JAG })}
+        v12 ${arp(CH, { lo: 52, pat: RISE })}` },
+      { id: 'str', type: 'inst', pan: -0.25, rev: 0.45, poly: 8, gain: 0.5, mml: `
+        @strings q8 r1 | r1 | v9 ${blocks('Db C', { lo: 55 })} L
+        v9 ${blocks(A, { lo: 53 })}
+        v10 ${blocks(A2, { lo: 55 })}
+        v12 ${blocks(CH, { lo: 57 })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0, poly: 2, gain: 0.8, mml: `
+        @ebass q6 r1 | r1 | v13 ${bass('Db C', 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 36, hi: 47 })} L
+        ${bass(A, 'R4 R8 O8 R4 R8 O8', { lo: 36, hi: 47 })}
+        ${bass(`${A2} ${CH}`, 'R8 O8 R8 O8 R8 O8 R8 O8', { lo: 36, hi: 47 })}` },
+      { id: 'tim', type: 'inst', pan: 0, rev: 0.3, poly: 3, gain: 0.8, mml: `
+        @timp q8 v11 ${bass(PRE, 'R4 r2.', { lo: 41, hi: 52 })} L
+        [r1 |]16
+        v12 ${bass(CH, 'R4 r2.', { lo: 41, hi: 52 })}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.12, mml: `
+        r1 | r1 | ${D_A} v12 k8 k8 v11 s8 s8 v10 s16 s16 s16 s16 v12 s8 s8 | L
+        ${rep(D_H, 7)} v12 k4 v11 s8 s8 v12 k8 v11 s8 s8 s8 |
+        ${rep(D_A, 7)} v10 s16 s16 s16 s16 v11 s16 s16 s16 s16 v12 s8 s8 v13 s8 s8 |
+        ${rep(D_CH, 7)} v12 k4 v11 s8 s8 v12 k8 v11 s16 s16 s8 s8 |
+        ${rep(D_CH, 7)} v12 k4 v11 s8 s8 v11 t16 t16 m16 m16 f8 f8 |` },
+      { id: 'hh', type: 'perc', pan: 0.1, rev: 0.12, gain: 1.6, mml: `
+        r1 | r1 | ${H8} v8 h8 h8 h8 h8 r2 | L
+        ${HC} ${rep(H8, 7)}
+        ${HC} ${rep(H8, 6)} r1 |
+        ${HOC} ${rep(HO, 3)} ${HOC} ${rep(HO, 3)}
+        ${HOC} ${rep(HO, 3)} ${HOC} ${rep(HO, 2)} v12 c4 v8 h8 h8 r2 |` },
     ],
   };
 }

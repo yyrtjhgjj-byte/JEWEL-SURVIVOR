@@ -289,13 +289,12 @@ export const STAGES = [
   },
   // ---------------------------------------------------------------- 第4章（錬金術。錬金術の七つの工程を進み、賢者の石を完成させる。
   // ステージ名は『エメラルド板』の一節の書き下し、英語名の欄はそのラテン語の原文）
-  // 曲はまだ作っていないので、仮に既存の曲を流す（tempBgm：ジュークボックスに出さない）
   ...[
     {
       id: 'calcinatio', name: '偽りなく確かにして最も真なり', en: 'Verum sine mendacio, certum et verissimum',
       desc: '第一の工程、焼成。あちこちに据えられた炉（アタノール）の火が、近くを通る雑魚を焼いていく。',
       hazard: 'athanor', hazardText: '炉（近くの雑魚が燃える）',
-      bgm: 'magma',
+      bgm: 'calcinatio',
       pal: { bg: '#100806', grid: '255,140,90', mark: '255,170,120', dust: '255,205,170', glow: 'rgba(220,90,40,0.24)', accent: '#ff7a45' },
       tint: '#8a4a3a', u: ['hinoko', 'fuigo'], b: ['saturnus', 'salamander', 'leoruber'],
     },
@@ -303,7 +302,7 @@ export const STAGES = [
       id: 'solutio', name: '下なるものは上なるものの如し', en: 'Quod est inferius est sicut quod est superius',
       desc: '第二の工程、溶解。空を映す溶媒の池に入った雑魚は、溶けて遅くなり、受けるダメージが増える。',
       hazard: 'solvent', hazardText: '溶媒の池（中の雑魚は遅くなり、受けるダメージ ×1.5）',
-      bgm: 'deep',
+      bgm: 'solutio',
       pal: { bg: '#060c12', grid: '90,190,230', mark: '130,215,245', dust: '180,235,255', glow: 'rgba(40,140,200,0.24)', accent: '#4fc8ff' },
       tint: '#3a6a8a', u: ['ousui', 'shishiko'], b: ['iuppiter', 'undine', 'leoviridis'],
     },
@@ -311,7 +310,7 @@ export const STAGES = [
       id: 'separatio', name: '汝、地を火より分かつべし', en: 'Separabis terram ab igne',
       desc: '第三の工程、分離。分離の環の中に 1 秒立つと、重いもの（敵）を押し返し、精妙なもの（経験値）を引き寄せる。',
       hazard: 'sieve', hazardText: '分離の環（1 秒立つと、敵を押し返して経験値を集める）',
-      bgm: 'tundra',
+      bgm: 'separatio',
       pal: { bg: '#0b0b10', grid: '190,190,225', mark: '215,215,240', dust: '232,232,252', glow: 'rgba(150,150,210,0.2)', accent: '#c8ccff' },
       tint: '#6a6a8a', u: ['washiko', 'hiki'], b: ['mars', 'sylph', 'bufo'], kin: ['aquila'],
     },
@@ -319,7 +318,7 @@ export const STAGES = [
       id: 'coniunctio', name: '其の父は太陽、其の母は月', en: 'Pater eius est Sol, mater eius Luna',
       desc: '第四の工程、結合。地面の太陽の印と月の印の両方に触れると、結ばれた光が周りの敵を焼く。',
       hazard: 'sunmoon', hazardText: '日と月の印（両方に触れると、結合の光で周りの敵を焼く）',
-      bgm: 'cavern',
+      bgm: 'coniunctio',
       pal: { bg: '#0f0c08', grid: '230,200,140', mark: '245,222,165', dust: '250,240,212', glow: 'rgba(200,170,90,0.22)', accent: '#ffd27a' },
       tint: '#8a7a5a', u: ['kotaiyo', 'kotsuki'], b: ['venus', 'gnome', 'rebis'],
     },
@@ -327,7 +326,7 @@ export const STAGES = [
       id: 'fermentatio', name: '風は其れを胎に運べり', en: 'Portavit illud ventus in ventre suo',
       desc: '第五の工程、発酵。落ちたまま 6 秒たった経験値は発酵して、1.5 倍になる。',
       hazard: 'ferment', hazardText: '発酵（落ちたまま 6 秒たった経験値は 1.5 倍）',
-      bgm: 'lake',
+      bgm: 'fermentatio',
       pal: { bg: '#07100a', grid: '120,220,150', mark: '160,240,182', dust: '200,250,216', glow: 'rgba(60,180,110,0.24)', accent: '#5fe0a0' },
       tint: '#3a7a5a', u: ['hane', 'taru'], b: ['mercurius', 'corvus', 'pavo'],
     },
@@ -335,7 +334,7 @@ export const STAGES = [
       id: 'distillatio', name: '地より天に昇り、再び地に降る', en: 'Ascendit a terra in coelum, iterumque descendit in terram',
       desc: '第六の工程、蒸留。地面から湯気が昇り、しばらくすると雫になって降ってきて、落ちた所の敵を打つ。',
       hazard: 'vapor', hazardText: '天と地を巡る雫（昇った湯気が雫になって降り、落ちた所の敵を打つ）',
-      bgm: 'space',
+      bgm: 'distillatio',
       pal: { bg: '#0b0f12', grid: '200,230,242', mark: '222,240,250', dust: '236,248,255', glow: 'rgba(170,210,232,0.2)', accent: '#d0f0ff' },
       tint: '#7a8a9a', u: ['alembic', 'retort'], b: ['luna', 'pelican', 'homunculus'],
     },
@@ -343,14 +342,14 @@ export const STAGES = [
       id: 'coagulatio', name: '斯くて汝は全世界の栄光を得ん', en: 'Sic habebis gloriam totius mundi',
       desc: '最後の工程、凝固。ときどき黄金の波が広がり、触れた雑魚は金になって止まる。金になった雑魚を倒すとコインを落とす。',
       hazard: 'gold', hazardText: '黄金の波（触れた雑魚は金になって止まり、倒すとコインを落とす）',
-      bgm: 'void',
+      bgm: 'coagulatio',
       pal: { bg: '#130608', grid: '255,110,120', mark: '255,150,150', dust: '255,200,192', glow: 'rgba(220,40,60,0.26)', accent: '#ff4a5f' },
       tint: '#9a3a4a', u: ['kakera', 'kogane'], b: ['sol', 'phoenix', 'ouroboros'],
     },
   ].map((s, i) => {
     const [u1, u2] = s.u;
     const st = {
-      ...s, no: 16 + i, chapter: 4, time: 600, tempBgm: true, bossBgm: 'boss2', finalBgm: 'final2',
+      ...s, no: 16 + i, chapter: 4, time: 600, bossBgm: 'boss4', finalBgm: 'opus',
       hp: 3.4 + i * 0.2, dmg: 2.45 + i * 0.1, reward: i === 6 ? 45000 : 26000 + i * 2000,
       waves: makeWaves({
         0: ['sulphur', 'quicksilver'], 1: ['sulphur', 'quicksilver', u1], 2: ['salt', 'misbirth', u1, 'quicksilver'],
