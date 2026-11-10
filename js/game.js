@@ -1611,7 +1611,7 @@ export class Game {
     // ゴールドフィーバー中は倒した敵がコインを落とす
     if (this.goldFeverT > 0 && chance(0.35)) this.dropPickup('coin', e.x, e.y, randi(1, 3));
     // 黄金の波で金になった雑魚（凝固のステージ）
-    if (e.gold) for (let i = 0; i < 2; i++) this.dropPickup('coin', e.x, e.y, randi(1, 3));
+    if (e.gold) this.dropPickup('coin', e.x, e.y, randi(1, 3));
     // コイン
     const coinP = (0.05 + (this.stats.coinDrop || 0) + (wid === 'amber' ? 0.25 : 0) + (wid === 'amber' && this.getWeapon('amber')?.evolved ? 0.75 : 0)) * this.stats.luck;
     if (chance(coinP)) this.dropPickup('coin', e.x, e.y, randi(1, 3));

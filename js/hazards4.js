@@ -152,6 +152,7 @@ const CALC = {
     }
     if (s.bigT <= 0) {
       s.bigT = rand(38, 46);
+      s.lineT = Math.max(s.lineT, 5);
       g.hooks.banner('CALCINATIO', 'swarm', '焼成 — 近くの炉が一斉に噴く');
       audio.warning();
       for (const o of fs) if (g.inView(o, 60)) this.erupt(h, o);
@@ -168,6 +169,7 @@ const CALC = {
   },
   avoid(h, p) {
     for (const sea of h.s.seas) { const v = awayFrom(p, sea.x, sea.y, SEA_R + 10, 0.4); if (v) return v; }
+    for (const o of h.around(p.x, p.y, h._c2 || (h._c2 = []))) { const v = awayFrom(p, o.x, o.y, o.r + 40, 0.4); if (v) return v; }
     return beamAway(p, h.s.lines);
   },
   ground(h, ctx) {
@@ -283,17 +285,6 @@ const SOLU = {
       s.tide.t += dt;
       if (s.tide.t > s.tide.warn + s.tide.T) s.tide = null;
     }
-  },
-  avoid(h, p) {
-    const t = h.s.tide;
-    if (!t) return null;
-    let best = null, bd = 1e9;
-    for (const c of h.around(p.x, p.y, h._i2 || (h._i2 = []))) {
-      if (!c.island) continue;
-      const d = Math.hypot(c.x - p.x, c.y - p.y);
-      if (d < bd) { bd = d; best = c; }
-    }
-    return best && bd > best.r * 0.5 ? [((best.x - p.x) / bd) * 0.6, ((best.y - p.y) / bd) * 0.6] : null;
   },
   ground(h, ctx) {
     const g = h.g, p = g.player, s = h.s, lv = this.level(h);
@@ -489,9 +480,11 @@ const CONI = {
   },
   spawn(h) {
     const g = h.g, p = g.player, a = rand(TAU), d = 170;
+    // 結ばれる所は自機の少し横（自機を挟んで止まらないように）
+    const side = Math.random() < 0.5 ? 1 : -1, mx = p.x - Math.sin(a) * 120 * side, my = p.y + Math.cos(a) * 120 * side;
     h.s.pair = {
-      sun: { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d },
-      moon: { x: p.x - Math.cos(a) * d, y: p.y - Math.sin(a) * d },
+      sun: { x: mx + Math.cos(a) * d, y: my + Math.sin(a) * d },
+      moon: { x: mx - Math.cos(a) * d, y: my - Math.sin(a) * d },
       t: 0,
     };
     g.hooks.banner('SOL ET LUNA', 'item', '太陽と月が近づいていく — 押すと早く結ばれる');
@@ -541,13 +534,6 @@ const CONI = {
   },
   dmgMul(h) {
     return h.s.pair && h.s.nearSun ? 1.3 : 1;
-  },
-  avoid(h, p) {
-    const P = h.s.pair;
-    if (!P) return null;
-    // 太陽を月の方へ押しに行く
-    const tx = P.sun.x - (P.moon.x - P.sun.x) * 0.15, ty = P.sun.y - (P.moon.y - P.sun.y) * 0.15, d = Math.hypot(tx - p.x, ty - p.y) || 1;
-    return [((tx - p.x) / d) * 0.25, ((ty - p.y) / d) * 0.25];
   },
   ground(h, ctx) {
     const P = h.s.pair;
@@ -871,7 +857,7 @@ const COAG = {
     if (g.timeStopT > 0) return;
     s.waveT -= dt;
     s.opusT -= dt;
-    if (s.waveT <= 0) {
+    if (s.waveT <= 0 && s.opusT > 3) {
       s.waveT = rand(12, 16);
       s.waves.push({ x: p.x + rand(-100, 100), y: p.y + rand(-100, 100), t: 0, T: 1.6, R: 420 });
       g.hooks.banner('CHRYSOPOEIA', 'item', '黄金の波 — 触れた雑魚が金に変わる');
@@ -879,6 +865,7 @@ const COAG = {
     }
     if (s.opusT <= 0) {
       s.opusT = rand(42, 50);
+      s.waveT = Math.max(s.waveT, 5);
       g.hooks.banner('MAGNUM OPUS', 'victory', '完成の光 — 画面の雑魚がすべて金に変わる');
       g.fx.screenFlash(0.5, '#ffe9a0');
       audio.bomb(true);
@@ -895,16 +882,6 @@ const COAG = {
       }
     }
     s.waves = s.waves.filter((w) => w.t < w.T);
-  },
-  avoid(h, p) {
-    // 近くの金の雑魚を砕きに行く
-    let best = null, bd = 220;
-    for (const e of h.g.enemies) {
-      if (!e.alive || !e.gold || !(e.frozenT > 0)) continue;
-      const d = Math.hypot(e.x - p.x, e.y - p.y);
-      if (d < bd) { bd = d; best = e; }
-    }
-    return best ? [((best.x - p.x) / bd) * 0.25, ((best.y - p.y) / bd) * 0.25] : null;
   },
   ground(h, ctx) {
     for (const w of h.s.waves) {
