@@ -1578,6 +1578,7 @@ export class Game {
     if (e.trainDummy) { this.trainKill(e, wid); return; }
     e.alive = false;
     onEnemyKilled(this, e);
+    this.hazards.onKill(e);
     if (e.segs) for (const sg of e.segs) if (sg.alive) { sg.alive = false; this.fx.purify(sg.x, sg.y, '#ffb84a', true); }
     this.kills++;
     this.killsByType[e.type] = (this.killsByType[e.type] || 0) + 1;

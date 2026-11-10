@@ -2,7 +2,7 @@
 //  第4章のギミック：炉が噴く（焼成）／満ち潮（溶解）／分かつ光の刃（分離）／近づく日と月（結合）／
 //  腐敗の沼と孔雀の尾（発酵）／蒸気口と雫の雨（蒸留）／金に変わる世界（凝固）
 // =====================================================================
-import { TAU, rand, randi, pick } from './util.js';
+import { TAU, rand, pick } from './util.js';
 import { softSprite } from './render.js';
 import { audio } from './audio.js';
 import { inBeam, drawBeamWarn, drawCircleWarn, minions } from './gimmick-kit.js';
@@ -436,10 +436,6 @@ const SEPA = {
     }
     s.blades = s.blades.filter((b) => !b.fired);
   },
-  blocks(h, x, y) {
-    void x; void y;
-    return false;
-  },
   avoid(h, p) {
     return beamAway(p, h.s.blades);
   },
@@ -482,7 +478,6 @@ const SEPA = {
       ctx.fillRect(0, -2, w.len, 4);
       ctx.restore();
     }
-    void h;
   },
 };
 
@@ -930,4 +925,3 @@ const COAG = {
 
 // ステージの kind → ギミック
 export const G4 = { athanor: CALC, solvent: SOLU, sieve: SEPA, sunmoon: CONI, ferment: FERM, vapor: DIST, gold: COAG };
-void randi;
