@@ -16,6 +16,7 @@ import * as UI from './ui.js';
 import { addRankExp, runExp, settleRank } from './rank.js';
 import { initDiag } from './diag.js';
 import { gemImage } from './gem-gl.js';
+import { LEGENDS } from './legends-data.js';
 import { BEAST_IDS, beastIcon } from './beasts.js';
 
 const canvas = document.getElementById('game');
@@ -558,7 +559,7 @@ if (DEBUG.autostart) {
 // （画面を開いたとき・描き直したときに、読み込みを待たずにすぐ出るように）
 const keptIcons = [];
 setTimeout(() => {
-  preloadImages([...Object.keys(GEMS).map((id) => `img/gems/${id}.webp`), ...BEAST_IDS.map((id) => `img/beasts/${id}.webp`)]).then(() => {
+  preloadImages([...Object.keys(GEMS).map((id) => `img/gems/${id}.webp`), ...LEGENDS.map((L) => `img/gems/lg_${L.id}.webp`), ...BEAST_IDS.map((id) => `img/beasts/${id}.webp`)]).then(() => {
     for (const u of [...Object.keys(GEMS).map((id) => gemImage(id)), ...BEAST_IDS.map((id) => beastIcon(id))]) {
       const im = new Image();
       im.src = u;

@@ -1808,12 +1808,10 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .lg-card.done { border-color: rgba(255, 197, 61, 0.6); box-shadow: 0 0 14px rgba(255, 197, 61, 0.12); }
 .lg-ic { width: 58px; height: 58px; flex: none; display: flex; align-items: center; justify-content: center; }
 .lg-ic img, .lg-big img, .lg-hero img { width: 100%; height: 100%; object-fit: contain; }
-.tint-blue img { filter: sepia(1) saturate(5) hue-rotate(175deg) brightness(0.75); }
-.tint-pink img { filter: sepia(1) saturate(4) hue-rotate(290deg) brightness(1.05); }
 .lg-ct { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .lg-en { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
 .lg-name { font: 700 15px var(--font-jp); word-break: keep-all; }
-.lg-spec { font: 11.5px var(--font-jp); color: var(--muted); }
+.lg-spec { font: 11.5px var(--font-jp); color: var(--muted); word-break: keep-all; }
 .lg-bar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin: 3px 0 1px; }
 .lg-bar i { display: block; height: 100%; background: var(--gold); }
 .lg-left { font: 12px var(--font-jp); color: var(--muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
@@ -1826,7 +1824,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .lg-rows, .lg-rinfo { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
 .lg-rows div, .lg-rinfo div { display: flex; justify-content: space-between; gap: 10px; font: 12px var(--font-jp); }
 .lg-rows span, .lg-rinfo span { color: var(--muted); flex: none; }
-.lg-rows b, .lg-rinfo b { text-align: right; font-weight: 700; text-wrap: balance; }
+.lg-rows b, .lg-rinfo b { text-align: right; font-weight: 700; text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; }
 .lg-steps { display: flex; flex-direction: column; width: 100%; max-width: 520px; }
 .lg-step { display: flex; gap: 10px; position: relative; padding-bottom: 12px; }
 .lg-step::before { content: ''; position: absolute; left: 21px; top: 22px; bottom: 0; width: 2px; background: var(--line2); }

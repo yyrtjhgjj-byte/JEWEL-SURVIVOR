@@ -46,6 +46,17 @@ export const GEM_LOOK = {
   angelite: C('cab', 10, 1.57),
   pectolite: C('cabOval', 11, 1.6),
   malachite: C('sphere', 12, 1.75),
+  // 伝説の宝石（legends-data.js。id は lg_ ＋名石の id）：本物のカットの寸法、スターは中の針の結晶の光（kind 14・15）、
+  // ムガル・エメラルドは表の彫刻（carve）。abc はカボションの楕円体の半径
+  lg_starindia: { ...C('cabOval', 15, 1.77), abc: [1.0, 0.84, 0.78] },
+  lg_delong: { ...C('cabOval', 14, 1.77), abc: [1.0, 0.82, 0.6] },
+  lg_kohinoor: T('lgKoh', 2.42, 0.044, [0.98, 0.985, 1.0], 1, { exp: 0.6, fire: 0.7, spark: true }),
+  lg_regent: T('lgRegent', 2.42, 0.044, [0.955, 0.975, 1.0], 1, { exp: 0.6, fire: 0.7, spark: true }),
+  lg_hope: T('lgHope', 2.42, 0.044, [0.26, 0.42, 0.74], 1.5, { exp: 0.85, fire: 0.5, spark: true }),
+  lg_cullinan: T('lgCullinan', 2.42, 0.044, [0.99, 0.992, 1.0], 1, { exp: 0.6, fire: 0.7, spark: true, spin0: 180 }),
+  lg_mughal: T('lgTablet', 1.58, 0.014, [0.12, 0.78, 0.4], 2.0, { carve: 1, fogD: 1.6, fog: [0.12, 0.85, 0.42], fill: 3 }),
+  lg_sunrise: T('lgSunrise', 1.77, 0.018, [0.96, 0.04, 0.12], 1.3),
+  lg_pinkstar: T('lgPink', 2.42, 0.044, [1.0, 0.42, 0.68], 1.1, { exp: 0.65, fire: 0.6, spark: true }),
   obsidian: { mode: 'facet', cut: 'trillion', kind: 0, ri: 1.49, spin0: 180 },
   coal: { mode: 'facet', cut: 'lump', kind: 1, ri: 1.9 },
   granite: { mode: 'tumble', cut: 'tumble', kind: 0, ri: 1.55 },
@@ -124,6 +135,18 @@ function stepCut(o = {}) {
   }
   return P;
 }
+// 彫刻した板（ムガル・エメラルド）：平らな上下の面と、縁と角の面取り。a・b は縦横の半分、h は厚みの半分、bev は面取りの幅
+function tablet(a, b, h, bev) {
+  const P = [[0, 0, 1, h], [0, 0, -1, h]], s = Math.SQRT1_2;
+  const edges = [[1, 0, a], [-1, 0, a], [0, 1, b], [0, -1, b]];
+  for (const [mx, my, e] of edges) {
+    P.push([mx, my, 0, e]);
+    P.push(plane(mx, my, 1, mx * (e - bev), my * (e - bev), h));
+    P.push(plane(mx, my, -1, mx * (e - bev), my * (e - bev), -h));
+  }
+  for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) P.push([sx * s, sy * s, 0, (a + b - bev * 2) * s]);
+  return P;
+}
 // 結晶のポイント（六角柱＋とがった先）。軸は y で、柱の稜を上に向けて寝かせる。面の大きさは少し不ぞろい
 function point() {
   const P = [], ys = 0.4, ya = 1.02;
@@ -155,6 +178,14 @@ const CUTS = {
   brilliant: () => brilliant(OUT.round()), oval: () => brilliant(OUT.oval()), cushion: () => brilliant(OUT.cushion(), { tableIn: 0.4 }),
   pear: () => brilliant(OUT.pear(), { tableIn: 0.34, rot: Math.PI / 8 }), trillion: () => brilliant(OUT.trillion(), { mains: 6, tableIn: 0.36, rot: Math.PI / 2 }),
   step: () => stepCut({ a: 1, b: 0.74, corner: 0.2 }), baguette: () => stepCut({ a: 1, b: 0.52, corner: 0, crownT: [46, 34, 22], pavT: [58, 50, 42, 36] }),
+  // 伝説の宝石：実物の縦横の比（Wikipedia の寸法）に合わせる
+  lgKoh: () => brilliant(OUT.oval(1, 0.89), { mains: 9, tableIn: 0.44 }),
+  lgRegent: () => brilliant(OUT.cushion(0.96, 0.92, 3), { tableIn: 0.42 }),
+  lgHope: () => brilliant(OUT.cushion(0.98, 0.83, 2.6), { tableIn: 0.32 }),
+  lgCullinan: () => brilliant(OUT.pear(), { tableIn: 0.36, rot: Math.PI / 8, mains: 9 }),
+  lgSunrise: () => brilliant(OUT.cushion(0.97, 0.87, 2.8), { tableIn: 0.4 }),
+  lgPink: () => brilliant(OUT.oval(1, 0.78), { tableIn: 0.52 }),
+  lgTablet: () => tablet(1, 0.77, 0.17, 0.07),
 };
 const PORTRAIT = ['oval', 'step', 'baguette', 'cabOval'];
 const sigmaOf = (rgb, d) => rgb.map((c) => -Math.log(Math.max(1e-4, c)) * d);
@@ -179,7 +210,7 @@ uniform vec2 uRes; uniform float uSpan, uExp; uniform mat3 uR; uniform int uMode
 uniform vec4 uP[112]; uniform int uN;
 uniform vec3 uIor, uSig, uSig2, uPleo; uniform float uPleoOn, uBiOn, uBiAt;
 uniform vec2 uCau; uniform int uNW; uniform float uPersp;
-uniform vec3 uAbc; uniform float uFogD; uniform vec3 uFogL;
+uniform vec3 uAbc; uniform float uFogD; uniform vec3 uFogL; uniform float uCarve;
 uniform vec4 uL[24]; uniform vec2 uLc[24]; uniform int uNL; uniform vec4 uEnv; uniform vec2 uHead;
 
 float env(vec3 d){
@@ -206,6 +237,17 @@ vec3 vor3(vec3 x){ vec3 i = floor(x); float d1 = 9., d2 = 9., id = 0.;
     vec3 cc = i + vec3(a, b, c), pp = cc + vec3(hash3(cc), hash3(cc + 31.), hash3(cc + 71.)); float d = length(pp - x);
     if (d < d1) { d2 = d1; d1 = d; id = hash3(cc + 113.); } else if (d < d2) d2 = d; }
   return vec3(d1, d2, id); }
+// 彫りの溝の深さ（ムガル・エメラルドの表）：横に並ぶ祈りの言葉の筆の線と、縁の飾りの帯
+float carveH(vec2 q){
+  if (abs(q.x) > .9 || abs(q.y) > .68) return 0.;
+  float row = (q.y + .62) * 4.3, id = floor(row), fr = fract(row) - .5;
+  float w = .1 * sin(q.x * 9. + id * 2.1) + .05 * sin(q.x * 23. + id * 5.3) + .03 * sin(q.x * 61. + id);
+  float on = smoothstep(.3, .45, vnoise(vec2(q.x * 4. + id * 7., id * 3.), 31.));
+  float d = fr - w;
+  float h = on * exp(-d * d / .004) * step(id, 4.5);
+  float fr2 = max(abs(q.x) - .82, abs(q.y) - .6);
+  return max(h, exp(-fr2 * fr2 / .0006) * (.6 + .4 * sin(atan(q.y, q.x) * 40.)));
+}
 vec3 spectral(float h){ h = fract(h); return clamp(vec3(abs(h * 6. - 3.) - 1., 2. - abs(h * 6. - 2.), 2. - abs(h * 6. - 4.)), 0., 1.); }
 
 // 1 つの波長の光線：外から入り、中で反射を繰り返して、出た光を足す（色の吸収は RGB でまとめて計算する）
@@ -216,7 +258,9 @@ vec3 trace(vec3 ro, vec3 rd, vec3 rr, float ior, out bool hit){
     float t = dist / dn; if (dn < 0.) { if (t > tin) { tin = t; ni = i; } } else tout = min(tout, t); }
   if (tin > tout || ni < 0) { hit = false; return vec3(0); }
   hit = true;
-  vec3 p = ro + rd * tin, n = uP[ni].xyz; float ci = -dot(n, rd), F = fres(ci, ior);
+  vec3 p = ro + rd * tin, n = uP[ni].xyz;
+  if (uCarve > 0. && ni == 0) { float e = .004, h0 = carveH(p.xy); n = normalize(n - vec3(carveH(p.xy + vec2(e, 0)) - h0, carveH(p.xy + vec2(0, e)) - h0, 0) / e * .035 * uCarve); }
+  float ci = -dot(n, rd), F = fres(ci, ior);
   vec3 outv = vec3(F * env(uR * (rr + 2. * dot(-n, rr) * n)));
   float k = 1. / ior, ct = sqrt(max(0., 1. - k * k * (1. - ci * ci)));
   vec3 v = k * rd + (k * ci - ct) * n; vec3 T = vec3(1. - F);
@@ -338,6 +382,16 @@ void stone(vec2 q, vec3 n, vec3 r, out vec3 alb, out vec3 emit, out float tr){
     vec3 body = mix(vec3(.03, .36, .66), vec3(.24, .68, .9), smoothstep(.28, .72, mot));
     body = mix(body, vec3(.5, .82, .96), (1. - smoothstep(0., .35, e)) * .55);
     alb = mix(body, vec3(.94, .98, 1.), clamp(web, 0., 1.) * .9); emit = body * .1; tr = .35;
+  } else if (uKind == 14 || uKind == 15) {
+    // スター（ルビー・サファイア）：中の針の結晶（3 方向）が光を細く返し、6 本の光の筋になる。
+    // 星の中心はいちばん強い照明の映り込みの側に寄り（傾けると星が動く）、そこから 3 本の線が伸びる
+    mat3 Rt = transpose(uR); vec3 lo = Rt * uL[0].xyz; vec2 c = lo.xy * .3; float st = 0.;
+    vec2 dq = q - c; float far = length(dq);
+    for (int k = 0; k < 3; k++) { float a = float(k) * 1.0472 + .2; float d = dot(dq, vec2(-sin(a), cos(a))); st += exp(-d * d / .0011) * (1. - smoothstep(.15, 1.15, far)); }
+    st = st * .55 + exp(-far * far / .006) * 1.2;
+    float silk = fbm(q * 5., 4, 211.);
+    if (uKind == 14) { alb = mix(vec3(.36, .015, .06), vec3(.62, .05, .13), silk); emit = vec3(1., .72, .8) * st + alb * .15; tr = .5; }
+    else { alb = mix(vec3(.12, .17, .3), vec3(.27, .35, .52), silk); emit = vec3(.92, .95, 1.) * st + alb * .12; tr = .55; }
   } else if (uKind == 12) {
     // マラカイト（球）：濃い緑と明るい緑の縞が、同心円（目玉）と流れる帯になる。球の上の向き（n）で決めるので、回しても模様はつながる
     vec3 w = n + vnoise33(n * 2.2) * .35;
@@ -513,7 +567,7 @@ void main(){
 }`;
 
 // ---------------------------------------------------------------- 描く道具（キャンバス 1 枚に 1 つ）
-const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uCau', 'uNW', 'uPersp', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL'];
+const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uCau', 'uNW', 'uPersp', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL', 'uCarve'];
 
 function createRenderer(canvas) {
   const gl = canvas.getContext('webgl2', { premultipliedAlpha: true, antialias: false, alpha: true, depth: false, stencil: false, powerPreference: 'low-power' });
@@ -576,6 +630,7 @@ function createRenderer(canvas) {
       gl.uniform1i(uni.uN, Math.min(112, P.length));
     }
     gl.uniform1f(uni.uFogD, g.fogD || 0);
+    gl.uniform1f(uni.uCarve, g.carve || 0);
     gl.uniform3fv(uni.uFogL, (g.fog || [0, 0, 0]).map((v) => v * 0.75));
     if (g.mode === 'trace') {
       const s = sigmaOf(g.t, g.d);
@@ -587,7 +642,7 @@ function createRenderer(canvas) {
       gl.uniform1f(uni.uPleoOn, g.pleo ? 1 : 0);
       gl.uniform2fv(uni.uCau, cauchy(g, g.fire == null ? 1.6 : g.fire));
     } else {
-      gl.uniform3fv(uni.uAbc, g.cut === 'cab' ? [0.92, 0.92, 0.62] : g.cut === 'sphere' ? [0.9, 0.9, 0.9] : [1.0, 0.76, 0.62]);
+      gl.uniform3fv(uni.uAbc, g.abc || (g.cut === 'cab' ? [0.92, 0.92, 0.62] : g.cut === 'sphere' ? [0.9, 0.9, 0.9] : [1.0, 0.76, 0.62]));
       gl.uniform3f(uni.uIor, g.ri, g.ri, g.ri);
     }
     look = g;
