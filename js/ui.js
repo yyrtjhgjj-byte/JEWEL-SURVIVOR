@@ -7,7 +7,7 @@ import {
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickaxeIcon } from './render.js';
 import { mountLiveGem } from './gem-gl.js';
-import { diagCrashes, diagLaunches, clearDiag } from './diag.js';
+import { diagCrashes, diagLaunches, diagNotes, clearDiag } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter, FINALE_STAGES, stageTag, rushStep } from './stages.js';
 import { fmt, fmtTime, pick, todayStr } from './util.js';
@@ -821,7 +821,7 @@ export function showStageSelect() {
   renderOpts();
   $('#go', node).onclick = () => {
     if (ch === 'train') {
-      if (!tc.w.length) return;
+      if (!trLists().w.length) return;
       audio.select();
       persist();
       app.startGame(save.selected, { stageId: 'wastes', train: trainStartCfg(), artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
@@ -1449,14 +1449,14 @@ function diagRow(c) {
 function setupDiag(node) {
   const list = $('#dglist', node);
   const draw = () => {
-    const cs = diagCrashes();
-    $('#dghead', node).textContent = `途中で終了 ${cs.length} 回／起動 ${diagLaunches()} 回`;
+    const cs = diagCrashes(), ns = diagNotes();
+    $('#dghead', node).textContent = `途中で終了 ${cs.length} 回／起動 ${diagLaunches()} 回${ns.length ? `／音の立て直し ${ns.length} 回` : ''}`;
     list.innerHTML = cs.length ? cs.map(diagRow).join('') : '<div class="dg-none">記録はありません</div>';
   };
   draw();
   $('#dgcopy', node).onclick = async () => {
     audio.tap();
-    const text = JSON.stringify({ launches: diagLaunches(), crashes: diagCrashes() });
+    const text = JSON.stringify({ launches: diagLaunches(), crashes: diagCrashes(), notes: diagNotes() });
     try {
       await navigator.clipboard.writeText(text);
       banner('COPIED', 'item', '記録をコピーしました');

@@ -4,6 +4,7 @@
 // =====================================================================
 import { save } from './save.js';
 import { SONGS, INST } from './songs.js';
+import { diagNote } from './diag.js';
 
 const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 // ペンタトニック（ひろうたびに 音が あがっていく ドパミン音階）
@@ -22,6 +23,8 @@ class AudioEngine {
     this.tempo = 1;
     this.nodeCount = 0; // 作った音声ノードの数（動作の記録 diag.js 用）
     this.samples = new Map(); // 録音した効果音（sample）
+    this.held = false; // 裏に回って止めている間
+    this.fixes = 0; // 見張りが音を立て直した回数（動作の記録用）
   }
 
   // BGM の速さの倍率（フィーバー中は速くなる）
@@ -49,10 +52,13 @@ class AudioEngine {
     const c = this.ctx;
     this.master = c.createGain();
     this.master.gain.value = 0.9;
-    this.comp = c.createDynamicsCompressor();
-    this.comp.threshold.value = -14;
-    this.comp.ratio.value = 6;
-    this.master.connect(this.comp).connect(c.destination);
+    // 出口の見張り（watch）。コンプレッサーの前と後の波形を少しだけ読む
+    this.probeIn = c.createAnalyser();
+    this.probeOut = c.createAnalyser();
+    this.probeIn.fftSize = this.probeOut.fftSize = 256;
+    this.probeBuf = new Float32Array(256);
+    this.master.connect(this.probeIn);
+    this.makeComp();
     this.sfxBus = c.createGain();
     this.bgmBus = c.createGain();
     this.sfxBus.connect(this.master);
@@ -74,6 +80,60 @@ class AudioEngine {
     this.ready = true;
     this.initChip();
     if (this.pendingTrack) this.playBgm(this.pendingTrack);
+    if (!this.watchT) this.watchT = setInterval(() => { try { this.watch(); } catch (e) { /* 見張りの失敗でゲームを止めない */ } }, 1000);
+  }
+
+  // 最後の音量の調整（大きい音が重なっても割れないように）。壊れたら作り直すので関数にしてある
+  makeComp() {
+    const c = this.ctx;
+    this.comp = c.createDynamicsCompressor();
+    this.comp.threshold.value = -14;
+    this.comp.ratio.value = 6;
+    this.master.connect(this.comp).connect(c.destination);
+    this.comp.connect(this.probeOut);
+  }
+
+  // 音の見張り（1 秒ごと）：画面に出ているのに音が止まっていたら立て直す。
+  // ・止まったまま（suspended・interrupted）：再開する
+  // ・動いているはずなのに時計が進まない：音の部品をまるごと作り直す
+  // ・出口に数でない値（NaN）が混ざった：コンプレッサーはそれで壊れて無音のままになるので、作り直す
+  watch() {
+    const c = this.ctx;
+    if (!c || !this.ready || this.held || document.hidden) { this.clock = null; return; }
+    if (c.state === 'closed') { this.rebuild('closed'); return; }
+    if (c.state !== 'running') { c.resume().catch(() => {}); this.clock = null; return; }
+    const now = performance.now(), t = c.currentTime;
+    const k = this.clock;
+    if (k && t === k.t && now - k.at > 900) {
+      if (++k.n >= 3) { this.rebuild('stall'); return; }
+    } else this.clock = { t, at: now, n: 0 };
+    const bad = (a) => { a.getFloatTimeDomainData(this.probeBuf); for (let i = 0; i < this.probeBuf.length; i++) if (!Number.isFinite(this.probeBuf[i])) return true; return false; };
+    if (bad(this.probeOut) && !bad(this.probeIn)) this.fixComp();
+  }
+  fixComp() {
+    try { this.master.disconnect(); this.comp.disconnect(); } catch (e) { /* もう外れていてもよい */ }
+    this.master.connect(this.probeIn);
+    this.makeComp();
+    this.note('comp');
+  }
+  rebuild(why) {
+    const old = this.ctx;
+    const track = this.bgmTrack;
+    this.ready = false;
+    this.chip = null;
+    this.samples = new Map();
+    this.vg = {};
+    this.clock = null;
+    if (this.old) { try { this.old.stop(); } catch (e) { /* 旧曲の音源も作り直す */ } this.old = null; }
+    this.bgmTrack = null;
+    this.pendingTrack = track && !track.old ? track.name : null;
+    try { old.close(); } catch (e) { /* 閉じられなくても新しく作る */ }
+    this.unlock();
+    this.note(why);
+  }
+  note(why) {
+    this.fixes++;
+    diagNote({ kind: 'audio', why, state: this.ctx ? this.ctx.state : '', bgm: this.bgmTrack ? this.bgmTrack.name : this.pendingTrack || '' });
   }
 
   // BGM の音源を用意する。AudioWorklet で動かし、使えなければメインスレッドの ScriptProcessor で同じ音源を動かす
@@ -109,8 +169,8 @@ class AudioEngine {
     this.bgmBus.gain.value = save.settings.bgm * 0.45;
   }
 
-  suspend() { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); }
-  resume() { if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => {}); }
+  suspend() { this.held = true; if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); }
+  resume() { this.held = false; if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => {}); }
 
   // 効果音はすべて、1 度だけ録音（OfflineAudioContext）して、あとは録音を 1 つの音声ノードで鳴らす。
   // 合成すると 1 回に 2〜14 個のノードを作るが、録音なら 1 個で済む（終盤は 1 秒に数百のノードを作っていて、
@@ -145,7 +205,13 @@ class AudioEngine {
     try { synth(off.destination, 0); } catch (e) { /* 録音できなければ合成のまま */ }
     [this.ctx, this.sfxBus, this.nodeCount] = keep;
     // 録音中に曲が変わっていたら、捨てた方の入れ物に入るだけ（今の曲の録音には混ざらない）
-    const done = (b) => { if (b) pool.set(key, b); };
+    const done = (b) => {
+      if (!b) return;
+      // 数でない値が混ざった録音は使わない（出口のコンプレッサーを壊すため）
+      const d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) if (!Number.isFinite(d[i])) return;
+      pool.set(key, b);
+    };
     const p = off.startRendering();
     if (p && p.then) p.then(done).catch(() => {});
     else off.oncomplete = (e) => done(e.renderedBuffer);
