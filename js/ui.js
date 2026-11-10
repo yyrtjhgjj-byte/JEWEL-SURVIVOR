@@ -1436,22 +1436,30 @@ function setupBackup(node) {
   };
 }
 
-// 動作の記録（diag.js）：途中で終了したときの直前の様子
+// 動作の記録（diag.js）：途中で終了したときと、音を立て直したとき（notes）の直前の様子
 function diagRow(c) {
   const d = new Date(c.ts);
   const pad = (n) => String(n).padStart(2, '0');
   const when = `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const r = c.run;
   const where = r ? `${STAGE_BY_ID[r.stage] ? stageTag(STAGE_BY_ID[r.stage]) : r.stage} ${fmtTime(r.time)}・敵 ${r.enemies}` : (c.screen || '-');
-  return `<div class="dg-row"><b>${when}</b><span>${where}</span><small>起動から ${Math.round(c.up / 60)} 分</small></div>`;
+  const what = c.kind === 'audio' ? '<i class="dg-kind">音の立て直し</i>' : '';
+  return `<div class="dg-row"><b>${when}</b><span>${what}${where}</span><small>起動から ${Math.round(c.up / 60)} 分</small></div>`;
 }
 
 function setupDiag(node) {
   const list = $('#dglist', node);
+  const reset = $('#dgclear', node);
+  let armed = 0;
   const draw = () => {
     const cs = diagCrashes(), ns = diagNotes();
-    $('#dghead', node).textContent = `途中で終了 ${cs.length} 回／起動 ${diagLaunches()} 回${ns.length ? `／音の立て直し ${ns.length} 回` : ''}`;
-    list.innerHTML = cs.length ? cs.map(diagRow).join('') : '<div class="dg-none">記録はありません</div>';
+    // 区切りの間でだけ折り返す
+    $('#dghead', node).innerHTML = `<span>途中で終了 ${cs.length} 回</span>${ns.length ? `・<wbr><span>音の立て直し ${ns.length} 回</span>` : ''}<wbr><span>（起動 ${diagLaunches()} 回）</span>`;
+    const all = [...cs, ...ns].sort((x, y) => y.ts - x.ts);
+    list.innerHTML = all.length ? all.map(diagRow).join('') : '<div class="dg-none">記録はありません</div>';
+    reset.disabled = !all.length;
+    reset.textContent = 'リセット';
+    reset.classList.remove('warn');
   };
   draw();
   $('#dgcopy', node).onclick = async () => {
@@ -1464,7 +1472,21 @@ function setupDiag(node) {
       window.prompt('コピーしてください', text);
     }
   };
-  $('#dgclear', node).onclick = () => { audio.tap(); clearDiag(); draw(); };
+  // 間違えて消さないように 2 回押す（3 秒たつと戻る）
+  reset.onclick = () => {
+    audio.tap();
+    if (!armed) {
+      reset.textContent = 'もう一度で消去';
+      reset.classList.add('warn');
+      armed = setTimeout(() => { armed = 0; draw(); }, 3000);
+      return;
+    }
+    clearTimeout(armed);
+    armed = 0;
+    clearDiag();
+    draw();
+    banner('RESET', 'item', '記録を消しました');
+  };
 }
 
 // 設定。focus にバックアップ（sec-backup）や動作の記録（sec-diag）の id を渡すと、そこまで送って開く
@@ -1494,9 +1516,9 @@ export function showSettings(back, asOverlay, focus) {
         <div class="dg-list" id="dglist"></div>
         <div class="bk-btns">
           <button class="btn small" id="dgcopy">コピー</button>
-          <button class="btn small" id="dgclear">消去</button>
+          <button class="btn small" id="dgclear">リセット</button>
         </div>
-        <div class="bk-note">アプリが途中で終了したとき、直前の様子が残ります。</div>
+        <div class="bk-note">アプリが途中で終了したときと、音が止まって立て直したときの様子が残ります。</div>
       </div>`}
       <div class="credit" style="margin-top:14px">Safari の共有メニュー →「ホーム画面に追加」で全画面プレイできます</div>
     </div>`);
