@@ -88,7 +88,7 @@ function drawFurnace(ctx, o, t) {
 }
 const CALC = {
   init(h) {
-    h.s = { burnT: 0, seas: [], lines: [], lineT: 8, bigT: 40 };
+    h.s = { burnT: 0, seas: [], lines: [], lineT: 10, bigT: 40 };
   },
   terrain(h, r, ox, oy, c) {
     if (r() < 0.4) c.push({ x: ox + 70 + r() * 220, y: oy + 70 + r() * 220, r: 24, seed: r() * TAU, cd: 0 });
@@ -140,7 +140,7 @@ const CALC = {
     s.lineT -= dt;
     s.bigT -= dt;
     if (s.lineT <= 0) {
-      s.lineT = rand(8, 12);
+      s.lineT = rand(10, 14);
       const near = fs.filter((o) => g.inView(o, 120));
       if (near.length >= 2) {
         const a = pick(near);
@@ -156,13 +156,13 @@ const CALC = {
       g.hooks.banner('CALCINATIO', 'swarm', '焼成 — 近くの炉が一斉に噴く');
       audio.warning();
       for (const o of fs) if (g.inView(o, 60)) this.erupt(h, o);
-      for (let i = 0; i < 2; i++) s.lines.push(crossLine(g, rand(TAU), rand(-90, 90), 46, 1.5));
+      s.lines.push(crossLine(g, rand(TAU), rand(-90, 90), 46, 1.5));
     }
     for (const b of s.lines) {
       b.t += dt;
       if (b.fired || b.t < b.T) continue;
       b.fired = true;
-      fireBeam(g, b, 16, 0.6, 0.015);
+      fireBeam(g, b, 12, 0.6, 0.015);
       audio.bomb(false, 2);
     }
     s.lines = s.lines.filter((b) => b.t < b.T + 0.6);
