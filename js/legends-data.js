@@ -120,3 +120,5 @@ export const LEGENDS = [
 ];
 export const LEGEND_BY_ID = Object.fromEntries(LEGENDS.map((l) => [l.id, l]));
 export const legendTotal = (L) => L.steps.reduce((a, s) => a + s.cost, 0);
+// 完成した名石の数（セーブ s の legends。{ id: { step: 次の工程, paid: 払ったコイン, done } }）
+export const legendsDone = (s) => LEGENDS.filter((L) => s.legends && s.legends[L.id] && s.legends[L.id].done).length;

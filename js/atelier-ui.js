@@ -186,9 +186,10 @@ function startPolish(tier, tut = false, pick = null) {
 }
 // 研磨のミニゲーム（針がリングを回り、光る面に重なったらタップ）。研磨工房と経営の名石で使う。
 // o：tier 原石の等級（面の数・速さ・幅）、gemId 光の色、tut 練習、en / jp 見出し、quit 始める前にやめたとき、done(精度, 品質)
+// o.R で面の数・針の速さ・帯の広さを変えられる（伝説の宝石の「割る」「彫る」など）
 export function polishMini(o) {
   const { tier, gemId, tut } = o;
-  const R = ROUGH[tier];
+  const R = { ...ROUGH[tier], ...(o.R || {}) };
   const hint = gemColor(gemId);
 
   const node = el(`<div class="screen polish-screen">

@@ -11,6 +11,7 @@ import { AI, onEnemyKilled, thiefTick, spillEaten } from './enemies.js';
 import { Hazards } from './hazards.js';
 import { collectionStats, eliteDrop, bossDrop, upgradeTier, ROUGH } from './atelier.js';
 import { beastStats } from './beasts.js';
+import { LEGEND_DMG, legendsDone } from './legends-data.js';
 import { ARTIFACT_BY_ID, ARTIFACT_MAX, unlockedArtifacts } from './artifacts.js';
 import { FX } from './fx.js';
 import { rankCoinMul } from './rank.js';
@@ -264,6 +265,8 @@ export class Game {
     s.might += 0.05 * (save.awaken[this.charId] || 0);
     add(collectionStats()); // 研磨コレクションの練度ボーナス
     add(beastStats()); // 百獣
+    // 伝説の宝石：完成した数だけ与ダメージが上がる
+    add({ dmgUp: LEGEND_DMG * legendsDone(save) });
     // 攻撃力はラン外（キャラ・工房・覚醒・練度・百獣）とラン中（チャーム・秘宝・上限超過）を別枠で掛け合わせる
     const mightOut = s.might;
     s.might = 1;
