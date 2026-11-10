@@ -517,7 +517,7 @@ UI.initUI({ startGame, toTitle, toStageSelect, migrateSave, checkMetaAchievement
 if (!DEBUG.autostart) setTimeout(() => { if (checkAchievements(null, true).length) UI.refreshCoinPill(); }, 1500);
 
 // 動作の記録（diag.js）：画面に出ている間に落ちたら、次の起動でこの様子が記録に残る
-// audioRate は直前の記録からの、1 秒あたりに作った音声ノードの数（audioNodes は起動してからの合計）。audioFix は音の見張りが立て直した回数、audioBake は効果音の録音の「終わった数/始めた数」（x は作れなかった数）
+// audioRate は直前の記録からの、1 秒あたりに作った音声ノードの数（audioNodes は起動してからの合計）。audioFix は音の見張りが立て直した回数、audioSfx は音源の中で鳴らした効果音の数（音声ノードを作らない分）、audioBake は効果音の録音の「終わった数/始めた数」（x は作れなかった数）
 let lastAudio = { n: 0, t: performance.now() };
 const crashed = initDiag(() => {
   const top = document.getElementById('screens').lastElementChild;
@@ -526,7 +526,7 @@ const crashed = initDiag(() => {
   lastAudio = { n: audio.nodeCount, t: now };
   const info = {
     screen: top ? [...top.classList].filter((c) => c !== 'screen' && c !== 'dim').join(' ') || 'screen' : '',
-    audioNodes: audio.nodeCount, audioRate, bgm: audio.bgmTrack ? audio.bgmTrack.name : '', audioState: audio.ctx ? audio.ctx.state : '', audioFix: audio.fixes, audioBake: audio.bakes ? `${audio.bakes.done}/${audio.bakes.made}${audio.bakes.fail ? ' x' + audio.bakes.fail : ''}` : '', w: innerWidth, h: innerHeight, dpr: window.devicePixelRatio || 1,
+    audioNodes: audio.nodeCount, audioRate, bgm: audio.bgmTrack ? audio.bgmTrack.name : '', audioState: audio.ctx ? audio.ctx.state : '', audioFix: audio.fixes, audioSfx: audio.sfxPlays, audioBake: audio.bakes ? `${audio.bakes.done}/${audio.bakes.made}${audio.bakes.fail ? ' x' + audio.bakes.fail : ''}` : '', w: innerWidth, h: innerHeight, dpr: window.devicePixelRatio || 1,
     os: (navigator.userAgent.match(/OS ([\d_]+)/) || [])[1] || '',
   };
   const g = game;

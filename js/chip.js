@@ -1224,6 +1224,8 @@ export class ChipSynth {
   }
 }
 
+// 効果音を同時に鳴らす数の上限
+const SFX_VOICES = 64;
 // AudioWorklet として読み込まれたとき
 if (typeof registerProcessor === 'function') {
   registerProcessor('chip', class extends AudioWorkletProcessor {
@@ -1232,8 +1234,21 @@ if (typeof registerProcessor === 'function') {
       this.syn = new ChipSynth(sampleRate);
       // 最後に受け取った曲と速さ（音源を作り直したときに戻す）
       this.keep = {};
+      // 効果音：録音した波形を受け取っておき、鳴らす合図が来たらここで混ぜる（2 つ目の出力）。
+      // 効果音 1 回ごとに音声ノードを作ると、iPhone でランの終盤に落ちる疑いがあるため（1 ランで 2〜3 万個になる）
+      this.sfxBufs = new Map();
+      this.sfxVoices = [];
       this.port.onmessage = (e) => {
         const m = e.data || {};
+        if (m.sfxBuf) { this.sfxBufs.set(m.sfxBuf, m.data); return; }
+        if (m.sfxPlay) {
+          const d = this.sfxBufs.get(m.sfxPlay);
+          if (!d) return;
+          // 同時に鳴らす数の上限（超えたら、いちばん古い音を止める）
+          if (this.sfxVoices.length >= SFX_VOICES) this.sfxVoices.shift();
+          this.sfxVoices.push({ d, i: 0 });
+          return;
+        }
         if (m.song) this.keep.song = m;
         if (m.stop) delete this.keep.song;
         if (m.tempo) this.keep.tempo = m.tempo;
@@ -1241,6 +1256,7 @@ if (typeof registerProcessor === 'function') {
       };
     }
     process(inputs, outputs) {
+      this.mixSfx(outputs[1] && outputs[1][0]);
       const o = outputs[0];
       const L = o[0];
       if (!L) return true;
@@ -1252,6 +1268,18 @@ if (typeof registerProcessor === 'function') {
       }
       if (!o[1]) for (let s = 0; s < L.length; s++) L[s] = (L[s] + R[s]) * 0.5;
       return true;
+    }
+    mixSfx(out) {
+      const vs = this.sfxVoices;
+      if (!out || !vs.length) return;
+      const n = out.length;
+      for (let k = vs.length - 1; k >= 0; k--) {
+        const v = vs[k], d = v.d;
+        const m = Math.min(n, d.length - v.i);
+        for (let s = 0; s < m; s++) out[s] += d[v.i + s];
+        v.i += m;
+        if (v.i >= d.length) vs.splice(k, 1);
+      }
     }
     reset(why) {
       this.port.postMessage({ error: why });
