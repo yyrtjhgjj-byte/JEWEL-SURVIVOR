@@ -20,6 +20,8 @@ export const legendCardText = () => `完成 ${legendsDone(save)} / ${LEGENDS.len
 const coinTag = (n) => `<span class="lg-coin"><img src="${coinIcon(40)}" alt="">${fmt(n)}</span>`;
 // 名石の絵：本物のカットで書き出した画像（gem-gl.js の GEM_LOOK の lg_〜）。詳細とお披露目はその場で描く
 const lookId = (L) => `lg_${L.id}`;
+// 名前は「・」のあとで折り返す
+const wbr = (t) => String(t).replace(/・/g, '・<wbr>');
 const icon = (L, cls = 'lg-ic') => `<span class="${cls}"><img src="${gemImage(lookId(L))}" alt=""></span>`;
 // 高い支払いは 2 回押す
 const BIG_PAY = 1000000;
@@ -36,7 +38,7 @@ export function showLegends(back) {
         return `<button class="lg-card ${st.done ? 'done' : ''}" data-id="${L.id}">
           ${icon(L)}
           <div class="lg-ct"><div class="lg-en">${L.en}</div><div class="lg-name">${L.name}</div>
-            <div class="lg-spec">${L.cut}・${L.ct} ct</div>
+            <div class="lg-spec">${wbr(L.cut)}・<wbr>${L.ct}&nbsp;ct</div>
             <div class="lg-bar"><i style="width:${(st.step / L.steps.length) * 100}%"></i></div>
             <div class="lg-left">${st.done ? '<b class="lg-ok">完成</b>' : `工程 ${st.step} / ${L.steps.length}・のこり ${coinTag(left)}`}</div>
           </div>
@@ -58,9 +60,9 @@ export function openLegend(id, back, afterShow) {
       ${topbar(L.en, L.name, coinPill(), 'legends')}
       <div class="lg-head">${icon(L, 'lg-big')}
         <div class="lg-rows">
-          <div><span>カット</span><b>${L.cut}</b></div>
+          <div><span>カット</span><b>${wbr(L.cut)}</b></div>
           <div><span>カラット</span><b>${L.ct} ct</b></div>
-          <div><span>色</span><b>${L.color}</b></div>
+          <div><span>色</span><b>${wbr(L.color)}</b></div>
           <div><span>今ある場所</span><b>${L.home}</b></div>
           ${L.value ? `<div><span>値打ち</span><b>${L.value}</b></div>` : ''}
         </div>
@@ -171,7 +173,7 @@ function complete(L) {
     ${icon(L, 'lg-hero')}
     <div class="lg-rname">${L.name}<span>${L.en}</span></div>
     <div class="panel lg-rinfo">
-      <div><span>カット</span><b>${L.cut}</b></div>
+      <div><span>カット</span><b>${wbr(L.cut)}</b></div>
       <div><span>カラット</span><b>${L.ct} ct</b></div>
       ${L.value ? `<div><span>値打ち</span><b>${L.value}</b></div>` : ''}
       <div><span>完成した名石</span><b>${legendsDone(save)} / ${LEGENDS.length}・与ダメージ +${Math.round(legendsDone(save) * LEGEND_DMG * 100)}%</b></div>
