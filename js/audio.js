@@ -25,6 +25,8 @@ class AudioEngine {
     this.samples = new Map(); // 録音した効果音（sample）
     this.held = false; // 裏に回って止めている間
     this.fixes = 0; // 見張りが音を立て直した回数（動作の記録用）
+    this.sfxPlays = 0; // 音源の中で鳴らした効果音の数（動作の記録用）
+    this.sfxSent = new Set(); // 音源へ渡し済みの録音
   }
 
   // BGM の速さの倍率（フィーバー中は速くなる）
@@ -161,9 +163,13 @@ class AudioEngine {
     }).catch(() => {});
     if (!c.audioWorklet || !window.AudioWorkletNode) { fallback(); return; }
     c.audioWorklet.addModule(new URL('./chip.js', import.meta.url)).then(() => {
-      const node = new AudioWorkletNode(c, 'chip', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+      // 出力は 2 つ：BGM（ステレオ）と効果音（モノラル。sample が合図を送り、音源の中で混ぜる）
+      const node = new AudioWorkletNode(c, 'chip', { numberOfInputs: 0, numberOfOutputs: 2, outputChannelCount: [2, 1] });
       node.port.onmessage = (e) => { if (e.data && e.data.error) console.warn('chip:', e.data.error); };
-      node.connect(this.bgmBus);
+      node.connect(this.bgmBus, 0);
+      node.connect(this.sfxBus, 1);
+      node.sfx = true;
+      this.sfxSent = new Set();
       ready(node);
     }).catch(fallback);
   }
@@ -186,6 +192,18 @@ class AudioEngine {
     const pool = this.samples;
     const buf = pool.get(key);
     if (buf) {
+      // 音源（AudioWorklet）が使えるなら、録音を 1 度だけ渡して、あとは合図だけ送る（音声ノードを作らない）
+      const chip = this.chip;
+      if (chip && chip.sfx) {
+        if (!this.sfxSent.has(key)) {
+          const d = buf.getChannelData(0).slice();
+          chip.port.postMessage({ sfxBuf: key, data: d }, [d.buffer]);
+          this.sfxSent.add(key);
+        }
+        chip.port.postMessage({ sfxPlay: key });
+        this.sfxPlays++;
+        return;
+      }
       const s = this.ctx.createBufferSource();
       s.buffer = buf;
       s.connect(this.sfxBus);
