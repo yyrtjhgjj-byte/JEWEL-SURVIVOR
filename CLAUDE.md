@@ -97,7 +97,8 @@
 | js/diag.js | 動作の記録（落ちたら次の起動で直前の様子を残す。設定画面で見る・コピーする） |
 | js/howto.js | 遊び方とヘルプの本文（項目 `helpTopics()`・一覧の見出し `HELP_GROUPS`・最初の流れ `HOWTO_LOOP`）と描き方 |
 | js/gem-facts.js | 実在の宝石の情報（研磨コレクションの詳細画面） |
-| js/save.js | localStorage（キー `jewel-survivor-save-v1`）とバックアップ |
+| js/save.js | localStorage（キー `jewel-survivor-save-v1`、転生の前世は `jewel-survivor-past-v1`）とバックアップ |
+| js/rebirth.js | 転生（前世の梱包・合流の計算 mergeLives・途中で落ちたときの続き checkPast）とその画面 |
 | js/input.js | フローティング仮想スティック（PC は WASD／矢印） |
 | sw.js | Service Worker（ネットワーク優先） |
 | tools/test/ | Playwright のテストと計測（§7） |
@@ -233,6 +234,7 @@
 - オークション（auction.js・atelier-ui.js）：ランを終えるたびに新しい開催（refreshLot）。1 回の開催は 3 点（宝石 2・原石の詰め合わせ 1）を順に競り、品ごとに参加か見送りを選ぶ。ライバル 3 人は開催ごとの予算（`rivals[id].left`。落札で減り、あとの品に響く）と品ごとの欲しがり具合（`lot.want`）を持ち、どちらも画面に出す。参加しない・降りた品は settleWithoutYou でライバルどうしの結果を決める。入札後にアプリが落ちた品（`lot.joined`）は、次に開いたとき（currentSession）降りた扱いで先へ進める。セーブの形は `{ v: 2, lots, cur, rivals }`（`v` が違えば作り直す）。裏オークション（`save.auction2`、`AUCTION_KINDS.black`）は別枠の開催で、品質・カラットの高い宝石と秘石の多い詰め合わせが出る。ライバルの名前は裏の世界の住人（`BLACK_RIVALS`）。詰め合わせの絵は中身にかかわらず原石を 3 つ三角に積む（atelier-ui.js の bundleStones。入っている種類を良い順に 1 つずつ、残りは数の多い種類）。
 - 競りの会場と落札の画面は `isolation: isolate` で重なりを閉じている（中の z-index が後から重ねる画面の上に描かれるため）。
 - ジュークボックス（jukebox.js）：ステージの曲はそのステージを解放すると、ボス戦などの曲は一度流れると聴ける（audio.playBgm が `save.seen.bgm` に記録）。未解放の曲はステージ名を出さない。BGM を足したら `trackList()` にも足す（章ごとのボス戦の曲は `BOSS_BGM`）。上の「新曲／旧曲」（`save.tabs.jbOld`）で、旧曲（bgm-old.js。audio.playOldBgm）に切り替えて聴ける。切り替えると流れている曲をもう一方で流し直す。旧曲のない曲（`NEW_ONLY`）は旧曲のときに押せない。曲をまだ作っていない章は、ステージに `tempBgm` を付けて既存の曲を仮に流し、一覧から外す。右下の FEVER（切り替え。スクロールしても付いてくる `.jb-fever-dock`）で、ゲームのフィーバーと同じ速さ（audio.js の `FEVER_TEMPO`。旧曲も）で流す。ほかの画面に移ると menu.js の syncNav がふつうの速さに戻す。
+- 転生（rebirth.js。ユーザーの構想。その他の REBIRTH）：今のセーブを前世（`save.js` の PAST_KEY。ふだんのセーブとは別の場所）にしまい、まっさらから遊び直す。前世はいつでも今の人生と合わせられ（mergePast）、合わせると今の人生は終わる。前世は 1 つで、転生中にもう一度転生すると今の人生を足してからしまう。合わせ方（mergeLives）：コイン・原石・ジェムダスト・宝石の所持数と研磨数・統計・撃破数・ランクの経験値は足す。今の人生で使った分（工房・上位工房に払ったコイン `shopPaid`・覚醒のジェムダスト・百獣の宝石 `BEAST_COST`）は戻して足す。記録はよい方、解放・実績・図鑑はどちらか。ここに無い項目（工房のレベル・百獣・覚醒など）は前世のまま。経営・ログインボーナス・設定は人生をまたいで続く（転生でも消さない。経営の配当の上限の平均コインは前世のランも数える）。今の人生でもう一度もらった実績などの報酬も足す（ユーザーの希望）。セーブに項目を足したら mergeLives にも合わせ方を足す。書き込みの途中で落ちても二重に足さないよう、人生ごとの印 `save.life.id` と前世の `folded`・`next`・`merging` を見て、起動時の checkPast が続きをする。バックアップには前世も入れ、前世の無いファイルを読み込むと前世を消す。データ削除（resetSave）も前世を消す。
 - ユーザーランク（rank.js）、ログインボーナス（ui.js の `LOGIN_REWARDS`。受け取った日数の累計 `save.login.days` で 7 日周期）、実績（data.js。ラン中の記録で判定するものと、`meta` でセーブから判定するもの。`meta` は起動時・ランの精算・工房／採掘／経営の操作のあとに判定する）。`ACHIEVEMENTS` の並びがそのまま実績画面の順なので、足すときは同じ系統の見出しの中に置く（id は変えない。`endless20`/`endless40` の中身は 10 分／20 分で、id の数字と合っていない）。
 
 ### 経営（コード上は biz）
@@ -323,7 +325,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v208`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v209`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
