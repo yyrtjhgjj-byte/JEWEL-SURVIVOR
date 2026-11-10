@@ -992,13 +992,19 @@ function dealResult(d, r) {
   return '名工が加わりました';
 }
 
-// 本社の名ルートの欄：見つけた道と、まだの道の手がかり
+// 本社の名ルートの欄：見つけた道と、まだの道（出す所と届け先。持っていない施設は暗くする）
 function routePanel() {
   const st = ui.st, n = Object.keys(st.routes).length;
+  const way = (r, mark) => {
+    const mine = !!MINES[r.mine], hasM = mine ? !!st.mines[r.mine] : true, hasF = !!st.factories[r.fac];
+    const chip = (pid, k, has) => (mark && !has ? placeChip(pid, k).replace('class="bm-place"', 'class="bm-place no"') : placeChip(pid, k));
+    return `<span class="br-way">${chip(r.mine, mine ? 'mine' : 'sight', hasM)}<i>→</i>${chip(r.fac, 'factory', hasF)}</span>`;
+  };
   return `<div class="bs-rows"><div><span>見つけた名ルート</span><b>${n} / ${ROUTES.length}</b></div><div><span>その道で磨く石</span><b>歩留まり +${Math.round((ROUTE.yield - 1) * 100)}%・品質 +${Math.round(ROUTE.up * 100)}%</b></div></div>
+    <p class="br-lead">左の${icon('mine')}の原石を、右の${icon('factory')}の工場へ届けると見つかります（暗いのはまだ持っていない施設）</p>
     <div class="bs-routes">${ROUTES.map((r) => st.routes[r.id]
-      ? `<div class="br-row on"><b>★ ${r.name}</b><span class="br-way">${placeChip(r.mine, MINES[r.mine] ? 'mine' : 'sight')}<i>→</i>${placeChip(r.fac, 'factory')}</span><small>${r.d}</small></div>`
-      : `<div class="br-row"><b>？？？</b><small>${r.hint}</small></div>`).join('')}</div>`;
+      ? `<div class="br-row on"><b>★ ${r.name}</b>${way(r, false)}<small>${r.d}</small></div>`
+      : `<div class="br-row"><b>？？？</b>${way(r, true)}<small>${r.hint}</small></div>`).join('')}</div>`;
 }
 // 本社のブランドの欄：売った石ごとの段階と、次の段階まで
 const MEDAL = ['', 'm-bronze', 'm-silver', 'm-gold', 'm-gold', 'm-plat'];
