@@ -233,7 +233,7 @@ function startGame(charId, opt = {}) {
   document.getElementById('hud').classList.toggle('rush', !!game.rush || !!game.train);
   document.getElementById('hud').classList.toggle('train', !!game.train);
   // CHAOS は装備が多いので、左上の装備の絵を小さく並べる
-  document.getElementById('hud').classList.toggle('chaos', !!game.chaos);
+  document.getElementById('hud').classList.toggle('chaos', !!game.chaos || !!(game.train && game.train.chaos));
   if (opt.resume) game.restore(opt.resume); // 中断したランの続き（HUD の準備のあとに）
   else if (opt.rush) game.rushBegin(opt.rush.from || 0); // BOSS モードの開始時の宝箱（CHECKPOINT ならまとめて）
   moveHint = document.getElementById('movehint');

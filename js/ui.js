@@ -569,22 +569,42 @@ export function showStageSelect() {
       </div>
     </div>`;
   };
+  // CHAOS（解放済みなら）：枠の上限なしで全部を持てる。装備は別に覚える（切り替えてもふつうの選択が消えないように）。最初は全部を最大レベル・進化済みで
+  const trChaos = () => chaosOpen() && !!tc.chaos;
+  const trLists = () => {
+    if (!trChaos()) return { w: tc.w, p: tc.p, mw: MAX_WEAPONS, mp: MAX_CHARMS };
+    if (!Array.isArray(tc.cw)) tc.cw = WEAPON_IDS.map((id) => ({ id, lv: WEAPON_MAX, evo: true, lb: 0 }));
+    if (!Array.isArray(tc.cp)) tc.cp = PASSIVE_IDS.map((id) => ({ id, lv: PASSIVES[id].max, evo: false, lb: 0 }));
+    return { w: tc.cw, p: tc.cp, mw: WEAPON_IDS.length, mp: PASSIVE_IDS.length };
+  };
+  const newItem = (k, id) => ({ id, lv: k === 'w' ? WEAPON_MAX : PASSIVES[id].max, evo: k === 'w' && trChaos(), lb: 0 });
   const renderTrain = () => {
     const ids = (arr) => arr.map((x) => x.id);
+    const L = trLists(), ch = trChaos();
+    const allBtn = (k, n, max) => (ch ? `<button class="rp-all" data-all="${k}">${n >= max ? 'すべて外す' : 'すべて選ぶ'}</button>` : '');
     $('#opts', node).innerHTML = `${artHTML()}
       <div class="toggle-row" style="margin-bottom:10px"><span>HP 25%<small>自機の HP を 25% に固定する</small></span><button class="switch ${tc.low ? 'on' : ''}" id="tlow"></button></div>
-      <div class="rp-head"><span>WEAPON</span><b>${tc.w.length} / ${MAX_WEAPONS}</b></div>
-      <div class="rush-pick">${pickHTML(WEAPON_IDS, ids(tc.w), MAX_WEAPONS, 'w')}</div>
-      <div class="tr-list">${tc.w.map((it) => trRow(it, 'w')).join('')}</div>
-      <div class="rp-head"><span>CHARM</span><b>${tc.p.length} / ${MAX_CHARMS}</b></div>
-      <div class="rush-pick">${pickHTML(PASSIVE_IDS, ids(tc.p), MAX_CHARMS, 'p', pairsOf(ids(tc.w)))}</div>
-      <div class="tr-list">${tc.p.map((it) => trRow(it, 'p')).join('')}</div>`;
+      ${chaosOpen() ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHAOS<small>ウェポン・チャームを全部持てる<br>的の HP ×${CHAOS}</small></span><button class="switch ${ch ? 'on' : ''}" id="tchaos"></button></div>` : ''}
+      <div class="rp-head"><span>WEAPON</span>${allBtn('w', L.w.length, L.mw)}<b>${L.w.length} / ${L.mw}</b></div>
+      <div class="rush-pick">${pickHTML(WEAPON_IDS, ids(L.w), L.mw, 'w')}</div>
+      <div class="tr-list">${L.w.map((it) => trRow(it, 'w')).join('')}</div>
+      <div class="rp-head"><span>CHARM</span>${allBtn('p', L.p.length, L.mp)}<b>${L.p.length} / ${L.mp}</b></div>
+      <div class="rush-pick">${pickHTML(PASSIVE_IDS, ids(L.p), L.mp, 'p', pairsOf(ids(L.w)))}</div>
+      <div class="tr-list">${L.p.map((it) => trRow(it, 'p')).join('')}</div>`;
     node.querySelectorAll('.rp').forEach((b) => (b.onclick = () => {
-      const arr = b.dataset.k === 'w' ? tc.w : tc.p, max = b.dataset.k === 'w' ? MAX_WEAPONS : MAX_CHARMS;
+      const k = b.dataset.k, arr = k === 'w' ? L.w : L.p, max = k === 'w' ? L.mw : L.mp;
       const i = arr.findIndex((x) => x.id === b.dataset.id);
       if (i >= 0) arr.splice(i, 1);
-      else if (arr.length < max) arr.push({ id: b.dataset.id, lv: b.dataset.k === 'w' ? WEAPON_MAX : PASSIVES[b.dataset.id].max, evo: false, lb: 0 });
+      else if (arr.length < max) arr.push(newItem(k, b.dataset.id));
       else return;
+      audio.tap();
+      persist();
+      renderTrain();
+    }));
+    node.querySelectorAll('.rp-all').forEach((b) => (b.onclick = () => {
+      const k = b.dataset.all, arr = k === 'w' ? L.w : L.p, all = k === 'w' ? WEAPON_IDS : PASSIVE_IDS;
+      if (arr.length >= all.length) arr.length = 0;
+      else for (const id of all) if (!arr.some((x) => x.id === id)) arr.push(newItem(k, id));
       audio.tap();
       persist();
       renderTrain();
@@ -592,7 +612,7 @@ export function showStageSelect() {
     node.querySelectorAll('.tr-row button').forEach((b) => (b.onclick = () => {
       const row = b.closest('.tr-row');
       const isW = row.dataset.k === 'w';
-      const it = (isW ? tc.w : tc.p).find((x) => x.id === row.dataset.id);
+      const it = (isW ? L.w : L.p).find((x) => x.id === row.dataset.id);
       const max = isW ? WEAPON_MAX : PASSIVES[it.id].max;
       const d = +b.dataset.d || 0;
       if (b.dataset.a === 'lv') it.lv = Math.max(1, Math.min(max, it.lv + d));
@@ -604,8 +624,20 @@ export function showStageSelect() {
     }));
     const tl = $('#tlow', node);
     tl.onclick = () => { tc.low = !tc.low; tl.classList.toggle('on', tc.low); audio.tap(); persist(); };
+    const tch = $('#tchaos', node);
+    // 的の HP の表示も変わるので、カードも描き直す
+    if (tch) tch.onclick = () => { tc.chaos = !tc.chaos; audio.tap(); persist(); render(); renderTrain(); };
     artWire(renderTrain);
-    $('#go', node).disabled = !tc.w.length;
+    $('#go', node).disabled = !L.w.length;
+  };
+  // ラン開始時に渡す設定：CHAOS なら CHAOS 側の装備を w・p に入れる
+  const trainStartCfg = () => {
+    const L = trLists();
+    const c = JSON.parse(JSON.stringify({ ...tc, w: L.w, p: L.p }));
+    c.chaos = trChaos();
+    delete c.cw;
+    delete c.cp;
+    return c;
   };
   const renderOpts = () => {
     if (ch === 'train') { renderTrain(); return; }
@@ -659,7 +691,8 @@ export function showStageSelect() {
         const on = tc.target === id;
         // HP 無限でブレイクもなしなら、STAGE を選ぶ意味がないので −／＋ を出さない
         const fixed = id === 'dummy' && tc.inf && tc.noBreak;
-        const hp = id === 'dummy' ? (tc.inf ? (tc.noBreak ? 'HP ∞' : `HP ∞（ブレイクは STAGE ${tc.stage} 基準）`) : `HP ${fmt(Math.round(trainDummyHp(tc.stage)))}（STAGE ${tc.stage} の最終ボスと同じ）`) : `HP ${fmt(tc.crowdHp)}（1 体）`;
+        const cm = trChaos() ? CHAOS : 1, cx = cm > 1 ? ` ×${CHAOS}` : '';
+        const hp = id === 'dummy' ? (tc.inf ? (tc.noBreak ? 'HP ∞' : `HP ∞（ブレイクは STAGE ${tc.stage}${cx} 基準）`) : `HP ${fmt(Math.round(trainDummyHp(tc.stage) * cm))}（STAGE ${tc.stage} の最終ボス${cx || 'と同じ'}）`) : `HP ${fmt(tc.crowdHp * cm)}（1 体）`;
         const card = el(`<div class="stage-card train-card ${on ? 'sel' : ''}" style="--sc:#e8c89a;--sg:rgba(232,200,154,0.35)">
           <div class="st-head"><span class="st-no">TARGET</span></div>
           <div class="st-name">${name}</div>
@@ -756,7 +789,7 @@ export function showStageSelect() {
       if (!tc.w.length) return;
       audio.select();
       persist();
-      app.startGame(save.selected, { stageId: 'wastes', train: JSON.parse(JSON.stringify(tc)), artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
+      app.startGame(save.selected, { stageId: 'wastes', train: trainStartCfg(), artifact: save.artSel || null, artifact2: upperLv('art2') ? save.artSel2 : null });
       return;
     }
     if (ch === 'boss') {
@@ -1482,6 +1515,7 @@ export function hudShow(on) {
 // トレーニング：左側の数値パネル（0.25 秒ごとに更新。並びは装備が変わったときだけ作り直す）
 let trainAt = 0;
 let trainGame = null;
+const TP_TOP = 6;
 function trainPanel(g) {
   const now = performance.now();
   if (now - trainAt < 250) return;
@@ -1503,14 +1537,18 @@ function trainPanel(g) {
   $('#tpspeed', pn).textContent = `SPEED ×${g.trainSpeed}`;
   const n = g.trainNumbers();
   const crowd = g.train.target === 'crowd';
-  const key = n.by.map((w) => w.id).join() + (crowd ? 'c' : 'd');
+  // ウェポンが多い（CHAOS）ときは、DPS の上位 TP_TOP 個と「ほか」の合計だけを出す
+  const many = n.by.length > TP_TOP;
+  const list = many ? [...n.by].sort((a, b) => b.dps - a.dps).slice(0, TP_TOP) : n.by;
+  const key = (many ? 'm' + n.by.length : n.by.map((w) => w.id).join()) + (crowd ? 'c' : 'd');
   const body = $('.tp-body', pn);
   if (body.dataset.key !== key) {
     body.dataset.key = key;
     const row = (label, f) => `<div class="tp-row"><span>${label}</span><b data-f="${f}"></b></div>`;
     body.innerHTML = `<div class="tp-big"><span>DPS</span><b data-f="dps5"></b></div>
       ${row('平均', 'dps')}
-      ${n.by.map((w, i) => `<div class="tp-w"><img src="${gemIcon(WEAPONS[w.id].gem, 40)}"><b data-f="w${i}"></b><i data-f="p${i}"></i></div>`).join('')}
+      ${list.map((w, i) => `<div class="tp-w"><img data-g="${i}" src="${gemIcon(WEAPONS[w.id].gem, 40)}"><b data-f="w${i}"></b><i data-f="p${i}"></i></div>`).join('')}
+      ${many ? `<div class="tp-w tp-rest"><span>ほか ${n.by.length - TP_TOP}</span><b data-f="wr"></b><i data-f="pr"></i></div>` : ''}
       ${row('会心率', 'crit')}
       ${crowd ? row('撃破/分', 'kpm') : row('撃破まで', 'kill') + row('ブレイクまで', 'brk')}
       ${row('回復/秒', 'heal')}
@@ -1523,7 +1561,14 @@ function trainPanel(g) {
     kpm: fmt(Math.round(n.kills / (n.elapsed / 60))), kill: sec(n.lastKill), brk: sec(n.lastBreak),
     heal: n.heal.toFixed(1), items: n.items.toFixed(1),
   };
-  n.by.forEach((w, i) => { v['w' + i] = fmt(Math.round(w.dps)); v['p' + i] = tot > 0 ? Math.round((w.dps / tot) * 100) + '%' : '-'; });
+  const pct = (d) => (tot > 0 ? Math.round((d / tot) * 100) + '%' : '-');
+  list.forEach((w, i) => { v['w' + i] = fmt(Math.round(w.dps)); v['p' + i] = pct(w.dps); });
+  if (many) {
+    const rest = tot - list.reduce((a, w) => a + w.dps, 0);
+    v.wr = fmt(Math.round(rest));
+    v.pr = pct(rest);
+    body.querySelectorAll('img[data-g]').forEach((im) => { const src = gemIcon(WEAPONS[list[+im.dataset.g].id].gem, 40); if (im.getAttribute('src') !== src) im.setAttribute('src', src); });
+  }
   body.querySelectorAll('[data-f]').forEach((x) => { const t = v[x.dataset.f]; if (t !== undefined && x.textContent !== t) x.textContent = t; });
 }
 
@@ -1554,7 +1599,7 @@ export function hud(g) {
     lastSlots = key;
     const empty = (n, max) => '<div class="slotico empty"></div>'.repeat(Math.max(0, max - n));
     // CHAOS は絵が小さいので、リミットブレイクしたものは回数だけ（+n）を出す
-    const lv = (x, base) => (g.chaos && x.lbN ? `<b class="lbn">+${x.lbN}</b>` : `<b>${base}${x.lbN ? `<i>+${x.lbN}</i>` : ''}</b>`);
+    const lv = (x, base) => ((g.chaos || (g.train && g.train.chaos)) && x.lbN ? `<b class="lbn">+${x.lbN}</b>` : `<b>${base}${x.lbN ? `<i>+${x.lbN}</i>` : ''}</b>`);
     H.slots.innerHTML = g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 48)}">${lv(w, w.evolved ? '★' : w.level)}</div>`).join('') + empty(g.weapons.length, MAX_WEAPONS) +
       '<i style="grid-column:1/-1;height:0"></i>' +
       g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 48)}">${lv(p, p.level)}</div>`).join('') + empty(g.passives.length, MAX_CHARMS) +

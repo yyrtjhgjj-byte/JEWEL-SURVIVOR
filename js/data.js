@@ -795,6 +795,8 @@ export const ACHIEVEMENTS = [
   { id: 'heat3', m: 1, name: 'オーバーヒート', t: 'HEAT 3以上でクリア', coins: 2000, check: (r) => r.cleared && r.heat >= 3 },
   { id: 'heat5', m: 2, name: 'メルトダウン', t: 'HEAT 5でクリア', coins: 6000, check: (r) => r.cleared && r.heat >= 5 },
   { id: 'heat10', m: 3, name: 'スーパーノヴァ', t: 'HEAT 10でクリア', coins: 15000, check: (r) => r.cleared && r.heat >= 10 },
+  { id: 'heat15', m: 3, name: 'ハイパーノヴァ', t: 'HEAT 15でクリア', coins: 40000, check: (r) => r.cleared && r.heat >= 15 },
+  { id: 'heat20', m: 3, name: 'ビッグバン', t: 'HEAT 20でクリア', coins: 100000, check: (r) => r.cleared && r.heat >= 20 },
   { id: 'heat5void', m: 2, name: '極光', t: 'STAGE 5 を HEAT 5 でクリア', coins: 15000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'void' },
   { id: 'heat5azath', m: 2, name: 'アウター・ゴッド', t: 'STAGE 11 を HEAT 5 でクリア', coins: 30000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'azathoth' },
   { id: 'heat5chuou', m: 3, name: 'プライモーディアル・カオス', t: 'STAGE 15 を HEAT 5 でクリア', coins: 45000, check: (r) => r.cleared && r.heat >= 5 && r.stageId === 'chuou' },

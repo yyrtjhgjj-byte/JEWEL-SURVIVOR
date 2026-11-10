@@ -424,12 +424,13 @@ export function enemyChapter(id) {
 }
 
 // ヒート（難易度上昇）。レベルごとの補正
-export const HEAT_MAX = 10;
+export const HEAT_MAX = 20;
 export function heatMods(h) {
   return {
     hp: 1 + 0.25 * h,
     dmg: 1 + 0.12 * h,
-    speed: 1 + 0.05 * h,
+    // 敵の速さは HEAT 10 を超えると伸びを緩める（速すぎると逃げ場がなくなる）
+    speed: 1 + 0.05 * Math.min(h, 10) + 0.02 * Math.max(0, h - 10),
     spawn: 1 + 0.1 * h,
     coin: 1 + 0.3 * h,
   };
