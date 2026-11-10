@@ -863,6 +863,7 @@ export const ACHIEVEMENTS = [
   { id: 'awaken3', m: 1, meta: true, name: '覚醒者', t: 'いずれかのジュエルを覚醒 ★3 にする', coins: 500, check: (r, s) => Object.values(s.awaken).some((v) => v >= 3) },
   { id: 'awaken5', m: 2, meta: true, name: 'フル・アウェイクン', t: 'いずれかのジュエルを覚醒 ★5 にする', coins: 2000, check: (r, s) => Object.values(s.awaken).some((v) => v >= 5) },
   { id: 'gacha100', m: 1, meta: true, name: 'ディープ・マイナー', t: '採掘を100回する', coins: 1500, check: (r, s) => s.stats.gacha >= 100 },
+  { id: 'slotJackpot', m: 2, meta: true, name: 'ジャックポット', t: 'ジュエル・スロットでジャックポットを当てる', coins: 10000, check: (r, s) => !!(s.slot && s.slot.jp > 0) },
   // 百獣
   { id: 'beast1', m: 1, meta: true, name: 'ビースト・テイマー', t: '百獣を召喚する', coins: 500, check: (r, s) => Object.keys(s.beasts || {}).length >= 1 },
   { id: 'beast_ruby', m: 1, meta: true, name: '『ルビー』', t: '百獣のニホンウサギを召喚する', coins: 1000, check: (r, s) => ((s.beasts || {}).ruby || 0) >= 1 },
