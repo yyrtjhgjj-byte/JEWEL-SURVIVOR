@@ -1798,6 +1798,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 
 /* ---------------------------------------------------------------- 伝説の宝石（legends.js） */
 .legends-screen, .legend-screen { gap: 10px; }
+/* 年の印の z-index が、上に重ねる画面（結果・お披露目）より前に出ないよう、重なりを画面の中で閉じる */
+.legend-screen { isolation: isolate; }
 .legends-screen > *, .legend-screen > * { flex-shrink: 0; }
 .lg-sum { font: 13px var(--font-jp); color: var(--muted); display: flex; gap: 14px; align-items: baseline; }
 .lg-sum b { font-family: var(--font); font-size: 20px; color: var(--gold); }
@@ -1857,4 +1859,4 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 @keyframes lgHero { from { transform: scale(0.3) rotate(-20deg); opacity: 0; } }
 .lg-rname { font: 700 22px var(--font-jp); position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; }
 .lg-rname span { font-family: var(--font); font-size: 12px; letter-spacing: 0.2em; color: var(--muted); }
-.lg-rinfo { max-width: 340px; position: relative; z-index: 1; }
+.lg-rinfo { max-width: 340px; position: relative; z-index: 1; flex: none; }
