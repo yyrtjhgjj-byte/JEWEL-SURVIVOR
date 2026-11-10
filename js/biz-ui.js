@@ -124,7 +124,11 @@ export function showBiz() {
   let saveT = 0;
   map.addEventListener('scroll', () => {
     clearTimeout(saveT);
-    saveT = setTimeout(() => { st.view = { x: (map.scrollLeft + map.clientWidth / 2) / map.scrollWidth, y: (map.scrollTop + map.clientHeight / 2) / map.scrollHeight, z: ui.zoom }; }, 200);
+    saveT = setTimeout(() => {
+      // 画面を離れたあとに届くと大きさが 0 で、割り算が NaN になる（次に開くと地図が左上の端から始まる）
+      if (!map.isConnected || !map.scrollWidth || !map.scrollHeight) return;
+      st.view = { x: (map.scrollLeft + map.clientWidth / 2) / map.scrollWidth, y: (map.scrollTop + map.clientHeight / 2) / map.scrollHeight, z: ui.zoom };
+    }, 200);
   }, { passive: true });
   const sh = $('#bzsheet', node);
   sh.addEventListener('pointerdown', () => { ui.touching = true; });
@@ -159,7 +163,9 @@ export function showBiz() {
 // 地図の大きさ（高さに合わせた幅 × 拡大）と、見ていた場所
 function layoutMap(restore) {
   const map = $('#bzmap', ui.node), world = $('#bzworld', ui.node);
-  const view = ui.st.view;
+  // 壊れた値（以前の版が NaN を書いたセーブは null になっている）は使わない
+  const v0 = ui.st.view;
+  const view = v0 && Number.isFinite(v0.x) && Number.isFinite(v0.y) ? v0 : null;
   const cx = restore ? (view ? view.x : projX(110) / MAP_W) : (map.scrollLeft + map.clientWidth / 2) / (map.scrollWidth || 1);
   const cy = restore ? (view ? view.y : 0.45) : (map.scrollTop + map.clientHeight / 2) / (map.scrollHeight || 1);
   const h = map.clientHeight * ui.zoom;
