@@ -1052,14 +1052,17 @@ export const AI = {
   },
 
   // 大蟇（分離）：泥の扇（狙い）／跳びかかり（着地で泥の輪）・舌・眷属を順番に。
-  // HP が半分を切ると、背の白鷲（aquila）が飛び立って二手に分かれる（HP は大蟇が持ち、鷲へのダメージは shareTo で大蟇へ渡す）
+  // HP が 8 割を切ると、背の白鷲（aquila）が飛び立って二手に分かれる（HP は大蟇が持ち、鷲へのダメージは shareTo で大蟇へ渡す）。
+  // 分かれるのが半分だと、二手になった後は両方に当たる分だけ速く削れて、分かれてすぐ倒れていた。
+  // 早く分け、鷲に当てた分は弱めて渡す（shareMul）ので、戦いの大半が二手に分かれた形になる。半分からは攻めが激しくなる
   bufo(g, e, dt, dist, mv) {
     const p = g.player;
     const enraged = e.hp < e.maxHp * 0.5;
     if (e.bfT === undefined) { e.bfT = 2.2; e.bf2 = 4; e.bfPat = 0; }
-    if (enraged && !e.eagle) {
+    if (e.hp < e.maxHp * 0.8 && !e.eagle) {
       const o = g.spawnEnemy('aquila', e.x, e.y - e.r);
       o.shareTo = e;
+      o.shareMul = 0.5;
       o.hp = o.maxHp = 1e12;
       o.dmg = e.dmg * 0.8;
       e.eagle = o;

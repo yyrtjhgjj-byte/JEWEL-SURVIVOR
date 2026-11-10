@@ -20,6 +20,7 @@ import { ELEMENTS, recalcElements, procElement, elementVs, tickElements, element
 import { LOGIC, weaponStats, drawArea } from './weapons.js';
 import { enemySprite, drawPlayer, xpSprite, itemSprite, roughSprite, backgroundTile, starSprite, dotSprite, softSprite } from './render.js';
 import { audio, FEVER_TEMPO } from './audio.js';
+import { diagNote } from './diag.js';
 import { save } from './save.js';
 
 // ------------------------------------------------------------------ 空間グリッド
@@ -97,6 +98,8 @@ const BREAK_GROW = 1.5;
 const BREAK_EASE = 0.85;
 // ブレイクでダウンしている秒数
 export const BREAK_TIME = 3;
+// 相手がいなくても決まった間隔で弾を出すウェポン（weaponWatch で見張る）
+const STEADY = new Set(['ruby', 'diamond']);
 // トレーニングの木人の HP：STAGE n の最終ボスと同じ（ヒート 0）
 export function trainDummyHp(n) {
   const st = STAGES[Math.max(0, Math.min(STAGES.length - 1, n - 1))];
@@ -161,6 +164,7 @@ export class Game {
     this.grid = new Grid(64);
     this.enemies = [];
     this.projs = [];
+    this.projAt = {}; // ウェポンごとの、最後に弾を出した時刻（weaponWatch）
     this.areas = [];
     this.pickups = [];
     this.ebullets = [];
@@ -346,8 +350,28 @@ export class Game {
     this.computeStats();
   }
 
+  // ウェポンの見張り：相手がいなくても撃ち続けるはずのウェポン（STEADY）が撃たなくなったら、立て直して動作の記録に残す。
+  // 「ルビーの弾が出なくなった」という報告があり、再現できていないので、起きたときの状態をつかむためのもの
+  weaponWatch(dt) {
+    this.watchT = (this.watchT || 0) - dt;
+    if (this.watchT > 0) return;
+    this.watchT = 1;
+    for (const w of this.weapons) {
+      if (!STEADY.has(w.id) || !w.s) continue;
+      const last = this.projAt[w.id] ?? w.bornT ?? this.time;
+      if (this.time - last < Math.max(6, w.s.cd * 5)) continue;
+      if (!w.stallNoted) {
+        w.stallNoted = true;
+        diagNote({ kind: 'weapon', why: 'stall', id: w.id, lv: w.level, evo: !!w.evolved, wt: w.t, cd: w.s.cd, amount: w.s.amount, speed: w.s.speed, life: w.s.life, bq: (w.bq || []).slice(0, 4).map((b) => b.t), bqN: (w.bq || []).length, px: this.player.x, py: this.player.y });
+      }
+      w.bq = [];
+      w.t = 0;
+      this.projAt[w.id] = this.time;
+    }
+  }
+
   addWeapon(id) {
-    const w = { id, level: 1, t: 0, evolved: false };
+    const w = { id, level: 1, t: 0, evolved: false, bornT: this.time };
     this.weapons.push(w);
     w.s = weaponStats(this, w);
     if (!this.dmgBy[id]) this.dmgBy[id] = 0;
@@ -506,6 +530,7 @@ export class Game {
     // 秘宝「研磨ホイール」・ギミックの攻撃速度アップ（モノリスの進化など）
     const wdt = (this.artSet.has('wheel') && p.moving ? dt * 1.5 : dt) * this.hazards.fireMul();
     for (const w of this.weapons) LOGIC[w.id].update(this, w, w.s, wdt);
+    this.weaponWatch(dt);
     this.updateArtifacts(dt);
 
     this.updateProjs(dt);
@@ -1303,6 +1328,7 @@ export class Game {
 
   // ---------------------------------------------------------------- たま
   addProj(pr) {
+    if (pr.wid) this.projAt[pr.wid] = this.time;
     pr.hit = pr.hit || new Set();
     pr.max = pr.life;
     pr.rot = pr.rot || 0;
@@ -1443,6 +1469,8 @@ export class Game {
       // HP を共有する敵（アザトースの奏者）：ダメージは代表の 1 体へ
       e.flash = 0.08;
       if (!e.shareTo.alive) return 0;
+      // 白鷲：当てた分は弱めて大蟇へ渡す（範囲攻撃が両方に当たって倍の速さで削れないように）
+      if (e.shareMul) amount *= e.shareMul;
       e = e.shareTo;
     }
     if (e.segment) {

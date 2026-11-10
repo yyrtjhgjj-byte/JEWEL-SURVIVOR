@@ -6160,8 +6160,25 @@ function paintEnemy(c, type, r, frame, flash, colOverride) {
   ctx.scale(RES, RES);
   ctx.translate(S / 2, S / 2);
   const draw = ENEMY_DRAW[type] || ENEMY_DRAW.slime;
-  const col = colOverride || (ENEMY_COLORS[type] || '#6b5a8e');
+  // 'gold'：黄金の波で金になった敵。絵を描いてから、形の上を金で塗りつぶす（金の像に見えるように）
+  const gold = colOverride === 'gold';
+  const col = gold ? '#ffd23d' : colOverride || (ENEMY_COLORS[type] || '#6b5a8e');
   draw(ctx, r, col, frame);
+  if (gold) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-atop';
+    const gr = ctx.createLinearGradient(0, 0, c.width, c.height);
+    gr.addColorStop(0, '#ffe27a');
+    gr.addColorStop(0.3, '#f2b01e');
+    gr.addColorStop(0.46, '#fff1a8');
+    gr.addColorStop(0.6, '#e09a12');
+    gr.addColorStop(1, '#8a5a06');
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = gr;
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
   if (flash) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'source-atop';

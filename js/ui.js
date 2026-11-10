@@ -1450,7 +1450,7 @@ function diagRow(c) {
   const when = `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const r = c.run;
   const where = r ? `${STAGE_BY_ID[r.stage] ? stageTag(STAGE_BY_ID[r.stage]) : r.stage} ${fmtTime(r.time)}・敵 ${r.enemies}` : (c.screen || '-');
-  const what = c.kind === 'audio' ? '<i class="dg-kind">音の立て直し</i>' : '';
+  const what = c.kind === 'audio' ? '<i class="dg-kind">音の立て直し</i>' : c.kind === 'weapon' ? `<i class="dg-kind">${WEAPONS[c.id] ? GEMS[WEAPONS[c.id].gem].jp : c.id}が止まった</i>` : '';
   return `<div class="dg-row"><b>${when}</b><span>${what}${where}</span><small>起動から ${Math.round(c.up / 60)} 分</small></div>`;
 }
 
@@ -1461,7 +1461,8 @@ function setupDiag(node) {
   const draw = () => {
     const cs = diagCrashes(), ns = diagNotes();
     // 区切りの間でだけ折り返す
-    $('#dghead', node).innerHTML = `<span>途中で終了 ${cs.length} 回</span>${ns.length ? `・<wbr><span>音の立て直し ${ns.length} 回</span>` : ''}<wbr><span>（起動 ${diagLaunches()} 回）</span>`;
+    const na = ns.filter((n) => n.kind === 'audio').length, nw = ns.length - na;
+    $('#dghead', node).innerHTML = `<span>途中で終了 ${cs.length} 回</span>${na ? `・<wbr><span>音の立て直し ${na} 回</span>` : ''}${nw ? `・<wbr><span>ほか ${nw} 件</span>` : ''}<wbr><span>（起動 ${diagLaunches()} 回）</span>`;
     const all = [...cs, ...ns].sort((x, y) => y.ts - x.ts);
     list.innerHTML = all.length ? all.map(diagRow).join('') : '<div class="dg-none">記録はありません</div>';
     reset.disabled = !all.length;
@@ -1525,7 +1526,7 @@ export function showSettings(back, asOverlay, focus) {
           <button class="btn small" id="dgcopy">コピー</button>
           <button class="btn small" id="dgclear">リセット</button>
         </div>
-        <div class="bk-note">アプリが途中で終了したときと、音が止まって立て直したときの様子が残ります。</div>
+        <div class="bk-note">アプリが途中で終了したときと、音やウェポンが止まって立て直したときの様子が残ります。</div>
       </div>`}
       <div class="credit" style="margin-top:14px">Safari の共有メニュー →「ホーム画面に追加」で全画面プレイできます</div>
     </div>`);
