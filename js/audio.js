@@ -412,6 +412,72 @@ class AudioEngine {
     this.sample('countTick', 0.06, () => this.tone(mtof(96), 0.03, { type: 'square', vol: 0.025 }));
   }
 
+  // ---- ジュエル・スロット（slot.js）
+  // レバーを引いてリールが回り出す
+  slotSpin() {
+    this.sample('slotSpin', 0.6, () => {
+      this.noise(0.09, { vol: 0.35, freq: 600, type: 'lowpass' });
+      this.tone(110, 0.12, { type: 'sine', vol: 0.3, slide: 60 });
+      for (let i = 0; i < 16; i++) this.tone(1400 - i * 30, 0.018, { type: 'square', vol: 0.03 * (1 - i / 18), when: 0.06 + i * 0.03 });
+    });
+  }
+  // リールが止まる：重い音と金属の音
+  slotStop(i = 0) {
+    this.sample(`slotStop${i}`, 0.3, () => {
+      this.tone(170 - i * 15, 0.16, { type: 'sine', vol: 0.4, slide: 70 });
+      this.noise(0.05, { vol: 0.22, freq: 3500, type: 'highpass' });
+      this.tone(mtof(86 + i * 3), 0.12, { type: 'triangle', vol: 0.07, when: 0.01 });
+    });
+  }
+  // リーチ：上がっていく音
+  slotReach() {
+    this.sample('slotReach', 1.4, () => {
+      for (let i = 0; i < 14; i++) this.tone(mtof(70 + i), 0.08, { type: 'square', vol: 0.06, when: i * 0.085 });
+      this.noise(1.25, { vol: 0.1, freq: 300, slide: 6000, q: 3 });
+    });
+  }
+  // 当たりの列（k 本目ほど高い鐘の音）
+  slotLine(k = 0) {
+    const n = 84 + [0, 4, 7, 12, 16][k % 5];
+    this.sample(`slotLine${k % 5}`, 0.7, () => {
+      this.tone(mtof(n), 0.6, { type: 'sine', vol: 0.16 });
+      this.tone(mtof(n) * 2.76, 0.3, { type: 'sine', vol: 0.04 });
+      this.tone(mtof(n + 12), 0.15, { type: 'square', vol: 0.03, when: 0.02 });
+    });
+  }
+  // 小さな当たり：コインの音とさっと上がる音
+  slotWin() {
+    this.sample('slotWin', 0.6, () => {
+      [76, 79, 84, 88].forEach((n, i) => this.tone(mtof(n), 0.16, { type: 'square', vol: 0.07, when: i * 0.06 }));
+      for (let i = 0; i < 5; i++) this.noise(0.05, { vol: 0.12, freq: 7000 + i * 600, q: 4, when: 0.1 + i * 0.07 });
+    });
+  }
+  // はずれ
+  slotLose() {
+    this.sample('slotLose', 0.4, () => [64, 59].forEach((n, i) => this.tone(mtof(n), 0.18, { type: 'triangle', vol: 0.09, when: i * 0.12 })));
+  }
+  // 大当たりのファンファーレ（金管のような 3 打ちと長い和音）とコインがじゃらじゃら落ちる音
+  slotBig() {
+    this.sample('slotBig', 2.6, () => {
+      const hits = [[67, 72, 76], [67, 72, 76], [69, 74, 77], [72, 76, 79, 84]];
+      hits.forEach((ch, i) => ch.forEach((n) => {
+        const last = i === hits.length - 1;
+        this.tone(mtof(n), last ? 1.3 : 0.14, { type: 'sawtooth', vol: last ? 0.05 : 0.06, when: [0, 0.16, 0.32, 0.56][i] });
+        this.tone(mtof(n - 12), last ? 1.3 : 0.14, { type: 'square', vol: 0.025, when: [0, 0.16, 0.32, 0.56][i] });
+      }));
+      for (let i = 0; i < 26; i++) this.noise(0.06, { vol: 0.1, freq: 6000 + (i % 5) * 900, q: 5, when: 0.6 + i * 0.065 });
+      this.noise(1.6, { vol: 0.07, freq: 9000, type: 'highpass', when: 0.56 });
+    });
+  }
+  // ジャックポット：サイレン、鐘、ファンファーレ
+  slotJackpot() {
+    this.sample('slotJackpot', 1.8, () => {
+      for (let i = 0; i < 8; i++) this.tone(i % 2 ? 1180 : 880, 0.2, { type: 'square', vol: 0.06, when: i * 0.2 });
+      [96, 100, 103, 108].forEach((n, i) => this.tone(mtof(n), 0.9, { type: 'sine', vol: 0.08, when: 0.1 + i * 0.12 }));
+    });
+    this.slotBig();
+  }
+
   // ------------------------------------------------------------------ BGM
   playBgm(name) {
     // 一度流れた曲は、ジュークボックスで聴けるようにする

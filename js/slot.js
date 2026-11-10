@@ -7,7 +7,7 @@ import { save, persist } from './save.js';
 import { gemIcon, roughIcon, coinIcon } from './render.js';
 import { ROUGH } from './atelier.js';
 import { fmt, rand, randi } from './util.js';
-import { audio } from './audio.js';
+import { audio, FEVER_TEMPO } from './audio.js';
 import { show, el, $, topbar, coinPill, refreshCoinPill, haptic, getApp, wait, countUp } from './ui.js';
 
 export function slotState() {
@@ -18,6 +18,51 @@ export function slotState() {
   return st;
 }
 
+// JP（虹色の 7 に金の縁）と ★（面取りした金の星）の絵。1 枚のキャンバスで 1 度だけ描いて使い回す
+function drawSymArt() {
+  const S = 160, c = document.createElement('canvas');
+  c.width = c.height = S;
+  const x = c.getContext('2d'), out = {};
+  // 7：斜めにした太い数字。黒の外縁 → 金の縁 → 虹色の中 → 上半分に光
+  const seven = () => {
+    x.beginPath();
+    [[-38, -50], [42, -50], [42, -34], [2, 52], [-22, 52], [16, -32], [-38, -32]].forEach(([px, py], i) => (i ? x.lineTo(px, py) : x.moveTo(px, py)));
+    x.closePath();
+  };
+  x.save();
+  x.translate(S / 2 + 4, S / 2 + 2);
+  x.transform(1, 0, -0.16, 1, 0, 0);
+  x.lineJoin = 'round';
+  seven(); x.strokeStyle = '#1a0a00'; x.lineWidth = 22; x.stroke();
+  const gold = x.createLinearGradient(0, -56, 0, 56);
+  gold.addColorStop(0, '#fff3b0'); gold.addColorStop(0.45, '#ffc53d'); gold.addColorStop(0.55, '#c88a10'); gold.addColorStop(1, '#ffe27a');
+  seven(); x.strokeStyle = gold; x.lineWidth = 12; x.stroke();
+  const pr = x.createLinearGradient(-40, -50, 40, 52);
+  ['#ff2d55', '#ff8a3d', '#ffd23d', '#3fe0a0', '#3fc8ff', '#8a6dff', '#e25cff'].forEach((col, i, a) => pr.addColorStop(i / (a.length - 1), col));
+  seven(); x.fillStyle = pr; x.fill();
+  x.save(); seven(); x.clip();
+  x.fillStyle = 'rgba(255,255,255,0.38)'; x.fillRect(-60, -60, 120, 46);
+  x.restore();
+  x.restore();
+  out.jp = c.toDataURL();
+  // ★：10 枚の三角を明るい金と暗い金で交互に塗って面取りに見せる
+  x.clearRect(0, 0, S, S);
+  x.save();
+  x.translate(S / 2, S / 2 + 4);
+  const R = 66, r = 28, pt = (k) => { const a = -Math.PI / 2 + (k * Math.PI) / 5, rr = k % 2 ? r : R; return [Math.cos(a) * rr, Math.sin(a) * rr]; };
+  x.beginPath();
+  for (let k = 0; k < 10; k++) { const [px, py] = pt(k); k ? x.lineTo(px, py) : x.moveTo(px, py); }
+  x.closePath(); x.lineJoin = 'round'; x.strokeStyle = '#2a1600'; x.lineWidth = 12; x.stroke();
+  for (let k = 0; k < 10; k++) {
+    const [ax, ay] = pt(k), [bx, by] = pt(k + 1);
+    x.beginPath(); x.moveTo(0, 0); x.lineTo(ax, ay); x.lineTo(bx, by); x.closePath();
+    x.fillStyle = k % 2 ? '#ffe680' : '#e0a21a'; x.fill();
+  }
+  x.restore();
+  out.star = c.toDataURL();
+  c.width = c.height = 1;
+  return out;
+}
 // 絵柄の絵（同じ絵を何度も使うので、画像の URL は 1 度だけ作る）
 let symImg = null;
 function symHTML(id) {
@@ -28,13 +73,17 @@ function symHTML(id) {
       sapphire: gemIcon('sapphire', 96),
       diamond: gemIcon('diamond', 96),
       mystic: roughIcon('mystic', ROUGH.mystic.color, 96),
+      ...drawSymArt(),
     };
   }
-  if (id === 'star') return '<span class="sl-sym sl-star">★</span>';
-  if (id === 'jp') return '<span class="sl-sym sl-jpsym">JP</span>';
   return `<img class="sl-sym s-${id}" src="${symImg[id]}" alt="">`;
 }
-const NAMES = { shard: '原石の欠片', ruby: 'ルビー', sapphire: 'サファイア', diamond: 'ダイヤモンド', mystic: '秘石' };
+// 当たりの列の色と、左右の番号の位置（%）。列は横 3 本（上・中・下）と斜め 2 本（左上から右下・左下から右上）
+const LINE_COL = ['#ffd23d', '#ff5f8f', '#4fe0ff', '#7dff9a', '#c38bff'];
+const TAB_L = [16.7, 50, 83.3, 3, 97], TAB_R = [16.7, 50, 83.3, 97, 3];
+const LINE_PTS = ['0,50 300,50', '0,150 300,150', '0,250 300,250', '0,0 300,300', '0,300 300,0'];
+// 列ごとの当たりの表示の位置（%）
+const POP_AT = [[74, 16.7], [74, 50], [74, 83.3], [26, 30], [26, 70]];
 const ROUGH_NAME = (t) => ROUGH[t].short;
 
 // 払い戻しの表（選んでいる賭け金での額）
@@ -50,18 +99,33 @@ function payTable(bet) {
 }
 const coinTag = () => `<img class="sl-ci" src="${coinIcon(40)}" alt="">`;
 
+// 1 本の列の払い戻し（judge と同じ計算。列ごとの表示に使う）
+function lineReward(id, bet, mul) {
+  const p = (SLOT_SYMS.find((x) => x.id === id) || {}).pay;
+  if (id === 'jp') return 'JACKPOT';
+  if (!p) return '';
+  if (p.coins) return `${coinTag()}+${fmt(Math.round(bet * p.coins * mul))}`;
+  if (p.dust) return `ダスト +${fmt(Math.round((bet * p.dust * mul) / DUST_VALUE))}`;
+  return `${ROUGH_NAME(p.rough)} ×${fmt(Math.round((bet * p.v * mul) / ROUGH_VALUE[p.rough]))}`;
+}
+
 export function showSlot(back) {
   const st = slotState();
+  const tabs = (side, at) => `<div class="sl-tabs ${side}">${at.map((y, i) => `<i data-l="${i}" style="top:${y}%;--lc:${LINE_COL[i]}">${i + 1}</i>`).join('')}</div>`;
   const node = el(`
     <div class="screen slot-screen" data-nav="jewel">
       ${topbar('SLOT', 'ジュエル・スロット', coinPill(), 'slot')}
       <div class="sl-jpbox"><span>JACKPOT</span><b id="sljp">${fmt(st.pool)}</b></div>
       <div class="sl-machine" id="slm">
-        <div class="sl-reels">${[0, 1, 2].map((c) => `<div class="sl-reel"><div class="sl-strip" id="slr${c}"></div></div>`).join('')}</div>
-        <svg class="sl-lines" id="sllines" viewBox="0 0 300 300" preserveAspectRatio="none"></svg>
-        <div class="sl-fx" id="slfx"></div>
+        ${tabs('l', TAB_L)}
+        <div class="sl-reels" id="slreels">${[0, 1, 2].map((c) => `<div class="sl-reel"><div class="sl-strip" id="slr${c}"></div></div>`).join('')}
+          <svg class="sl-lines" id="sllines" viewBox="0 0 300 300" preserveAspectRatio="none"></svg>
+          <div class="sl-pops" id="slpops"></div>
+        </div>
+        ${tabs('r', TAB_R)}
+        <div class="sl-reachb" id="slreach">REACH!</div>
       </div>
-      <div class="sl-win" id="slwin"></div>
+      <div class="sl-res" id="slres"></div>
       <div class="panel sl-pay"><div class="sl-ph">払い戻し（1 列に 3 つ。横 3 本・斜め 2 本）</div><div id="slpay"></div>
         <p class="sl-note">フィーバーは ${SLOT_FEVER.spins} 回ただで回せて、払い戻しが ${SLOT_FEVER.mul} 倍。ジャックポットは積み立て × 賭け金 ÷ ${fmt(SLOT_BETS[SLOT_BETS.length - 1])}（いちばん高い賭けで全額）と秘石。</p></div>
       <div class="dock sl-dock">
@@ -95,10 +159,12 @@ export function showSlot(back) {
       ten.disabled = busy || save.coins < betOf();
     }
     $('#slm', node).classList.toggle('fever', st.free > 0);
+    // フィーバーの間は曲を速く（ゲームのフィーバーと同じ速さ）
+    audio.tempoMul = st.free > 0 ? FEVER_TEMPO : 1;
   };
   sync();
 
-  $('#back', node).onclick = () => { if (busy) return; audio.tap(); back(); };
+  $('#back', node).onclick = () => { if (busy) return; audio.tap(); audio.tempoMul = 1; back(); };
   node.querySelectorAll('.sl-bet').forEach((b) => (b.onclick = () => {
     if (busy) return;
     audio.select();
@@ -107,7 +173,16 @@ export function showSlot(back) {
     sync();
   }));
 
-  // 1 回まわす（フィーバーの残りがあればそれを使う）。fast は 10 回のとき
+  // 前の当たりの表示を消す
+  const clearWin = () => {
+    $('#sllines', node).innerHTML = '';
+    $('#slpops', node).innerHTML = '';
+    $('#slreels', node).classList.remove('dim');
+    node.querySelectorAll('.sl-cell.win').forEach((c) => c.classList.remove('win'));
+    node.querySelectorAll('.sl-tabs i.on').forEach((t) => t.classList.remove('on'));
+  };
+
+  // 1 回まわす（フィーバーの残りがあればそれを使う）。fast は 10 回とフィーバーのとき
   async function spinOnce(fast) {
     const free = st.free > 0;
     const bet = free ? st.freeBet : betOf();
@@ -125,13 +200,12 @@ export function showSlot(back) {
     if (res.fever) { st.free += SLOT_FEVER.spins; st.freeBet = bet; }
     st.best = Math.max(st.best, res.value);
     persist();
-    $('#slwin', node).innerHTML = '';
-    $('#sllines', node).innerHTML = '';
-    node.querySelectorAll('.sl-cell.win').forEach((c) => c.classList.remove('win'));
-    refreshCoinPill();
+    clearWin();
+    $('#slres', node).innerHTML = '';
     if (!res.jp) $('#sljp', node).textContent = fmt(st.pool);
     await spinReels(grid, fast);
     await showWin(res, bet, fast, free);
+    refreshCoinPill();
     if (res.jp) $('#sljp', node).textContent = fmt(st.pool);
     if (res.jp && getApp() && getApp().checkMetaAchievements) getApp().checkMetaAchievements();
     return true;
@@ -144,10 +218,10 @@ export function showSlot(back) {
       const a = grid[l[0][0]][l[0][1]], b = grid[l[1][0]][l[1][1]];
       return a === b && (a === 'jp' || a === 'diamond' || a === 'mystic');
     }) || grid.flat().filter((x, i) => i % 3 < 2 && x === 'star').length >= 2;
-    audio.select();
+    audio.slotSpin();
     const stops = [];
     for (let c = 0; c < 3; c++) {
-      const strip = $(`#slr${c}`, node);
+      const strip = $(`#slr${c}`, node), reel = strip.parentElement;
       const cur = [...strip.children].slice(-3).map((x) => x.innerHTML);
       const k = (fast ? 6 : 12) + c * (fast ? 3 : 6) + (c === 2 && reach ? (fast ? 8 : 18) : 0);
       const mid = Array.from({ length: k }, () => symHTML(SLOT_SYMS[randi(0, SLOT_SYMS.length - 1)].id));
@@ -157,61 +231,106 @@ export function showSlot(back) {
       strip.innerHTML = [...cur, ...mid, ...fin].map((h) => `<div class="sl-cell">${h}</div>`).join('');
       void strip.offsetHeight;
       const dur = (fast ? 0.45 : 0.85) + c * (fast ? 0.18 : 0.35) + (c === 2 && reach ? (fast ? 0.7 : 1.5) : 0);
+      reel.classList.add('spin');
       strip.style.transition = `transform ${dur}s cubic-bezier(.2,.75,.25,1.03)`;
       strip.style.transform = `translateY(${-(cur.length + k) * cs}px)`;
       if (c === 2 && reach) {
-        setTimeout(() => { strip.parentElement.classList.add('reach'); audio.drumroll(Math.max(0.6, dur - 0.9)); }, (fast ? 0.6 : 1.4) * 1000);
+        setTimeout(() => {
+          reel.classList.add('reach');
+          $('#slm', node).classList.add('reach');
+          audio.slotReach();
+        }, (fast ? 0.6 : 1.3) * 1000);
       }
-      stops.push(wait(dur * 1000).then(() => {
-        audio.slotTick(c);
+      stops.push(wait(dur * 1000 - 120).then(() => reel.classList.remove('spin')).then(() => wait(120)).then(() => {
+        audio.slotStop(c);
         strip.style.transition = 'none';
         strip.style.transform = 'translateY(0)';
         strip.innerHTML = fin.map((h) => `<div class="sl-cell">${h}</div>`).join('');
-        strip.parentElement.classList.remove('reach');
+        reel.classList.remove('reach');
+        reel.classList.add('land');
+        setTimeout(() => reel.classList.remove('land'), 220);
       }));
     }
     await Promise.all(stops);
+    $('#slm', node).classList.remove('reach');
   }
 
-  // 当たりを見せる（列を光らせ、額を数え上げ、大きい当たりは画面いっぱいに）
+  // 当たりを見せる：はずれの絵を暗くし、当たりの列を 1 本ずつ色の線で引いて、その列の払い戻しを出す。
+  // 合計は下の帯で数え上げ、大きい当たりは画面いっぱいに出す
   async function showWin(res, bet, fast, free) {
-    const box = $('#slwin', node);
+    const mul = free ? SLOT_FEVER.mul : 1;
+    const x = res.value / bet;
+    const kind = res.jp ? 'jp' : x >= 30 ? 'mega' : x >= 10 ? 'big' : '';
     if (res.lines.length) {
-      const pts = (l) => SLOT_LINES[l.i].map(([r, c]) => `${c * 100 + 50},${r * 100 + 50}`).join(' ');
-      $('#sllines', node).innerHTML = res.lines.map((l) => `<polyline points="${pts(l)}" class="${l.id === 'jp' ? 'jp' : ''}"/>`).join('');
-      for (const l of res.lines) for (const [r, c] of SLOT_LINES[l.i]) $(`#slr${c}`, node).children[r].classList.add('win');
+      $('#slreels', node).classList.add('dim');
+      for (let k = 0; k < res.lines.length; k++) {
+        const l = res.lines[k];
+        const col = l.id === 'jp' ? '#ffffff' : LINE_COL[l.i];
+        $('#sllines', node).insertAdjacentHTML('beforeend', `<g class="ln ${l.id === 'jp' ? 'jp' : ''}" style="--lc:${col}"><polyline class="g" pathLength="1" points="${LINE_PTS[l.i]}"/><polyline class="c" pathLength="1" points="${LINE_PTS[l.i]}"/></g>`);
+        for (const [r, c] of SLOT_LINES[l.i]) $(`#slr${c}`, node).children[r].classList.add('win');
+        node.querySelectorAll(`.sl-tabs i[data-l="${l.i}"]`).forEach((t) => t.classList.add('on'));
+        const [px, py] = POP_AT[l.i];
+        $('#slpops', node).insertAdjacentHTML('beforeend', `<div class="sl-pop" style="left:${px}%;top:${py}%;--lc:${col}">${lineReward(l.id, bet, mul)}</div>`);
+        audio.slotLine(k);
+        await wait(fast ? 160 : 420);
+      }
     }
+    // 下の帯：合計
+    const box = $('#slres', node);
     const parts = [];
-    if (res.coins + res.jp) parts.push(`${coinTag()}<b id="slwc">0</b>`);
     if (res.dust) parts.push(`<span>ジェムダスト +${fmt(res.dust)}</span>`);
     for (const [t, n] of Object.entries(res.rough)) parts.push(`<span><img class="sl-ci" src="${roughIcon(t, ROUGH[t].color, 40)}" alt="">${ROUGH_NAME(t)} ×${fmt(n)}</span>`);
-    const x = res.value / bet;
-    const kind = res.jp ? 'JACKPOT' : x >= 30 ? 'MEGA WIN' : x >= 10 ? 'BIG WIN' : '';
-    if (kind) {
-      big(kind, res.jp ? 'jp' : x >= 30 ? 'mega' : 'big');
-      if (res.jp) audio.jackpot(); else audio.bigWin();
-      haptic();
-    } else if (res.value > 0) audio.coin();
-    if (parts.length) {
-      box.innerHTML = `${free ? '<i>FEVER ×2</i>' : ''}${parts.join('')}`;
-      const c = $('#slwc', box);
-      if (c) await countUp(c, res.coins + res.jp, fast && !kind ? 250 : kind ? 1600 : 600, (v) => '+' + fmt(v));
+    const coins = res.coins + res.jp;
+    if (res.value > 0) {
+      box.innerHTML = `<div class="sl-rt">${free ? `<i>FEVER ×${SLOT_FEVER.mul}</i>` : ''}WIN</div>${coins ? `<div class="sl-rc">${coinTag()}<b id="slrc">+0</b></div>` : ''}${parts.length ? `<div class="sl-rx">${parts.join('')}</div>` : ''}`;
+      box.className = `sl-res on ${kind}`;
+      if (!kind) audio.slotWin();
+    } else {
+      box.innerHTML = '<div class="sl-rt">NO WIN</div>';
+      box.className = 'sl-res off';
+      if (!fast) audio.slotLose();
     }
-    if (res.fever) {
-      big('FEVER', 'fever');
-      audio.fever();
-      await wait(fast ? 700 : 1100);
-    }
-    await wait(kind ? 900 : fast ? 150 : 250);
+    if (kind) await bigWin(kind, res, coins, bet);
+    else if (coins) await countUp($('#slrc', box), coins, fast ? 250 : 650, (v) => '+' + fmt(v));
+    if (kind && coins) $('#slrc', box).textContent = '+' + fmt(coins);
+    if (res.fever) await feverIn();
+    await wait(res.value > 0 ? (fast ? 350 : 700) : fast ? 150 : 300);
   }
 
-  // 大きい当たりの文字とコインの雨（粒の数は決めた数まで）
-  function big(text, cls) {
-    const fx = $('#slfx', node);
-    const n = cls === 'jp' ? 28 : cls === 'mega' ? 20 : cls === 'big' ? 12 : 0;
-    const coins = Array.from({ length: n }, () => `<img class="sl-coin" src="${coinIcon(48)}" style="left:${rand(4, 92).toFixed(1)}%;animation-delay:${rand(0, 0.5).toFixed(2)}s;animation-duration:${rand(1, 1.6).toFixed(2)}s" alt="">`).join('');
-    fx.innerHTML = `${coins}<div class="sl-bigbox"><div class="sl-big ${cls}">${text}</div></div>`;
-    setTimeout(() => { if (fx.isConnected) fx.innerHTML = ''; }, 2200);
+  // BIG WIN・MEGA WIN・JACKPOT：画面いっぱいの光と、額の数え上げと、画面全体のコインの雨（押すと閉じる）
+  function bigWin(kind, res, coins, bet) {
+    return new Promise((resolve) => {
+      const title = kind === 'jp' ? 'JACKPOT' : kind === 'mega' ? 'MEGA WIN' : 'BIG WIN';
+      const n = kind === 'jp' ? 40 : kind === 'mega' ? 30 : 20;
+      const rain = Array.from({ length: n }, () => `<img class="sl-coin" src="${coinIcon(48)}" style="left:${rand(2, 94).toFixed(1)}%;animation-delay:${rand(0, 1.2).toFixed(2)}s;animation-duration:${rand(1.2, 2).toFixed(2)}s" alt="">`).join('');
+      const ov = el(`<div class="sl-bigov ${kind}"><div class="sl-flash"></div><div class="sl-rays"></div>${rain}
+        <div class="sl-bt">${title}</div>
+        <div class="sl-ba">${coinTag()}<b>0</b></div>
+        <div class="sl-bx">×${(res.value / bet).toFixed(1)}</div></div>`);
+      node.appendChild(ov);
+      $('#slm', node).classList.add('shake');
+      setTimeout(() => $('#slm', node).classList.remove('shake'), 600);
+      if (kind === 'jp') audio.slotJackpot(); else audio.slotBig();
+      haptic();
+      let done = false;
+      const close = () => { if (done) return; done = true; ov.classList.add('out'); setTimeout(() => ov.remove(), 260); resolve(); };
+      ov.onclick = close;
+      countUp($('.sl-ba b', ov), coins || res.value, kind === 'jp' ? 2600 : 1800, (v) => fmt(v)).then(() => setTimeout(close, kind === 'jp' ? 1800 : 1200));
+    });
+  }
+
+  // フィーバーに入る：画面いっぱいの文字
+  function feverIn() {
+    return new Promise((resolve) => {
+      const ov = el(`<div class="sl-bigov fever"><div class="sl-flash"></div><div class="sl-rays"></div><div class="sl-bt">FEVER</div><div class="sl-bx">${SLOT_FEVER.spins} 回ただ・払い戻し ×${SLOT_FEVER.mul}</div></div>`);
+      node.appendChild(ov);
+      audio.fever();
+      haptic();
+      let done = false;
+      const close = () => { if (done) return; done = true; ov.classList.add('out'); setTimeout(() => ov.remove(), 260); resolve(); };
+      ov.onclick = close;
+      setTimeout(close, 1500);
+    });
   }
 
   // n 回まわす。フィーバーの残りから始めたときは、残りを回しきったら止める（続けて賭けない）

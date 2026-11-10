@@ -69,7 +69,7 @@ export function syncNav(cat, node) {
   refreshNav();
   if (node && node.classList.contains('jukebox-screen')) return;
   audio.tempoMul = 1;
-  audio.playBgm(node && node.classList.contains('biz-screen') ? 'business' : 'title');
+  audio.playBgm(node && node.classList.contains('biz-screen') ? 'business' : node && node.classList.contains('slot-screen') ? 'casino' : 'title');
 }
 
 // 光るカテゴリ・アイコン・印（宝石：磨いていない原石の数、経営：配当・満杯の倉庫・止まった工場）を、変わったところだけ描き直す

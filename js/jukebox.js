@@ -22,7 +22,7 @@ const BOSS_BGM = {
   opus: ['大いなる業', 'MAGNUM OPUS', '#ffd27a'],
 };
 // 旧曲のない曲（作り直したあとに足した曲）
-export const NEW_ONLY = new Set(['boss2', 'final2', 'boss3', 'calcinatio', 'solutio', 'separatio', 'coniunctio', 'fermentatio', 'distillatio', 'coagulatio', 'boss4', 'opus']);
+export const NEW_ONLY = new Set(['casino', 'boss2', 'final2', 'boss3', 'calcinatio', 'solutio', 'separatio', 'coniunctio', 'fermentatio', 'distillatio', 'coagulatio', 'boss4', 'opus']);
 // その章の中ボスに会ったか・ステージをどれかクリアしたか
 const midSeen = (ch) => STAGES.some((s) => s.chapter === ch && s.events.some((e) => e.type === 'boss' && e.enemy !== s.finalBoss && save.seen.enemies && save.seen.enemies[e.enemy]));
 const chCleared = (ch) => STAGES.some((s) => s.chapter === ch && save.stages[s.id] && save.stages[s.id].cleared);
@@ -34,6 +34,7 @@ export function trackList() {
     { id: 'title', name: 'タイトル', en: 'TITLE', color: '#b45cff', open: true },
     { id: 'result', name: 'リザルト', en: 'RESULT', color: '#ffd24a', open: true },
     { id: 'business', name: '経営', en: 'BUSINESS', color: '#4ade9a', open: heard('business') || !!save.biz, lock: '🔒 経営を開くと解放' },
+    { id: 'casino', name: 'ジュエル・スロット', en: 'CASINO', color: '#ff7ac8', open: heard('casino'), lock: '🔒 ジュエル・スロットを開くと解放' },
   ];
   for (const ch of CHAPTERS) {
     // 曲をまだ作っていない章（ステージの tempBgm。仮に既存の曲を流している）は出さない
