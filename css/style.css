@@ -1808,8 +1808,6 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .lg-card.done { border-color: rgba(255, 197, 61, 0.6); box-shadow: 0 0 14px rgba(255, 197, 61, 0.12); }
 .lg-ic { width: 58px; height: 58px; flex: none; display: flex; align-items: center; justify-content: center; }
 .lg-ic img, .lg-big img, .lg-hero img { width: 100%; height: 100%; object-fit: contain; }
-.tint-blue img { filter: sepia(1) saturate(5) hue-rotate(175deg) brightness(0.75); }
-.tint-pink img { filter: sepia(1) saturate(4) hue-rotate(290deg) brightness(1.05); }
 .lg-ct { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .lg-en { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
 .lg-name { font: 700 15px var(--font-jp); word-break: keep-all; }

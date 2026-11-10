@@ -4,7 +4,8 @@
 // =====================================================================
 import { LEGENDS, LEGEND_BY_ID, LEGEND_GAMES, LEGEND_PASS, LEGEND_DMG, legendTotal, legendsDone } from './legends-data.js';
 import { save, persist } from './save.js';
-import { gemIcon, coinIcon } from './render.js';
+import { coinIcon } from './render.js';
+import { gemImage, mountLiveGem } from './gem-gl.js';
 import { fmt } from './util.js';
 import { audio } from './audio.js';
 import { show, el, $, topbar, coinPill, refreshCoinPill, haptic, getApp, guard } from './ui.js';
@@ -17,7 +18,9 @@ export function legendState(id) {
 }
 export const legendCardText = () => `完成 ${legendsDone(save)} / ${LEGENDS.length}`;
 const coinTag = (n) => `<span class="lg-coin"><img src="${coinIcon(40)}" alt="">${fmt(n)}</span>`;
-const icon = (L, cls = 'lg-ic') => `<span class="${cls} ${L.tint ? 'tint-' + L.tint : ''}"><img src="${gemIcon(L.gem, 160)}" alt=""></span>`;
+// 名石の絵：本物のカットで書き出した画像（gem-gl.js の GEM_LOOK の lg_〜）。詳細とお披露目はその場で描く
+const lookId = (L) => `lg_${L.id}`;
+const icon = (L, cls = 'lg-ic') => `<span class="${cls}"><img src="${gemImage(lookId(L))}" alt=""></span>`;
 // 高い支払いは 2 回押す
 const BIG_PAY = 1000000;
 
@@ -99,6 +102,7 @@ export function openLegend(id, back, afterShow) {
     };
   };
   render();
+  mountLiveGem($('.lg-big img', node), lookId(L));
   if (afterShow) afterShow();
 }
 
@@ -175,8 +179,14 @@ function complete(L) {
     <button class="btn big primary" id="lgok">OK</button>
   </div>`);
   $('#screens').appendChild(ov);
+  mountLiveGem($('.lg-hero img', ov), lookId(L));
   guard(ov, 900);
   audio.bigWin();
   haptic();
-  $('#lgok', ov).onclick = () => { audio.tap(); ov.remove(); };
+  $('#lgok', ov).onclick = () => {
+    audio.tap();
+    ov.remove();
+    const big = document.querySelector('.lg-big img');
+    if (big) mountLiveGem(big, lookId(L));
+  };
 }

@@ -61,7 +61,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'hope', name: 'ホープ', en: 'HOPE', gem: 'diamond', tint: 'blue',
+    id: 'hope', name: 'ホープ', en: 'HOPE', gem: 'diamond',
     cut: 'アンティーク・クッション・ブリリアント', ct: 45.52, color: '濃い灰色がかった青', home: 'スミソニアン国立自然史博物館（ワシントン）',
     value: '2 億〜3.5 億ドルと見積もられている',
     steps: [
@@ -107,7 +107,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'pinkstar', name: 'ピンク・スター', en: 'PINK STAR', gem: 'diamond', tint: 'pink',
+    id: 'pinkstar', name: 'ピンク・スター', en: 'PINK STAR', gem: 'diamond',
     cut: 'ミックスド・オーバル（上は段、下はブリリアント）', ct: 59.6, color: 'ファンシー・ヴィヴィッド・ピンク', home: '周大福（香港）',
     steps: [
       { y: '1999', t: '掘り出す', d: 'デ・ビアスが南アフリカで 132.5 カラットの原石を掘る。', cost: 5000000, est: true },
