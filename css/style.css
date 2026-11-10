@@ -1874,6 +1874,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .lg-name { font: 700 15px var(--font-jp); word-break: keep-all; }
 .lg-spec { font: 11.5px var(--font-jp); color: var(--muted); word-break: keep-all; }
 .lg-spec b { color: #e8e4f4; font-weight: 700; }
+.lg-note { flex: none; margin: 2px 4px 8px; font: 11px var(--font-jp); color: var(--muted); text-align: right; }
 .lg-bar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin: 3px 0 1px; }
 .lg-bar i { display: block; height: 100%; background: var(--gold); }
 .lg-left { font: 12px var(--font-jp); color: var(--muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
