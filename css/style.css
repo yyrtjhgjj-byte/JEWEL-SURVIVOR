@@ -1795,3 +1795,68 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .sl-go .btn.big { flex: 1; font-size: 22px; padding: 12px 16px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
 .sl-go .btn.big small { font: 11px var(--font-jp); letter-spacing: 0.05em; color: var(--muted); }
 .sl-ten { flex: none; width: 72px; }
+
+/* ---------------------------------------------------------------- 伝説の宝石（legends.js） */
+.legends-screen, .legend-screen { gap: 10px; }
+/* 年の印の z-index が、上に重ねる画面（結果・お披露目）より前に出ないよう、重なりを画面の中で閉じる */
+.legend-screen { isolation: isolate; }
+.legends-screen > *, .legend-screen > * { flex-shrink: 0; }
+.lg-sum { font: 13px var(--font-jp); color: var(--muted); display: flex; gap: 14px; align-items: baseline; }
+.lg-sum b { font-family: var(--font); font-size: 20px; color: var(--gold); }
+.lg-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px; }
+.lg-card { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 12px; text-align: left; background: var(--panel); border: 1px solid var(--line2); border-radius: 14px; color: var(--text); }
+.lg-card.done { border-color: rgba(255, 197, 61, 0.6); box-shadow: 0 0 14px rgba(255, 197, 61, 0.12); }
+.lg-ic { width: 58px; height: 58px; flex: none; display: flex; align-items: center; justify-content: center; }
+.lg-ic img, .lg-big img, .lg-hero img { width: 100%; height: 100%; object-fit: contain; }
+.tint-blue img { filter: sepia(1) saturate(5) hue-rotate(175deg) brightness(0.75); }
+.tint-pink img { filter: sepia(1) saturate(4) hue-rotate(290deg) brightness(1.05); }
+.lg-ct { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lg-en { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
+.lg-name { font: 700 15px var(--font-jp); word-break: keep-all; }
+.lg-spec { font: 11.5px var(--font-jp); color: var(--muted); }
+.lg-bar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin: 3px 0 1px; }
+.lg-bar i { display: block; height: 100%; background: var(--gold); }
+.lg-left { font: 12px var(--font-jp); color: var(--muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.lg-ok { color: var(--gold); letter-spacing: 0.1em; }
+.lg-total { position: absolute; top: 9px; right: 12px; font-size: 11px; color: var(--muted); }
+.lg-coin { display: inline-flex; align-items: center; gap: 3px; font-family: var(--font); font-weight: 700; color: var(--text); }
+.lg-coin img { width: 15px; height: 15px; }
+.lg-head { display: flex; gap: 14px; align-items: center; width: 100%; max-width: 520px; }
+.lg-big { width: 104px; height: 104px; flex: none; display: flex; filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.15)); }
+.lg-rows, .lg-rinfo { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.lg-rows div, .lg-rinfo div { display: flex; justify-content: space-between; gap: 10px; font: 12px var(--font-jp); }
+.lg-rows span, .lg-rinfo span { color: var(--muted); flex: none; }
+.lg-rows b, .lg-rinfo b { text-align: right; font-weight: 700; text-wrap: balance; }
+.lg-steps { display: flex; flex-direction: column; width: 100%; max-width: 520px; }
+.lg-step { display: flex; gap: 10px; position: relative; padding-bottom: 12px; }
+.lg-step::before { content: ''; position: absolute; left: 21px; top: 22px; bottom: 0; width: 2px; background: var(--line2); }
+.lg-step:last-child::before { display: none; }
+.lg-y { flex: none; width: 44px; height: 22px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: var(--panel); border: 1px solid var(--line2); color: var(--muted); position: relative; z-index: 1; }
+.lg-step.done .lg-y { border-color: rgba(255, 197, 61, 0.6); color: var(--gold); }
+.lg-step.now .lg-y { border-color: #ff9fd8; color: #ff9fd8; }
+.lg-sb { flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; display: flex; flex-direction: column; gap: 4px; }
+.lg-step.now .lg-sb { border-color: rgba(255, 159, 216, 0.55); }
+.lg-step.next .lg-sb { filter: brightness(0.6); }
+.lg-st { display: flex; align-items: center; gap: 8px; }
+.lg-st b { font: 700 14px var(--font-jp); }
+.lg-gm { font: 700 10.5px var(--font-jp); padding: 1px 7px; border-radius: 8px; background: rgba(255, 159, 216, 0.16); color: #ff9fd8; }
+.lg-sb p { margin: 0; font: 12px/1.7 var(--font-jp); color: var(--text); text-wrap: pretty; }
+.lg-cost { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.lg-cost small { font: 10.5px var(--font-jp); color: var(--muted); border: 1px solid var(--line2); border-radius: 6px; padding: 0 5px; }
+.lg-chk { font-style: normal; color: var(--gold); font-weight: 700; margin-left: auto; }
+.lg-pay { align-self: flex-start; margin-top: 2px; }
+.lg-fin { text-align: center; font: 700 18px var(--font-jp); color: var(--gold); letter-spacing: 0.2em; display: flex; flex-direction: column; gap: 2px; padding: 4px 0 8px; }
+.lg-fin span { font-size: 12px; color: var(--muted); letter-spacing: 0.05em; }
+.lg-over { justify-content: center; gap: 12px; text-align: center; }
+.lg-res { max-width: 320px; display: flex; flex-direction: column; gap: 6px; }
+.lg-res p { margin: 0; font: 13px/1.7 var(--font-jp); }
+.lg-res p b { font-family: var(--font); font-size: 18px; }
+.lg-rt { font-size: 28px; font-weight: 700; letter-spacing: 0.12em; }
+.lg-rt.ok { color: var(--gold); }
+.lg-rt.ng { color: #ff6b8a; }
+.lg-reveal { overflow: hidden; }
+.lg-hero { width: 180px; height: 180px; display: flex; position: relative; z-index: 1; filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.25)); animation: lgHero 1.2s cubic-bezier(.2,1.3,.4,1); }
+@keyframes lgHero { from { transform: scale(0.3) rotate(-20deg); opacity: 0; } }
+.lg-rname { font: 700 22px var(--font-jp); position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; }
+.lg-rname span { font-family: var(--font); font-size: 12px; letter-spacing: 0.2em; color: var(--muted); }
+.lg-rinfo { max-width: 340px; position: relative; z-index: 1; flex: none; }

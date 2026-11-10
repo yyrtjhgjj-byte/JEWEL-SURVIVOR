@@ -48,7 +48,7 @@ export const HELP_GROUPS = [
   { id: 'run', en: 'RUN', jp: 'ラン', ids: ['basics', 'levelup', 'gear', 'elements', 'items', 'flow', 'fever', 'artifacts'] },
   { id: 'stage', en: 'STAGE', jp: 'ステージ', ids: ['jewels', 'stages', 'bossrush', 'training'] },
   { id: 'power', en: 'POWER', jp: '強化', ids: ['workshop', 'mining'] },
-  { id: 'jewel', en: 'JEWEL', jp: '宝石', ids: ['polish', 'collection', 'beasts', 'auction', 'slot'] },
+  { id: 'jewel', en: 'JEWEL', jp: '宝石', ids: ['polish', 'collection', 'beasts', 'auction', 'legends', 'slot'] },
   { id: 'biz', en: 'BUSINESS', jp: '経営', ids: ['biz'] },
   { id: 'more', en: 'ARCHIVE', jp: '記録・その他', ids: ['records', 'save', 'rebirth'] },
 ];
@@ -363,6 +363,16 @@ export function helpTopics() {
         { h: 'ランの途中で終了したら', p: '次に開いたときに「再開」か「精算」を選べます。再開は装備・レベル・時間・ボスが元どおりになります（雑魚とアイテムは消えます）。精算はそこまでの報酬を受け取って終わります。' },
         { id: 'backup', h: 'バックアップ', p: 'ホーム画面のアプリを削除すると、データも消えます。その他の BACKUP で書き出したファイルを「ファイル」アプリなどに保存しておくと、読み込んで戻せます。' },
         { id: 'log', h: '動作の記録', p: 'アプリが落ちたとき、直前の様子が残ります。不具合を伝えるときは、その他の LOG からコピーしてください。' },
+      ],
+    },
+    legends: {
+      en: 'LEGENDS', jp: '伝説の宝石', icon: () => gemIcon('emerald'),
+      lead: '実在の名石を、来歴どおりの工程を 1 つずつ払って作ります。値段は 1 コイン = 1 ドルで、その工程が行われた当時の額です。',
+      parts: [
+        { h: '作り方', steps: ['名石を選ぶ', 'いちばん上のまだの工程で「払う」を押す', '最後の工程まで払うと完成'],
+          note: '記録が見つからない工程は「推定」の額です。100 万コイン以上の工程は、2 回押すと払います。' },
+        { h: 'ミニゲームの工程', p: '「磨く」「割る」「彫る」の工程は、研磨と同じ針のミニゲームです。精度 60% 以上で成功し、次の工程へ進みます。失敗したときは払ったコインは戻らず、もう一度払うとやり直せます（始める前の「やめる」なら返ります）。' },
+        { h: '完成すると', p: '名石 1 つにつき与ダメージ +1% です。カット・カラット・色は本物どおりです。' },
       ],
     },
     slot: {

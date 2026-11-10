@@ -23,6 +23,7 @@ import { showJukebox, trackList } from './jukebox.js';
 import { showBiz, bizBadge } from './biz-ui.js';
 import { showRebirth, rebirthCardText } from './rebirth.js';
 import { showSlot, slotState } from './slot.js';
+import { showLegends, legendCardText } from './legends.js';
 
 export const NAV = [
   { id: 'home', jp: 'ホーム', en: 'HOME', c: '#b45cff' },
@@ -116,6 +117,7 @@ const HUBS = {
       { id: 'auction', en: 'AUCTION', jp: 'オークション', c: '#ffd24a', icon: img(gavelIcon(96)), s: lot ? `開催中 LOT ${sess.cur + 1} / ${sess.lots.length}` : 'この回は終了', badge: lot && sess.cur === 0 ? 'NEW' : '', go: () => showAtelier('auction') },
       { id: 'collection', en: 'COLLECTION', jp: 'コレクション', c: '#ff4d6d', icon: img(gemIcon('ruby', 96)), s: `${collectionCount()} / ${COLLECTION_IDS.length} 種`, go: () => showAtelier('collection') },
       { id: 'beasts', en: 'BEASTS', jp: '百獣', c: '#7fd0ff', icon: img(beastIcon(beasts[0] || 'sapphire', 96)), s: `召喚 ${beasts.length} / ${BEAST_IDS.length}`, go: () => showAtelier('beasts') },
+      { id: 'legends', en: 'LEGENDS', jp: '伝説の宝石', c: '#ffd24a', icon: img(gemIcon('emerald', 96)), s: legendCardText(), go: () => showLegends(() => showHub('jewel')) },
       { id: 'slot', en: 'JEWEL SLOT', jp: 'ジュエル・スロット', c: '#ff7ac8', icon: img(gemIcon('diamond', 96)), s: `JACKPOT ${fmt(slotState().pool)}`, badge: slotState().free ? 'FEVER' : '', go: () => showSlot(() => showHub('jewel')) },
     ];
   } },

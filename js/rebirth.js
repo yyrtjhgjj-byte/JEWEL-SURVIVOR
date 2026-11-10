@@ -79,6 +79,15 @@ export function mergeLives(P, N) {
   R.upperShop = !!(P.upperShop || N.upperShop);
   R.rank = rankFromXp(rankXp(P.rank) + rankXp(N.rank));
   R.lastBackup = Math.max(num(P.lastBackup), num(N.lastBackup));
+  // 伝説の宝石：進んでいる方を残し、もう片方に払ったコインは戻す
+  const PL = P.legends || {}, NL = N.legends || {};
+  const prog = (x) => (x ? (x.done ? 1e9 : num(x.step)) : -1);
+  R.legends = clone(PL);
+  for (const id in NL) {
+    const a = PL[id], b = NL[id];
+    if (prog(b) > prog(a)) { R.legends[id] = clone(b); R.coins += num(a && a.paid); }
+    else R.coins += num(b.paid);
+  }
   for (const k of ['biz', 'login', 'settings', 'slot']) R[k] = N[k] === undefined ? P[k] : N[k];
   delete R.pendingRun;
   return R;
