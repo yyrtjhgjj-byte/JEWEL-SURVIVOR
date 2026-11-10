@@ -75,6 +75,10 @@ function symHTML(id) {
       mystic: roughIcon('mystic', ROUGH.mystic.color, 96),
       ...drawSymArt(),
     };
+    for (const k of Object.keys(symImg)) {
+      if (!String(symImg[k]).startsWith('data:')) continue;
+      fetch(symImg[k]).then((r) => r.blob()).then((b) => { symImg[k] = URL.createObjectURL(b); }).catch(() => {});
+    }
   }
   return `<img class="sl-sym s-${id}" src="${symImg[id]}" alt="">`;
 }
@@ -211,7 +215,9 @@ export function showSlot(back) {
     return true;
   }
 
-  // リールを回して止める。2 列目までで大きい当たりが見えたら、3 列目をゆっくり止める（リーチ）
+  // リールを回して止める。2 列目までで大きい当たりが見えたら、3 列目をゆっくり止める（リーチ）。
+  // 動きは毎フレーム経過時間から決める（CSS の transition とタイマーだと、絵の準備などで動き出しが遅れたとき、
+  // 回りきる前にタイマーが止めて最後の位置へ飛んでしまうため）。止めるのは動きが終わってから
   async function spinReels(grid, fast) {
     const cs = $('.sl-reel', node).offsetHeight / 3;
     const reach = SLOT_LINES.some((l) => {
@@ -219,39 +225,55 @@ export function showSlot(back) {
       return a === b && (a === 'jp' || a === 'diamond' || a === 'mystic');
     }) || grid.flat().filter((x, i) => i % 3 < 2 && x === 'star').length >= 2;
     audio.slotSpin();
-    const stops = [];
+    const anims = [];
     for (let c = 0; c < 3; c++) {
       const strip = $(`#slr${c}`, node), reel = strip.parentElement;
       const cur = [...strip.children].slice(-3).map((x) => x.innerHTML);
       const k = (fast ? 6 : 12) + c * (fast ? 3 : 6) + (c === 2 && reach ? (fast ? 8 : 18) : 0);
       const mid = Array.from({ length: k }, () => symHTML(SLOT_SYMS[randi(0, SLOT_SYMS.length - 1)].id));
       const fin = [0, 1, 2].map((r) => symHTML(grid[r][c]));
-      strip.style.transition = 'none';
-      strip.style.transform = 'translateY(0)';
+      strip.style.transform = 'translate3d(0,0,0)';
       strip.innerHTML = [...cur, ...mid, ...fin].map((h) => `<div class="sl-cell">${h}</div>`).join('');
-      void strip.offsetHeight;
-      const dur = (fast ? 0.45 : 0.85) + c * (fast ? 0.18 : 0.35) + (c === 2 && reach ? (fast ? 0.7 : 1.5) : 0);
-      reel.classList.add('spin');
-      strip.style.transition = `transform ${dur}s cubic-bezier(.2,.75,.25,1.03)`;
-      strip.style.transform = `translateY(${-(cur.length + k) * cs}px)`;
-      if (c === 2 && reach) {
-        setTimeout(() => {
-          reel.classList.add('reach');
+      const dur = ((fast ? 0.45 : 0.85) + c * (fast ? 0.18 : 0.35) + (c === 2 && reach ? (fast ? 0.7 : 1.5) : 0)) * 1000;
+      anims.push({ c, strip, reel, fin, dist: (cur.length + k) * cs, dur, done: false });
+    }
+    // 少しだけ行き過ぎて戻る止まり方
+    const ease = (t) => { const u = t - 1; return 1 + 1.3 * u * u * u + 0.3 * u * u; };
+    const land = (a) => {
+      audio.slotStop(a.c);
+      a.strip.style.transform = 'translate3d(0,0,0)';
+      a.strip.innerHTML = a.fin.map((h) => `<div class="sl-cell">${h}</div>`).join('');
+      a.reel.classList.remove('spin', 'reach');
+      a.reel.classList.add('land');
+      setTimeout(() => a.reel.classList.remove('land'), 220);
+    };
+    // 描き終わってから動かし始める
+    await new Promise((r) => requestAnimationFrame(() => r()));
+    for (const a of anims) a.reel.classList.add('spin');
+    const t0 = performance.now();
+    let reachOn = false;
+    await new Promise((resolve) => {
+      const tick = (now) => {
+        const el2 = now - t0;
+        let left = 0;
+        if (reach && !reachOn && el2 > (fast ? 600 : 1300)) {
+          reachOn = true;
+          anims[2].reel.classList.add('reach');
           $('#slm', node).classList.add('reach');
           audio.slotReach();
-        }, (fast ? 0.6 : 1.3) * 1000);
-      }
-      stops.push(wait(dur * 1000 - 120).then(() => reel.classList.remove('spin')).then(() => wait(120)).then(() => {
-        audio.slotStop(c);
-        strip.style.transition = 'none';
-        strip.style.transform = 'translateY(0)';
-        strip.innerHTML = fin.map((h) => `<div class="sl-cell">${h}</div>`).join('');
-        reel.classList.remove('reach');
-        reel.classList.add('land');
-        setTimeout(() => reel.classList.remove('land'), 220);
-      }));
-    }
-    await Promise.all(stops);
+        }
+        for (const a of anims) {
+          if (a.done) continue;
+          const t = Math.min(1, el2 / a.dur);
+          a.strip.style.transform = `translate3d(0,${(-a.dist * ease(t)).toFixed(1)}px,0)`;
+          if (t > 0.9) a.reel.classList.remove('spin');
+          if (t >= 1) { a.done = true; land(a); } else left++;
+        }
+        if (left && node.isConnected) requestAnimationFrame(tick);
+        else resolve();
+      };
+      requestAnimationFrame(tick);
+    });
     $('#slm', node).classList.remove('reach');
   }
 
@@ -333,21 +355,35 @@ export function showSlot(back) {
     });
   }
 
-  // n 回まわす。フィーバーの残りから始めたときは、残りを回しきったら止める（続けて賭けない）
+  // n 回まわす。フィーバーの残りから始めたときは、残りを回しきったら止める（続けて賭けない）。
+  // 2 回以上まわしたら、終わったあとに下の帯でまとめの収支を出す
   async function run(n) {
     if (busy) return;
     busy = true;
     sync();
     if (st.free > 0) n = 0;
-    let i = 0;
+    const c0 = save.coins, d0 = save.dust || 0, r0 = { ...save.rough };
+    let i = 0, spins = 0, frees = 0;
     while (node.isConnected) {
-      if (st.free > 0) { await spinOnce(true); sync(); continue; }
+      if (st.free > 0) { await spinOnce(true); spins++; frees++; sync(); continue; }
       if (i >= n || !(await spinOnce(n > 1))) break;
       i++;
+      spins++;
       sync();
     }
     busy = false;
     sync();
+    if (spins >= 2 && node.isConnected) summary(spins, frees, save.coins - c0, (save.dust || 0) - d0, r0);
+  }
+  // まとめの収支（コインの増減と、もらったジェムダスト・原石）
+  function summary(spins, frees, net, dust, r0) {
+    const box = $('#slres', node);
+    const got = Object.keys(save.rough).filter((t) => (save.rough[t] || 0) > (r0[t] || 0))
+      .map((t) => `<span><img class="sl-ci" src="${roughIcon(t, ROUGH[t].color, 40)}" alt="">${ROUGH_NAME(t)} ×${fmt(save.rough[t] - (r0[t] || 0))}</span>`);
+    if (dust > 0) got.unshift(`<span>ジェムダスト +${fmt(dust)}</span>`);
+    box.className = `sl-res sum ${net >= 0 ? 'plus' : 'minus'}`;
+    box.innerHTML = `<div class="sl-rt">${spins} 回の収支${frees ? `<i>うちフィーバー ${frees} 回</i>` : ''}</div>
+      <div class="sl-rc">${coinTag()}<b>${net >= 0 ? '+' : '−'}${fmt(Math.abs(net))}</b></div>${got.length ? `<div class="sl-rx">${got.join('')}</div>` : ''}`;
   }
   $('#slgo', node).onclick = () => run(1);
   $('#slten', node).onclick = () => run(10);
