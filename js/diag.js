@@ -78,8 +78,10 @@ export function diagNote(rec) {
 export function diagNotes() { return data.notes || []; }
 export function diagCrashes() { return data.crashes; }
 export function diagLaunches() { return data.launches || 0; }
+// リセット：記録と起動の回数を消す（今の起動を 1 回目として数え直す）
 export function clearDiag() {
   data.crashes = [];
   data.notes = [];
+  data.launches = 1;
   write();
 }

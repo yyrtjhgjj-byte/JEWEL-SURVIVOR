@@ -848,10 +848,16 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .panel.backup { margin-top: 12px; }
 .backup .bk-head { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--font-jp); font-weight: 700; font-size: 14px; padding: 4px 2px 10px; }
 .backup .bk-head small { font-weight: 400; font-size: 12px; color: var(--muted); }
+.backup .bk-head > span { flex: none; margin-right: 10px; }
+.backup .bk-head small { text-align: right; }
+.backup .bk-head small span { white-space: nowrap; }
 .backup .bk-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .backup .dg-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-family: var(--font-jp); font-size: 12px; }
 .backup .dg-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: baseline; padding: 4px 2px; border-bottom: 1px solid var(--line); }
 .backup .dg-row small, .backup .dg-none { color: var(--muted); font-size: 11px; }
+.backup .dg-kind { font-style: normal; color: #9fe8ff; margin-right: 6px; }
+.backup #dgclear.warn { color: #ff8a8a; border-color: rgba(255,90,90,0.6); }
+.backup #dgclear:disabled { filter: brightness(0.5); }
 .backup .bk-note { font-family: var(--font-jp); font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 10px; }
 
 /* ---------------- 研磨工房 ---------------- */
