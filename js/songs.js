@@ -1698,7 +1698,7 @@ const rep = (s, n) => Array(n).fill(s).join(' ');
   };
 }
 
-// 結合（STAGE 19）：化学の結婚のワルツ（3 拍子）。太陽のトランペットと月の笛が交互に歌い、サビで同じ旋律を重ねて 1 つになり、最後は 3 度でハモって長調で閉じる
+// 結合（STAGE 19）：化学の結婚のワルツ（3 拍子）。低音は 1 拍目に弾いて 3 拍目は休む（毎小節を弾きっぱなしでつなぐと、裏で 1 本の長い音が鳴り続けて聞こえる）。太陽のトランペットと月の笛が交互に歌い、サビで同じ旋律を重ねて 1 つになり、最後は 3 度でハモって長調で閉じる
 {
   const PRE = 'F#m F#m D C#';
   const RIFF = 'F#m D E C# F#m D Bm C#';
@@ -1746,15 +1746,15 @@ const rep = (s, n) => Array(n).fill(s).join(' ');
         q8 v11 ${arp(B, { lo: 54, pat: [0, 1, 2, 3, 2, 1], len: 8 })}
         q6 v12 ${blocks(CH, { lo: 60, ...PAH })}` },
       { id: 'str', type: 'inst', pan: -0.2, rev: 0.45, poly: 8, gain: 0.55, mml: `
-        @strings q8 r2. | r2. | v8 ${blocks('D C#', { lo: 55, rh: ['2.'] })} L
-        v8 ${blocks(`${RIFF} ${A1}`, { lo: 55, rh: ['2.'] })}
-        v9 ${blocks(A2, { lo: 57, rh: ['2.'] })}
+        @strings q8 r2. | r2. | v8 ${blocks('D C#', { lo: 55, rh: ['2', 'r4'] })} L
+        v8 ${blocks(`${RIFF} ${A1}`, { lo: 55, rh: ['2', 'r4'] })}
+        v9 ${blocks(A2, { lo: 57, rh: ['2', 'r4'] })}
         v10 ${blocks(B, { lo: 57, rh: ['2.'] })}
         v12 ${blocks(CH, { lo: 60, rh: ['2.'] })}` },
       { id: 'bs', type: 'inst', pan: 0, rev: 0.05, poly: 2, gain: 0.7, mml: `
-        @arcobass q8 r2. | r2. | v13 ${bass('D C#', 'R2.', { lo: 37, hi: 48 })} L
-        ${bass(`${RIFF} ${A1} ${A2}`, 'R2.', { lo: 37, hi: 48 })}
-        q7 ${bass(`${B} ${CH}`, 'R4 F4 O4', { lo: 37, hi: 48 })}` },
+        @arcobass q7 r2. | r2. | v13 ${bass('D C#', 'R2 r4', { lo: 37, hi: 48 })} L
+        ${bass(`${RIFF} ${A1} ${A2}`, 'R2 r4', { lo: 37, hi: 48 })}
+        ${bass(`${B} ${CH}`, 'R4 F4 O4', { lo: 37, hi: 48 })}` },
       { id: 'dr', type: 'perc', pan: 0, rev: 0.15, mml: `
         r2. | r2. | v10 k4 r2 | v10 k4 v9 s8 s8 s8 s8 | L
         ${rep('v11 k4 r2 |', 24)}

@@ -3,7 +3,7 @@
 //  腐敗の沼と孔雀の尾（発酵）／蒸気口と雫の雨（蒸留）／金に変わる世界（凝固）
 // =====================================================================
 import { TAU, rand, pick } from './util.js';
-import { softSprite } from './render.js';
+import { softSprite, starSprite } from './render.js';
 import { audio } from './audio.js';
 import { inBeam, drawBeamWarn, drawCircleWarn, minions } from './gimmick-kit.js';
 
@@ -610,9 +610,12 @@ const PAVO = [
   { col: '#9a7fff', name: '経験値を引き寄せる' },
 ];
 const PUD_R = 70;
+// 孔雀の尾の力が続く秒数
+const PAVO_T = 10;
 const FERM = {
   init(h) {
-    h.s = { puds: [], tailT: 18, zones: [], buff: null, buffT: 0 };
+    // buffs：色ごとの残り秒数（拾った力は重なって、それぞれの時間だけ続く。同じ色を拾い直すと時間が戻る）
+    h.s = { puds: [], tailT: 18, zones: [], buffs: PAVO.map(() => 0) };
   },
   onKill(h, e) {
     const s = h.s;
@@ -621,53 +624,54 @@ const FERM = {
   },
   update(h, dt) {
     const g = h.g, p = g.player, s = h.s;
-    s.buffT -= dt;
-    if (s.buffT <= 0) s.buff = null;
-    if (s.buff === 3) g.heal(4 * dt, true);
-    if (g.timeStopT > 0) return;
-    // 腐敗の沼：泡立って広がり、弾けて周りに大ダメージ（自機も近いと毒）
-    for (const u of s.puds) {
-      u.t += dt;
-      if (u.done || u.t < u.T) continue;
-      u.done = true;
-      for (const e of minions(g)) if ((e.x - u.x) ** 2 + (e.y - u.y) ** 2 < (PUD_R + e.r) ** 2) g.damage(e, e.maxHp * 0.5);
-      if ((p.x - u.x) ** 2 + (p.y - u.y) ** 2 < PUD_R * PUD_R) g.hurtPlayer(6 * g.stageDmg, { src: 'hazard' });
-      if (g.inView(u, PUD_R)) {
-        g.fx.burst(u.x, u.y, '#7fe080', 14, 220, 0.5, 10);
-        g.fx.ring(u.x, u.y, 8, PUD_R, 0.35, '#5fe0a0', 6);
-        audio.splash();
+    for (let i = 0; i < s.buffs.length; i++) if (s.buffs[i] > 0) s.buffs[i] = Math.max(0, s.buffs[i] - dt);
+    if (s.buffs[3] > 0) g.heal(4 * dt, true);
+    const stopped = g.timeStopT > 0;
+    // 腐敗の沼：泡立って広がり、弾けて周りに大ダメージ（自機も近いと毒）。時間停止の間は止まる
+    if (!stopped) {
+      for (const u of s.puds) {
+        u.t += dt;
+        if (u.done || u.t < u.T) continue;
+        u.done = true;
+        for (const e of minions(g)) if ((e.x - u.x) ** 2 + (e.y - u.y) ** 2 < (PUD_R + e.r) ** 2) g.damage(e, e.maxHp * 0.5);
+        if ((p.x - u.x) ** 2 + (p.y - u.y) ** 2 < PUD_R * PUD_R) g.hurtPlayer(6 * g.stageDmg, { src: 'hazard' });
+        if (g.inView(u, PUD_R)) {
+          g.fx.burst(u.x, u.y, '#7fe080', 14, 220, 0.5, 10);
+          g.fx.ring(u.x, u.y, 8, PUD_R, 0.35, '#5fe0a0', 6);
+          audio.splash();
+        }
+      }
+      s.puds = s.puds.filter((u) => !u.done);
+      // 孔雀の尾：6 色の光の輪が扇に並び、入るとその色の力（PAVO_T 秒）
+      s.tailT -= dt;
+      if (s.tailT <= 0) {
+        s.tailT = rand(22, 28);
+        const a0 = p.moving ? Math.atan2(p.dirY, p.dirX) : rand(TAU);
+        s.zones = PAVO.map((z, i) => {
+          const a = a0 + (i - 2.5) * 0.42;
+          return { x: p.x + Math.cos(a) * 190, y: p.y + Math.sin(a) * 190, i, t: 0, T: 9 };
+        });
+        g.hooks.banner('CAUDA PAVONIS', 'item', '孔雀の尾 — 色の輪に入るとその力（重ねて持てる）');
+        audio.warning();
       }
     }
-    s.puds = s.puds.filter((u) => !u.done);
-    // 孔雀の尾：6 色の光の輪が扇に並び、入るとその色の力（10 秒）
-    s.tailT -= dt;
-    if (s.tailT <= 0) {
-      s.tailT = rand(22, 28);
-      const a0 = p.moving ? Math.atan2(p.dirY, p.dirX) : rand(TAU);
-      s.zones = PAVO.map((z, i) => {
-        const a = a0 + (i - 2.5) * 0.42;
-        return { x: p.x + Math.cos(a) * 190, y: p.y + Math.sin(a) * 190, i, t: 0, T: 9 };
-      });
-      g.hooks.banner('CAUDA PAVONIS', 'item', '孔雀の尾 — 色の輪に入るとその力');
-      audio.warning();
-    }
+    // 輪は時間停止の間も拾える（消えるまでの時間だけ止まる）
     for (const z of s.zones) {
-      z.t += dt;
+      if (!stopped) z.t += dt;
       if ((p.x - z.x) ** 2 + (p.y - z.y) ** 2 > (48 + p.r) ** 2) continue;
       z.used = true;
-      s.buff = z.i;
-      s.buffT = 10;
+      s.buffs[z.i] = PAVO_T;
       if (z.i === 5) for (const pk of g.pickups) if (pk.kind === 'xp') pk.vac = true;
       g.fx.burst(z.x, z.y, PAVO[z.i].col, 20, 240, 0.6, 10);
-      g.hooks.banner(PAVO[z.i].name, 'item', '');
+      g.fx.text(p.x, p.y - 46, PAVO[z.i].name, { size: 14, color: PAVO[z.i].col, stroke: 'rgba(0,0,0,0.75)', life: 1.1, vy: -30 });
       audio.pickup();
     }
     s.zones = s.zones.filter((z) => !z.used && z.t < z.T);
   },
-  dmgMul(h) { return h.s.buff === 0 ? 1.35 : 1; },
-  fireMul(h) { return h.s.buff === 1 ? 1.3 : 1; },
-  xpMul(h) { return h.s.buff === 2 ? 1.5 : 1; },
-  speedMul(h) { return h.s.buff === 4 ? 1.25 : 1; },
+  dmgMul(h) { return h.s.buffs[0] > 0 ? 1.35 : 1; },
+  fireMul(h) { return h.s.buffs[1] > 0 ? 1.3 : 1; },
+  xpMul(h) { return h.s.buffs[2] > 0 ? 1.5 : 1; },
+  speedMul(h) { return h.s.buffs[4] > 0 ? 1.25 : 1; },
   avoid(h, p) {
     for (const u of h.s.puds) if (u.t > u.T - 1.5) { const v = awayFrom(p, u.x, u.y, PUD_R + 10, 0.3); if (v) return v; }
     return null;
@@ -721,14 +725,41 @@ const FERM = {
       ctx.globalAlpha = 1;
     }
   },
+  // 効いている力：自機の上に色の玉を並べ、残り時間を輪の欠け方で見せる（どれが効いているか・重なっているかが分かるように）
   overlay(h, ctx) {
     const s = h.s, p = h.g.player;
-    if (s.buff === null || s.buffT <= 0) return;
+    const on = [];
+    for (let i = 0; i < s.buffs.length; i++) if (s.buffs[i] > 0) on.push(i);
+    if (!on.length) return;
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = Math.min(1, s.buffT) * 0.45;
-    ctx.drawImage(softSprite(PAVO[s.buff].col), p.x - 36, p.y - 36, 72, 72);
+    for (const i of on) {
+      ctx.globalAlpha = Math.min(1, s.buffs[i]) * 0.3;
+      ctx.drawImage(softSprite(PAVO[i].col), p.x - 36, p.y - 36, 72, 72);
+    }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
+    const gap = 15, x0 = p.x - ((on.length - 1) * gap) / 2, y = p.y - p.r - 22;
+    on.forEach((i, k) => {
+      const x = x0 + k * gap, f = s.buffs[i] / PAVO_T;
+      // 残り 2 秒を切ったら点滅
+      ctx.globalAlpha = s.buffs[i] < 2 && Math.floor(h.t * 8) % 2 ? 0.35 : 1;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.beginPath();
+      ctx.arc(x, y, 6.5, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = PAVO[i].col;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.arc(x, y, 5.2, -Math.PI / 2, -Math.PI / 2 + TAU * f);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, TAU);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
   },
 };
 
@@ -832,26 +863,38 @@ const DIST = {
 };
 
 // ================================================================ 凝固：金に変わる世界
+// 黄金の波：画面の外側から自機のほうへ縮んでくる輪（自機のまわりから広げると、近くの雑魚は金になる前に倒れてしまう）
+const WAVE_IN = 80;
 const COAG = {
   init(h) {
-    h.s = { waveT: 12, waves: [], opusT: 45 };
+    h.s = { waveT: 12, waves: [], opusT: 45, glintT: 0 };
   },
   goldify(h, e) {
     const g = h.g;
     e.gold = true;
     e.frozenT = Math.max(e.frozenT, 8);
-    e.tint = '#e8c050';
-    if (g.inView(e, 20)) g.fx.burst(e.x, e.y, '#ffd23d', 4, 100, 0.35, 6);
+    // 金一色の像にする（render.js の paintEnemy の 'gold'）。金が解けたら元の色に戻す
+    e.tint0 = e.tint;
+    e.tint = 'gold';
+    if (g.inView(e, 20)) { g.fx.burst(e.x, e.y, '#ffd23d', 6, 120, 0.4, 7); g.fx.ring(e.x, e.y, e.r * 0.5, e.r * 1.8, 0.3, '#ffe9a0', 3); }
   },
   update(h, dt) {
     const g = h.g, p = g.player, s = h.s;
     // 金になった雑魚：自機が体当たりすると砕けて、コインと経験値（コインは game.js の kill）
+    s.glintT -= dt;
+    const glint = s.glintT <= 0;
+    if (glint) s.glintT = 0.12;
     for (const e of minions(g)) {
-      if (!e.gold || !(e.frozenT > 0)) continue;
+      if (!e.gold) continue;
+      // 金が解けた：元の姿に戻って動き出す
+      if (!(e.frozenT > 0)) { e.gold = false; e.tint = e.tint0; continue; }
       if ((p.x - e.x) ** 2 + (p.y - e.y) ** 2 < (e.r + p.r + 4) ** 2) {
         g.damage(e, e.maxHp * 10, { dot: true, silent: true });
         g.fx.burst(e.x, e.y, '#ffd23d', 10, 200, 0.45, 8);
         audio.coin();
+      } else if (glint && Math.random() < 0.25 && g.inView(e, 10)) {
+        // きらめき
+        g.fx.add(e.x + rand(-e.r, e.r) * 0.8, e.y + rand(-e.r, e.r) * 0.8, 0, -12, 0.45, 7, '#fff6c0', 'star');
       }
     }
     if (g.timeStopT > 0) return;
@@ -859,8 +902,9 @@ const COAG = {
     s.opusT -= dt;
     if (s.waveT <= 0 && s.opusT > 3) {
       s.waveT = rand(12, 16);
-      s.waves.push({ x: p.x + rand(-100, 100), y: p.y + rand(-100, 100), t: 0, T: 1.6, R: 420 });
-      g.hooks.banner('CHRYSOPOEIA', 'item', '黄金の波 — 触れた雑魚が金に変わる');
+      // 画面の隅まで届く大きさから、自機の少し手前まで縮む
+      s.waves.push({ x: p.x, y: p.y, t: 0, T: 2.2, R: g.viewR * 1.25 });
+      g.hooks.banner('CHRYSOPOEIA', 'item', '黄金の波 — 外から縮む輪に触れた雑魚が金に変わる');
       audio.whoosh();
     }
     if (s.opusT <= 0) {
@@ -872,22 +916,37 @@ const COAG = {
       for (const e of minions(g)) if (g.inView(e, 40) && !e.gold && e.ai !== 'thief') this.goldify(h, e);
     }
     for (const w of s.waves) {
+      // 輪の中心は自機に付いてくる
+      w.x = p.x; w.y = p.y;
+      const r0 = this.waveR(w);
       w.t += dt;
-      const rr = (w.t / w.T) * w.R;
+      const r1 = this.waveR(w);
+      // 輪がこのフレームに通り過ぎた帯（少し厚みを持たせる）にいる雑魚を金にする
       for (const e of minions(g)) {
         if (e.gold || e.ai === 'thief') continue;
         const d = Math.hypot(e.x - w.x, e.y - w.y);
-        if (d > rr + e.r || d < rr - 50) continue;
+        if (d > r0 + e.r + 14 || d < r1 - e.r) continue;
         this.goldify(h, e);
       }
     }
     s.waves = s.waves.filter((w) => w.t < w.T);
   },
+  // 輪の半径：外から内へ（終わりぎわにゆっくり）
+  waveR(w) {
+    const k = Math.min(1, w.t / w.T);
+    return WAVE_IN + (w.R - WAVE_IN) * (1 - k) * (1 - k * 0.35);
+  },
   ground(h, ctx) {
     for (const w of h.s.waves) {
-      const rr = (w.t / w.T) * w.R;
-      ctx.globalAlpha = Math.min(1, (w.T - w.t) / 0.4) * 0.85;
+      const rr = this.waveR(w);
+      const a = Math.min(1, w.t / 0.25, (w.T - w.t) / 0.4);
+      ctx.globalAlpha = a * 0.3;
       ctx.strokeStyle = '#ffd23d';
+      ctx.lineWidth = 34;
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, rr + 14, 0, TAU);
+      ctx.stroke();
+      ctx.globalAlpha = a * 0.9;
       ctx.lineWidth = 10;
       ctx.beginPath();
       ctx.arc(w.x, w.y, rr, 0, TAU);
@@ -897,6 +956,25 @@ const COAG = {
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
+  },
+  // 金になった雑魚：金の光をまとわせる（敵の上から）
+  overlay(h, ctx) {
+    const g = h.g;
+    ctx.globalCompositeOperation = 'lighter';
+    for (const e of g.enemies) {
+      if (!e.alive || !e.gold || !(e.frozenT > 0) || !g.inView(e, e.r * 2)) continue;
+      const k = 0.5 + 0.5 * Math.sin(h.t * 6 + e.phase);
+      const sz = e.r * (2.1 + 0.4 * k);
+      ctx.globalAlpha = 0.1 + 0.12 * k;
+      ctx.drawImage(softSprite('#ffd23d'), e.x - sz, e.y - sz, sz * 2, sz * 2);
+      // 溶ける前（残り 2 秒）は点滅
+      if (e.frozenT < 2 && Math.floor(h.t * 8) % 2) continue;
+      ctx.globalAlpha = 0.9;
+      const gx = e.x - e.r * 0.35, gy = e.y - e.r * 0.4, gs = 7 + 5 * k;
+      ctx.drawImage(starSprite('#fff6c0'), gx - gs, gy - gs, gs * 2, gs * 2);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
   },
 };
 

@@ -39,7 +39,8 @@ function burst(w, n, gap, fn) {
 function runBurst(w, dt) {
   if (!w.bq || !w.bq.length) return;
   for (const b of w.bq) b.t -= dt;
-  while (w.bq.length && w.bq[0].t <= 0) {
+  // 「0 以下」ではなく「0 より大きくない」で見る（数でない値が先頭に入ると、そこで詰まって後ろの弾がずっと出なくなる）
+  while (w.bq.length && !(w.bq[0].t > 0)) {
     const b = w.bq.shift();
     b.fn(b.i);
   }
