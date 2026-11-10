@@ -1311,7 +1311,8 @@ export async function exportBackup() {
   save.lastBackup = prev;
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  const name = `jewel-survivor-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  // 名前の末尾に書き出した日時（ファイル名に / と : は使えないので -）。例：jewel-survivor_2026-11-10_14-30-05.json
+  const name = `jewel-survivor_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}.json`;
   // iPhone：共有メニューから「"ファイル"に保存」
   for (const type of ['application/json', 'text/plain']) {
     const f = new File([text], name, { type });
