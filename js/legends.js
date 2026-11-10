@@ -68,6 +68,7 @@ export function openLegend(id, back, afterShow) {
           ${L.value ? `<div><span>値打ち</span><b>${L.value}</b></div>` : ''}
         </div>
       </div>
+      <div class="lg-note">値段は、当時の額を今のドルに直したもの</div>
       <div class="lg-steps" id="lgs"></div>
     </div>`);
   show(node);
