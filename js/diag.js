@@ -66,9 +66,20 @@ export function initDiag(info) {
   return fresh;
 }
 
+// 落ちたのではない出来事（音の立て直しなど）。そのときの様子といっしょに残す
+export function diagNote(rec) {
+  let info = {};
+  try { info = getInfo() || {}; } catch (e) { /* 様子が取れなくても残す */ }
+  const notes = data.notes || (data.notes = []);
+  notes.unshift({ ts: Date.now(), up: Math.round((performance.now() - t0) / 1000), ...rec, ...info });
+  notes.length = Math.min(notes.length, MAX);
+  write();
+}
+export function diagNotes() { return data.notes || []; }
 export function diagCrashes() { return data.crashes; }
 export function diagLaunches() { return data.launches || 0; }
 export function clearDiag() {
   data.crashes = [];
+  data.notes = [];
   write();
 }

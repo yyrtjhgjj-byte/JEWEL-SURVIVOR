@@ -1230,8 +1230,14 @@ if (typeof registerProcessor === 'function') {
     constructor() {
       super();
       this.syn = new ChipSynth(sampleRate);
+      // 最後に受け取った曲と速さ（音源を作り直したときに戻す）
+      this.keep = {};
       this.port.onmessage = (e) => {
-        try { this.syn.message(e.data); } catch (err) { this.port.postMessage({ error: String(err && err.message || err) }); }
+        const m = e.data || {};
+        if (m.song) this.keep.song = m;
+        if (m.stop) delete this.keep.song;
+        if (m.tempo) this.keep.tempo = m.tempo;
+        try { this.syn.message(m); } catch (err) { this.port.postMessage({ error: String(err && err.message || err) }); }
       };
     }
     process(inputs, outputs) {
@@ -1239,9 +1245,21 @@ if (typeof registerProcessor === 'function') {
       const L = o[0];
       if (!L) return true;
       const R = o[1] || (this.tmp && this.tmp.length === L.length ? this.tmp : (this.tmp = new Float32Array(L.length)));
-      this.syn.render(L, R, L.length);
+      try { this.syn.render(L, R, L.length); } catch (err) { L.fill(0); R.fill(0); this.reset(String(err && err.message || err)); return true; }
+      // 数でない値（NaN など）が出たら、その分は無音にして音源を作り直す（そのまま流すと出口のコンプレッサーが壊れて、効果音まで鳴らなくなる）
+      for (let s = 0; s < L.length; s++) {
+        if (!Number.isFinite(L[s] + R[s])) { L.fill(0); R.fill(0); this.reset('nan'); return true; }
+      }
       if (!o[1]) for (let s = 0; s < L.length; s++) L[s] = (L[s] + R[s]) * 0.5;
       return true;
+    }
+    reset(why) {
+      this.port.postMessage({ error: why });
+      this.syn = new ChipSynth(sampleRate);
+      try {
+        if (this.keep.tempo) this.syn.message({ tempo: this.keep.tempo });
+        if (this.keep.song) this.syn.message(this.keep.song);
+      } catch (err) { /* 戻せなければ無音のまま次の曲を待つ */ }
     }
   });
 }
