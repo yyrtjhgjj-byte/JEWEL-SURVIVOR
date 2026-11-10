@@ -1,7 +1,7 @@
 // =====================================================================
 //  転生：今のセーブを「前世」としてしまい、まっさらから遊び直す。前世はいつでも今の人生と合わせられる（合流）。
 //  合流は前世を土台に、今の人生の分を足す（財布は足す・使った分は戻して足す・記録はよい方・解放はどちらか）。
-//  経営・ログインボーナス・設定は人生をまたいで続く（転生でも消さない）
+//  経営・ログインボーナス・設定・スロットは人生をまたいで続く（転生でも消さない）
 // =====================================================================
 import { save, defaults, replaceSave, pastLife, writePast, clearPast, persist } from './save.js';
 import { rankNeed } from './rank.js';
@@ -79,7 +79,7 @@ export function mergeLives(P, N) {
   R.upperShop = !!(P.upperShop || N.upperShop);
   R.rank = rankFromXp(rankXp(P.rank) + rankXp(N.rank));
   R.lastBackup = Math.max(num(P.lastBackup), num(N.lastBackup));
-  for (const k of ['biz', 'login', 'settings']) R[k] = N[k] === undefined ? P[k] : N[k];
+  for (const k of ['biz', 'login', 'settings', 'slot']) R[k] = N[k] === undefined ? P[k] : N[k];
   delete R.pendingRun;
   return R;
 }
@@ -93,6 +93,7 @@ const lifeOf = (s) => s.life || { id: null, n: 0 };
 function freshLife(id, n) {
   const d = defaults();
   d.biz = save.biz;
+  d.slot = save.slot;
   d.login = save.login;
   d.settings = save.settings;
   d.lastBackup = save.lastBackup;
@@ -202,7 +203,7 @@ export function showRebirth(back) {
         <div class="rb-h">まっさらに戻るもの</div>
         <p class="rb-p">コイン・工房・ステージ・ジュエル・宝石と原石・百獣・実績・図鑑・ユーザーランク など</p>
         <div class="rb-h">そのまま続くもの</div>
-        <p class="rb-p">経営・ログインボーナス・設定</p>
+        <p class="rb-p">経営・ログインボーナス・設定・スロット</p>
       </div>
       <div class="panel rb-panel"><div class="rb-h">今のデータ</div>${rows(save)}</div>
       <button class="btn big primary rb-go" id="rb-go" ${busy ? 'disabled' : ''}>転生する</button>`}
