@@ -105,6 +105,10 @@ export const INST = {
   ebass: { model: 'sub', n: 1, cut: 380, kt: 0.4, fenv: [1400, 0.005, 0.12], q: 1, env: [0.004, 0.35, 0.55, 0.05], gain: 1.4 },
   fbass: { model: 'sub', n: 1, cut: 300, kt: 0.4, fenv: [600, 0.01, 0.15], q: 0.8, env: [0.008, 0.5, 0.5, 0.08], glide: 0.05, gain: 1.4 },
   sqbass: { model: 'sub', osc: 'pulse', duty: 0.5, n: 1, cut: 500, kt: 0.4, fenv: [1800, 0.004, 0.1], q: 1.2, env: [0.003, 0.25, 0.6, 0.04], gain: 1.1 },
+
+  // ---- カジノ（ジュエル・スロット）
+  // ミュートを付けたトランペット：鼻にかかった細い音（強い共鳴）、ビブラートは浅く
+  mute: { model: 'sub', n: 1, cut: 1500, kt: 0.4, fenv: [2600, 0.03, 0.25], q: 2.4, noise: 0.02, env: [0.02, 0.3, 0.8, 0.1], scoop: [-0.4, 0.05], vib: [10, 5.2, 0.25], gain: 1.3 },
 };
 
 // ---------------------------------------------------------------- 和音から伴奏を作る
@@ -2302,6 +2306,81 @@ const rep = (s, n) => Array(n).fill(s).join(' ');
         [${beat}]7 v10 k8 v5 h8 v8 s8 v5 h8 v10 k8 v8 s8 s16 s16 v9 s8 |
         [v10 k8 v6 o8 v8 s8 v6 o8 v10 k8 k8 v8 s8 v6 o8 |]7 v10 k8 v6 o8 v8 s8 s8 v10 k8 v8 s8 s16 s16 s8 |
         [${beat}]7 v10 k8 v5 h8 v8 s8 v5 h8 v10 k8 v8 s8 s8 v9 s8 |` },
+    ],
+  };
+}
+
+// ジュエル・スロット（カジノ）：スウィングのジャズ。ミュートのトランペットが歌い、ウォーキングベース・ピアノの合いの手・ヴィブラフォン・ライドシンバル。
+// 形は前奏 4 小節 → A A' B A'（32 小節。和音はリズム・チェンジ風の I-vi-ii-V、B は III7-VI7-II7-V7）。8 分はすべて跳ねる（3 連の 6 と 12）
+{
+  const INTRO = 'Gm7,C7 Gm7,C7 Gm7,C7 C7';
+  const A1 = 'F6,D7 Gm7,C7 Am7,D7 Gm7,C7 F7 Bb6,Bdim7 F6,D7 Gm7,C7';
+  const A2 = 'F6,D7 Gm7,C7 Am7,D7 Gm7,C7 F7 Bb6,Bdim7 Gm7,C7 F6';
+  const B = 'A7 A7 D7 D7 G7 G7 C7 C7';
+  const MA1 = `r6 o4 c12 f6 g12 a4 f+4 | g2 r6 e12 f6 g12 | a6 > c12 e6 d12 c4 < a4 | b-2 g4 e4 |
+        f2 r4 r6 c12 | d6 f12 b-6 a12 g+4 f4 | a6 g12 f6 a12 > c4 < a4 | g2 r6 b-12 g6 e12 |`;
+  const MA2 = `r6 o4 c12 f6 a12 > c4 < a4 | b-2 r6 a12 g6 e12 | a6 > c12 e6 d12 c4 < a4 | b-6 a12 g6 f12 e4 g4 |
+        f2 a6 > c12 e-4 | d6 c12 < b-6 a12 g+4 b4 | b-6 g12 d6 f12 e4 c4 | f2. r4 |`;
+  const MB = `r6 o4 e12 a6 > c+12 e4 g4 | f+6 e12 c+4 < a2 | r6 d12 f+6 a12 > c4 d4 | e6 d12 c4 < a2 |
+        r6 g12 b6 > d12 f4 d4 | e6 d12 < b4 g2 | r6 c12 e6 g12 b-4 > c4 | < b-6 a12 g6 e12 c4 r4 |`;
+  // ピアノの合いの手：1 拍目と、2 拍目の裏（跳ねた 8 分）
+  const COMP = { rh: ['4', 'r6', '12', 'r2'], rh2: ['6', 'r12', 'r6', '12'] };
+  // 管の打ち込み（前奏）と、B の後ろで鳴らす合いの手
+  const HIT = { rh: ['4', 'r6', '12', '4', 'r4'], rh2: ['4', 'r6', '12'] };
+  const SHOUT = { rh: ['r4', 'r6', '12', 'r4', '4'], rh2: ['r4', 'r6', '12'] };
+  const WALK = 'R4 F4 R4 L4';
+  const RIDE = 'v8 y4 y6 y12 y4 y6 y12 |';
+  const KICK = 'v6 k4 r4 k4 r4 |';
+  const COMPS = 'v6 k4 r6 v8 s12 r4 v6 k4 |';
+  const FILL = 'v9 k4 s6 s12 s6 s12 v10 s4 |';
+  const DR_A = `${KICK} ${KICK} ${KICK} ${COMPS} ${KICK} ${KICK} ${COMPS} ${FILL}`;
+  SONGS.casino = {
+    bpm: 150,
+    melody: 'tp',
+    chords: `${INTRO} ${A1} ${A2} ${B} ${A2}`,
+    reverb: { size: 0.5, damp: 0.5 },
+    gain: 0.92,
+    ch: [
+      { id: 'tp', type: 'inst', pan: 0.1, rev: 0.25, poly: 2, gain: 1.4, mml: `
+        @mute q8 r1 | r1 | r1 | r1 | L
+        v13 ${MA1}
+        ${MA2}
+        v14 ${MB}
+        v13 ${MA2}` },
+      { id: 'hn', type: 'inst', pan: -0.2, rev: 0.25, poly: 6, gain: 0.8, mml: `
+        @brs q6 v12 ${blocks(INTRO, { lo: 58, n: 3, ...HIT })} L
+        ${rep('r1 |', 8)}
+        q8 v7 ${blocks(A2, { lo: 57, n: 3, rh: ['1'], rh2: ['2'] })}
+        q6 v11 ${blocks(B, { lo: 60, n: 3, ...SHOUT })}
+        q8 v7 ${blocks(A2, { lo: 57, n: 3, rh: ['1'], rh2: ['2'] })}` },
+      { id: 'pf', type: 'inst', pan: 0.25, rev: 0.2, poly: 10, gain: 0.6, mml: `
+        @piano q6 v10 ${blocks(INTRO, { lo: 55, n: 4, ...COMP })} L
+        ${blocks(`${A1} ${A2} ${B} ${A2}`, { lo: 55, n: 4, ...COMP })}` },
+      { id: 'vb', type: 'inst', pan: -0.35, rev: 0.4, poly: 8, gain: 0.55, mml: `
+        @vibes q8 ${rep('r1 |', 4)} L
+        ${rep('r1 |', 8)}
+        v9 ${arp(A2, { lo: 65, pat: [0, 1, 2, 3, 2, 1], len: 6 })}
+        v10 ${arp(B, { lo: 64, pat: [0, 1, 2, 3, 2, 1], len: 6 })}
+        v9 ${arp(A2, { lo: 65, pat: [0, 1, 2, 3, 2, 1], len: 6 })}` },
+      { id: 'bs', type: 'inst', pan: 0, rev: 0.05, poly: 2, gain: 0.9, mml: `
+        @cbass q8 v14 ${bass(INTRO, WALK, { lo: 36, hi: 50 })} L
+        ${bass(`${A1} ${A2}`, WALK, { lo: 36, hi: 50 })}
+        ${bass(B, 'R4 T4 F4 L4', { lo: 36, hi: 50 })}
+        ${bass(A2, WALK, { lo: 36, hi: 50 })}` },
+      { id: 'rd', type: 'perc', pan: 0.2, rev: 0.2, gain: 1.3, mml: `
+        ${rep(RIDE, 4)} L
+        v11 c4 v8 y6 y12 y4 y6 y12 | ${rep(RIDE, 15)}
+        v11 c4 v9 y6 y12 y4 y6 y12 | ${rep('v9 y4 y6 y12 y4 y6 y12 |', 7)}
+        v11 c4 v8 y6 y12 y4 y6 y12 | ${rep(RIDE, 7)}` },
+      { id: 'hh', type: 'perc', pan: -0.1, rev: 0.1, gain: 1.2, mml: `
+        ${rep('r4 v8 h4 r4 h4 |', 4)} L
+        ${rep('r4 v8 h4 r4 h4 |', 32)}` },
+      { id: 'dr', type: 'perc', pan: 0, rev: 0.12, mml: `
+        ${KICK} ${KICK} ${KICK} v10 s6 s12 s6 s12 t6 t12 f6 f12 | L
+        ${DR_A}
+        ${DR_A}
+        v7 k4 r6 v9 s12 r4 v7 k4 | ${rep(COMPS, 6)} ${FILL}
+        ${DR_A}` },
     ],
   };
 }
