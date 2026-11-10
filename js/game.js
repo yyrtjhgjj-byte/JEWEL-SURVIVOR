@@ -680,13 +680,15 @@ export class Game {
   // 武器のリミットブレイクの中身はふつうと同じ抽選だが、同じ設定なら毎回同じになるよう、決まった乱数で選ぶ
   trainSetup() {
     const c = this.train;
-    for (const it of (c.p || []).slice(0, MAX_CHARMS)) {
+    // CHAOS は枠の上限なし
+    const mw = c.chaos ? Infinity : MAX_WEAPONS, mp = c.chaos ? Infinity : MAX_CHARMS;
+    for (const it of (c.p || []).slice(0, mp)) {
       if (!PASSIVES[it.id] || this.getPassive(it.id)) continue;
       const p = this.addPassive(it.id);
       p.level = Math.max(1, Math.min(PASSIVES[it.id].max, it.lv || 1));
       if (p.level >= PASSIVES[it.id].max && it.lb) p.lbN = Math.min(it.lb, charmLbMax(it.id));
     }
-    for (const it of (c.w || []).slice(0, MAX_WEAPONS)) {
+    for (const it of (c.w || []).slice(0, mw)) {
       if (!WEAPONS[it.id] || this.getWeapon(it.id)) continue;
       const w = this.addWeapon(it.id);
       w.level = Math.max(1, Math.min(WEAPON_MAX, it.lv || 1));
@@ -723,7 +725,9 @@ export class Game {
     if (this.boss) { this.boss = null; this.hooks.bossBar(null); }
     this.trainNextT = 0;
   }
-  trainDummyHp() { return trainDummyHp(this.train.stage || 1); }
+  // CHAOS は的の HP も CHAOS 倍（CHAOS のランの敵と同じ）
+  get trainHpMul() { return this.train && this.train.chaos ? CHAOS : 1; }
+  trainDummyHp() { return trainDummyHp(this.train.stage || 1) * this.trainHpMul; }
   trainSpawn(type, x, y, hp) {
     const e = this.spawnEnemy(type, x, y);
     e.hp = e.maxHp = hp;
@@ -743,7 +747,7 @@ export class Game {
       for (const e of this.enemies) if (e.alive && e.trainDummy) n++;
       for (; n < 40; n++) {
         const a = rand(TAU), d = rand(60, 260);
-        this.trainSpawn('dummy_s', p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, this.train.crowdHp || 1500);
+        this.trainSpawn('dummy_s', p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, (this.train.crowdHp || 1500) * this.trainHpMul);
       }
     } else if (!this.enemies.some((e) => e.alive && e.trainDummy)) {
       // 木人：倒すと少しおいて同じ場所に立ち直る

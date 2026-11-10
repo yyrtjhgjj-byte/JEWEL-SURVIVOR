@@ -18,7 +18,7 @@ export const LEGEND_DMG = 0.01;
 
 export const LEGENDS = [
   {
-    id: 'starindia', name: 'スター・オブ・インディア', en: 'STAR OF INDIA', gem: 'sapphire',
+    id: 'starindia', name: 'スター・オブ・インディア', en: 'STAR OF INDIA', gem: 'sapphire', stone: 'スター・サファイア',
     cut: 'スター・カボション（両面に星）', ct: 563.35, color: '灰色がかった青。ほぼ傷がない', home: 'アメリカ自然史博物館（ニューヨーク）',
     steps: [
       { y: '', t: '掘り出す', d: 'スリランカで掘られる。中の細い針状の結晶が、光を 6 本の筋に集める。', cost: 1000, est: true },
@@ -29,7 +29,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'delong', name: 'デロング・スター・ルビー', en: 'DELONG STAR RUBY', gem: 'ruby',
+    id: 'delong', name: 'デロング・スター・ルビー', en: 'DELONG STAR RUBY', gem: 'ruby', stone: 'スター・ルビー',
     cut: 'スター・カボション（楕円）', ct: 100.32, color: 'ビルマ産の赤', home: 'アメリカ自然史博物館（ニューヨーク）',
     steps: [
       { y: '1930s', t: '掘り出す', d: 'ビルマ（今のミャンマー）で見つかる。', cost: 300, est: true },
@@ -40,7 +40,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'kohinoor', name: 'コ・イ・ヌール', en: 'KOH-I-NOOR', gem: 'diamond',
+    id: 'kohinoor', name: 'コ・イ・ヌール', en: 'KOH-I-NOOR', gem: 'diamond', stone: 'ダイヤモンド',
     cut: 'オーバル・ブリリアント', ct: 105.6, color: '無色', home: 'ロンドン塔（王太后エリザベスの王冠）',
     steps: [
       { y: '1813', t: 'シク王国へ', d: 'シク王国のランジート・シングが、身を寄せてきたシャー・シュジャーから手に入れる（シュジャーの回想では、目の前で息子を痛めつけて出させた）。代わりに 12 万 5,000 ルピーを贈った。', cost: 60750, est: true },
@@ -51,7 +51,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'regent', name: 'リージェント', en: 'REGENT', gem: 'diamond',
+    id: 'regent', name: 'リージェント', en: 'REGENT', gem: 'diamond', stone: 'ダイヤモンド',
     cut: 'クッション・ブリリアント', ct: 140.64, color: '白にかすかな青', home: 'ルーヴル美術館（パリ）',
     value: '1717 年、フランスの摂政オルレアン公に £135,000 で売れた',
     steps: [
@@ -61,7 +61,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'hope', name: 'ホープ', en: 'HOPE', gem: 'diamond',
+    id: 'hope', name: 'ホープ', en: 'HOPE', gem: 'diamond', stone: 'ブルー・ダイヤモンド',
     cut: 'アンティーク・クッション・ブリリアント', ct: 45.52, color: '濃い灰色がかった青', home: 'スミソニアン国立自然史博物館（ワシントン）',
     value: '2 億〜3.5 億ドルと見積もられている',
     steps: [
@@ -75,7 +75,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'cullinan', name: 'カリナン I', en: 'CULLINAN I', gem: 'diamond',
+    id: 'cullinan', name: 'カリナン I', en: 'CULLINAN I', gem: 'diamond', stone: 'ダイヤモンド',
     cut: 'ペンデローク・ブリリアント（74 面）', ct: 530.2, color: '無色（窒素をほとんど含まない IIa 型）', home: 'ロンドン塔（十字架の王笏）',
     value: '1908 年の評価額 $2,500,000',
     steps: [
@@ -87,7 +87,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'mughal', name: 'ムガル・エメラルド', en: 'MOGUL MUGHAL EMERALD', gem: 'emerald',
+    id: 'mughal', name: 'ムガル・エメラルド', en: 'MOGUL MUGHAL EMERALD', gem: 'emerald', stone: 'エメラルド',
     cut: '長方形の板に彫刻（表に祈りの言葉、裏に花）', ct: 217.8, color: 'コロンビア産の緑', home: 'イスラム美術館（ドーハ）',
     steps: [
       { y: '', t: '掘り出す', d: 'コロンビアで掘られる。', cost: 2000, est: true },
@@ -97,7 +97,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'sunrise', name: 'サンライズ・ルビー', en: 'SUNRISE RUBY', gem: 'ruby',
+    id: 'sunrise', name: 'サンライズ・ルビー', en: 'SUNRISE RUBY', gem: 'ruby', stone: 'ルビー',
     cut: 'クッション', ct: 25.59, color: 'ビルマ産「鳩の血」の赤', home: '個人蔵',
     steps: [
       { y: '', t: '掘り出す', d: 'ミャンマーで掘られる。名前は 13 世紀の詩人ルーミーの詩から。', cost: 10000, est: true },
@@ -107,7 +107,7 @@ export const LEGENDS = [
     ],
   },
   {
-    id: 'pinkstar', name: 'ピンク・スター', en: 'PINK STAR', gem: 'diamond',
+    id: 'pinkstar', name: 'ピンク・スター', en: 'PINK STAR', gem: 'diamond', stone: 'ピンク・ダイヤモンド',
     cut: 'ミックスド・オーバル（上は段、下はブリリアント）', ct: 59.6, color: 'ファンシー・ヴィヴィッド・ピンク', home: '周大福（香港）',
     steps: [
       { y: '1999', t: '掘り出す', d: 'デ・ビアスが南アフリカで 132.5 カラットの原石を掘る。', cost: 5000000, est: true },

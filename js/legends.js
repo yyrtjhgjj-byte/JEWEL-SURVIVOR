@@ -38,7 +38,7 @@ export function showLegends(back) {
         return `<button class="lg-card ${st.done ? 'done' : ''}" data-id="${L.id}">
           ${icon(L)}
           <div class="lg-ct"><div class="lg-en">${L.en}</div><div class="lg-name">${L.name}</div>
-            <div class="lg-spec">${wbr(L.cut)}・<wbr>${L.ct}&nbsp;ct</div>
+            <div class="lg-spec"><b>${wbr(L.stone)}</b>・<wbr>${wbr(L.cut)}・<wbr>${L.ct}&nbsp;ct</div>
             <div class="lg-bar"><i style="width:${(st.step / L.steps.length) * 100}%"></i></div>
             <div class="lg-left">${st.done ? '<b class="lg-ok">完成</b>' : `工程 ${st.step} / ${L.steps.length}・のこり ${coinTag(left)}`}</div>
           </div>
@@ -60,6 +60,7 @@ export function openLegend(id, back, afterShow) {
       ${topbar(L.en, L.name, coinPill(), 'legends')}
       <div class="lg-head">${icon(L, 'lg-big')}
         <div class="lg-rows">
+          <div><span>宝石</span><b>${wbr(L.stone)}</b></div>
           <div><span>カット</span><b>${wbr(L.cut)}</b></div>
           <div><span>カラット</span><b>${L.ct} ct</b></div>
           <div><span>色</span><b>${wbr(L.color)}</b></div>
@@ -173,6 +174,7 @@ function complete(L) {
     ${icon(L, 'lg-hero')}
     <div class="lg-rname">${L.name}<span>${L.en}</span></div>
     <div class="panel lg-rinfo">
+      <div><span>宝石</span><b>${wbr(L.stone)}</b></div>
       <div><span>カット</span><b>${wbr(L.cut)}</b></div>
       <div><span>カラット</span><b>${L.ct} ct</b></div>
       ${L.value ? `<div><span>値打ち</span><b>${L.value}</b></div>` : ''}
