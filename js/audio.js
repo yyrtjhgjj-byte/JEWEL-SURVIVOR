@@ -117,6 +117,11 @@ class AudioEngine {
     this.note('comp');
   }
   rebuild(why) {
+    // 作り直しても直らないときに、作り直しを延々とくり返さない（1 分に 3 回まで）
+    const now = performance.now();
+    this.rebuilds = (this.rebuilds || []).filter((t) => now - t < 60000);
+    if (this.rebuilds.length >= 3) { this.clock = null; return; }
+    this.rebuilds.push(now);
     const old = this.ctx;
     const track = this.bgmTrack;
     this.ready = false;
@@ -197,7 +202,10 @@ class AudioEngine {
     const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     if (!OAC) return;
     let off;
-    try { off = new OAC(1, Math.ceil(this.ctx.sampleRate * dur), this.ctx.sampleRate); } catch (e) { return; }
+    // 動作の記録用：録音を始めた数・終わった数・作れなかった数（同時にたくさん走ると iPhone で音が止まる、という疑いを確かめる）
+    const B = this.bakes || (this.bakes = { made: 0, done: 0, fail: 0 });
+    try { off = new OAC(1, Math.ceil(this.ctx.sampleRate * dur), this.ctx.sampleRate); } catch (e) { B.fail++; return; }
+    B.made++;
     // 合成の行き先を録音用に差し替えて、同じ合成を 1 回だけ流す
     const keep = [this.ctx, this.sfxBus, this.nodeCount];
     this.ctx = off;
@@ -206,6 +214,7 @@ class AudioEngine {
     [this.ctx, this.sfxBus, this.nodeCount] = keep;
     // 録音中に曲が変わっていたら、捨てた方の入れ物に入るだけ（今の曲の録音には混ざらない）
     const done = (b) => {
+      B.done++;
       if (!b) return;
       // 数でない値が混ざった録音は使わない（出口のコンプレッサーを壊すため）
       const d = b.getChannelData(0);

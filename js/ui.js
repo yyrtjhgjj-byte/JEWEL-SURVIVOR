@@ -276,7 +276,7 @@ export function openHelp(spec) {
     if (t) { audio.select(); go(t.dataset.topic); return; }
     if (e.target.closest('[data-all]')) { audio.tap(); go('@'); }
   });
-  $('#hback', ov).onclick = () => { audio.tap(); stack.pop(); go(stack.pop()); };
+  $('#hback', ov).onclick = () => { if (stack.length < 2) return; audio.tap(); stack.pop(); go(stack.pop()); };
   const close = () => { audio.tap(); ov.remove(); };
   $('#hx', ov).onclick = close;
   ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
@@ -495,6 +495,9 @@ export function showStageSelect() {
   };
   let rsel = rushOk(save.rushStage) ? save.rushStage : (STAGES.find((st) => cleared(st.id)) || {}).id || null;
   const lo = save.rushLoadout || (save.rushLoadout = { w: [CHARACTERS[save.selected] ? CHARACTERS[save.selected].weapon : 'ruby'], p: [] });
+  // 欠けた・今は無い石が入ったセーブでも開けるように整える
+  lo.w = (Array.isArray(lo.w) ? lo.w : []).filter((id) => WEAPONS[id]);
+  lo.p = (Array.isArray(lo.p) ? lo.p : []).filter((id) => PASSIVES[id]);
   // 秘宝の持ち込み（通常のステージと BOSS モードで共通）
   const artHTML = () => {
     const arts = unlockedArtifacts();
@@ -552,6 +555,10 @@ export function showStageSelect() {
   };
   // トレーニング：的と、武器・チャームのレベル・進化・リミットブレイク（save.trainCfg）
   const tc = save.trainCfg || (save.trainCfg = { target: 'dummy', stage: 1, crowdHp: 1500, low: false, w: [{ id: CHARACTERS[save.selected] ? CHARACTERS[save.selected].weapon : 'ruby', lv: WEAPON_MAX, evo: false, lb: 0 }], p: [] });
+  if (!(tc.stage >= 1)) tc.stage = 1;
+  if (!(tc.crowdHp > 0)) tc.crowdHp = 1500;
+  if (tc.target !== 'crowd') tc.target = 'dummy';
+  for (const k of ['w', 'p', 'cw', 'cp']) if (tc[k] !== undefined || k === 'w' || k === 'p') tc[k] = (Array.isArray(tc[k]) ? tc[k] : []).filter((it) => it && (k === 'w' || k === 'cw' ? WEAPONS[it.id] : PASSIVES[it.id]));
   const trMax = (it, k) => (k === 'w' ? WEAPON_MAX : PASSIVES[it.id].max);
   const trLbMax = (it, k) => (k === 'w' ? 10 : charmLbMax(it.id));
   // まとめて：LV と LB を最小・最大に、ウェポンは進化も（LB と進化は最大レベルでだけ効くので、最大レベルにもする）
