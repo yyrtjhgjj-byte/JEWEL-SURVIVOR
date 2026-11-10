@@ -21,6 +21,7 @@ import {
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox, trackList } from './jukebox.js';
 import { showBiz, bizBadge } from './biz-ui.js';
+import { showRebirth, rebirthCardText } from './rebirth.js';
 
 export const NAV = [
   { id: 'home', jp: 'ホーム', en: 'HOME', c: '#b45cff' },
@@ -136,12 +137,13 @@ const HUBS = {
       { id: 'settings', en: 'SETTINGS', jp: '設定', c: '#9a93b0', icon: glyph('⚙'), s: '音量・表示・データ削除', go: () => showSettings(back) },
       { id: 'backup', en: 'BACKUP', jp: 'バックアップ', c: '#7fd0ff', icon: glyph('⇅'), s: lastBackupText(), go: () => showSettings(back, false, 'sec-backup') },
       { id: 'log', en: 'LOG', jp: '動作の記録', c: '#ff9f1c', icon: glyph('≡'), s: crashes ? `記録 ${crashes} 件` : '記録なし', go: () => showSettings(back, false, 'sec-diag') },
+      { id: 'rebirth', en: 'REBIRTH', jp: '転生', c: '#ff7ac8', icon: glyph('↻'), s: rebirthCardText(), go: () => showRebirth(back) },
     ];
   } },
 };
 
 // ハブの ? で開くヘルプ（見出しごとの項目の一覧）
-const HUB_HELP = { power: '@power', jewel: '@jewel', archive: '@more', more: 'save' };
+const HUB_HELP = { power: '@power', jewel: '@jewel', archive: '@more', more: '@more' };
 export function showHub(cat) {
   const H = HUBS[cat];
   const cards = H.cards();

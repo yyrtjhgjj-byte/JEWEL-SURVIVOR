@@ -6,6 +6,7 @@ import { refreshLot } from './auction.js';
 import { Input } from './input.js';
 import { audio } from './audio.js';
 import { save, persist } from './save.js';
+import { checkPast } from './rebirth.js';
 import { ACHIEVEMENTS, GEMS, WEAPON_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost } from './data.js';
 import { ARTIFACTS } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, stageTag, rushStep } from './stages.js';
@@ -507,6 +508,7 @@ function migrateSave() {
   }
   return upperRefund;
 }
+checkPast(); // 転生・合流の途中で落ちていたら続きをする
 const upperRefund = migrateSave();
 
 UI.initUI({ startGame, toTitle, toStageSelect, migrateSave, checkMetaAchievements: () => checkAchievements(null, true) });

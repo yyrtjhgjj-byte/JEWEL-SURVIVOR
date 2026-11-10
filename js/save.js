@@ -1,7 +1,9 @@
 // セーブデータ（localStorage）。使えない環境でもゲームは動くようにする。
 const KEY = 'jewel-survivor-save-v1';
+// 転生でしまった前世（rebirth.js）。ラン中の保存を重くしないよう、ふだんのセーブとは別にしまう
+const PAST_KEY = 'jewel-survivor-past-v1';
 
-function defaults() {
+export function defaults() {
   return {
     coins: 0,
     totalCoins: 0,
@@ -43,6 +45,7 @@ function defaults() {
     migrated: {}, // 一度だけ行う移行処理の済み印（main.js の migrateSave）
     tabs: { zukan: 'gems', zukanCh: 1 }, // 図鑑で最後に開いていたタブと敵の章
     biz: null, // 経営（biz.js の newBiz。最初に開いたときに作る）
+    life: null, // 転生（rebirth.js）：{ id: この人生の印, n: 転生した回数 }
   };
 }
 
@@ -69,17 +72,57 @@ function load() {
 
 export const save = load();
 
+// 書けたかを返す（転生と合流は、書けたのを確かめてから次へ進む）
 export function persist() {
   try {
     localStorage.setItem(KEY, JSON.stringify(save));
-  } catch (e) { /* ignore */ }
+    return true;
+  } catch (e) { return false; }
 }
 
 export function resetSave() {
   const d = defaults();
   for (const k of Object.keys(save)) delete save[k];
   Object.assign(save, d);
+  clearPast();
   persist();
+}
+
+// セーブをまるごと置き換える（転生・合流・バックアップの読み込み）。書けたかを返す（書けなければ元に戻す）
+function setAll(d) {
+  for (const k of Object.keys(save)) delete save[k];
+  Object.assign(save, d);
+}
+export function replaceSave(data) {
+  const old = JSON.stringify(save);
+  const d = merge(defaults(), JSON.parse(JSON.stringify(data)));
+  delete d.pendingRun;
+  setAll(d);
+  if (persist()) return true;
+  setAll(JSON.parse(old));
+  return false;
+}
+
+// ---------------------------------------------------------------- 前世（転生）
+let past = null;
+try {
+  const raw = localStorage.getItem(PAST_KEY);
+  if (raw) past = JSON.parse(raw);
+} catch (e) { past = null; }
+export const pastLife = () => past;
+// 前世を書く。読み直して同じなら true
+export function writePast(p) {
+  try {
+    const text = JSON.stringify(p);
+    localStorage.setItem(PAST_KEY, text);
+    if (localStorage.getItem(PAST_KEY) !== text) return false;
+    past = JSON.parse(text);
+    return true;
+  } catch (e) { return false; }
+}
+export function clearPast() {
+  try { localStorage.removeItem(PAST_KEY); } catch (e) { /* ignore */ }
+  past = null;
 }
 
 // ---------------------------------------------------------------- バックアップ
@@ -87,9 +130,9 @@ const APP = 'jewel-survivor';
 
 // 書き出し用の文字列
 export function exportSave() {
-  // 中断したランは入れない（読み込んだあとに、古いランを再開・精算できてしまわないように）
+  // 中断したランは入れない（読み込んだあとに、古いランを再開・精算できてしまわないように）。転生中なら前世も入れる
   const { pendingRun, ...data } = save;
-  return JSON.stringify({ app: APP, version: 1, exportedAt: new Date().toISOString(), data });
+  return JSON.stringify({ app: APP, version: 1, exportedAt: new Date().toISOString(), data, ...(past ? { past } : {}) });
 }
 
 // 読み込んだ文字列を解析。正しくなければ例外
@@ -99,14 +142,14 @@ export function parseBackup(text) {
   if (!data || typeof data !== 'object' || typeof data.coins !== 'number' || !data.unlocked) {
     throw new Error('JEWEL SURVIVOR のバックアップファイルではありません');
   }
+  // 前世は importSave で受け取る（セーブの中身には混ぜない）
+  Object.defineProperty(data, 'pastLife', { value: (obj && obj.app === APP && obj.past) || null, enumerable: false });
   return data;
 }
 
-// 現在のセーブを置き換える
+// 現在のセーブを置き換える。前世もバックアップのものにする（入っていなければ消す）
 export function importSave(data) {
-  const d = merge(defaults(), JSON.parse(JSON.stringify(data)));
-  delete d.pendingRun;
-  for (const k of Object.keys(save)) delete save[k];
-  Object.assign(save, d);
-  persist();
+  replaceSave(data);
+  if (data.pastLife) writePast(data.pastLife);
+  else clearPast();
 }

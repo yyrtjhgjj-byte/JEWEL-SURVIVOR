@@ -2,7 +2,7 @@
 //  経営の画面：世界地図をスクロールして、地名のピンを押すと下から操作の板（シート）が上がる
 //  仕組みは biz.js、データは biz-data.js、地図の形は biz-map.js
 // =====================================================================
-import { save, persist } from './save.js';
+import { save, persist, pastLife } from './save.js';
 import { audio } from './audio.js';
 import { fmt, todayStr } from './util.js';
 import { show, el, $, coinPill, refreshCoinPill, haptic, getApp, toast, gemColor, openHelp } from './ui.js';
@@ -32,7 +32,12 @@ export function usd(n) {
 }
 const ctf = (n) => (n < 10 ? n.toFixed(2) : n < 1000 ? n.toFixed(1) : n < 1e6 ? fmt(n) : (n / 1e6).toFixed(2) + 'M');
 const minf = (m) => { m = Math.max(0, Math.ceil(m)); return m < 60 ? `${m} 分` : `${Math.floor(m / 60)} 時間${m % 60 ? ` ${m % 60} 分` : ''}`; };
-const avgRun = () => (save.stats.runs ? (save.stats.runCoins || 0) / save.stats.runs : 0);
+// 1 ランの平均コイン（転生中は前世の分も入れる。まっさらからでも配当が出るように）
+const avgRun = () => {
+  const P = pastLife(), ps = (P && P.stats) || {};
+  const runs = (save.stats.runs || 0) + (ps.runs || 0);
+  return runs ? ((save.stats.runCoins || 0) + (ps.runCoins || 0)) / runs : 0;
+};
 const metaAch = () => { const a = getApp(); if (a && a.checkMetaAchievements) a.checkMetaAchievements(); };
 
 // 施設の種類のアイコン（線で描く）

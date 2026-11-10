@@ -1297,41 +1297,45 @@ export function lastBackupText() {
   return '最終：' + (d <= 0 ? '今日' : `${d}日前`);
 }
 
-function setupBackup(node) {
-  const out = $('#bkout', node), inp = $('#bkin', node), file = $('#bkfile', node);
+// バックアップのファイルを書き出す（iPhone は共有メニュー、ほかはダウンロード）。書き出せたら true
+export async function exportBackup() {
   const done = () => {
     save.lastBackup = Date.now();
     persist();
-    $('#bklast', node).textContent = lastBackupText();
     audio.coin();
+    return true;
   };
+  const prev = save.lastBackup;
+  save.lastBackup = Date.now(); // 書き出すデータにも記録しておく
+  const text = exportSave();
+  save.lastBackup = prev;
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const name = `jewel-survivor-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  // iPhone：共有メニューから「"ファイル"に保存」
+  for (const type of ['application/json', 'text/plain']) {
+    const f = new File([text], name, { type });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) {
+      try {
+        await navigator.share({ files: [f] });
+        return done();
+      } catch (e) { /* キャンセル */ }
+      return false;
+    }
+  }
+  // 共有できない環境：ダウンロード
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return done();
+}
+function setupBackup(node) {
+  const out = $('#bkout', node), inp = $('#bkin', node), file = $('#bkfile', node);
   out.onclick = async () => {
     audio.tap();
-    const prev = save.lastBackup;
-    save.lastBackup = Date.now(); // 書き出すデータにも記録しておく
-    const text = exportSave();
-    save.lastBackup = prev;
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const name = `jewel-survivor-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
-    // iPhone：共有メニューから「"ファイル"に保存」
-    for (const type of ['application/json', 'text/plain']) {
-      const f = new File([text], name, { type });
-      if (navigator.canShare && navigator.canShare({ files: [f] })) {
-        try {
-          await navigator.share({ files: [f] });
-          done();
-        } catch (e) { /* キャンセル */ }
-        return;
-      }
-    }
-    // 共有できない環境：ダウンロード
-    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    done();
+    if (await exportBackup()) $('#bklast', node).textContent = lastBackupText();
   };
   inp.onclick = () => { audio.tap(); file.value = ''; file.click(); };
   file.onchange = async () => {
@@ -1347,7 +1351,7 @@ function setupBackup(node) {
     const clears = Object.values(data.stages || {}).filter((x) => x && x.cleared).length;
     const chars = Object.values(data.unlocked || {}).filter(Boolean).length;
     const when = data.lastBackup ? new Date(data.lastBackup).toLocaleString('ja-JP') : '不明';
-    const msg = `このバックアップで現在のデータを上書きします。\n\n書き出し日時：${when}\nコイン：${fmt(data.coins)}\nクリア済みステージ：${clears}\n解放ジュエル：${chars}\n\nよろしいですか？`;
+    const msg = `このバックアップで現在のデータを上書きします。\n\n書き出し日時：${when}\nコイン：${fmt(data.coins)}\nクリア済みステージ：${clears}\n解放ジュエル：${chars}${data.pastLife ? '\n前世：あり（転生中）' : ''}\n\nよろしいですか？`;
     if (!confirm(msg)) return;
     // ログインボーナスの記録もバックアップのものを使う（累計の日数を引き継ぐ）。バックアップが今日より前のものなら、
     // タイトルに戻ったときに今日の分をもう一度受け取る（読み込む前に受け取った分は、上書きで消えているため）
