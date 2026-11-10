@@ -796,9 +796,19 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .tr-evo.on { color: #111; background: var(--gold); border-color: var(--gold); }
 .tr-evo:disabled { filter: brightness(0.4); }
 .tr-ctls { display: flex; align-items: center; gap: 5px; margin-top: 4px; font-family: var(--font); font-weight: 700; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
-.tr-ctls b { min-width: 18px; text-align: center; color: #fff; font-size: 14px; }
+.tr-num { min-width: 26px; height: 28px; padding: 0 3px; border-radius: 7px; border: 1px dashed var(--line2); background: transparent; color: #fff; font-family: var(--font); font-weight: 700; font-size: 14px; text-align: center; }
+.tr-num:disabled { border-color: transparent; color: var(--muted); }
+.tr-num:active { transform: scale(0.92); }
 .tr-ctls span + button { margin-left: 2px; }
-.tr-ctls b + span { margin-left: 10px; }
+.tr-num + .iconbtn + span { margin-left: 10px; }
+.tr-bulk { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 8px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); font-family: var(--font); font-weight: 700; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
+.tr-bulk i { flex-basis: 100%; font-style: normal; font-family: var(--font-jp); font-size: 11px; letter-spacing: 0; }
+.tr-bulk span + button { margin-left: 1px; }
+.tr-bulk button + span { margin-left: 8px; }
+.tr-bulk button:not(.tr-evo) { min-width: 38px; height: 28px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line2); background: var(--panel); color: #fff; font-family: var(--font); font-weight: 700; font-size: 11px; letter-spacing: 0.08em; }
+.tr-bulk button:disabled { filter: brightness(0.4); }
+.tr-bulk button:active { transform: scale(0.94); }
+.tr-bulk .tr-evo { height: 28px; margin-left: auto; }
 .tr-ctls .iconbtn { width: 28px; height: 28px; font-size: 15px; border-radius: 8px; }
 .tr-ctls .iconbtn:disabled { filter: brightness(0.35); }
 .rp.on { border-color: var(--gold); box-shadow: 0 0 12px rgba(255,210,74,0.35), inset 0 0 0 1px var(--gold); }

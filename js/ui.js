@@ -552,6 +552,20 @@ export function showStageSelect() {
   };
   // トレーニング：的と、武器・チャームのレベル・進化・リミットブレイク（save.trainCfg）
   const tc = save.trainCfg || (save.trainCfg = { target: 'dummy', stage: 1, crowdHp: 1500, low: false, w: [{ id: CHARACTERS[save.selected] ? CHARACTERS[save.selected].weapon : 'ruby', lv: WEAPON_MAX, evo: false, lb: 0 }], p: [] });
+  const trMax = (it, k) => (k === 'w' ? WEAPON_MAX : PASSIVES[it.id].max);
+  const trLbMax = (it, k) => (k === 'w' ? 10 : charmLbMax(it.id));
+  // まとめて：LV と LB を最小・最大に、ウェポンは進化も（LB と進化は最大レベルでだけ効くので、最大レベルにもする）
+  const trBulk = (arr, k) => {
+    if (!arr.length) return '';
+    const all = (f) => arr.every(f);
+    const lvMin = all((it) => it.lv <= 1), lvMax = all((it) => it.lv >= trMax(it, k));
+    const lbMin = all((it) => !it.lb), lbFull = all((it) => it.lv >= trMax(it, k) && (it.lb || 0) >= trLbMax(it, k));
+    const evoAll = all((it) => it.evo && it.lv >= trMax(it, k));
+    return `<div class="tr-bulk" data-k="${k}"><i>まとめて</i>
+      <span>LV</span><button data-b="lv0" ${lvMin ? 'disabled' : ''}>MIN</button><button data-b="lv1" ${lvMax ? 'disabled' : ''}>MAX</button>
+      <span>LB</span><button data-b="lb0" ${lbMin ? 'disabled' : ''}>0</button><button data-b="lb1" ${lbFull ? 'disabled' : ''}>MAX</button>
+      ${k === 'w' ? `<button class="tr-evo ${evoAll ? 'on' : ''}" data-b="evo">EVO</button>` : ''}</div>`;
+  };
   const trRow = (it, k) => {
     const isW = k === 'w';
     const max = isW ? WEAPON_MAX : PASSIVES[it.id].max;
@@ -563,8 +577,8 @@ export function showStageSelect() {
       <div class="tr-main">
         <div class="tr-top"><span class="tr-name">${GEMS[gem].jp}</span>${isW ? `<button class="tr-evo ${it.evo && top ? 'on' : ''}" data-a="evo" ${top ? '' : 'disabled'}>EVO</button>` : ''}</div>
         <div class="tr-ctls">
-          <span>LV</span><button class="iconbtn" data-a="lv" data-d="-1" ${it.lv <= 1 ? 'disabled' : ''}>−</button><b>${it.lv}</b><button class="iconbtn" data-a="lv" data-d="1" ${top ? 'disabled' : ''}>＋</button>
-          <span>LB</span><button class="iconbtn" data-a="lb" data-d="-1" ${!top || !it.lb ? 'disabled' : ''}>−</button><b>${top ? it.lb || 0 : '-'}</b><button class="iconbtn" data-a="lb" data-d="1" ${!top || (it.lb || 0) >= lbMax ? 'disabled' : ''}>＋</button>
+          <span>LV</span><button class="iconbtn" data-a="lv" data-d="-1" ${it.lv <= 1 ? 'disabled' : ''}>−</button><button class="tr-num" data-a="lvx">${it.lv}</button><button class="iconbtn" data-a="lv" data-d="1" ${top ? 'disabled' : ''}>＋</button>
+          <span>LB</span><button class="iconbtn" data-a="lb" data-d="-1" ${!top || !it.lb ? 'disabled' : ''}>−</button><button class="tr-num" data-a="lbx" ${top ? '' : 'disabled'}>${top ? it.lb || 0 : '-'}</button><button class="iconbtn" data-a="lb" data-d="1" ${!top || (it.lb || 0) >= lbMax ? 'disabled' : ''}>＋</button>
         </div>
       </div>
     </div>`;
@@ -587,9 +601,11 @@ export function showStageSelect() {
       ${chaosOpen() ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHAOS<small>ウェポン・チャームを全部持てる<br>的の HP ×${CHAOS}</small></span><button class="switch ${ch ? 'on' : ''}" id="tchaos"></button></div>` : ''}
       <div class="rp-head"><span>WEAPON</span>${allBtn('w', L.w.length, L.mw)}<b>${L.w.length} / ${L.mw}</b></div>
       <div class="rush-pick">${pickHTML(WEAPON_IDS, ids(L.w), L.mw, 'w')}</div>
+      ${trBulk(L.w, 'w')}
       <div class="tr-list">${L.w.map((it) => trRow(it, 'w')).join('')}</div>
       <div class="rp-head"><span>CHARM</span>${allBtn('p', L.p.length, L.mp)}<b>${L.p.length} / ${L.mp}</b></div>
       <div class="rush-pick">${pickHTML(PASSIVE_IDS, ids(L.p), L.mp, 'p', pairsOf(ids(L.w)))}</div>
+      ${trBulk(L.p, 'p')}
       <div class="tr-list">${L.p.map((it) => trRow(it, 'p')).join('')}</div>`;
     node.querySelectorAll('.rp').forEach((b) => (b.onclick = () => {
       const k = b.dataset.k, arr = k === 'w' ? L.w : L.p, max = k === 'w' ? L.mw : L.mp;
@@ -615,9 +631,28 @@ export function showStageSelect() {
       const it = (isW ? L.w : L.p).find((x) => x.id === row.dataset.id);
       const max = isW ? WEAPON_MAX : PASSIVES[it.id].max;
       const d = +b.dataset.d || 0;
+      const lbMax = trLbMax(it, row.dataset.k);
       if (b.dataset.a === 'lv') it.lv = Math.max(1, Math.min(max, it.lv + d));
-      else if (b.dataset.a === 'lb') it.lb = Math.max(0, Math.min(isW ? 10 : charmLbMax(it.id), (it.lb || 0) + d));
+      else if (b.dataset.a === 'lb') it.lb = Math.max(0, Math.min(lbMax, (it.lb || 0) + d));
+      // 数字を押すと最小と最大を行き来する
+      else if (b.dataset.a === 'lvx') it.lv = it.lv >= max ? 1 : max;
+      else if (b.dataset.a === 'lbx') it.lb = (it.lb || 0) >= lbMax ? 0 : lbMax;
       else if (b.dataset.a === 'evo') it.evo = !it.evo;
+      audio.tap();
+      persist();
+      renderTrain();
+    }));
+    node.querySelectorAll('.tr-bulk button').forEach((b) => (b.onclick = () => {
+      const k = b.closest('.tr-bulk').dataset.k, arr = k === 'w' ? L.w : L.p, a = b.dataset.b;
+      const evoAll = arr.every((it) => it.evo && it.lv >= trMax(it, k));
+      for (const it of arr) {
+        const max = trMax(it, k);
+        if (a === 'lv0') it.lv = 1;
+        else if (a === 'lv1') it.lv = max;
+        else if (a === 'lb0') it.lb = 0;
+        else if (a === 'lb1') { it.lv = max; it.lb = trLbMax(it, k); }
+        else if (a === 'evo') { if (evoAll) it.evo = false; else { it.lv = max; it.evo = true; } }
+      }
       audio.tap();
       persist();
       renderTrain();
