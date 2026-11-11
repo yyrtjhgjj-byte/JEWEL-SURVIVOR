@@ -312,7 +312,8 @@ export function showSlot(back) {
       box.className = 'sl-res off';
       if (!fast) audio.slotLose();
     }
-    if (kind) await bigWin(kind, res, coins, bet);
+    if (kind === 'jp') await jackpot(res, coins);
+    else if (kind) await bigWin(kind, res, coins, bet);
     else if (coins) await countUp($('#slrc', box), coins, fast ? 250 : 650, (v) => '+' + fmt(v));
     if (kind && coins) $('#slrc', box).textContent = '+' + fmt(coins);
     if (res.fever) await feverIn();
@@ -338,6 +339,94 @@ export function showSlot(back) {
       const close = () => { if (done) return; done = true; ov.classList.add('out'); setTimeout(() => ov.remove(), 260); resolve(); };
       ov.onclick = close;
       countUp($('.sl-ba b', ov), coins || res.value, kind === 'jp' ? 2600 : 1800, (v) => fmt(v)).then(() => setTimeout(close, kind === 'jp' ? 1800 : 1200));
+    });
+  }
+
+  // ジャックポット：サイレンと回る光 → JACKPOT の文字が 1 つずつ落ちる → 花火とコインと宝石の雨の中で額を数え上げ
+  // → 額が決まると金管のファンファーレ。勝手には閉じず、画面を押すまで残る（数え上げの途中で押すと、額まで飛ばす）
+  function jackpot(res, coins) {
+    return new Promise((resolve) => {
+      const W = 'JACKPOT';
+      const gems = ['diamond', 'ruby', 'sapphire', 'emerald'];
+      const rain = Array.from({ length: 46 }, (_, i) => {
+        const gem = i % 4 === 3;
+        const sz = gem ? rand(26, 40) : rand(24, 44);
+        return `<img class="sl-coin jr" src="${gem ? gemIcon(gems[(i >> 2) % gems.length], 64) : coinIcon(48)}" style="left:${rand(0, 96).toFixed(1)}%;width:${sz.toFixed(0)}px;height:${sz.toFixed(0)}px;animation-delay:${rand(1.1, 3.2).toFixed(2)}s;animation-duration:${rand(1.4, 2.6).toFixed(2)}s" alt="">`;
+      }).join('');
+      const myst = res.rough.mystic || 0;
+      const ov = el(`<div class="sl-bigov jp sl-jp">
+        <div class="sl-beam"></div><div class="sl-beam b2"></div>
+        <div class="sl-bulbs t"></div><div class="sl-bulbs b"></div><div class="sl-bulbs l"></div><div class="sl-bulbs r"></div>
+        <div class="sl-rays"></div><div class="sl-fws"></div>${rain}
+        <div class="sl-flash"></div>
+        <div class="sl-jt">${[...W].map((c, i) => `<span style="--i:${i}">${c}</span>`).join('')}</div>
+        <div class="sl-ja"><img class="sl-ci" src="${coinIcon(64)}" alt=""><b>0</b></div>
+        ${myst ? `<div class="sl-jm"><img class="sl-ci" src="${roughIcon('mystic', ROUGH.mystic.color, 56)}" alt="">秘石 ×${fmt(myst)}</div>` : ''}
+        <div class="sl-tap">画面を押すと閉じる</div>
+      </div>`);
+      node.appendChild(ov);
+      const slm = $('#slm', node);
+      audio.slotJackpot();
+      haptic();
+      let stage = 0, closed = false, fwT = 0;
+      const timers = [];
+      const later = (ms, f) => timers.push(setTimeout(f, ms));
+      // 花火：ランダムな場所で弾ける光の粒（閉じるまで続く）
+      const firework = () => {
+        if (closed) return;
+        const box = $('.sl-fws', ov);
+        const hue = randi(0, 359);
+        const fw = el(`<div class="sl-fw" style="left:${rand(10, 90).toFixed(0)}%;top:${rand(8, 58).toFixed(0)}%;--h:${hue}">${Array.from({ length: 14 }, (_, k) => `<i style="--a:${(k * 360) / 14}deg;--d:${rand(90, 160).toFixed(0)}px"></i>`).join('')}</div>`);
+        box.appendChild(fw);
+        setTimeout(() => fw.remove(), 1300);
+        audio.jpPop();
+        fwT = setTimeout(firework, rand(380, 800));
+      };
+      const amount = $('.sl-ja b', ov);
+      const total = coins || res.value;
+      let skip = false;
+      const settle = () => {
+        if (stage >= 2) return;
+        stage = 2;
+        amount.textContent = fmt(total);
+        ov.classList.add('done');
+        slm.classList.add('shake');
+        setTimeout(() => slm.classList.remove('shake'), 600);
+        audio.jpFanfare();
+        haptic();
+        // 額が決まった直後の押し間違いで閉じないように、少しだけ待ってから閉じられるようにする
+        later(900, () => { stage = 3; ov.classList.add('ready'); });
+      };
+      // 入りのあと（文字が落ちきったころ）に光を広げて、数え上げを始める
+      later(1150, () => {
+        if (closed) return;
+        ov.classList.add('lit');
+        slm.classList.add('shake');
+        setTimeout(() => slm.classList.remove('shake'), 700);
+        haptic();
+        firework();
+        stage = 1;
+        audio.jpRoll(3.2);
+        const t0 = performance.now();
+        const step = () => {
+          if (closed || stage >= 2) return;
+          const t = skip ? 1 : Math.min(1, (performance.now() - t0) / 3200);
+          amount.textContent = fmt(total * (1 - Math.pow(1 - t, 3)));
+          if (t < 1) requestAnimationFrame(step); else settle();
+        };
+        step();
+      });
+      ov.onclick = () => {
+        if (stage === 1) { skip = true; return; }
+        if (stage < 3 || closed) return;
+        closed = true;
+        clearTimeout(fwT);
+        timers.forEach(clearTimeout);
+        audio.tap();
+        ov.classList.add('out');
+        setTimeout(() => ov.remove(), 300);
+        resolve();
+      };
     });
   }
 
