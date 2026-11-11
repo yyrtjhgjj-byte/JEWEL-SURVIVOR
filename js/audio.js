@@ -562,13 +562,59 @@ class AudioEngine {
       this.noise(1.6, { vol: 0.07, freq: 9000, type: 'highpass', when: 0.56 });
     });
   }
-  // ジャックポット：サイレン、鐘、ファンファーレ
+  // ジャックポット（slot.js の jackpot が順に鳴らす）
+  // 入り：サイレンが 2 往復、JACKPOT の文字が 1 つ落ちるごとに金属の打音、最後に地鳴り
   slotJackpot() {
-    this.sample('slotJackpot', 1.8, () => {
-      for (let i = 0; i < 8; i++) this.tone(i % 2 ? 1180 : 880, 0.2, { type: 'square', vol: 0.06, when: i * 0.2 });
-      [96, 100, 103, 108].forEach((n, i) => this.tone(mtof(n), 0.9, { type: 'sine', vol: 0.08, when: 0.1 + i * 0.12 }));
+    this.sample('jpIntro', 2.2, () => {
+      for (let i = 0; i < 4; i++) {
+        const up = i % 2 === 0;
+        this.tone(up ? 620 : 1320, 0.36, { type: 'sawtooth', vol: 0.07, slide: up ? 1320 : 620, when: i * 0.36 });
+        this.tone(up ? 310 : 660, 0.36, { type: 'square', vol: 0.04, slide: up ? 660 : 310, when: i * 0.36 });
+      }
+      [79, 81, 83, 84, 86, 88, 91].forEach((n, i) => {
+        this.tone(mtof(n + 12), 0.5, { type: 'triangle', vol: 0.09, when: 0.2 + i * 0.09 });
+        this.tone(mtof(n + 24) * 1.007, 0.35, { type: 'sine', vol: 0.05, when: 0.2 + i * 0.09 });
+        this.noise(0.08, { vol: 0.12, freq: 7000, q: 2, when: 0.2 + i * 0.09 });
+      });
+      this.tone(55, 1.2, { type: 'sine', vol: 0.32, slide: 30, when: 0.85 });
+      this.noise(1.1, { vol: 0.25, freq: 2400, slide: 90, q: 0.6, type: 'lowpass', when: 0.85 });
     });
-    this.slotBig();
+  }
+  // 数え上げの間：だんだん強くなるスネアのロールと、上がっていくうなり
+  jpRoll(dur = 3.2) {
+    this.sample(`jpRoll${dur}`, dur + 0.1, () => {
+      for (let t = 0; t < dur; t += 0.04) this.noise(0.05, { vol: 0.05 + (t / dur) * 0.2, freq: 2200, q: 0.9, when: t });
+      this.tone(110, dur, { type: 'sawtooth', vol: 0.05, slide: 440, attack: 0.3 });
+      this.tone(220, dur, { type: 'square', vol: 0.025, slide: 880, attack: 0.3 });
+    });
+  }
+  // 額が決まった瞬間：金管の「タ・タ・タ・ターン」、ティンパニ、シンバル、鐘の駆け上がり
+  jpFanfare() {
+    this.sample('jpFanfare', 3.4, () => {
+      const stab = [[60, 64, 67, 72], [60, 64, 67, 72], [60, 64, 67, 72], [65, 69, 72, 77], [67, 71, 74, 79], [72, 76, 79, 84]];
+      const at = [0, 0.13, 0.26, 0.42, 0.62, 0.86];
+      stab.forEach((ch, i) => {
+        const last = i === stab.length - 1;
+        for (const n of ch) {
+          this.tone(mtof(n), last ? 2.2 : 0.12, { type: 'sawtooth', vol: last ? 0.05 : 0.06, when: at[i] });
+          this.tone(mtof(n - 12), last ? 2.2 : 0.12, { type: 'square', vol: 0.03, when: at[i] });
+        }
+        this.tone(last ? 65 : 98, last ? 1.4 : 0.25, { type: 'sine', vol: last ? 0.35 : 0.22, slide: last ? 40 : 70, when: at[i] });
+      });
+      this.noise(2.4, { vol: 0.22, freq: 7500, type: 'highpass', when: 0.86 });
+      this.noise(0.5, { vol: 0.2, freq: 4000, q: 0.7, when: 0.86 });
+      [84, 88, 91, 96, 100, 103, 108, 112].forEach((n, i) => this.tone(mtof(n), 0.6, { type: 'sine', vol: 0.07, when: 1.0 + i * 0.07 }));
+    });
+  }
+  // 花火：打ち上げの笛と破裂、はぜる音
+  jpPop() {
+    if (!this.throttle('jpPop', 250)) return;
+    const k = Math.floor(Math.random() * 3);
+    this.sample(`jpPop${k}`, 1.2, () => {
+      this.tone(900 + k * 200, 0.3, { type: 'sine', vol: 0.03, slide: 2600 + k * 300 });
+      this.noise(0.5, { vol: 0.28, freq: 1800, slide: 200, q: 0.6, type: 'lowpass', when: 0.3 });
+      for (let i = 0; i < 9; i++) this.noise(0.03, { vol: 0.08, freq: 5000 + Math.random() * 4000, q: 4, when: 0.45 + i * 0.06 + Math.random() * 0.03 });
+    });
   }
 
   // ------------------------------------------------------------------ BGM
