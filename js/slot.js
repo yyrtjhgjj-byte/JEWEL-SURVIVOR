@@ -133,7 +133,7 @@ export function showSlot(back) {
       <div class="panel sl-pay"><div class="sl-ph">払い戻し（1 列に 3 つ。横 3 本・斜め 2 本）</div><div id="slpay"></div>
         <p class="sl-note">フィーバーは ${SLOT_FEVER.spins} 回ただで回せて、払い戻しが ${SLOT_FEVER.mul} 倍。ジャックポットは積み立て × 賭け金 ÷ ${fmt(SLOT_BETS[SLOT_BETS.length - 1])}（いちばん高い賭けで全額）と秘石。</p></div>
       <div class="dock sl-dock">
-        <div class="sl-bets" id="slbets">${SLOT_BETS.map((b, i) => `<button class="btn small sl-bet" data-i="${i}">${b >= 1e6 ? `${b / 1e6}00万` : `${b / 1e4}万`}</button>`).join('')}</div>
+        <div class="sl-bets" id="slbets">${SLOT_BETS.map((b, i) => `<button class="btn small sl-bet" data-i="${i}">${b >= 1e6 ? `${b / 1e6}M` : `${b / 1e3}K`}</button>`).join('')}</div>
         <div class="sl-go"><button class="btn small sl-ten" id="slten">10 回</button><button class="btn big primary" id="slgo">SPIN</button></div>
       </div>
     </div>`);
