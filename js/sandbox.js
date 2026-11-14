@@ -1,13 +1,14 @@
 // 宝石の砂場：宝石をたくさん出して、かき混ぜたり はじいたりして遊ぶだけの画面（3D）
-// 形は gem-gl.js のカット（平面の集合）から多面体を作り、WebGL2 のインスタンス描画でまとめて描く。
-// 光り方は光線追跡の簡易版（表の反射＋中で 2 回跳ね返る光を波長ごとに屈折させてファイア）。
+// 宝石はアイコンと同じ光線追跡（gem-gl.js の FS_TRACE）で描く。1 つずつ画面に向けた四角を置き、
+// その中でカメラからの光線を宝石の向きに直して追いかけ、当たった深さを書き込む（重なりも正しく隠れる）。
+// 仕上げにアイコンと同じにじみと十字のきらめき（FS_POST）。
 // 物理は位置ベース（PBD）の球。床と壁のある箱の中で転がり、止まりかけると平らな面を上か下に向けて寝る。
 import { save } from './save.js';
 import { audio } from './audio.js';
 import { show, el, $, topbar, toast } from './ui.js';
 import { gemIcon } from './render.js';
 import { GEMS } from './data.js';
-import { CUTS, GEM_LOOK } from './gem-gl.js';
+import { GEM_LOOK, FS_TRACE, FS_POST, NW, applyLook } from './gem-gl.js';
 
 const IDS = Object.keys(GEMS);
 const SIZES = { s: 0.3, m: 0.46, l: 0.7 };
@@ -21,7 +22,7 @@ const FINGER = 1.3;
 // 選んだもの（画面を開き直しても残す。保存はしない）
 const pick = { tool: 'pour', gem: 'random', size: 'm', grav: 'down' };
 
-// ---------------------------------------------------------------- 形
+// ---------------------------------------------------------------- ベクトル
 const v3 = {
   sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
   add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
@@ -30,83 +31,6 @@ const v3 = {
   cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
   norm: (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
 };
-const basis = (n) => { const u = v3.norm(v3.cross(n, Math.abs(n[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0])); return [u, v3.cross(n, u)]; };
-// 平面の集合（n・p <= d の側を残す）を切り取った凸多面体。面ごとに平らな法線
-function hullMesh(planes) {
-  const B = 4;
-  let faces = [];
-  for (const n of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
-    const [u, v] = basis(n), c = v3.mul(n, B);
-    faces.push({ n, pts: [[1, 1], [-1, 1], [-1, -1], [1, -1]].map(([a, b]) => v3.add(c, v3.add(v3.mul(u, a * B), v3.mul(v, b * B)))) });
-  }
-  for (const P of planes) {
-    const n = v3.norm([P[0], P[1], P[2]]), d = P[3] / Math.hypot(P[0], P[1], P[2]);
-    const out = [], cut = [];
-    for (const f of faces) {
-      const res = [], pts = f.pts;
-      for (let i = 0; i < pts.length; i++) {
-        const a = pts[i], b = pts[(i + 1) % pts.length], da = v3.dot(a, n) - d, db = v3.dot(b, n) - d;
-        if (da <= 1e-9) res.push(a);
-        if ((da <= 1e-9) !== (db <= 1e-9)) { const p = v3.add(a, v3.mul(v3.sub(b, a), da / (da - db))); res.push(p); cut.push(p); }
-      }
-      if (res.length >= 3) out.push({ n: f.n, pts: res });
-    }
-    if (cut.length >= 3) {
-      const c = v3.mul(cut.reduce((s, p) => v3.add(s, p), [0, 0, 0]), 1 / cut.length), [u, v] = basis(n);
-      const ang = (p) => Math.atan2(v3.dot(v3.sub(p, c), v), v3.dot(v3.sub(p, c), u));
-      cut.sort((a, b) => ang(a) - ang(b));
-      const cap = cut.filter((p, i) => i === 0 || Math.hypot(...v3.sub(p, cut[i - 1])) > 1e-6);
-      if (cap.length >= 3) out.push({ n, pts: cap });
-    }
-    faces = out;
-  }
-  let R = 0;
-  for (const f of faces) for (const p of f.pts) R = Math.max(R, Math.hypot(...p));
-  const pos = [], nrm = [];
-  for (const f of faces) {
-    for (let i = 1; i + 1 < f.pts.length; i++) {
-      for (const p of [f.pts[0], f.pts[i], f.pts[i + 1]]) { pos.push(p[0] / R, p[1] / R, p[2] / R); nrm.push(...f.n); }
-    }
-  }
-  return { pos: new Float32Array(pos), nrm: new Float32Array(nrm) };
-}
-// 丸い石：楕円体（full でなければ上半分と平らな底）。lump で表面を少しでこぼこに
-function domeMesh(a, b, h, full, lump = 0) {
-  const NT = full ? 14 : 8, NP = 22, tri = [], z0 = full ? 0 : -h * 0.35;
-  const P = (t, p) => {
-    const th = (t / NT) * (full ? Math.PI : Math.PI / 2), ph = (p / NP) * Math.PI * 2;
-    let x = a * Math.sin(th) * Math.cos(ph), y = b * Math.sin(th) * Math.sin(ph), z = h * Math.cos(th);
-    if (lump) { const k = 1 + lump * (Math.sin(ph * 3 + th * 2) * 0.5 + Math.sin(ph * 5 - th * 3) * 0.3); x *= k; y *= k; z *= k; }
-    return { p: [x, y, z + z0], n: v3.norm([x / (a * a), y / (b * b), z / (h * h)]) };
-  };
-  for (let t = 0; t < NT; t++) for (let p = 0; p < NP; p++) {
-    const q00 = P(t, p), q01 = P(t, p + 1), q10 = P(t + 1, p), q11 = P(t + 1, p + 1);
-    tri.push(q00, q10, q11, q00, q11, q01);
-  }
-  if (!full) for (let p = 0; p < NP; p++) {
-    const q0 = P(NT, p), q1 = P(NT, p + 1), c = { p: [0, 0, z0], n: [0, 0, -1] };
-    tri.push({ p: q0.p, n: [0, 0, -1] }, c, { p: q1.p, n: [0, 0, -1] });
-  }
-  let R = 0;
-  for (const q of tri) R = Math.max(R, Math.hypot(...q.p));
-  return { pos: new Float32Array(tri.flatMap((q) => q.p.map((x) => x / R))), nrm: new Float32Array(tri.flatMap((q) => q.n)) };
-}
-const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((x) => Math.pow(x / 255, 2.2)); };
-// 宝石ごとの形と材質（mode 0 透明・1 丸い石・2 カットした不透明・3 磨いた石）
-function material(id) {
-  const L = GEM_LOOK[id] || { mode: 'cab', cut: 'cab', kind: 99 };
-  const m = { id, base: hex(GEMS[id].color), kind: L.kind == null ? 99 : L.kind, ior: L.ior || L.ri || 1.55, disp: L.disp || 0.012, tint: L.t || [1, 1, 1], d: L.d || 1, fog: L.fogD ? 0.55 : 0, fogC: L.fog || [1, 1, 1] };
-  if (L.mode === 'trace') { m.mode = 0; m.mesh = hullMesh(CUTS[L.cut]()); }
-  else if (L.mode === 'facet') { m.mode = 2; m.mesh = hullMesh(CUTS[L.cut]()); }
-  else if (L.mode === 'tumble') { m.mode = 3; m.mesh = domeMesh(1, 0.82, 0.64, true, 0.06); }
-  else {
-    m.mode = 1;
-    m.mesh = L.cut === 'sphere' ? domeMesh(1, 1, 1, true) : L.cut === 'cabOval' ? domeMesh(1, 0.74, 0.52, false) : domeMesh(1, 1, 0.56, false);
-  }
-  if (id === 'diamond') m.boost = 1.25;
-  return m;
-}
-
 // ---------------------------------------------------------------- 行列（列優先）
 const M4 = {
   persp(fy, asp, n, f) { const t = 1 / Math.tan(fy / 2); return new Float32Array([t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) / (n - f), -1, 0, 0, (2 * f * n) / (n - f), 0]); },
@@ -131,86 +55,61 @@ const M4 = {
 };
 
 // ---------------------------------------------------------------- シェーダー
+// 宝石：画面に向けた四角（宝石を囲む球が収まる大きさ）
 const VS_GEM = `#version 300 es
-layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNrm;
-layout(location=2) in vec4 iPS; layout(location=3) in vec4 iQ; layout(location=4) in float iSeed;
-uniform mat4 uVP;
-out vec3 vW; out vec3 vN; out vec3 vOP; flat out vec3 vON; flat out float vSeed;
+layout(location=0) in vec2 aQ;
+layout(location=2) in vec4 iPS; layout(location=3) in vec4 iQ;
+uniform mat4 uVP; uniform vec3 uEye;
+out vec3 vW; flat out vec3 vCen; flat out float vS; flat out vec4 vQ;
+void main() {
+  float R = iPS.w * 1.25;
+  vec3 f = normalize(uEye - iPS.xyz), r = normalize(cross(vec3(0, 1, 0), f)), u = cross(f, r);
+  float d = length(uEye - iPS.xyz), k = d / sqrt(max(d * d - R * R, 1e-3));
+  vW = iPS.xyz + (r * aQ.x + u * aQ.y) * R * k;
+  vCen = iPS.xyz; vS = iPS.w; vQ = iQ;
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+// 光線追跡の本体はアイコンと同じもの。uR（宝石 → 照明の向き）を宝石ごとに作り、当たった距離 gTin を残すように書き換える
+const FS_GEM = (() => {
+  let s = FS_TRACE.slice(0, FS_TRACE.indexOf('\nvoid main(){'));
+  const rep = (a, b) => { if (!s.includes(a)) throw new Error('sandbox shader: ' + a); s = s.replace(a, b); };
+  rep('uniform mat3 uR;', 'mat3 uR; float gTin;');
+  rep('  hit = true;\n', '  hit = true; gTin = tin;\n');
+  rep('float t = (-qb - sqrt(disc)) / (2. * qa); vec3 h = ro + rd * t, n;', 'float t = (-qb - sqrt(disc)) / (2. * qa); vec3 h = ro + rd * t, n; gTin = t;');
+  rep('    h = ro + rd * (-ro.z / rd.z);', '    gTin = -ro.z / rd.z; h = ro + rd * gTin;');
+  rep('  vec3 p = ro + rd * tin, n = uP[ni].xyz;\n  return vec4(uKind', '  vec3 p = ro + rd * tin, n = uP[ni].xyz; gTin = tin;\n  return vec4(uKind');
+  rep('  vec3 p = ro + rd * t; vec2 e = vec2(1e-3, -1e-3);', '  vec3 p = ro + rd * t; vec2 e = vec2(1e-3, -1e-3); gTin = t;');
+  return s + `
+in vec3 vW; flat in vec3 vCen; flat in float vS; flat in vec4 vQ;
+uniform vec3 uEye; uniform mat3 uView; uniform mat4 uVP;
 vec3 qrot(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
-void main() {
-  vec3 p = qrot(iQ, aPos) * iPS.w + iPS.xyz;
-  vW = p; vN = qrot(iQ, aNrm); vOP = aPos; vON = aNrm; vSeed = iSeed;
-  gl_Position = uVP * vec4(p, 1.0);
-}`;
-const FS_GEM = `#version 300 es
-precision highp float;
-in vec3 vW; in vec3 vN; in vec3 vOP; flat in vec3 vON; flat in float vSeed;
-uniform vec3 uCam; uniform int uMode; uniform int uKind;
-uniform vec3 uTint; uniform float uD; uniform float uIor; uniform float uDisp; uniform vec3 uBase; uniform float uFog; uniform vec3 uFogC; uniform float uBoost; uniform bool uLite;
-uniform vec4 uL[12]; uniform vec3 uLc[12];
-out vec4 o;
-vec3 env(vec3 d) {
-  vec3 c = mix(vec3(0.012, 0.011, 0.016), vec3(0.07, 0.07, 0.09), smoothstep(-0.3, 1.0, d.y));
-  for (int i = 0; i < 12; i++) c += uLc[i] * exp(uL[i].w * (dot(d, uL[i].xyz) - 1.0));
-  return c;
-}
-float h1(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
-vec3 h3(vec3 p) { return vec3(h1(p), h1(p + 17.1), h1(p + 31.7)) * 2.0 - 1.0; }
-float vn(vec3 p) {
-  vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(mix(h1(i), h1(i + vec3(1, 0, 0)), f.x), mix(h1(i + vec3(0, 1, 0)), h1(i + vec3(1, 1, 0)), f.x), f.y),
-             mix(mix(h1(i + vec3(0, 0, 1)), h1(i + vec3(1, 0, 1)), f.x), mix(h1(i + vec3(0, 1, 1)), h1(i + vec3(1, 1, 1)), f.x), f.y), f.z);
-}
-vec3 hue(float t) { return clamp(abs(fract(t + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0, 0.0, 1.0); }
-void main() {
-  vec3 N = normalize(vN), V = normalize(uCam - vW);
-  float c = clamp(dot(N, V), 0.0, 1.0);
-  vec3 key = normalize(vec3(-0.35, 1.0, 0.45)), fill = normalize(vec3(0.6, 0.5, -0.3));
-  float diff = 0.22 + 0.85 * max(dot(N, key), 0.0) + 0.25 * max(dot(N, fill), 0.0);
-  vec3 col;
+void main(){
+  vec3 rdW = normalize(vW - uEye);
+  vec4 qi = vec4(-vQ.xyz, vQ.w);
+  vec3 ro = qrot(qi, uEye - vCen) / vS, rd = qrot(qi, rdW);
+  uR = uView * mat3(qrot(vQ, vec3(1, 0, 0)), qrot(vQ, vec3(0, 1, 0)), qrot(vQ, vec3(0, 0, 1)));
+  vec3 c = vec3(0); bool hit = false; gTin = 0.;
   if (uMode == 0) {
-    float f0 = pow((uIor - 1.0) / (uIor + 1.0), 2.0), F = f0 + (1.0 - f0) * pow(1.0 - c, 5.0);
-    vec3 refl = env(reflect(-V, N));
-    vec3 k = floor(vON * 40.0) + vSeed;
-    vec3 a1 = normalize(-N + 0.95 * h3(k)), a2 = normalize(0.3 * N + 0.95 * h3(k + 5.3));
-    // 中で 2 回跳ね返る光。2 回目は波長ごとに屈折率を変えてファイア（軽量化のときは 1 本）
-    vec3 r = refract(-V, N, 1.0 / uIor), r2 = reflect(r, a1);
-    vec3 body = env(r2) * 0.4;
-    if (uLite) body += env(reflect(r2, a2)) * 0.6;
-    else for (int j = 0; j < 3; j++) {
-      vec3 rj = reflect(reflect(refract(-V, N, 1.0 / (uIor + uDisp * float(j - 1) * 2.4)), a1), a2);
-      body[j] += env(rj)[j] * 0.6;
+    vec3 ws = vec3(0);
+    for (int w = 0; w < 16; w++) {
+      if (w >= uNW) break;
+      float s = (float(w) + .5) / float(uNW), lm = (700. - 300. * s) * .001;
+      vec3 wc = wlRGB(s);
+      c += trace(ro, rd, rd, uCau.x + uCau.y / (lm * lm), hit) * wc; ws += wc;
+      if (!hit) break;
     }
-    body *= pow(uTint, vec3(uD * 1.5)) * 2.0 * uBoost;
-    if (uFog > 0.0) body = mix(body, uFogC * diff * 0.55, uFog);
-    col = refl * F + body * (1.0 - F);
-  } else if (uMode == 1) {
-    vec3 P = vOP, base = uBase;
-    float n1 = vn(P * 4.0 + vSeed * 7.0);
-    if (uKind == 0) { base = vec3(0.62, 0.62, 0.68); float m = smoothstep(0.4, 0.75, vn(P * 5.0 + 3.0 + vSeed)); base += hue(vn(P * 3.0 + vSeed) * 2.0 + c * 0.7) * 0.75 * m; }
-    else if (uKind == 1) { base = vec3(0.55, 0.57, 0.62); base += vec3(0.3, 0.5, 1.0) * pow(c, 5.0) * 0.9; }
-    else if (uKind == 2) { base = vec3(0.07, 0.08, 0.085); float fl = smoothstep(0.7, 0.97, dot(N, normalize(vec3(0.2, 1.0, 0.5)))); base += mix(vec3(0.08, 0.4, 0.9), vec3(0.2, 0.9, 0.5), n1) * fl * 1.6; }
-    else if (uKind == 3) { float v = smoothstep(0.05, 0.0, abs(vn(P * 5.0 + vSeed) - 0.5)); base = mix(base, vec3(0.08, 0.06, 0.05), v * 0.8); }
-    else if (uKind == 5 || uKind == 12) { float b = 0.5 + 0.5 * sin(length(P.xy + vec2(0.37, 0.21)) * (uKind == 12 ? 30.0 : 22.0) + n1 * 3.0); base *= mix(0.4, 1.15, b); }
-    else if (uKind == 6) { base *= 0.55 + 0.8 * n1; }
-    else if (uKind == 4) { base *= 0.8 + 0.3 * n1; base += vec3(0.5, 0.25, 0.0) * pow(c, 3.0) * 0.4; }
-    else base *= 0.8 + 0.35 * n1;
-    float F = 0.04 + 0.96 * pow(1.0 - c, 5.0);
-    col = base * diff + env(reflect(-V, N)) * mix(0.05, 0.9, F) * 0.55;
-  } else if (uMode == 2) {
-    vec3 base = uKind == 0 ? vec3(0.03, 0.02, 0.04) : vec3(0.03);
-    float F = 0.06 + 0.94 * pow(1.0 - c, 5.0);
-    col = base * diff + env(reflect(-V, N)) * mix(0.12, 1.0, F) * (uKind == 0 ? 0.5 : 0.3);
-    if (uKind == 0) col += vec3(0.25, 0.1, 0.4) * pow(c, 6.0) * 0.25;
-  } else {
-    vec3 base = uBase * mix(0.45, 1.15, step(0.55, vn(vOP * 16.0 + vSeed)));
-    base = mix(base, vec3(0.05), step(0.82, vn(vOP * 23.0 - vSeed)));
-    float F = 0.04 + 0.96 * pow(1.0 - c, 5.0);
-    col = base * diff + env(reflect(-V, N)) * mix(0.04, 0.8, F) * 0.4;
-  }
-  col = 1.0 - exp(-col * 1.15);
-  o = vec4(pow(col, vec3(1.0 / 2.2)), 1.0);
+    if (!hit) discard;
+    c /= ws;
+  } else { vec4 r = uMode == 1 ? cab(ro, rd) : uMode == 2 ? facet(ro, rd) : tumble(ro, rd); if (r.a < .5) discard; c = r.rgb; }
+  vec4 cp = uVP * vec4(uEye + rdW * gTin * vS, 1.);
+  gl_FragDepth = cp.z / cp.w * .5 + .5;
+  o = vec4(srgb(aces(c * uExp)), 1.);
 }`;
+})();
+// 仕上げ：アイコンと同じにじみと十字（長さは画面の解像度ではなく uK で決める）
+const FS_GLOW = FS_POST.replace(/min\(uRes\.x, uRes\.y\) \/ 520\./g, 'uK').replace('uniform float uBloom, uStar;', 'uniform float uBloom, uStar, uK;');
+const VS_FULL = `#version 300 es
+layout(location=0) in vec2 a; void main() { gl_Position = vec4(a, 0.0, 1.0); }`;
 const VS_FLAT = `#version 300 es
 layout(location=0) in vec3 aPos; uniform mat4 uVP; out vec3 vW;
 void main() { vW = aPos; gl_Position = uVP * vec4(aPos, 1.0); }`;
@@ -231,16 +130,6 @@ void main() { vQ = aQ; vA = iS.w; gl_Position = uVP * vec4(iS.x + aQ.x * iS.z, 0
 const FS_SH = `#version 300 es
 precision highp float; in vec2 vQ; in float vA; out vec4 o;
 void main() { float d = length(vQ); o = vec4(0.0, 0.0, 0.0, vA * pow(max(0.0, 1.0 - d), 1.6)); }`;
-
-// 照明：大きなやわらかい光 3 つと、上の輪に並ぶ小さく鋭い光 6 つ（ファイアのきらめき）
-const LIGHTS = (() => {
-  const out = [];
-  const add = (az, el, k, I, col = [1, 0.97, 0.93]) => { const a = (az * Math.PI) / 180, e = (el * Math.PI) / 180; out.push({ d: [Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)], k, c: col.map((x) => x * I) }); };
-  add(-30, 60, 14, 2.2); add(40, 42, 10, 1.4, [0.92, 0.96, 1]); add(180, 30, 8, 0.8, [1, 0.92, 0.85]);
-  for (let i = 0; i < 6; i++) add(i * 60 + 15, 72, 900, 40);
-  for (let i = 0; i < 3; i++) add(i * 120 + 75, 34, 1200, 30);
-  return out;
-})();
 
 function compile(gl, vs, fs) {
   const sh = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; };
@@ -316,28 +205,53 @@ export function showSandbox(back) {
   if (pick.grav === 'tilt') window.addEventListener('deviceorientation', onTilt);
 
   // ---------------------------------------------------------------- GL の準備
-  const progGem = compile(gl, VS_GEM, FS_GEM), progFlat = compile(gl, VS_FLAT, FS_FLAT), progSh = compile(gl, VS_SH, FS_SH);
-  const STRIDE = 9;
+  const progGem = compile(gl, VS_GEM, FS_GEM), progFlat = compile(gl, VS_FLAT, FS_FLAT), progSh = compile(gl, VS_SH, FS_SH), progGlow = compile(gl, VS_FULL, FS_GLOW);
+  const STRIDE = 8;
+  const quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]), gl.STATIC_DRAW);
   const types = IDS.map((id) => {
-    const m = material(id);
+    const g = GEM_LOOK[id];
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
-    const vb = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vb);
-    const nv = m.mesh.pos.length / 3, inter = new Float32Array(nv * 6);
-    for (let i = 0; i < nv; i++) { inter.set(m.mesh.pos.subarray(i * 3, i * 3 + 3), i * 6); inter.set(m.mesh.nrm.subarray(i * 3, i * 3 + 3), i * 6 + 3); }
-    gl.bufferData(gl.ARRAY_BUFFER, inter, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
-    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     const ib = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, ib);
     gl.bufferData(gl.ARRAY_BUFFER, MAX * STRIDE * 4, gl.DYNAMIC_DRAW);
-    for (const [loc, size, off] of [[2, 4, 0], [3, 4, 16], [4, 1, 32]]) {
-      gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, STRIDE * 4, off); gl.vertexAttribDivisor(loc, 1);
+    for (const [loc, off] of [[2, 0], [3, 16]]) {
+      gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, STRIDE * 4, off); gl.vertexAttribDivisor(loc, 1);
     }
     gl.bindVertexArray(null);
-    return { ...m, vao, ib, verts: nv, data: new Float32Array(MAX * STRIDE), cnt: 0 };
+    const exp = (g && g.exp) || 1.2;
+    return { id, vao, ib, exp: g && g.mode === 'trace' ? exp : exp / 1.2, data: new Float32Array(MAX * STRIDE), cnt: 0 };
   });
+  // 全面の三角形（仕上げ用）
+  const fullVao = gl.createVertexArray();
+  gl.bindVertexArray(fullVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  gl.bindVertexArray(null);
+  // いったん描く先（色と深さ）
+  const fbo = gl.createFramebuffer(), ftex = gl.createTexture(), fdep = gl.createRenderbuffer();
+  let fw = 0, fh = 0;
+  const fit = () => {
+    if (fw === cv.width && fh === cv.height) return;
+    fw = cv.width; fh = cv.height;
+    gl.bindTexture(gl.TEXTURE_2D, ftex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, fw, fh, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, fdep);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, fw, fh);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ftex, 0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, fdep);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  };
   const typeOf = Object.fromEntries(IDS.map((id, i) => [id, i]));
   // 床と壁（手前の壁は描かない）
   const room = (() => {
@@ -362,11 +276,9 @@ export function showSandbox(back) {
     gl.bindVertexArray(null);
     return { vao, ib, data: new Float32Array(MAX * 4) };
   })();
-  const LD = new Float32Array(LIGHTS.length * 4), LC = new Float32Array(LIGHTS.length * 3);
-  LIGHTS.forEach((l, i) => { LD.set([...l.d, l.k], i * 4); LC.set(l.c, i * 3); });
 
   // ---------------------------------------------------------------- 大きさとカメラ
-  let W = 1, H = 1, dpr = 1, VP = null, IVP = null, eye = [0, 0, 0];
+  let W = 1, H = 1, dpr = 1, VP = null, IVP = null, VIEW3 = null, eye = [0, 0, 0];
   const resize = () => {
     const r = stage.getBoundingClientRect();
     if (!r.width || !r.height) return;
@@ -379,7 +291,9 @@ export function showSandbox(back) {
     const dist = fit / Math.tan(fov / 2);
     const el0 = (58 * Math.PI) / 180;
     eye = [0, Math.sin(el0) * dist, Math.cos(el0) * dist + 0.4];
-    VP = M4.mul(M4.persp(fov, asp, 0.5, 200), M4.look(eye, [0, 0.3, 0.55], [0, 1, 0]));
+    const V = M4.look(eye, [0, 0.3, 0.55], [0, 1, 0]);
+    VIEW3 = new Float32Array([V[0], V[1], V[2], V[4], V[5], V[6], V[8], V[9], V[10]]);
+    VP = M4.mul(M4.persp(fov, asp, 0.5, 200), V);
     IVP = M4.inv(VP);
   };
   resize();
@@ -603,6 +517,8 @@ export function showSandbox(back) {
 
   // ---------------------------------------------------------------- 描画
   function draw() {
+    fit();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
     gl.viewport(0, 0, cv.width, cv.height);
     gl.clearColor(0.02, 0.02, 0.03, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -637,25 +553,37 @@ export function showSandbox(back) {
     for (let i = 0; i < n; i++) {
       const t = types[T[i]], o = t.cnt++ * STRIDE, j = i * 3, q = i * 4, D = t.data;
       D[o] = X[j]; D[o + 1] = X[j + 1]; D[o + 2] = X[j + 2]; D[o + 3] = S[i];
-      D[o + 4] = Q[q]; D[o + 5] = Q[q + 1]; D[o + 6] = Q[q + 2]; D[o + 7] = Q[q + 3]; D[o + 8] = SEED[i];
+      D[o + 4] = Q[q]; D[o + 5] = Q[q + 1]; D[o + 6] = Q[q + 2]; D[o + 7] = Q[q + 3];
     }
     gl.useProgram(progGem.p);
     const u = progGem.u;
     gl.uniformMatrix4fv(u.uVP, false, VP);
-    gl.uniform3fv(u.uCam, eye);
-    gl.uniform4fv(u.uL, LD); gl.uniform3fv(u.uLc, LC);
-    gl.uniform1i(u.uLite, lite ? 1 : 0);
-    gl.enable(gl.CULL_FACE);
+    gl.uniformMatrix3fv(u.uView, false, VIEW3);
+    gl.uniform3fv(u.uEye, eye);
+    gl.uniform1i(u.uNW, lite ? 2 : NW);
     for (const t of types) {
       if (!t.cnt) continue;
-      gl.uniform1i(u.uMode, t.mode); gl.uniform1i(u.uKind, t.kind);
-      gl.uniform3fv(u.uTint, t.tint); gl.uniform1f(u.uD, t.d); gl.uniform1f(u.uIor, t.ior); gl.uniform1f(u.uDisp, t.disp);
-      gl.uniform3fv(u.uBase, t.base); gl.uniform1f(u.uFog, t.fog); gl.uniform3fv(u.uFogC, t.fogC); gl.uniform1f(u.uBoost, t.boost || 1);
+      applyLook(gl, u, t.id);
+      gl.uniform1f(u.uExp, t.exp);
       gl.bindVertexArray(t.vao);
       gl.bindBuffer(gl.ARRAY_BUFFER, t.ib);
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, t.data, 0, t.cnt * STRIDE);
-      gl.drawArraysInstanced(gl.TRIANGLES, 0, t.verts, t.cnt);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, t.cnt);
     }
+    // 仕上げ：にじみと十字のきらめきを足して画面へ
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, cv.width, cv.height);
+    gl.disable(gl.DEPTH_TEST);
+    gl.useProgram(progGlow.p);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, ftex);
+    gl.uniform1i(progGlow.u.uT, 0);
+    gl.uniform2f(progGlow.u.uRes, cv.width, cv.height);
+    gl.uniform1f(progGlow.u.uBloom, 0.6);
+    gl.uniform1f(progGlow.u.uStar, 0.6);
+    gl.uniform1f(progGlow.u.uK, dpr * 0.5);
+    gl.bindVertexArray(fullVao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindVertexArray(null);
     // きらめきと指の輪（2D を重ねる）
     octx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -693,7 +621,7 @@ export function showSandbox(back) {
     raf = requestAnimationFrame(loop);
     const dt = Math.min(0.04, (now - last) / 1000);
     last = now;
-    if (W > 1 && VP) {
+    if (W > 1 && VP && !perf.pause) {
       const t0 = performance.now();
       // 多いときは 1 回にまとめる（そのぶんぶつかりの解き直しを増やす）
       const sub = n > 500 ? 1 : 2;
