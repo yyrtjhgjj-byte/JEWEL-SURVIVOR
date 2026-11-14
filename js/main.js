@@ -538,7 +538,7 @@ const crashed = initDiag(() => {
     info.run = {
       stage: g.stage.id, time: Math.round(g.time), heat: g.heat, endless: g.endless, hyper: g.hyper, chaos: g.chaos, state: g.state, level: g.level,
       enemies: g.enemies.length, projs: g.projs.length, bullets: g.ebullets.length, pickups: g.pickups.length, parts: g.fx.parts.length,
-      areas: g.areas.length, quality: g.quality || 0, lite: !!save.settings.lite, fps: Math.round(1 / (g.frameAvg || 1 / 60)),
+      areas: g.areas.length, quality: g.quality || 0, lite: save.settings.ultra && save.settings.lite ? 'ultra' : !!save.settings.lite, fps: Math.round(1 / (g.frameAvg || 1 / 60)),
       boss: g.boss && g.boss.alive ? g.boss.type : null, auto: g.autoOn,
       weapons: g.weapons.map((w) => w.id + (w.evolved ? '*' : w.level)).join(','),
     };
