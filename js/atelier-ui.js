@@ -12,7 +12,7 @@ import {
   mastery, nextMilestone, collectionStats, gemBonusText, statText, nextGem, rollCarat, applyPolish, autoGrade,
   collectionCount, pickRoughs, pickKey,
 } from './atelier.js';
-import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast } from './ui.js';
+import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast, openSheet } from './ui.js';
 import { showHub } from './menu.js';
 import { mountLiveGem, liveGemOk } from './gem-gl.js';
 import { openGemView, LOUPE } from './gem-view.js';
@@ -62,7 +62,8 @@ function reopen(tab) {
 function renderPolish(box) {
   box.innerHTML = '';
   // チュートリアル：一度も開いていなければ枠を虹色に光らせる
-  const tut = el(`<button class="btn tut-btn ${save.seen.polishTut ? '' : 'fresh'}">TUTORIAL<span class="sub">研磨のチュートリアル</span></button>`);
+  // 一度開いたあとは小さな行にする
+  const tut = el(save.seen.polishTut ? '<button class="chip tut-chip">TUTORIAL　研磨の練習</button>' : '<button class="btn tut-btn fresh">TUTORIAL<span class="sub">研磨のチュートリアル</span></button>');
   tut.onclick = () => {
     audio.select();
     save.seen.polishTut = true;
@@ -70,22 +71,18 @@ function renderPolish(box) {
     startPolish('shard', true);
   };
   box.appendChild(tut);
-  const list = el('<div class="rough-list"></div>');
+  const list = el('<div class="lrows"></div>');
   for (const t of ROUGH_IDS) {
     const R = ROUGH[t];
     const n = save.rough[t] || 0;
     const can = n > 0 && save.coins >= R.cost;
     const bulk = Math.min(n, Math.floor(save.coins / R.cost));
-    const row = el(`<div class="rough-item ${n ? '' : 'none'}">
-      <img src="${roughIcon(t, R.color, 72)}">
-      <div class="rbody">
-        <div class="rname">${R.name}<small>×${n}</small></div>
-        <div class="rdesc">${R.ct[0]}〜${R.ct[1]}ct ／ 研磨 ${R.facets} 面 ／ <i class="coin-ico"></i>${fmt(R.cost)}</div>
-      </div>
-      <div class="rbtns2">
-        <button class="btn small gold" data-a="play" ${can ? '' : 'disabled'}>研磨</button>
-        <button class="btn small" data-a="auto" ${bulk > 0 ? '' : 'disabled'}>自動${bulk > 1 ? ` ×${bulk}` : ''}</button>
-      </div>
+    const row = el(`<div class="lrow rough-row ${n ? '' : 'off'}">
+      <img class="lr-ico" src="${roughIcon(t, R.color, 72)}" alt="">
+      <div class="lr-mid"><div class="lr-line"><b class="lr-name">${R.name}</b><small class="lr-lv">×${n}</small></div>
+        <div class="lr-line"><span class="lr-sub">${R.ct[0]}〜${R.ct[1]}ct ・ ${R.facets} 面 ・ <i class="coin-ico"></i>${fmt(R.cost)}</span></div></div>
+      <button class="lbtn gold" data-a="play" ${can ? '' : 'disabled'}>研磨</button>
+      <button class="lbtn" data-a="auto" ${bulk > 0 ? '' : 'disabled'}>自動${bulk > 1 ? ` ×${bulk}` : ''}</button>
     </div>`);
     $('[data-a=play]', row).onclick = () => { audio.select(); startPolish(t); };
     $('[data-a=auto]', row).onclick = () => { audio.tap(); autoPolish(t, bulk, box); };
@@ -96,28 +93,20 @@ function renderPolish(box) {
   const picks = pickRoughs();
   if (picks.length) {
     box.appendChild(el('<div class="label pick-label">選んだ原石</div>'));
-    const pl = el('<div class="rough-list"></div>');
+    const pl = el('<div class="lrows"></div>');
     for (const { gem, tier, n } of picks) {
       const R = ROUGH[tier];
-      const row = el(`<div class="rough-item pick">
-        <img src="${gemIcon(gem, 72)}">
-        <div class="rbody">
-          <div class="rname">${GEMS[gem].jp}の${R.name}<small>×${n}</small></div>
-          <div class="rdesc">${R.ct[0]}〜${R.ct[1]}ct ／ 研磨 ${R.facets} 面 ／ <i class="coin-ico"></i>${fmt(R.cost)}</div>
-        </div>
-        <div class="rbtns2"><button class="btn small gold" ${save.coins >= R.cost ? '' : 'disabled'}>研磨</button></div>
+      const row = el(`<div class="lrow rough-row pick">
+        <img class="lr-ico" src="${gemIcon(gem, 72)}" alt="">
+        <div class="lr-mid"><div class="lr-line"><b class="lr-name">${GEMS[gem].jp}の${R.name}</b><small class="lr-lv">×${n}</small></div>
+          <div class="lr-line"><span class="lr-sub">${R.ct[0]}〜${R.ct[1]}ct ・ ${R.facets} 面 ・ <i class="coin-ico"></i>${fmt(R.cost)}</span></div></div>
+        <button class="lbtn gold" ${save.coins >= R.cost ? '' : 'disabled'}>研磨</button>
       </div>`);
       $('button', row).onclick = () => { audio.select(); startPolish(tier, false, gem); };
       pl.appendChild(row);
     }
     box.appendChild(pl);
   }
-  box.appendChild(el(`<div class="at-note">
-    リングを回る針が光る面に重なった瞬間にタップすると研磨できます。精度が高いほど品質が上がります（C〜SS）。<br>
-    自動研磨はまとめて磨けますが、品質は C か B になります。<br>
-    原石はエリートやボスを倒すか、採掘で手に入ります。ステージやヒートが高いほど上位の原石が出やすくなります。<br>
-    交換所では、中身の宝石を選んだ原石と交換できます（自動研磨には使いません）。
-  </div>`));
 }
 
 // 一括の自動研磨
@@ -460,14 +449,24 @@ function reveal(res, score) {
 
 // ---------------------------------------------------------------- コレクションタブ
 
+// ボーナスの一覧をシートで出す（名前と値の 2 列）
+function bonusSheet(title, stats) {
+  const rows = Object.entries(stats).map(([k, v]) => {
+    const t = statText(k, v), m = t.match(/^(.*)\s(\S+)$/);
+    return `<div class="bs-kv"><span>${m ? m[1] : t}</span><b>${m ? m[2] : ''}</b></div>`;
+  }).join('');
+  openSheet(`<div class="bs-head"><div><div class="bs-name">${title}</div></div></div>
+    <div class="bs-body bs-grid">${rows || '<div class="bs-note">まだボーナスはありません</div>'}</div>
+    <div class="bs-acts"><button class="btn" data-close>閉じる</button></div>`);
+}
 function renderCollection(box) {
   box.innerHTML = '';
-  const bonus = collectionStats();
-  const bonusText = Object.entries(bonus).map(([k, v]) => statText(k, v)).join(' ／ ');
-  box.appendChild(el(`<div class="panel coll-sum">
+  const sum = el(`<div class="panel coll-sum">
     <div class="coll-count"><b>${collectionCount()}</b> / ${COLLECTION_IDS.length}<small>研磨数 ${fmt(save.stats.polished || 0)}</small></div>
-    <div class="coll-bonus">${bonusText || 'ボーナスなし'}</div>
-  </div>`));
+    <button class="chip" id="cbonus">練度のボーナス ›</button>
+  </div>`);
+  $('#cbonus', sum).onclick = () => { audio.tap(); bonusSheet('練度のボーナス', collectionStats()); };
+  box.appendChild(sum);
   const grid = el('<div class="coll-grid"></div>');
   for (const id of COLLECTION_IDS) {
     const rec = save.jewels[id];
@@ -554,8 +553,11 @@ function gemDetail(id) {
 // ---------------------------------------------------------------- 百獣
 function renderBeasts(box) {
   box.innerHTML = '';
-  const bonusText = Object.entries(beastStats()).map(([k, v]) => statText(k, v)).join(' ／ ');
-  box.appendChild(el(`<div class="panel coll-sum"><div class="coll-bonus">${bonusText || 'ボーナスなし'}</div></div>`));
+  const bs = beastStats();
+  const sum = el(`<div class="panel coll-sum"><div class="coll-count"><b>${BEAST_IDS.filter((id) => beastLevel(id)).length}</b> / ${BEAST_IDS.length}<small>召喚</small></div>
+    <button class="chip" id="bbonus">百獣のボーナス ›</button></div>`);
+  $('#bbonus', sum).onclick = () => { audio.tap(); bonusSheet('百獣のボーナス', bs); };
+  box.appendChild(sum);
   const grid = el('<div class="beast-grid"></div>');
   for (const id of BEAST_IDS) {
     const lv = beastLevel(id);
