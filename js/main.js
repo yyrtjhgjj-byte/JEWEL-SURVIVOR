@@ -12,6 +12,7 @@ import { ARTIFACTS } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, stageTag, rushStep } from './stages.js';
 import { gemSprite, starSprite, backgroundTile, clearEnemySprites } from './render.js';
 import { TAU, rand, pick, preloadImages } from './util.js';
+import { paintMedals } from './medal-art.js';
 import * as UI from './ui.js';
 import { addRankExp, runExp, settleRank } from './rank.js';
 import { initDiag } from './diag.js';
@@ -559,6 +560,7 @@ if (DEBUG.autostart) {
 // （画面を開いたとき・描き直したときに、読み込みを待たずにすぐ出るように）
 const keptIcons = [];
 setTimeout(() => {
+  paintMedals();
   preloadImages([...Object.keys(GEMS).map((id) => `img/gems/${id}.webp`), ...LEGENDS.map((L) => `img/gems/lg_${L.id}.webp`), ...BEAST_IDS.map((id) => `img/beasts/${id}.webp`)]).then(() => {
     for (const u of [...Object.keys(GEMS).map((id) => gemImage(id)), ...BEAST_IDS.map((id) => beastIcon(id))]) {
       const im = new Image();

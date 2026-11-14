@@ -597,7 +597,12 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .gs-sum { font-family: var(--font-jp); font-size: 12px; color: var(--muted); margin-top: 4px; }
 .rbtns .g100 { flex-basis: 100%; }
 /* リザルト：RETRY を上に大きく、STAGE と TITLE を下に並べる */
-.res-btns { display: grid; grid-template-columns: 1fr 1fr; width: min(360px, 100%); }
+/* リザルトのボタンは画面の下端に貼りつける（.dock と同じ作り。中身が長くてもスクロールせずに押せる） */
+.res-btns { display: grid; grid-template-columns: repeat(2, minmax(0, 175px)); justify-content: center; align-self: stretch; gap: 10px;
+  position: sticky; bottom: calc(-1 * (var(--safe-b) + 16px)); z-index: 6;
+  margin: -14px calc(-1 * (var(--safe-r) + 16px)) 0 calc(-1 * (var(--safe-l) + 16px));
+  padding: 22px calc(var(--safe-r) + 16px) calc(var(--safe-b) + 14px) calc(var(--safe-l) + 16px);
+  background: linear-gradient(180deg, rgba(4, 4, 10, 0), rgba(4, 4, 10, 0.92) 30%, #04040a 62%); }
 .res-btns #again { grid-column: 1 / -1; }
 .gacha-big { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .gacha-big img { width: 140px; height: 140px; animation: evoGem 0.8s cubic-bezier(.2,1.4,.4,1); }
@@ -673,6 +678,19 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .medal.m-plat:not(.off) { animation: medalShine 3.6s ease-in-out infinite; }
 @keyframes medalShine { 0%, 55% { background-position: 100% 0, 0 0, 0 0; } 100% { background-position: 0% 0, 0 0, 0 0; } }
 .medal.off { filter: grayscale(1) brightness(0.32); box-shadow: inset 0 2px 2px rgba(255,255,255,0.3), inset 0 -3px 5px rgba(0,0,0,0.5); }
+/* 光を計算して描いたメダル（js/medal-art.js。描き終わると .medal-art が付く。それまでは上の仮の絵） */
+.medal-art .medal { background: var(--medal-img) center / 100% 100% no-repeat; box-shadow: 0 2px 6px rgba(0,0,0,0.7), 0 0 12px var(--mglow, transparent); animation: none; }
+.medal-art .medal::before { display: none; }
+.medal-art .medal.m-bronze { --medal-img: var(--medal-bronze); }
+.medal-art .medal.m-silver { --medal-img: var(--medal-silver); }
+.medal-art .medal.m-gold { --medal-img: var(--medal-gold); }
+.medal-art .medal.m-plat { --medal-img: var(--medal-plat); }
+.medal-art .medal::after { inset: 0; clip-path: none; filter: none; border-radius: 50%; background: none; }
+/* プラチナは光の筋がときどき流れる */
+.medal-art .medal.m-plat:not(.off)::after { background: linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.55) 50%, transparent 58%) no-repeat; background-size: 300% 100%; animation: medalSweep 3.6s ease-in-out infinite; mix-blend-mode: screen; }
+@keyframes medalSweep { 0%, 55% { background-position: 100% 0; } 100% { background-position: 0% 0; } }
+.medal-art .medal.m-plat:not(.off) { animation: none; }
+.medal-art .medal.off { filter: grayscale(1) brightness(0.4); box-shadow: 0 2px 5px rgba(0,0,0,0.6); }
 .zitem.ach { align-items: center; }
 .zitem.ach.done.t-bronze { border-color: rgba(214,140,90,0.45); }
 .zitem.ach.done.t-silver { border-color: rgba(200,215,240,0.5); }
@@ -988,6 +1006,10 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .exch { width: min(370px, 92vw); max-height: 86vh; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
 /* 高さの上限があってスクロールする縦並びのパネルは、中身を縮めない（縮むと「閉じる」ボタンが押しつぶされて文字が見切れる） */
 .at-sum > *, .gem-detail > *, .exch > * { flex-shrink: 0; }
+/* 高さ上限つきのパネルの最後のボタン：パネルの下端に貼りつけて、スクロールしなくても押せるようにする（パネルの余白ぶん負の bottom と margin で端まで） */
+.pfoot { position: sticky; bottom: -14px; z-index: 4; display: flex; flex-direction: column; gap: 8px; margin: 2px -16px -14px; padding: 16px 16px 14px;
+  background: linear-gradient(180deg, rgba(15, 14, 24, 0), #0f0e18 16px); border-radius: 0 0 16px 16px; }
+.pfoot > .btn { width: 100%; }
 .exch-head { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--font); font-weight: 700; letter-spacing: 0.12em; }
 .exch-head small { font-family: var(--font-jp); color: var(--muted); letter-spacing: 0; margin-left: 4px; }
 .exch-head .dustv { font-family: var(--font-jp); font-size: 12px; color: var(--muted); letter-spacing: 0; }
@@ -1331,6 +1353,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .beast-cell.none .bl { font-family: var(--font-jp); color: var(--muted); font-weight: 500; }
 .beast-cell .bh { display: flex; align-items: center; gap: 2px; font-family: var(--font); font-size: 11px; color: var(--muted); }
 .beast-cell .bh img { width: 16px; height: 16px; }
+.beast-cell .mn-badge { top: 4px; right: 4px; font-family: var(--font-jp); font-size: 9.5px; }
 .beast-detail { align-items: stretch; }
 .beast-detail .gd-name { text-align: center; margin-bottom: 4px; }
 .bd-art { align-self: center; width: 180px; height: 180px; }
@@ -1410,6 +1433,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .hub-card.wide .hc-s { font-size: 13px; }
 .hub-card.locked { filter: brightness(0.55); }
 .hub-card .mn-badge { top: 10px; right: 10px; }
+.hub-card .mn-badge.dot { top: 12px; right: 12px; }
+.tab-new { margin-left: 5px; padding: 0 4px; border-radius: 6px; background: #ff4d6d; color: #fff; font: 700 9px/14px var(--font); font-style: normal; vertical-align: 1px; }
 .hc-ic { width: 60px; height: 60px; flex: none; filter: drop-shadow(0 0 10px var(--c)); }
 .hc-t { min-width: 0; }
 .hc-en { font-family: var(--font); font-weight: 700; font-size: 16px; letter-spacing: 0.12em; line-height: 1.1; }
@@ -1418,6 +1443,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .hc-glyph { display: grid; place-items: center; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--c) 30%, transparent), rgba(10, 9, 16, 0.6)); font-size: 30px; color: #fff; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c) 60%, transparent)); }
 .hub-card .hc-ic.medal { width: 56px; height: 56px; }
 .hub-card .hc-ic.medal::after { inset: 14px; }
+.medal-art .hub-card .hc-ic.medal::after { inset: 0; }
 .hc-rank { display: grid; place-items: center; border-radius: 14px; }
 .hc-rank b { font-family: var(--font); font-weight: 700; font-size: 26px; color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
 
@@ -1837,6 +1863,10 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .sl-ba { position: relative; display: flex; align-items: center; gap: 6px; }
 .sl-ba .sl-ci { width: 36px; height: 36px; }
 .sl-ba b { font: 700 46px var(--font); color: #fff; text-shadow: 0 0 18px rgba(255, 197, 61, 0.9); }
+.sl-ba .sl-bn { font: 700 20px var(--font-jp); color: #fff; }
+.sl-bi { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font: 700 15px var(--font-jp); color: #fff; }
+.sl-bi span { display: inline-flex; align-items: center; gap: 4px; }
+.sl-bi .sl-ci { width: 24px; height: 24px; }
 .sl-bx { position: relative; font: 700 16px var(--font-jp); color: var(--gold); letter-spacing: 0.08em; }
 .sl-coin { position: absolute; top: -50px; width: 34px; height: 34px; animation-name: slCoin; animation-timing-function: cubic-bezier(.4,0,.8,1); animation-fill-mode: forwards; pointer-events: none; }
 @keyframes slCoin { to { transform: translateY(115vh) rotate(720deg); } }

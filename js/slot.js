@@ -326,9 +326,16 @@ export function showSlot(back) {
       const title = kind === 'jp' ? 'JACKPOT' : kind === 'mega' ? 'MEGA WIN' : 'BIG WIN';
       const n = kind === 'jp' ? 40 : kind === 'mega' ? 30 : 20;
       const rain = Array.from({ length: n }, () => `<img class="sl-coin" src="${coinIcon(48)}" style="left:${rand(2, 94).toFixed(1)}%;animation-delay:${rand(0, 1.2).toFixed(2)}s;animation-duration:${rand(1.2, 2).toFixed(2)}s" alt="">`).join('');
+      // 数え上げるのはコイン。コインの無い当たり（秘石・ジェムダストだけ）は、その数を数え上げる（コインに直した額は出さない）
+      const items = [];
+      if (res.dust) items.push({ ico: '', name: 'ジェムダスト', n: res.dust });
+      for (const [t, k] of Object.entries(res.rough)) items.push({ ico: `<img class="sl-ci" src="${roughIcon(t, ROUGH[t].color, 56)}" alt="">`, name: ROUGH_NAME(t), n: k });
+      const main = coins ? null : items.shift();
+      const head = main ? `${main.ico}<span class="sl-bn">${main.name} ×</span><b>0</b>` : `${coinTag()}<b>0</b>`;
+      const rest = items.length ? `<div class="sl-bi">${items.map((it) => `<span>${it.ico}${it.name} ×${fmt(it.n)}</span>`).join('')}</div>` : '';
       const ov = el(`<div class="sl-bigov ${kind}"><div class="sl-flash"></div><div class="sl-rays"></div>${rain}
         <div class="sl-bt">${title}</div>
-        <div class="sl-ba">${coinTag()}<b>0</b></div>
+        <div class="sl-ba">${head}</div>${rest}
         <div class="sl-bx">×${(res.value / bet).toFixed(1)}</div></div>`);
       node.appendChild(ov);
       $('#slm', node).classList.add('shake');
@@ -338,7 +345,7 @@ export function showSlot(back) {
       let done = false;
       const close = () => { if (done) return; done = true; ov.classList.add('out'); setTimeout(() => ov.remove(), 260); resolve(); };
       ov.onclick = close;
-      countUp($('.sl-ba b', ov), coins || res.value, kind === 'jp' ? 2600 : 1800, (v) => fmt(v)).then(() => setTimeout(close, kind === 'jp' ? 1800 : 1200));
+      countUp($('.sl-ba b', ov), coins || (main ? main.n : 0), kind === 'jp' ? 2600 : 1800, (v) => fmt(v)).then(() => setTimeout(close, kind === 'jp' ? 1800 : 1200));
     });
   }
 

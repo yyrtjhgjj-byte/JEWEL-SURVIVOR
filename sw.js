@@ -1,10 +1,10 @@
 // オフラインでも あそべるように キャッシュする
-const CACHE = 'jewel-survivor-v225';
+const CACHE = 'jewel-survivor-v226';
 const ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/game.js', './js/weapons.js', './js/data.js', './js/render.js', './js/fx.js',
   './js/audio.js', './js/chip.js', './js/songs.js', './js/bgm-old.js', './js/input.js', './js/ui.js', './js/save.js', './js/util.js',
-  './js/stages.js', './js/enemies.js', './js/hazards.js', './js/hazards2.js', './js/hazards3.js', './js/hazards4.js', './js/gimmick-kit.js', './js/rebirth.js', './js/slot.js', './js/slot-core.js', './js/legends.js', './js/legends-data.js', './js/atelier.js', './js/atelier-ui.js', './js/auction.js', './js/beasts.js', './js/artifacts.js', './js/artifact-art.js', './js/shop-art.js', './js/gem-facts.js', './js/elements.js', './js/rank.js', './js/howto.js', './js/gem-art.js', './js/jukebox.js', './js/diag.js', './js/scene-art.js', './js/case-art.js', './js/menu.js', './js/gem-gl.js', './js/gem-view.js', './js/gem-spec.js', './js/biz-data.js', './js/biz.js', './js/biz-map.js', './js/biz-ui.js',
+  './js/stages.js', './js/enemies.js', './js/hazards.js', './js/hazards2.js', './js/hazards3.js', './js/hazards4.js', './js/gimmick-kit.js', './js/rebirth.js', './js/slot.js', './js/slot-core.js', './js/legends.js', './js/legends-data.js', './js/atelier.js', './js/atelier-ui.js', './js/auction.js', './js/beasts.js', './js/artifacts.js', './js/artifact-art.js', './js/shop-art.js', './js/gem-facts.js', './js/elements.js', './js/rank.js', './js/howto.js', './js/gem-art.js', './js/jukebox.js', './js/diag.js', './js/scene-art.js', './js/case-art.js', './js/medal-art.js', './js/menu.js', './js/gem-gl.js', './js/gem-view.js', './js/gem-spec.js', './js/biz-data.js', './js/biz.js', './js/biz-map.js', './js/biz-ui.js',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
   // 宝石のアイコン（js/gem-gl.js で書き出した画像）。宝石を足したらここにも足す
   ...['diamond', 'topaz', 'ruby', 'sapphire', 'garnet', 'alexandrite', 'redberyl', 'emerald', 'aquamarine', 'citrine', 'peridot', 'iolite', 'kyanite', 'tourmaline', 'titanite', 'milkyquartz', 'opal', 'moonstone', 'labradorite', 'turquoise', 'amber', 'rhodochrosite', 'jasper', 'coral', 'nephrite', 'prase', 'angelite', 'obsidian', 'coal', 'granite', 'pectolite', 'amethyst', 'malachite', 'lg_starindia', 'lg_delong', 'lg_kohinoor', 'lg_regent', 'lg_hope', 'lg_cullinan', 'lg_mughal', 'lg_sunrise', 'lg_pinkstar'].map((id) => `./img/gems/${id}.webp`),

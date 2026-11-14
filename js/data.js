@@ -324,6 +324,7 @@ export const WEAPONS = {
     gem: 'aquamarine', name: 'タイダル・ウェーブ',
     dmgMul: 1.61, // 武器ごとの火力の係数（tools/test/wbench.js の計測で総合点をそろえる）
     lowBoost: 0.85, // 低レベル時の補正（Lv1 で ×1.85、Lv8 で ×1）
+    areaMul: 0.8, // 範囲の係数（AREA_K とは別に掛ける）
     desc: '周囲に波動を放ち、敵を押し返す',
     base: { dmg: 70, cd: 2.4, amount: 1, area: 1, knock: 2 },
     levels: [
@@ -444,6 +445,10 @@ export const WEAPON_IDS = Object.keys(WEAPONS);
 export const WEAPON_MAX = 8;
 // 攻撃範囲の上限（キャラ・工房・チャーム・秘宝などの合計と、武器ごとのリミットブレイクを掛けた値）。超えた分は攻撃力に変える（game.js の computeStats）
 export const AREA_CAP = 2;
+// 攻撃範囲の伸びの係数：表示の数値（+3.5% など）はそのままで、実際の伸びはこの係数を掛けた分だけにする（範囲のインフレを抑える）
+// 狭める側（分光プリズムの谷など）はそのまま
+export const AREA_K = 0.8;
+export const areaEff = (a) => (a > 1 ? 1 + (a - 1) * AREA_K : a);
 // リミットブレイク：Lv8（進化済みを含む）の武器を、レベルアップのたびに少しずつ強化する
 // need：その武器が持っている性能だけを候補にする。max：1 つの武器で強化できる回数の上限。cap：1 つの武器で重ねられる量の上限
 // 進化後に使わなくなる性能は、WEAPONS の evo.lbSkip で候補から外す
@@ -499,7 +504,7 @@ export const MAX_CHARMS = 6;
 
 export const BASE_STATS = {
   maxHp: 100, might: 1, armor: 0, regen: 0, cooldown: 1, area: 1, speed: 1, duration: 1,
-  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, startLv: 0, choice: 0, art2: 0, charmLb: 0, chestPlus: 0, bossChest: 0, heatCoin: 0, roughUp: 0, feverUp: 0, breakUp: 0, lbUp: 0, hpMul: 0, healUp: 0, dmgUp: 0, reroll: 2, skip: 1, banish: 1, guard: 0, autoPick: 0,
+  amount: 0, moveSpeed: 1, magnet: 1, luck: 1, growth: 1, greed: 1, coinDrop: 0, crit: 0.05, critDmg: 0, revive: 0, startLv: 0, choice: 0, art2: 0, charmLb: 0, chestPlus: 0, bossChest: 0, heatCoin: 0, roughUp: 0, feverUp: 0, breakUp: 0, lbUp: 0, hpMul: 0, healUp: 0, dmgUp: 0, reroll: 2, skip: 1, banish: 1, guard: 0, autoPick: 0, chestAuto: 0,
 };
 
 // ---------------------------------------------------------------------
@@ -732,6 +737,7 @@ export const UPPER_SHOP = [
   { id: 'lbUp', name: 'リミットブレイク強化', max: 2, cost: [25000, 50000], per: { lbUp: 0.5 }, t: 'ウェポンのリミットブレイクの強化量 +50%' },
   { id: 'charmLb', name: 'チャーム・リミットブレイク', max: 1, cost: [100000], per: { charmLb: 1 }, t: '最大レベルのチャームも、リミットブレイクで強化できる' },
   { id: 'autoPick', name: 'オートコレクト', max: 1, cost: [50000], per: { autoPick: 1 }, t: 'レベルアップを色の良い順に自動で選び、宝箱はその場で開ける（ラン中に ON／OFF）' },
+  { id: 'chestAuto', name: '宝箱の自動回収', max: 1, cost: [5000000], per: { chestAuto: 1 }, t: '盤面に落ちた宝箱が、どこにあっても自機へ飛んでくる' },
   // ここから下はラン外の強化（採掘・研磨工房）。効果は ui.js ／ atelier-ui.js で upperLv を見て切り替える
   { id: 'mine100', name: '採掘の極意', max: 1, cost: [60000], per: {}, t: '採掘に 100 連（秘石 5 つ以上確定）が加わる' },
   { id: 'blackAuction', name: '裏オークション', max: 1, cost: [80000], per: {}, t: '研磨工房に、品質の高い宝石が出る裏オークションが開く' },
