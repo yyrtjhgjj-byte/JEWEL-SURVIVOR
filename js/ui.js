@@ -2410,7 +2410,7 @@ export function results(res, cleared, extra) {
         ${extra.chaosBest ? '<div class="hint" style="margin-top:6px;color:#ffe39a">CHAOS の最長記録を更新</div>' : ''}
         ${extra.firstClear ? `<div class="hint" style="margin-top:6px;color:#ffe39a">初クリア報酬 ${fmt(STAGE_BY_ID[res.stageId].reward)} コイン${extra.unlocked ? ` ／ ${GEMS[extra.unlocked].jp} 解放` : ''}${extra.nextStage ? ` ／ ${extra.nextStage} 解放` : ''}</div>` : ''}
       </div>
-      <div class="panel rgrid" id="rows"></div>
+      <div class="panel" id="rows"></div>
       <div class="rcoins">${coinIco}<span id="rc">+0</span></div>
       ${extra.rankUp ? `<div class="rrank" id="rrank" style="--rk:${rankColor(extra.rankUp.from.lv)}"><span class="rk-l">RANK <b id="rkl">${extra.rankUp.from.lv}</b></span><div class="rk-bar"><i style="width:${(extra.rankUp.from.xp / rankNeed(extra.rankUp.from.lv)) * 100}%"></i></div><span class="rk-e">+${fmt(extra.rankUp.exp)} EXP</span></div>` : ''}
       ${roughResultHTML(res.roughGot)}
