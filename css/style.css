@@ -2044,12 +2044,6 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .tut-chip { align-self: center; }
 .sht-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .sht-grid .sht-kv { padding: 8px 10px; font-size: var(--t4); }
-/* リザルトの数値：2 列の小さな枠（名前を上、値を下） */
-.rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; width: 100%; max-width: 520px; }
-.rgrid .rrow { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 8px 10px; border: 0; border-radius: 10px; background: rgba(255,255,255,0.045); }
-.rgrid .rrow span { font-size: var(--t4); }
-.rgrid .rrow b { font-size: 18px; font-variant-numeric: tabular-nums; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
-.rgrid .rrow .new { margin-left: 0; }
 /* 図鑑の 1 行（ウェポン・チャーム・秘宝）。押すとくわしいページかシート */
 .zlist.ztight { gap: 6px; }
 .zrow { cursor: pointer; }
