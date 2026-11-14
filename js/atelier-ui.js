@@ -453,11 +453,11 @@ function reveal(res, score) {
 function bonusSheet(title, stats) {
   const rows = Object.entries(stats).map(([k, v]) => {
     const t = statText(k, v), m = t.match(/^(.*)\s(\S+)$/);
-    return `<div class="bs-kv"><span>${m ? m[1] : t}</span><b>${m ? m[2] : ''}</b></div>`;
+    return `<div class="sht-kv"><span>${m ? m[1] : t}</span><b>${m ? m[2] : ''}</b></div>`;
   }).join('');
-  openSheet(`<div class="bs-head"><div><div class="bs-name">${title}</div></div></div>
-    <div class="bs-body bs-grid">${rows || '<div class="bs-note">まだボーナスはありません</div>'}</div>
-    <div class="bs-acts"><button class="btn" data-close>閉じる</button></div>`);
+  openSheet(`<div class="sht-head"><div><div class="sht-name">${title}</div></div></div>
+    <div class="sht-body sht-grid">${rows || '<div class="sht-note">まだボーナスはありません</div>'}</div>
+    <div class="sht-acts"><button class="btn" data-close>閉じる</button></div>`);
 }
 function renderCollection(box) {
   box.innerHTML = '';

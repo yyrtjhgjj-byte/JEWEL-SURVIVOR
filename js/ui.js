@@ -49,7 +49,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // 下から上がるシート（一覧の行を押すと、くわしい中身と操作をここに出す。UI 2.0 の共通の部品）。
 // html はシートの中身。閉じる関数を返す。bind(sheet, close) で中のボタンをつなぐ
 export function openSheet(html, bind) {
-  const ov = el(`<div class="screen dim bs-over"><div class="bsheet"><div class="bs-grab"></div>${html}</div></div>`);
+  const ov = el(`<div class="screen dim sht-over"><div class="bsheet"><div class="sht-grab"></div>${html}</div></div>`);
   screens().appendChild(ov);
   const sh = $('.bsheet', ov);
   requestAnimationFrame(() => ov.classList.add('on'));
@@ -966,19 +966,19 @@ export function showShop(upper = false) {
   const detail = (it) => {
     const body = () => {
       const lv = up[it.id] || 0, max = lv >= it.max, cost = max ? 0 : costOf(it, lv);
-      return `<div class="bs-head"><img class="bs-ico" src="${shopIcon(it.id, 96)}" alt=""><div><div class="bs-name">${it.name}</div><div class="bs-sub">LV ${lv} / ${it.max}</div>${lvPips(lv, it.max)}</div></div>
-        <div class="bs-body"><div class="bs-kv"><span>今の効果</span><b>${shopEffect(it, lv)}</b></div>
-          ${max ? '' : `<div class="bs-kv"><span>次のレベル</span><b class="up">${shopEffect(it, lv + 1)}</b></div>`}
-          ${it.max > 1 ? `<div class="bs-note">1 レベルごとに ${it.t}</div>` : ''}</div>
-        <div class="bs-acts">${max ? `<button class="btn big primary" data-sact>${upOff[it.id] ? 'ON にする' : 'OFF にする'}</button>`
-          : `<button class="btn big primary" data-sact ${save.coins < cost ? 'disabled' : ''}>強化<span class="bs-cost">${coinIco}${fmt(cost)}</span></button>`}
+      return `<div class="sht-head"><img class="sht-ico" src="${shopIcon(it.id, 96)}" alt=""><div><div class="sht-name">${it.name}</div><div class="sht-sub">LV ${lv} / ${it.max}</div>${lvPips(lv, it.max)}</div></div>
+        <div class="sht-body"><div class="sht-kv"><span>今の効果</span><b>${shopEffect(it, lv)}</b></div>
+          ${max ? '' : `<div class="sht-kv"><span>次のレベル</span><b class="up">${shopEffect(it, lv + 1)}</b></div>`}
+          ${it.max > 1 ? `<div class="sht-note">1 レベルごとに ${it.t}</div>` : ''}</div>
+        <div class="sht-acts">${max ? `<button class="btn big primary" data-sact>${upOff[it.id] ? 'ON にする' : 'OFF にする'}</button>`
+          : `<button class="btn big primary" data-sact ${save.coins < cost ? 'disabled' : ''}>強化<span class="sht-cost">${coinIco}${fmt(cost)}</span></button>`}
           <button class="btn" data-close>閉じる</button></div>`;
     };
     openSheet(body(), (sh) => {
       sh.addEventListener('click', (e) => {
         const b = e.target.closest('[data-sact]');
         if (!b || b.disabled) return;
-        if (act(it)) { const g = sh.querySelector('.bs-grab').outerHTML; sh.innerHTML = g + body(); render(); }
+        if (act(it)) { const g = sh.querySelector('.sht-grab').outerHTML; sh.innerHTML = g + body(); render(); }
       });
     });
   };
@@ -1342,9 +1342,9 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
         <span class="zr-go">›</span></div>`);
       row.onclick = () => {
         audio.tap();
-        openSheet(`<div class="bs-head"><img class="bs-ico" src="${artifactIcon(a.id, 96)}" alt="" style="${ok ? '' : 'filter:grayscale(1) brightness(.4)'}"><div><div class="bs-name">${ok ? a.name : '???'}</div><div class="bs-sub">${a.no} ・ ${a.en}</div></div></div>
-          <div class="bs-body">${ok ? `<div class="bs-note bs-text">${a.desc}</div>` : `<div class="bs-kv"><span>解放</span><b>${ach ? ach.t : '???'}</b></div>`}</div>
-          <div class="bs-acts"><button class="btn" data-close>閉じる</button></div>`);
+        openSheet(`<div class="sht-head"><img class="sht-ico" src="${artifactIcon(a.id, 96)}" alt="" style="${ok ? '' : 'filter:grayscale(1) brightness(.4)'}"><div><div class="sht-name">${ok ? a.name : '???'}</div><div class="sht-sub">${a.no} ・ ${a.en}</div></div></div>
+          <div class="sht-body">${ok ? `<div class="sht-note sht-text">${a.desc}</div>` : `<div class="sht-kv"><span>解放</span><b>${ach ? ach.t : '???'}</b></div>`}</div>
+          <div class="sht-acts"><button class="btn" data-close>閉じる</button></div>`);
       };
       zl.appendChild(row);
     }
@@ -1360,12 +1360,12 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
         </div></div>`);
       if (open) item.onclick = () => {
         audio.tap();
-        openSheet(`<div class="bs-head"><div><div class="bs-name">${st.name}</div><div class="bs-sub">STAGE ${st.no} ・ ${st.en}</div></div></div>
-          <div class="bs-body"><div class="bs-note bs-text">${st.desc}</div>
-            <div class="bs-kv"><span>ギミック</span><b>${st.hazardText}</b></div>
-            <div class="bs-kv"><span>ボス</span><b>${bosses.join(' → ')}</b></div>
-            <div class="bs-kv"><span>記録</span><b>${rec.cleared ? `クリア ・ HEAT ${rec.heat || 0} ・ 最長 ${fmtTime(rec.best || 0)}` : rec.best ? `最長 ${fmtTime(rec.best)}` : '未挑戦'}</b></div></div>
-          <div class="bs-acts"><button class="btn" data-close>閉じる</button></div>`);
+        openSheet(`<div class="sht-head"><div><div class="sht-name">${st.name}</div><div class="sht-sub">STAGE ${st.no} ・ ${st.en}</div></div></div>
+          <div class="sht-body"><div class="sht-note sht-text">${st.desc}</div>
+            <div class="sht-kv"><span>ギミック</span><b>${st.hazardText}</b></div>
+            <div class="sht-kv"><span>ボス</span><b>${bosses.join(' → ')}</b></div>
+            <div class="sht-kv"><span>記録</span><b>${rec.cleared ? `クリア ・ HEAT ${rec.heat || 0} ・ 最長 ${fmtTime(rec.best || 0)}` : rec.best ? `最長 ${fmtTime(rec.best)}` : '未挑戦'}</b></div></div>
+          <div class="sht-acts"><button class="btn" data-close>閉じる</button></div>`);
       };
       if (open) scenes.push([item, st]);
       zl.appendChild(item);
@@ -1399,11 +1399,11 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
     };
     const detail = (a) => {
       const ok = save.achievements[a.id], k = MEDALS[a.m][0];
-      openSheet(`<div class="bs-head"><span class="bs-ico medal m-${k} ${ok ? '' : 'off'}"></span><div><div class="bs-name">${a.name}</div><div class="bs-sub">${MEDALS[a.m][1]} ・ ${groupOf[a.id]}</div></div></div>
-        <div class="bs-body"><div class="bs-kv"><span>条件</span><b>${a.t}</b></div>
-          <div class="bs-kv"><span>報酬</span><b>${fmt(a.coins)} コイン${unlockText(a)}</b></div>
-          <div class="bs-kv"><span>状態</span><b class="${ok ? 'up' : ''}">${ok ? '取得済み' : '未取得'}</b></div></div>
-        <div class="bs-acts"><button class="btn" data-close>閉じる</button></div>`);
+      openSheet(`<div class="sht-head"><span class="sht-ico medal m-${k} ${ok ? '' : 'off'}"></span><div><div class="sht-name">${a.name}</div><div class="sht-sub">${MEDALS[a.m][1]} ・ ${groupOf[a.id]}</div></div></div>
+        <div class="sht-body"><div class="sht-kv"><span>条件</span><b>${a.t}</b></div>
+          <div class="sht-kv"><span>報酬</span><b>${fmt(a.coins)} コイン${unlockText(a)}</b></div>
+          <div class="sht-kv"><span>状態</span><b class="${ok ? 'up' : ''}">${ok ? '取得済み' : '未取得'}</b></div></div>
+        <div class="sht-acts"><button class="btn" data-close>閉じる</button></div>`);
     };
     const draw = () => {
       head.querySelectorAll('[data-m]').forEach((b) => { b.classList.toggle('on', +b.dataset.m === f.m); b.classList.toggle('dim', f.m >= 0 && +b.dataset.m !== f.m); });
