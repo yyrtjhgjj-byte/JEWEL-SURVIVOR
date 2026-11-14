@@ -2,7 +2,7 @@
 //  UI：タイトル / レベルアップ / 宝箱 / ガチャ / 図鑑 / リザルト
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost,
+  ACH_GROUPS, GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, CHARACTERS, CHAR_IDS, ENEMIES, SHOP, UPPER_SHOP, shopCost,
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA100_COST, GACHA100_UR, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK, charmLbText, charmLbMax,
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickaxeIcon } from './render.js';
@@ -45,6 +45,33 @@ function guard(node, ms = 450) {
   setTimeout(() => { node.style.pointerEvents = ''; }, ms);
 }
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 下から上がるシート（一覧の行を押すと、くわしい中身と操作をここに出す。UI 2.0 の共通の部品）。
+// html はシートの中身。閉じる関数を返す。bind(sheet, close) で中のボタンをつなぐ
+export function openSheet(html, bind) {
+  const ov = el(`<div class="screen dim bs-over"><div class="bsheet"><div class="bs-grab"></div>${html}</div></div>`);
+  screens().appendChild(ov);
+  const sh = $('.bsheet', ov);
+  requestAnimationFrame(() => ov.classList.add('on'));
+  const close = () => { ov.classList.remove('on'); setTimeout(() => ov.remove(), 220); };
+  ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-close]')) { audio.tap(); close(); } });
+  if (bind) bind(sh, close);
+  return close;
+}
+// 狭い枠の名前（.fit の中の span）：「・」と空白でだけ折り返し（2 行まで）、入りきらなければ文字を少しずつ小さくする
+export function fitText(root) {
+  for (const box of root.querySelectorAll('.fit')) {
+    const t = box.firstElementChild;
+    if (!t) continue;
+    t.style.fontSize = '';
+    let fs = parseFloat(getComputedStyle(t).fontSize);
+    const lines = +(box.dataset.lines || 2), lh = fs * 1.25;
+    while (fs > 8 && (t.scrollWidth > box.clientWidth + 0.5 || t.offsetHeight > lh * lines + 1)) {
+      fs -= 0.5;
+      t.style.fontSize = fs + 'px';
+    }
+  }
+}
 
 let app = null;
 export function initUI(a) {
@@ -852,15 +879,16 @@ export function showStageSelect() {
 
 // ================================================================== 工房
 // 工房：現在の効果量と次のレベルの効果量
-function shopEffect(it, lv, max, eff = 1) {
-  // 最大 Lv1 の強化（リバイブなど）は数値を増やす形ではないので、説明文をそのまま出す
-  if (it.max === 1) return lv ? `<b class="scur">${it.t}</b>` : it.t;
+// 強化の効果の文：1 レベル分の説明の数をレベル倍にする（最大 Lv1 の強化は説明のまま）。lv が 0 なら —
+function shopEffect(it, lv) {
+  if (it.max === 1) return lv ? it.t : '—';
+  if (!lv) return '—';
   const m = it.t.match(/^(.*?)([+-]?)(\d+(?:\.\d+)?)(.*)$/);
   if (!m) return it.t;
   const [, label, sign, num, suf] = m;
-  const v = (n) => (n ? sign : '') + +(parseFloat(num) * n * eff).toFixed(2) + suf;
-  return `${label}<b class="scur">${v(lv)}</b>${max ? '' : `<span class="snext"> → ${v(lv + 1)}</span>`}`;
+  return label + sign + +(parseFloat(num) * lv).toFixed(2) + suf;
 }
+const lvPips = (lv, max) => `<span class="pips ${lv >= max ? 'max' : ''}">${Array.from({ length: max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</span>`;
 
 // upper = true で上位工房（工房をすべて最大にすると解放）
 // 上位工房：工房の強化をすべて最大にすると開く（返金しても閉じない）。開いているかを返す
@@ -880,7 +908,7 @@ export function showShop(upper = false) {
   const node = el(`
     <div class="screen" data-nav="power">
       ${upper ? topbar('MASTERWORKS', '上位工房', undefined, 'workshop#upper') : topbar('WORKSHOP', '工房 — 永続強化', undefined, 'workshop')}
-      <div class="shop-list" id="list"></div>
+      <div class="lrows" id="list"></div>
       <div class="refund-row"><button class="btn small" id="refund"></button><span>最大まで上げた強化は ON／OFF を切り替えられます</span></div>
     </div>`);
   show(node);
@@ -905,49 +933,81 @@ export function showShop(upper = false) {
     render();
     refreshCoinPill();
   };
+  // 強化する（最大なら ON／OFF を切り替える）。できたら true
+  const act = (it) => {
+    const lv = up[it.id] || 0;
+    if (lv >= it.max) {
+      if (upOff[it.id]) delete upOff[it.id];
+      else upOff[it.id] = true;
+      persist();
+      audio.tap();
+      return true;
+    }
+    const cost = costOf(it, lv);
+    if (save.coins < cost) return false;
+    save.coins -= cost;
+    paid[pk] = (paid[pk] || 0) + cost;
+    up[it.id] = lv + 1;
+    persist();
+    audio.levelUp();
+    haptic();
+    getApp().checkMetaAchievements && getApp().checkMetaAchievements();
+    refreshCoinPill();
+    return true;
+  };
+  // 行の右のボタン（買う・MAX ON／OFF）
+  const btnHTML = (it, lv) => {
+    const max = lv >= it.max;
+    if (max) return `<button class="lbtn max ${upOff[it.id] ? 'off' : ''}" data-act>${upOff[it.id] ? 'OFF' : 'MAX ON'}</button>`;
+    const cost = costOf(it, lv);
+    return `<button class="lbtn gold" data-act ${save.coins < cost ? 'disabled' : ''}>${coinIco}${fmt(cost)}</button>`;
+  };
+  // 行を押すと、くわしい中身をシートで出す
+  const detail = (it) => {
+    const body = () => {
+      const lv = up[it.id] || 0, max = lv >= it.max, cost = max ? 0 : costOf(it, lv);
+      return `<div class="bs-head"><img class="bs-ico" src="${shopIcon(it.id, 96)}" alt=""><div><div class="bs-name">${it.name}</div><div class="bs-sub">LV ${lv} / ${it.max}</div>${lvPips(lv, it.max)}</div></div>
+        <div class="bs-body"><div class="bs-kv"><span>今の効果</span><b>${shopEffect(it, lv)}</b></div>
+          ${max ? '' : `<div class="bs-kv"><span>次のレベル</span><b class="up">${shopEffect(it, lv + 1)}</b></div>`}
+          ${it.max > 1 ? `<div class="bs-note">1 レベルごとに ${it.t}</div>` : ''}</div>
+        <div class="bs-acts">${max ? `<button class="btn big primary" data-sact>${upOff[it.id] ? 'ON にする' : 'OFF にする'}</button>`
+          : `<button class="btn big primary" data-sact ${save.coins < cost ? 'disabled' : ''}>強化<span class="bs-cost">${coinIco}${fmt(cost)}</span></button>`}
+          <button class="btn" data-close>閉じる</button></div>`;
+    };
+    openSheet(body(), (sh) => {
+      sh.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-sact]');
+        if (!b || b.disabled) return;
+        if (act(it)) { const g = sh.querySelector('.bs-grab').outerHTML; sh.innerHTML = g + body(); render(); }
+      });
+    });
+  };
   const render = () => {
-    list.innerHTML = '';
     const v = spent();
     $('#refund', node).innerHTML = `全額返金 ${coinIco}${fmt(v)}`;
     $('#refund', node).disabled = !v;
-    for (const it of ITEMS) {
+    list.innerHTML = ITEMS.map((it) => {
       const lv = up[it.id] || 0;
-      const max = lv >= it.max;
-      const cost = max ? 0 : costOf(it, lv);
-      const off = max && !!upOff[it.id];
-      const row = el(`<div class="shop-item ${off ? 'off' : ''}">
-        <img src="${shopIcon(it.id, 72)}">
-        <div class="sbody"><div class="sname"><span class="sn">${it.name}</span><small>LV ${lv}/${it.max}</small></div>
-          <div class="sdesc">${shopEffect(it, lv, max)}</div>
-          <div class="pips">${Array.from({ length: it.max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>
-        <button class="btn small ${max ? 'maxsw' : 'gold'}" ${!max && save.coins < cost ? 'disabled' : ''}>${max ? (off ? 'OFF' : 'MAX ON') : coinIco + fmt(cost)}</button>
-      </div>`);
-      $('.btn', row).onclick = () => {
-        if (max) {
-          // 最大まで上げた強化は無効にできる
-          if (upOff[it.id]) delete upOff[it.id];
-          else upOff[it.id] = true;
-          persist();
-          audio.tap();
-          render();
-          return;
-        }
-        if (save.coins < cost) return;
-        save.coins -= cost;
-        paid[pk] = (paid[pk] || 0) + cost;
-        up[it.id] = lv + 1;
-        persist();
-        audio.levelUp();
-        haptic();
-        getApp().checkMetaAchievements && getApp().checkMetaAchievements();
-        render();
-        refreshCoinPill();
-        const nr = list.children[ITEMS.indexOf(it)];
-        if (nr) nr.classList.add('bought');
-      };
-      list.appendChild(row);
-    }
+      return `<div class="lrow ${lv >= it.max && upOff[it.id] ? 'off' : ''}" data-id="${it.id}" role="button" tabindex="0">
+        <img class="lr-ico" src="${shopIcon(it.id, 72)}" alt="">
+        <div class="lr-mid"><div class="lr-line"><b class="lr-name">${it.name}</b><small class="lr-lv">LV ${lv}/${it.max}</small></div>
+          <div class="lr-line">${lvPips(lv, it.max)}<span class="lr-val">${shopEffect(it, lv)}</span></div></div>
+        ${btnHTML(it, lv)}</div>`;
+    }).join('');
   };
+  list.addEventListener('click', (e) => {
+    const row = e.target.closest('.lrow');
+    if (!row) return;
+    const it = ITEMS.find((x) => x.id === row.dataset.id);
+    const b = e.target.closest('[data-act]');
+    if (b) {
+      if (b.disabled) return;
+      if (act(it)) { render(); const nr = list.querySelector(`[data-id="${it.id}"]`); if (nr) nr.classList.add('bought'); }
+      return;
+    }
+    audio.tap();
+    detail(it);
+  });
   render();
 }
 
@@ -1310,14 +1370,31 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
     const f = save.tabs.ach || (save.tabs.ach = { st: 'all', m: -1, sort: 'def' });
     const head = el(`<div class="panel ach-head">
       <div class="ach-ring" style="--p:${((done / ACHIEVEMENTS.length) * 100).toFixed(1)}"><b>${done}</b><small>/ ${ACHIEVEMENTS.length}</small></div>
-      <div class="ach-tiers">${MEDALS.map(([k, n], i) => `<button data-m="${i}"><span class="medal sm m-${k}"></span><b>${n}</b><i>${cnt[i][0]} / ${cnt[i][1]}</i></button>`).join('')}</div>
+      <div class="ach-tiers">${MEDALS.map(([k, n], i) => `<button data-m="${i}"><span class="medal sm m-${k}"></span><b>${n}</b><i>${cnt[i][0]}/${cnt[i][1]}</i></button>`).join('')}</div>
     </div>`);
-    const tools = el(`<div class="ach-tools">
-      <div class="tabs sub">${[['all', 'すべて'], ['todo', '未取得'], ['done', '取得済み']].map(([k, n]) => `<button class="tab" data-st="${k}">${n}</button>`).join('')}</div>
-      <div class="tabs sub">${[['def', '標準'], ['medal', 'メダル順'], ['coin', '報酬順']].map(([k, n]) => `<button class="tab" data-sort="${k}">${n}</button>`).join('')}</div>
-    </div>`);
+    // 絞り込みと並び替え：1 列のチップ。スクロールしても上に残る
+    const tools = el(`<div class="lchips">${[['all', 'すべて'], ['todo', '未取得'], ['done', '取得済み']].map(([k, n]) => `<button class="chip" data-st="${k}">${n}</button>`).join('')}<i class="lc-sep"></i>${[['def', '標準'], ['medal', 'メダル順'], ['coin', '報酬順']].map(([k, n]) => `<button class="chip" data-sort="${k}">${n}</button>`).join('')}</div>`);
     const items = el('<div class="ach-list"></div>');
     zl.append(head, tools, items);
+    // 見出し（標準の並びのときだけ）：ACH_GROUPS の最初の実績から次の見出しの手前まで
+    const groupOf = {};
+    { let g = ''; for (const a of ACHIEVEMENTS) { const h = ACH_GROUPS.find((x) => x[1] === a.id); if (h) g = h[0]; groupOf[a.id] = g; } }
+    const gCount = {};
+    for (const a of ACHIEVEMENTS) { const c = gCount[groupOf[a.id]] || (gCount[groupOf[a.id]] = [0, 0]); c[1]++; if (save.achievements[a.id]) c[0]++; }
+    const unlockText = (a) => (a.unlock ? ` ＋ ${GEMS[a.unlock].jp} 解放` : '');
+    const row = (a) => {
+      const ok = save.achievements[a.id], k = MEDALS[a.m][0];
+      return `<button class="arow ${ok ? '' : 'todo'}" data-id="${a.id}"><span class="medal m-${k} ${ok ? '' : 'off'}"></span>
+        <span class="ar-mid"><b class="ar-name">${a.name}</b><span class="ar-t">${a.t}</span></span><span class="ar-rw">${coinIco}${fmt(a.coins)}</span></button>`;
+    };
+    const detail = (a) => {
+      const ok = save.achievements[a.id], k = MEDALS[a.m][0];
+      openSheet(`<div class="bs-head"><span class="bs-ico medal m-${k} ${ok ? '' : 'off'}"></span><div><div class="bs-name">${a.name}</div><div class="bs-sub">${MEDALS[a.m][1]} ・ ${groupOf[a.id]}</div></div></div>
+        <div class="bs-body"><div class="bs-kv"><span>条件</span><b>${a.t}</b></div>
+          <div class="bs-kv"><span>報酬</span><b>${fmt(a.coins)} コイン${unlockText(a)}</b></div>
+          <div class="bs-kv"><span>状態</span><b class="${ok ? 'up' : ''}">${ok ? '取得済み' : '未取得'}</b></div></div>
+        <div class="bs-acts"><button class="btn" data-close>閉じる</button></div>`);
+    };
     const draw = () => {
       head.querySelectorAll('[data-m]').forEach((b) => { b.classList.toggle('on', +b.dataset.m === f.m); b.classList.toggle('dim', f.m >= 0 && +b.dataset.m !== f.m); });
       tools.querySelectorAll('[data-st]').forEach((b) => b.classList.toggle('on', b.dataset.st === f.st));
@@ -1325,15 +1402,25 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
       let list = ACHIEVEMENTS.filter((a) => (f.m < 0 || a.m === f.m) && (f.st === 'all' || !!save.achievements[a.id] === (f.st === 'done')));
       if (f.sort === 'medal') list = list.map((a, i) => [a, i]).sort((x, y) => y[0].m - x[0].m || x[1] - y[1]).map((x) => x[0]);
       else if (f.sort === 'coin') list = list.map((a, i) => [a, i]).sort((x, y) => y[0].coins - x[0].coins || x[1] - y[1]).map((x) => x[0]);
-      items.innerHTML = list.length ? list.map((a) => {
-        const ok = save.achievements[a.id];
-        const k = MEDALS[a.m][0];
-        return `<div class="zitem ach ${ok ? 'done' : ''} t-${k}">
-          <span class="medal m-${k} ${ok ? '' : 'off'}"></span>
-          <div><div class="zname">${a.name}</div><div class="ztext">${a.t}</div>
-          <div class="zevo">報酬 ${fmt(a.coins)} コイン${a.unlock ? ` ＋ ${GEMS[a.unlock].jp} 解放` : ''}</div></div></div>`;
-      }).join('') : '<div class="ach-none">該当する実績はありません</div>';
+      if (!list.length) { items.innerHTML = '<div class="ach-none">該当する実績はありません</div>'; return; }
+      if (f.sort !== 'def') { items.innerHTML = `<div class="lrows">${list.map(row).join('')}</div>`; return; }
+      let html = '', g = null;
+      for (const a of list) {
+        if (groupOf[a.id] !== g) {
+          if (g !== null) html += '</div>';
+          g = groupOf[a.id];
+          html += `<div class="lhead">${g}<small>${gCount[g][0]} / ${gCount[g][1]}</small></div><div class="lrows">`;
+        }
+        html += row(a);
+      }
+      items.innerHTML = html + '</div>';
     };
+    items.addEventListener('click', (e) => {
+      const b = e.target.closest('.arow');
+      if (!b) return;
+      audio.tap();
+      detail(ACHIEVEMENTS.find((a) => a.id === b.dataset.id));
+    });
     const pick = (k, v) => { audio.tap(); f[k] = v; persist(); draw(); };
     head.querySelectorAll('[data-m]').forEach((b) => (b.onclick = () => pick('m', f.m === +b.dataset.m ? -1 : +b.dataset.m)));
     tools.querySelectorAll('[data-st]').forEach((b) => (b.onclick = () => pick('st', b.dataset.st)));

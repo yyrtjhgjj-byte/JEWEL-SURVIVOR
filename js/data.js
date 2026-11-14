@@ -921,6 +921,8 @@ export const ACHIEVEMENTS = [
   { id: 'runs100', m: 1, meta: true, name: 'ヘビー・プレイヤー', t: '100回プレイする', coins: 2000, check: (r, s) => s.stats.runs >= 100 },
   { id: 'kills100k', m: 2, meta: true, name: '十万の骸', t: '累計で10万体撃破', coins: 5000, check: (r, s) => s.stats.kills >= 1e5 },
 ];
+// 実績の画面の見出し（[見出し, その見出しの最初の実績の id]）。ACHIEVEMENTS の並びで、次の見出しの手前までがその見出しの中
+export const ACH_GROUPS = [['撃破数', 'kill1'], ['レベル', 'lv10'], ['生存時間', 'time3'], ['ステージクリア', 'clear'], ['ヒート・モード', 'heat1'], ['縛りクリア', 'solo'], ['ボス', 'boss1'], ['最終ボス連戦', 'finale1_3'], ['装備・進化', 'full'], ['フィーバー・コンボ', 'fever'], ['ダメージ', 'dmg1m'], ['戦い方', 'miracle'], ['コイン', 'coin500'], ['研磨工房', 'polish1'], ['覚醒・採掘', 'awaken3'], ['百獣', 'beast1'], ['オークション', 'auction1'], ['工房', 'backroom'], ['経営', 'biz1'], ['やり込み', 'allchars']];
 
 // ---------------------------------------------------------------------
 //  ガチャ
