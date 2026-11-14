@@ -572,7 +572,48 @@ void main(){
   o = vec4(min(col, vec3(a)), a);
 }`;
 
+// 宝石ごとの形・色・照明を、光線追跡のプログラムに送る（uni は uniform の場所。砂場も使う）
+export function applyLook(gl, uni, id) {
+  const g = GEM_LOOK[id] || GEM_LOOK.ruby;
+  const E = ENVS[g.env] || (g.mode === 'cab' || g.mode === 'tumble' ? ENV_CAB : g.spark ? ENV_SPARK : ENV_FACET);
+  const L = new Float32Array(24 * 4), Lc = new Float32Array(24 * 2);
+  E.L.forEach((l, i) => { L.set([...l.dir, l.I], i * 4); Lc.set([l.c0, l.c1], i * 2); });
+  gl.uniform4fv(uni.uL, L);
+  gl.uniform2fv(uni.uLc, Lc);
+  gl.uniform1i(uni.uNL, E.L.length);
+  const fill = g.fill || 1;
+  gl.uniform4f(uni.uEnv, E.sky0 * fill, E.sky1 * fill, E.floor * fill, 0);
+  gl.uniform2f(uni.uHead, Math.cos(E.head * D2R), Math.cos(E.head * 1.4 * D2R));
+  gl.uniform1i(uni.uMode, MODE[g.mode]);
+  gl.uniform1i(uni.uKind, g.kind || 0);
+  if (CUTS[g.cut]) {
+    const P = CUTS[g.cut]().filter((p) => p.every(Number.isFinite));
+    const arr = new Float32Array(112 * 4);
+    P.slice(0, 112).forEach((p, i) => arr.set(p, i * 4));
+    gl.uniform4fv(uni.uP, arr);
+    gl.uniform1i(uni.uN, Math.min(112, P.length));
+  }
+  gl.uniform1f(uni.uFogD, g.fogD || 0);
+  gl.uniform1f(uni.uCarve, g.carve || 0);
+  gl.uniform3fv(uni.uFogL, (g.fog || [0, 0, 0]).map((v) => v * 0.75));
+  if (g.mode === 'trace') {
+    const s = sigmaOf(g.t, g.d);
+    gl.uniform3fv(uni.uSig, s);
+    gl.uniform3fv(uni.uSig2, g.bi ? sigmaOf(g.bi, g.d) : s);
+    gl.uniform1f(uni.uBiOn, g.bi ? 1 : 0);
+    gl.uniform1f(uni.uBiAt, 0.25);
+    gl.uniform3fv(uni.uPleo, g.pleo ? sigmaOf(g.pleo, g.d) : s);
+    gl.uniform1f(uni.uPleoOn, g.pleo ? 1 : 0);
+    gl.uniform2fv(uni.uCau, cauchy(g, g.fire == null ? 1.6 : g.fire));
+  } else {
+    gl.uniform3fv(uni.uAbc, g.abc || (g.cut === 'cab' ? [0.92, 0.92, 0.62] : g.cut === 'sphere' ? [0.9, 0.9, 0.9] : [1.0, 0.76, 0.62]));
+    gl.uniform3f(uni.uIor, g.ri, g.ri, g.ri);
+  }
+  return g;
+}
+
 // ---------------------------------------------------------------- 描く道具（キャンバス 1 枚に 1 つ）
+export { FS_TRACE, FS_POST, NW };
 const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uCau', 'uNW', 'uPersp', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL', 'uCarve'];
 
 function createRenderer(canvas) {
@@ -615,43 +656,8 @@ function createRenderer(canvas) {
 
   // 宝石を切り替えたときに、形・色・照明を送る
   const load = (id) => {
-    const g = GEM_LOOK[id] || GEM_LOOK.ruby;
     gl.useProgram(prog);
-    const E = ENVS[g.env] || (g.mode === 'cab' || g.mode === 'tumble' ? ENV_CAB : g.spark ? ENV_SPARK : ENV_FACET);
-    const L = new Float32Array(24 * 4), Lc = new Float32Array(24 * 2);
-    E.L.forEach((l, i) => { L.set([...l.dir, l.I], i * 4); Lc.set([l.c0, l.c1], i * 2); });
-    gl.uniform4fv(uni.uL, L);
-    gl.uniform2fv(uni.uLc, Lc);
-    gl.uniform1i(uni.uNL, E.L.length);
-    const fill = g.fill || 1;
-    gl.uniform4f(uni.uEnv, E.sky0 * fill, E.sky1 * fill, E.floor * fill, 0);
-    gl.uniform2f(uni.uHead, Math.cos(E.head * D2R), Math.cos(E.head * 1.4 * D2R));
-    gl.uniform1i(uni.uMode, MODE[g.mode]);
-    gl.uniform1i(uni.uKind, g.kind || 0);
-    if (CUTS[g.cut]) {
-      const P = CUTS[g.cut]().filter((p) => p.every(Number.isFinite));
-      const arr = new Float32Array(112 * 4);
-      P.slice(0, 112).forEach((p, i) => arr.set(p, i * 4));
-      gl.uniform4fv(uni.uP, arr);
-      gl.uniform1i(uni.uN, Math.min(112, P.length));
-    }
-    gl.uniform1f(uni.uFogD, g.fogD || 0);
-    gl.uniform1f(uni.uCarve, g.carve || 0);
-    gl.uniform3fv(uni.uFogL, (g.fog || [0, 0, 0]).map((v) => v * 0.75));
-    if (g.mode === 'trace') {
-      const s = sigmaOf(g.t, g.d);
-      gl.uniform3fv(uni.uSig, s);
-      gl.uniform3fv(uni.uSig2, g.bi ? sigmaOf(g.bi, g.d) : s);
-      gl.uniform1f(uni.uBiOn, g.bi ? 1 : 0);
-      gl.uniform1f(uni.uBiAt, 0.25);
-      gl.uniform3fv(uni.uPleo, g.pleo ? sigmaOf(g.pleo, g.d) : s);
-      gl.uniform1f(uni.uPleoOn, g.pleo ? 1 : 0);
-      gl.uniform2fv(uni.uCau, cauchy(g, g.fire == null ? 1.6 : g.fire));
-    } else {
-      gl.uniform3fv(uni.uAbc, g.abc || (g.cut === 'cab' ? [0.92, 0.92, 0.62] : g.cut === 'sphere' ? [0.9, 0.9, 0.9] : [1.0, 0.76, 0.62]));
-      gl.uniform3f(uni.uIor, g.ri, g.ri, g.ri);
-    }
-    look = g;
+    look = applyLook(gl, uni, id);
   };
 
   // W×W（o.h があれば W×H）で描く。rockT・rockS は置いた向きからのずれ（度）
