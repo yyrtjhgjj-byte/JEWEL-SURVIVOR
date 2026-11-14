@@ -96,8 +96,9 @@ const BOSS_TRASH = 0.5;
 const OFFSCREEN_DMG = 0.5;
 // ボスの HP の自機の強さによる倍率の下限と上限（bossPowerMul）
 const BOSS_POWER = [0.8, 5];
-// 賢者の石の完成の演出の長さ（秒。ウロボロスの撃破からクリア画面まで）
-const STONE_FX = 4;
+// 賢者の石の完成の演出：クリア画面までの秒数と、背景がもとに戻るまでの秒数（ENDLESS で続くとき）
+const STONE_FX = 4.5;
+const STONE_BG = 14;
 const BREAK_NEED = 0.42;
 const BREAK_GROW = 1.5;
 // ブレイクゲージのたまりやすさ（どの距離でも同じ倍率。ブレイクしやすすぎたため 0.85 倍に。ユーザーの指定）
@@ -121,6 +122,56 @@ const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500
 
 // 必要経験値。Lv15（2:00 ごろ）までの序盤はそのままに、そのあとの伸びを大きくしてある（1 レベルごとの増分が Lv15・30・60 を境に増える）
 const xpFor = (l) => Math.round(1.25 * 1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 8 + Math.max(0, l - 30) * 10 + Math.max(0, l - 60) * 10));
+
+// 正八面体の賢者の石（drawStoneBack）。S：中心から頂点までの長さ、rot：縦の軸まわりの回転。面ごとに光の向きで塗り、稜線を光らせる
+const OCTA_V = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+const OCTA_F = [];
+for (const y of [2, 3]) for (const [a, b] of [[0, 4], [4, 1], [1, 5], [5, 0]]) OCTA_F.push(y === 2 ? [y, a, b] : [y, b, a]);
+function drawOctahedron(ctx, S, rot, alpha) {
+  const tilt = 0.32, cr = Math.cos(rot), sr = Math.sin(rot), ct = Math.cos(tilt), st = Math.sin(tilt);
+  // y は上向き、z は手前向き。縦の軸まわりに回し、手前へ少し倒す
+  const P = OCTA_V.map(([x, y, z]) => { const x1 = x * cr + z * sr, z1 = -x * sr + z * cr; return [x1, y * ct - z1 * st, y * st + z1 * ct]; });
+  const L = [-0.45, 0.6, 0.66];
+  const faces = [];
+  for (const f of OCTA_F) {
+    const [A, B, C] = f.map((i) => P[i]);
+    const u = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], v = [C[0] - A[0], C[1] - A[1], C[2] - A[2]];
+    let n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    const l = Math.hypot(...n); n = n.map((c) => c / l);
+    // 外向きにそろえる（重心と同じ向き）
+    const cx = A[0] + B[0] + C[0], cy = A[1] + B[1] + C[1], cz = A[2] + B[2] + C[2];
+    if (n[0] * cx + n[1] * cy + n[2] * cz < 0) n = n.map((c) => -c);
+    faces.push({ pts: [A, B, C], n, z: cz });
+  }
+  faces.sort((a, b) => a.z - b.z);
+  ctx.globalAlpha = alpha;
+  for (const F of faces) {
+    if (F.n[2] <= 0) continue;
+    const d = Math.max(0, F.n[0] * L[0] + F.n[1] * L[1] + F.n[2] * L[2]);
+    const lum = 0.45 + 0.6 * d;
+    const [A, B, C] = F.pts.map((q) => [q[0] * S, -q[1] * S]);
+    const gr = ctx.createLinearGradient(A[0], A[1], (B[0] + C[0]) / 2, (B[1] + C[1]) / 2);
+    gr.addColorStop(0, `rgb(${Math.round(255 * Math.min(1, lum * 1.25))},${Math.round(70 * lum)},${Math.round(80 * lum)})`);
+    gr.addColorStop(1, `rgb(${Math.round(150 * lum)},${Math.round(8 * lum)},${Math.round(24 * lum)})`);
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.lineTo(C[0], C[1]); ctx.closePath(); ctx.fill();
+    // 光を受ける面には、面の中に白い照り
+    if (d > 0.75) {
+      ctx.globalAlpha = alpha * (d - 0.75) * 2.4;
+      ctx.fillStyle = '#ffe8e8';
+      const m = [(A[0] + B[0] + C[0]) / 3, (A[1] + B[1] + C[1]) / 3];
+      ctx.beginPath();
+      ctx.moveTo(m[0] + (A[0] - m[0]) * 0.55, m[1] + (A[1] - m[1]) * 0.55);
+      ctx.lineTo(m[0] + (B[0] - m[0]) * 0.25, m[1] + (B[1] - m[1]) * 0.25);
+      ctx.lineTo(m[0] + (C[0] - m[0]) * 0.25, m[1] + (C[1] - m[1]) * 0.25);
+      ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = alpha;
+    }
+    ctx.strokeStyle = 'rgba(255,226,170,0.95)';
+    ctx.lineWidth = Math.max(2, S * 0.018);
+    ctx.stroke();
+  }
+}
 
 export class Game {
   constructor(canvas, hooks, opts = {}) {
@@ -1768,59 +1819,83 @@ export class Game {
     }
   }
 
-  // 賢者の石の完成（ウロボロスの撃破）：金の輪が中心へ縮み、赤い石が結晶して光を放つ
+  // 賢者の石の完成（ウロボロスの撃破）。時間は実時間（f.t0 から）
+  // 前（drawStoneFx）：蛇の金の輪が、倒した場所で中心へ縮む
   drawStoneFx(ctx) {
     const f = this.stoneFx;
     const t = (performance.now() - f.t0) / 1000;
-    if (t > STONE_FX) { this.stoneFx = null; return; }
-    const fade = Math.min(1, (STONE_FX - t) / 0.6);
-    ctx.save();
-    // 画面を暗くして、いちばん上に出す（雑魚やダメージの数字に埋もれないように）
-    const p = this.player;
-    ctx.globalAlpha = 0.6 * Math.min(1, t / 0.5) * fade;
-    ctx.fillStyle = '#05020a';
-    ctx.fillRect(p.x - this.viewW, p.y - this.viewH, this.viewW * 2, this.viewH * 2);
-    // 石は画面の中に収める
-    const mx = this.viewW / 2 - 90, my = this.viewH / 2 - 120;
-    ctx.translate(Math.max(p.x - mx, Math.min(p.x + mx, f.x)), Math.max(p.y - my, Math.min(p.y + my, f.y)));
-    ctx.globalCompositeOperation = 'lighter';
-    // 1) 蛇の輪：0.9 秒で中心へ縮む金の輪と、輪から中心へ吸い込まれる光の粒
     const k = Math.min(1, t / 0.9);
-    if (k < 1) {
-      const R = f.R * (1 - ease.outCubic(k));
-      ctx.globalAlpha = 0.85;
-      ctx.strokeStyle = '#ffd24a';
-      ctx.lineWidth = 10 * (1 - k) + 2;
-      ctx.beginPath(); ctx.arc(0, 0, Math.max(1, R), 0, TAU); ctx.stroke();
-      const dot = softSprite('#ffe9a0');
-      for (let i = 0; i < 24; i++) {
-        const a = (i / 24) * TAU + t * 2.4, rr = R * (0.6 + 0.4 * ((i * 7) % 5) / 5);
-        ctx.drawImage(dot, Math.cos(a) * rr - 10, Math.sin(a) * rr - 10, 20, 20);
-      }
+    if (k >= 1) return;
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.globalCompositeOperation = 'lighter';
+    const R = f.R * (1 - ease.outCubic(k));
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = '#ffd24a';
+    ctx.lineWidth = 10 * (1 - k) + 2;
+    ctx.beginPath(); ctx.arc(0, 0, Math.max(1, R), 0, TAU); ctx.stroke();
+    const dot = softSprite('#ffe9a0');
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * TAU + t * 2.4, rr = R * (0.6 + 0.4 * ((i * 7) % 5) / 5);
+      ctx.drawImage(dot, Math.cos(a) * rr - 10, Math.sin(a) * rr - 10, 20, 20);
     }
-    // 2) 石：輪が閉じるころに現れ、光の筋が回る
-    const g = Math.max(0, (t - 0.7) / 0.5);
-    if (g > 0) {
-      const pop = g < 1 ? ease.outBack(g) : 1 + 0.06 * Math.sin(t * 6);
-      ctx.globalAlpha = fade * 0.9;
-      ctx.rotate(t * 0.5);
-      ctx.fillStyle = 'rgba(255,80,60,0.5)';
-      for (let i = 0; i < 12; i++) {
-        const len = (240 + 70 * Math.sin(t * 3 + i)) * Math.min(1, g);
+    ctx.restore();
+  }
+
+  // 後ろ（drawStoneBack。地面より奥）：背景がほんのり赤く染まり、画面の真ん中に大きな正八面体の賢者の石が現れて回る。
+  // ENDLESS で続くので、STONE_BG 秒でもとの背景に戻る
+  drawStoneBack(ctx) {
+    const f = this.stoneFx;
+    const t = (performance.now() - f.t0) / 1000;
+    if (t > STONE_BG) { this.stoneFx = null; return; }
+    const p = this.player;
+    const fade = Math.min(1, t / 0.8) * Math.min(1, (STONE_BG - t) / 3);
+    const W = this.viewW, H = this.viewH;
+    ctx.save();
+    // 赤く染まる背景（真ん中ほど明るい）
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(W, H) * 0.75);
+    g.addColorStop(0, `rgba(255,40,50,${0.42 * fade})`);
+    g.addColorStop(0.5, `rgba(170,10,30,${0.32 * fade})`);
+    g.addColorStop(1, `rgba(60,0,10,${0.25 * fade})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(p.x - W, p.y - H, W * 2, H * 2);
+    // 石：輪が閉じるころにドーンと現れる
+    const a = Math.max(0, t - 0.75);
+    if (a > 0) {
+      if (!f.boom) {
+        f.boom = true;
+        this.fx.shake(28);
+        this.fx.screenFlash(0.8, '#ffd0c8');
+        for (let i = 0; i < 4; i++) this.fx.ring(p.x, p.y, 20, Math.max(W, H) * (0.5 + i * 0.25), 0.7 + i * 0.25, i % 2 ? '#ffd24a' : '#ff4a5a', 10 - i * 2);
+        this.fx.burst(p.x, p.y, '#ff4a5a', 50, 700, 1.4, 22);
+        this.fx.burst(p.x, p.y, '#ffd24a', 40, 500, 1.2, 16);
+        audio.bomb(true);
+      }
+      const S = Math.min(W, H) * 0.36 * (a < 0.5 ? ease.outBack(a / 0.5) : 1 + 0.03 * Math.sin(t * 3));
+      ctx.translate(p.x, p.y - S * 0.1);
+      ctx.globalAlpha = fade;
+      // 後ろの回る光の筋
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.rotate(t * 0.35);
+      for (let i = 0; i < 16; i++) {
+        const len = S * (2.6 + 0.6 * Math.sin(t * 2.5 + i * 1.7));
+        const w = 0.06 + 0.03 * (i % 2);
+        ctx.fillStyle = i % 2 ? 'rgba(255,210,90,0.22)' : 'rgba(255,70,70,0.28)';
         ctx.beginPath(); ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(i / 12 * TAU - 0.07) * len, Math.sin(i / 12 * TAU - 0.07) * len);
-        ctx.lineTo(Math.cos(i / 12 * TAU + 0.07) * len, Math.sin(i / 12 * TAU + 0.07) * len);
+        ctx.lineTo(Math.cos(i / 16 * TAU - w) * len, Math.sin(i / 16 * TAU - w) * len);
+        ctx.lineTo(Math.cos(i / 16 * TAU + w) * len, Math.sin(i / 16 * TAU + w) * len);
         ctx.closePath(); ctx.fill();
       }
-      ctx.rotate(-t * 0.5);
-      const st = starSprite('#ff6a5a');
-      const hs = 150 * pop;
-      ctx.drawImage(st, -hs, -hs, hs * 2, hs * 2);
+      ctx.rotate(-t * 0.35);
+      const hs = S * 2.2;
+      ctx.drawImage(softSprite('#ff3040'), -hs, -hs, hs * 2, hs * 2);
       ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = fade;
-      const spr = gemSprite('ruby', 44);
-      const L = spr.logical * 1.7 * pop;
-      ctx.drawImage(spr, -L / 2, -L / 2, L, L);
+      drawOctahedron(ctx, S, t * 0.7, fade);
+      // 頂点のきらめき
+      ctx.globalCompositeOperation = 'lighter';
+      const st = starSprite('#ffe9e0');
+      const tw = S * (0.35 + 0.15 * Math.sin(t * 7));
+      ctx.drawImage(st, -tw, -S * 1.18 - tw, tw * 2, tw * 2);
     }
     ctx.restore();
   }
@@ -2630,6 +2705,8 @@ export class Game {
       ctx.fillStyle = `hsla(${(this.time * 120) % 360},100%,60%,0.06)`;
       ctx.fillRect(L - 2, T - 2, this.viewW + 4, this.viewH + 4);
     }
+
+    if (this.stoneFx) this.drawStoneBack(ctx);
 
     // じめん
     this.hazards.drawGround(ctx);
