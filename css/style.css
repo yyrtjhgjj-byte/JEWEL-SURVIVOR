@@ -761,6 +761,12 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .st-desc { font-family: var(--font-jp); font-size: 12px; line-height: 1.6; color: #c9c6dc; }
 .st-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; font-family: var(--font-jp); font-size: 11px; color: var(--muted); }
 .st-meta span { border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
+/* UI 2.0：ステージのカードは、選んでいるものだけ説明とギミックを開き、ほかは番号と名前の 1 行（押すと開く） */
+.stage-card.st-fold { padding: 10px 14px; }
+.stage-card.st-fold:not(.sel):not(.locked) .st-desc, .stage-card.st-fold:not(.sel) .st-meta { display: none; }
+.stage-card.st-fold .st-name { flex-wrap: nowrap; white-space: nowrap; overflow: hidden; min-width: 0; }
+.stage-card.st-fold .st-name .en { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.stage-card.st-fold.locked .st-desc { font-size: var(--t4); }
 /* BOSS タブの章の見出し：押すと畳む・開く */
 .rush-ch { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 4px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: #fff; font-family: var(--font-jp); font-weight: 700; font-size: 13px; letter-spacing: 0.1em; text-align: left; }
 .rush-ch small { color: var(--gold); font-size: 11px; letter-spacing: 0.05em; }
@@ -867,16 +873,6 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .pol-tip { font-family: var(--font-jp); font-size: 13px; line-height: 1.7; text-align: center; min-height: 3.4em; width: min(340px, 90vw); }
 .pol-tip div { text-wrap: balance; }
 .reveal-screen .tut-now { background: rgba(255,255,255,0.08); border-radius: 6px; }
-.rough-list { display: flex; flex-direction: column; gap: 8px; }
-.rough-item { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; }
-.rough-item.none { filter: brightness(0.6) saturate(0.5); }
-.rough-item img { width: 46px; height: 46px; flex: none; }
-.rough-item .rbody { flex: 1; min-width: 0; }
-.rough-item .rname { font-family: var(--font-jp); font-weight: 700; font-size: 15px; }
-.rough-item .rname small { font-family: var(--font); color: var(--gold); margin-left: 8px; font-size: 14px; }
-.rough-item .rdesc { font-family: var(--font-jp); font-size: min(11px, 2.8vw); color: var(--muted); display: flex; align-items: center; gap: 3px; white-space: nowrap; }
-.rough-item .rbtns2 { display: flex; flex-direction: column; gap: 5px; }
-.rough-item .rbtns2 .btn { width: 92px; white-space: nowrap; padding-left: 0; padding-right: 0; }
 .at-note { font-family: var(--font-jp); font-size: 11.5px; color: var(--muted); line-height: 1.7; margin: 14px 4px 24px; }
 .at-over { display: flex; align-items: center; justify-content: center; }
 .at-sum { width: min(360px, 92vw); max-height: 80vh; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
@@ -912,7 +908,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .reveal-screen .rbtns { width: min(360px, 92vw); }
 .rv-g3 .rays, .rv-g4 .rays { opacity: 1; }
 @keyframes rvPop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.coll-sum { margin-bottom: 10px; }
+.coll-sum { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.coll-sum .coll-count small { float: none; margin: 0 0 0 10px; }
 .coll-count { font-family: var(--font); font-size: 16px; color: var(--muted); }
 .coll-count b { font-size: 28px; color: var(--text); margin-right: 2px; }
 .coll-count small { float: right; font-family: var(--font-jp); font-size: 12px; margin-top: 12px; }
@@ -1008,7 +1005,6 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .pk-btns .btn.gold { flex: 2; }
 /* 研磨の画面の選んだ原石 */
 .pick-label { margin: 14px 2px 6px; }
-.rough-item.pick { border-color: rgba(255,210,74,0.35); }
 
 /* レベルアップ：スキップ・バニッシュ */
 .lvl-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
@@ -2035,3 +2031,18 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .bs-acts .btn { width: 100%; }
 .bs-cost { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; font: 700 16px var(--font); color: #ffe39a; letter-spacing: 0.04em; }
 @media (prefers-reduced-motion: reduce) { .bsheet, .screen.dim.bs-over { transition: none; } }
+.lrow .lr-sub { font: 500 var(--t4) var(--font-jp); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; display: inline-flex; align-items: center; gap: 3px; }
+.lr-sub .coin-ico { width: 12px; height: 12px; }
+/* 研磨の原石の行：研磨と自動の 2 つのボタン */
+.rough-row { cursor: default; }
+.rough-row .lbtn { min-width: 0; padding: 8px 10px; font-family: var(--font-jp); }
+.rough-row .lbtn:not(.gold) { border-color: var(--line2); background: rgba(255,255,255,0.05); color: var(--text); }
+.tut-chip { align-self: center; }
+.bs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.bs-grid .bs-kv { padding: 8px 10px; font-size: var(--t4); }
+/* リザルトの数値：2 列の小さな枠（名前を上、値を下） */
+.rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; width: 100%; max-width: 520px; }
+.rgrid .rrow { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 8px 10px; border: 0; border-radius: 10px; background: rgba(255,255,255,0.045); }
+.rgrid .rrow span { font-size: var(--t4); }
+.rgrid .rrow b { font-size: 18px; font-variant-numeric: tabular-nums; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.rgrid .rrow .new { margin-left: 0; }
