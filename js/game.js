@@ -94,6 +94,8 @@ export const CHAOS = 5;
 const BOSS_TRASH = 0.5;
 // 画面の外の敵へのダメージの倍率（damage）
 const OFFSCREEN_DMG = 0.5;
+// ボスの HP の自機の強さによる倍率の下限と上限（bossPowerMul）
+const BOSS_POWER = [0.8, 5];
 // 賢者の石の完成の演出の長さ（秒。ウロボロスの撃破からクリア画面まで）
 const STONE_FX = 4;
 const BREAK_NEED = 0.42;
@@ -324,6 +326,14 @@ export class Game {
     for (const w of this.weapons) w.s = weaponStats(this, w);
     // 雑魚の硬さを自機の強さに少しだけ連動させる（強さの平方根。完全には連動させず、育てた実感は残す）
     this.trashMul = Math.min(10, Math.max(1, Math.sqrt(this.estPower() / 3500)));
+  }
+
+  // ボスの HP を自機の強さに合わせる：その時刻にふつうに育てた強さ（工房を半分ほど。tools/test/sim.js の estPower の中央値）との比の平方根。
+  // 育ちきっていればボスは硬く、育っていなければ少し柔らかく（BOSS_POWER の範囲）。BOSS モード・トレーニング・CHAOS は掛けない
+  bossPowerMul() {
+    if (this.rush || this.train || this.chaos) return 1;
+    const ref = 2400 * Math.exp(Math.min(this.progress(), 900) / 214);
+    return Math.max(BOSS_POWER[0], Math.min(BOSS_POWER[1], Math.sqrt(this.estPower() / ref)));
   }
 
   // 自機の火力の目安（武器 1 つの群れへの DPS の目安：Lv1 約 300、Lv4 約 700、Lv8 約 6500、進化後 約 20000。wbench.js の計測とほぼ同じ桁）
@@ -976,7 +986,7 @@ export class Game {
     const st = this.rushHome || this.stage;
     // CHAOS は HP と攻撃力を CHAOS 倍（地形の小物は除く）
     const cm = this.chaos && !d.prop ? CHAOS : 1;
-    const mul = cm * (d.boss ? BOSS_HP * (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) * st.hp * this.heatM.hp
+    const mul = cm * (d.boss ? BOSS_HP * (o.mul || 1) * (1 + Math.max(0, this.level - 20) * 0.01) * this.bossPowerMul() * st.hp * this.heatM.hp
       : d.prop ? 1 : this.hpScale() * (elite ? 2 : 1) * (o.soft || elite || d.ai === 'thief' ? 1 : this.trashMul || 1));
     // 敵の攻撃力（dmg）：雑魚・エリート 2 倍、ボス 1.5 倍（弾・レーザーもこれをもとにする）
     const e = {
