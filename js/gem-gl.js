@@ -22,7 +22,7 @@ export const GEM_LOOK = {
   sapphire: T('oval', 1.77, 0.018, [0.12, 0.25, 0.95], 1.2),
   amethyst: T('oval', 1.544, 0.013, [0.62, 0.28, 0.95], 1.3),
   garnet: T('cushion', 1.76, 0.027, [0.82, 0.04, 0.16], 1.25),
-  alexandrite: T('cushion', 1.75, 0.015, [0.12, 0.66, 0.42], 1.5, { pleo: [0.72, 0.16, 0.32], fill: 8 }),
+  alexandrite: T('cushion', 1.75, 0.015, [0.08, 0.85, 0.4], 1.25, { pleo: [0.85, 0.2, 0.5], env: 'alex' }),
   redberyl: T('cushion', 1.57, 0.014, [0.95, 0.12, 0.4], 1.0),
   emerald: T('step', 1.58, 0.014, [0.1, 0.8, 0.38], 1.1),
   aquamarine: T('step', 1.58, 0.014, [0.55, 0.95, 0.97], 1.0),
@@ -200,7 +200,10 @@ const ENV_FACET = { L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 2.6,
 const ENV_SPARK = { ...ENV_FACET, L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 0.6, 565, 7), ...ring(4, 18, 9, 3, 40)], 1.3) };
 // ダイヤモンド：大きな箱を高さ交互に置く（6 つを同じ高さに並べると、テーブルの真ん中に箱が丸く白く写り込むため）
 const ENV_DIAMOND = { ...ENV_SPARK, L: lightsOf([...ring(3, 50, 13, 5, 15), ...ring(3, 36, 13, 5, 75), ...ring(12, 68, 0.6, 565, 7), ...ring(4, 18, 9, 3, 40)], 1.3) };
-const ENVS = { diamond: ENV_DIAMOND };
+// アレキサンドライト：見る向きの真正面に小さな光を置き、頭の影を消す（テーブルの奥で反射して戻る光が青緑に明るく出る。
+// 正面寄りでも大きな光にすると、表の面で跳ね返って白くなる）
+const ENV_ALEX = { ...ENV_FACET, head: 0.1, L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 2.6, 30, 7), ...ring(1, 89.9, 10, 3, 0)], 1.3) };
+const ENVS = { diamond: ENV_DIAMOND, alex: ENV_ALEX };
 const ENV_CAB = { L: lightsOf([{ az: 135, el: 50, r: 15, I: 5.5 }, { az: 35, el: 36, r: 9, I: 3 }, { az: 250, el: 28, r: 8, I: 2.4 }, { az: 200, el: 18, r: 10, I: 1.2 }], 1.7), sky0: 0.03, sky1: 0.08, floor: 0.015, head: 8 };
 
 // ---------------------------------------------------------------- シェーダー
