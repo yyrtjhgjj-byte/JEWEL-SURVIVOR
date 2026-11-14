@@ -2034,6 +2034,10 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .screen.dim.sht-over.on { background: rgba(3,3,8,0.6); }
 .bsheet { width: 100%; max-width: 560px; margin: 0 auto; max-height: 82%; display: flex; flex-direction: column; gap: 12px; padding: 8px max(18px, var(--safe-l)) calc(var(--safe-b) + 18px) max(18px, var(--safe-r)); border-radius: 22px 22px 0 0; background: #13121f; border-top: 1px solid var(--line2); transform: translateY(100%); transition: transform 0.24s cubic-bezier(.2,.8,.2,1); overflow-y: auto; }
 .sht-over.on .bsheet { transform: none; }
+/* 右上の閉じるボタン（どのシートにも付く） */
+.bsheet { position: relative; }
+.sht-x { position: absolute; top: 10px; right: max(12px, var(--safe-r)); z-index: 2; width: 34px; height: 34px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line2); color: var(--muted); font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.bsheet > .sht-head { padding-right: 40px; }
 .sht-grab { flex: none; width: 40px; height: 4px; border-radius: 3px; background: var(--line2); align-self: center; }
 .sht-head { display: flex; align-items: center; gap: 14px; }
 .sht-ico { width: 60px; height: 60px; flex: none; }
@@ -2131,11 +2135,21 @@ html.ultra #xpfill::before { animation: none; }
 .mg-pin { position: absolute; top: 6px; left: 6px; font: 700 9px var(--font); letter-spacing: 0.1em; font-style: normal; padding: 1px 5px; border-radius: 6px; background: color-mix(in srgb, var(--c) 30%, #000); color: #fff; }
 .mg-new { justify-content: center; border-style: dashed; color: var(--muted); }
 .mg-plus { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 34px; color: var(--muted); }
-.mg-sbig { position: relative; width: 180px; height: 180px; margin: 4px auto 8px; }
-.mg-sbig img, .mg-sbig canvas { width: 100%; height: 100%; object-fit: contain; }
-.mg-loupe { position: absolute; right: 0; bottom: 0; width: 38px; height: 38px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line2); color: var(--text); display: flex; align-items: center; justify-content: center; }
-.mg-loupe svg { width: 20px; height: 20px; }
-.mg-acts { flex-wrap: wrap; }
+.mg-detail { gap: 12px; }
+.mg-detail > * { flex-shrink: 0; }
+.mg-stage { position: relative; width: 100%; max-width: 560px; height: min(30vh, 260px); display: flex; align-items: center; justify-content: center; border-radius: 18px; background: radial-gradient(55% 60% at 50% 45%, color-mix(in srgb, var(--c) 16%, #0b0b12), #050508 80%); border: 1px solid var(--line); }
+.mg-hero { height: 88%; aspect-ratio: 1; object-fit: contain; }
+.mg-stage canvas.mg-hero { width: auto; }
+.mg-loupe { position: absolute; right: 12px; bottom: 12px; width: 44px; height: 44px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line2); color: var(--text); display: flex; align-items: center; justify-content: center; }
+.mg-loupe svg { width: 22px; height: 22px; }
+.mg-spec { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 2px; padding: 6px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+.mg-spec div { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 26px; font: 13px var(--font-jp); }
+.mg-spec span { color: var(--muted); }
+.mg-spec b { display: flex; gap: 6px; align-items: center; font-weight: 700; }
+.mg-sw { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.35); }
+.mg-acts { width: 100%; max-width: 560px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mg-acts .btn.primary { grid-column: 1 / -1; }
+.mg-acts .btn.warn { color: #ff8a8a; border-color: rgba(255, 110, 110, 0.6); }
 .mg-edit { gap: 8px; overflow: hidden; padding-bottom: calc(var(--safe-b) + 10px); }
 .mg-edit > * { flex-shrink: 0; }
 .mg-prev { width: 100%; max-width: 560px; height: min(34vh, 260px); display: flex; align-items: center; justify-content: center; border-radius: 16px; background: radial-gradient(55% 60% at 50% 45%, color-mix(in srgb, var(--c, #888) 14%, #0b0b12), #050508 80%); border: 1px solid var(--line); }
@@ -2152,3 +2166,4 @@ html.ultra #xpfill::before { animation: none; }
 .mg-sl.hue input::-webkit-slider-thumb, .mg-sl.grad input::-webkit-slider-thumb { margin-top: -7px; }
 .mg-name-in { width: 100%; padding: 11px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line2); color: var(--text); font: 15px var(--font-jp); }
 .mg-foot { width: 100%; max-width: 560px; display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.mg-acts .btn { white-space: nowrap; letter-spacing: 0.04em; }
