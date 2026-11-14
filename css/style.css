@@ -1611,12 +1611,18 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .bm-deal { border-color: rgba(74, 222, 154, 0.55); }
 .bm-deal .bm-label { color: #4ade9a; }
 .bm-gem img.bm-rough { width: 140px; height: 140px; }
-.bs-vault { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; margin-top: 6px; }
-.bv-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px; background: var(--panel); border: 1px solid var(--line2); border-radius: 12px; color: var(--text); cursor: pointer; }
-.bv-item img { width: 48px; height: 48px; }
-.bv-item { min-width: 0; }
-.bv-item b { font: 700 11px var(--font-jp); text-align: center; overflow-wrap: anywhere; text-wrap: balance; }
-.bv-item small { font: 10.5px var(--font-jp); color: var(--muted); }
+.bs-vault { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 8px; }
+/* 宝物庫は美術館の陳列棚：上からの照明・台座・名札 */
+.bv-item { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; overflow: hidden; background: #08080c; border: 1px solid var(--line2); border-radius: 12px; color: var(--text); cursor: pointer; }
+.bv-case { position: relative; height: 118px; display: flex; align-items: center; justify-content: center; background: radial-gradient(70% 90% at 50% -10%, color-mix(in srgb, var(--c) 30%, rgba(255, 250, 235, 0.28)) 0%, rgba(255, 250, 235, 0.05) 55%, transparent 80%), linear-gradient(#0d0d14, #050507); }
+.bv-case::before { content: ''; position: absolute; left: 50%; top: 0; width: 70%; height: 100%; transform: translateX(-50%); background: linear-gradient(rgba(255, 250, 235, 0.10), transparent 85%); clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%); pointer-events: none; }
+.bv-case img { position: relative; z-index: 1; width: 74px; height: 74px; margin-bottom: 14px; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 14px color-mix(in srgb, var(--c) 45%, transparent)); }
+.bv-ped { position: absolute; bottom: 12px; left: 50%; width: 76px; height: 16px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 70%, transparent); }
+.bv-plate { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 8px 8px; border-top: 1px solid rgba(255, 213, 128, 0.22); background: linear-gradient(#14131a, #0e0d12); }
+.bv-item b { max-width: 100%; font: 700 11.5px var(--font-jp); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f0e6cc; }
+.bv-item small { font: 10.5px var(--font-jp); color: var(--muted); white-space: nowrap; }
+.bv-item > .grade { position: absolute; top: 6px; right: 6px; z-index: 2; }
+.bv-item.lent .bv-case img { opacity: 0.25; filter: grayscale(0.6); }
 /* 経営のチュートリアル：押す場所だけ明るくし、まわりは押せない板で覆う */
 #bztut { position: absolute; inset: 0; z-index: 30; pointer-events: none; }
 .tut-block { position: absolute; pointer-events: auto; }
@@ -1961,6 +1967,11 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .lg-cost small { font: 10.5px var(--font-jp); color: var(--muted); border: 1px solid var(--line2); border-radius: 6px; padding: 0 5px; }
 .lg-chk { font-style: normal; color: var(--gold); font-weight: 700; margin-left: auto; }
 .lg-pay { align-self: flex-start; margin-top: 2px; }
+.lg-pays { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.lg-pays .lg-pay { margin-top: 0; }
+.lg-wallet { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; width: 100%; max-width: 520px; font: 12px var(--font-jp); color: var(--muted); }
+.lg-wallet div { display: flex; align-items: center; gap: 6px; }
+.lg-wallet small { font-size: 10.5px; }
 .lg-fin { text-align: center; font: 700 18px var(--font-jp); color: var(--gold); letter-spacing: 0.2em; display: flex; flex-direction: column; gap: 2px; padding: 4px 0 8px; }
 .lg-fin span { font-size: 12px; color: var(--muted); letter-spacing: 0.05em; }
 .lg-over { justify-content: center; gap: 12px; text-align: center; }

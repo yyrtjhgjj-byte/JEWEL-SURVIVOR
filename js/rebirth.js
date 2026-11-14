@@ -79,16 +79,22 @@ export function mergeLives(P, N) {
   R.upperShop = !!(P.upperShop || N.upperShop);
   R.rank = rankFromXp(rankXp(P.rank) + rankXp(N.rank));
   R.lastBackup = Math.max(num(P.lastBackup), num(N.lastBackup));
-  // 伝説の宝石：進んでいる方を残し、もう片方に払ったコインは戻す
+  for (const k of ['biz', 'login', 'settings', 'slot']) { const v = N[k] === undefined ? P[k] : N[k]; R[k] = v === undefined ? undefined : clone(v); }
+  // 伝説の宝石：進んでいる方を残し、もう片方に払った分は戻す（コインはコインへ、会社の資金で払った分は会社へ）
   const PL = P.legends || {}, NL = N.legends || {};
   const prog = (x) => (x ? (x.done ? 1e9 : num(x.step)) : -1);
+  const back = (x) => {
+    if (!x) return;
+    R.coins += Math.max(0, num(x.paid) - num(x.paidBiz));
+    if (R.biz && num(x.usd) > 0) { R.biz.cash = num(R.biz.cash) + num(x.usd); R.biz.legendPaid = Math.max(0, num(R.biz.legendPaid) - num(x.paidBiz)); }
+    else R.coins += num(x.paidBiz);
+  };
   R.legends = clone(PL);
   for (const id in NL) {
     const a = PL[id], b = NL[id];
-    if (prog(b) > prog(a)) { R.legends[id] = clone(b); R.coins += num(a && a.paid); }
-    else R.coins += num(b.paid);
+    if (prog(b) > prog(a)) { R.legends[id] = clone(b); back(a); }
+    else back(b);
   }
-  for (const k of ['biz', 'login', 'settings', 'slot']) R[k] = N[k] === undefined ? P[k] : N[k];
   delete R.pendingRun;
   return R;
 }

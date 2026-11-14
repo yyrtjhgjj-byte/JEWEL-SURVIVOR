@@ -110,6 +110,12 @@ try {
   if (raw) past = JSON.parse(raw);
 } catch (e) { past = null; }
 export const pastLife = () => past;
+// 1 ランの平均コイン（転生中は前世の分も入れる）。経営の配当の上限と、会社の資金のコイン換算に使う
+export function avgRunCoins() {
+  const ps = (past && past.stats) || {};
+  const runs = (save.stats.runs || 0) + (ps.runs || 0);
+  return runs ? ((save.stats.runCoins || 0) + (ps.runCoins || 0)) / runs : 0;
+}
 // 前世を書く。読み直して同じなら true
 export function writePast(p) {
   try {
