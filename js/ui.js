@@ -50,7 +50,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // 下から上がるシート（一覧の行を押すと、くわしい中身と操作をここに出す。UI 2.0 の共通の部品）。
 // html はシートの中身。閉じる関数を返す。bind(sheet, close) で中のボタンをつなぐ
 export function openSheet(html, bind) {
-  const ov = el(`<div class="screen dim sht-over"><div class="bsheet"><div class="sht-grab"></div>${html}</div></div>`);
+  const ov = el(`<div class="screen dim sht-over"><div class="bsheet"><div class="sht-grab"></div><button class="sht-x" data-close aria-label="閉じる">✕</button>${html}</div></div>`);
   screens().appendChild(ov);
   const sh = $('.bsheet', ov);
   requestAnimationFrame(() => ov.classList.add('on'));

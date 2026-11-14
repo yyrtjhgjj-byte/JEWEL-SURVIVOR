@@ -1,7 +1,7 @@
 // ジュエル・アトリエの画面：作った宝石の棚と、カット・色・質感を選んで作る画面
 import { save, persist } from './save.js';
 import { audio } from './audio.js';
-import { show, el, $, topbar, toast, openSheet } from './ui.js';
+import { show, el, $, topbar, toast } from './ui.js';
 import { gemIcon } from './render.js';
 import { GEM_LOOK, mountLiveGem, reloadLiveGem, forgetGemImage } from './gem-gl.js';
 import { openGemView, LOUPE } from './gem-view.js';
@@ -30,46 +30,61 @@ export function showMyGems(back) {
   $('#back', node).onclick = () => { audio.tap(); back(); };
   const nw = $('#mgnew', node);
   if (nw) nw.onclick = () => { audio.select(); openEditor(null, () => showMyGems(back)); };
-  node.querySelectorAll('.mg-tile[data-id]').forEach((b) => (b.onclick = () => { audio.tap(); gemSheet(b.dataset.id, back); }));
+  node.querySelectorAll('.mg-tile[data-id]').forEach((b) => (b.onclick = () => { audio.tap(); showMyGem(b.dataset.id, back); }));
 }
 
-// 押した宝石のシート：眺める・作り直す・ホームに飾る・複製・消す
-function gemSheet(id, back) {
+// 押した宝石の画面：大きく見せて、眺める（鑑賞モード）・作り直す・ホームに飾る・複製・消す
+const kindName = (g) => (g.kind === 'clear' ? '透明な石' : '丸く磨いた石');
+const cutName = (g) => ((g.kind === 'clear' ? CLEAR_CUTS : CAB_CUTS).find((c) => c[0] === g.cut) || [0, '-'])[1];
+const swatch = (h, s, v) => { const [r, gg, b] = hsv(h, s, v).map((c) => Math.round(c * 255)); return `<i class="mg-sw" style="background:rgb(${r},${gg},${b})"></i>`; };
+const pct = (v) => `${Math.round(v * 100)}`;
+function showMyGem(id, back) {
   const g = myGem(id);
-  if (!g) return;
-  const home = save.myHome === id;
+  if (!g) { showMyGems(back); return; }
+  const clear = g.kind === 'clear';
+  const rows = [
+    ['種類', kindName(g)],
+    ['カット', cutName(g)],
+    ['色', `${swatch(g.h, g.s, clear ? 1 : 1 - g.v * 0.6)}${clear && g.bi ? swatch(g.h2, g.s2, 1) : ''}${!clear && usesColor2(g) ? swatch(g.h2, g.s2, 0.9) : ''}`],
+    ...(clear
+      ? [['輝き', pct(g.brill)], ['ファイア', pct(g.fire)], ['にごり', pct(g.fog)]]
+      : [['模様', (PATTERNS.find((p) => p[0] === g.pat) || PATTERNS[0])[1]]]),
+  ];
+  const node = el(`
+    <div class="screen mg-detail" data-nav="jewel" style="--c:${GEM_LOOK[id].meta.color}">
+      ${topbar('MY JEWEL', nameOf(g), null, 'mygems')}
+      <div class="mg-stage"><img class="mg-hero" src="${gemIcon(id)}" alt=""><button class="mg-loupe" id="mgview" aria-label="眺める">${LOUPE}</button></div>
+      <div class="mg-spec">${rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
+      <div class="mg-acts">
+        <button class="btn primary" id="mgedit">作り直す</button>
+        <button class="btn" id="mghome">${save.myHome === id ? 'ホームから外す' : 'ホームに飾る'}</button>
+        ${myGems().length < MY_MAX ? '<button class="btn" id="mgcopy">複製</button>' : ''}
+        <button class="btn" id="mgdel">消す</button>
+      </div>
+    </div>`);
+  show(node);
+  const img = $('.mg-hero', node);
+  setTimeout(() => mountLiveGem(img, id), 60);
+  $('#back', node).onclick = () => { audio.tap(); showMyGems(back); };
+  $('#mgview', node).onclick = () => { audio.select(); openGemView(id, () => mountLiveGem(img, id)); };
+  $('#mgedit', node).onclick = () => { audio.select(); openEditor(g, () => showMyGem(id, back)); };
+  $('#mghome', node).onclick = (e) => {
+    audio.select();
+    const on = save.myHome !== id;
+    save.myHome = on ? id : null;
+    persist();
+    e.currentTarget.textContent = on ? 'ホームから外す' : 'ホームに飾る';
+    toast(on ? 'ホームに飾りました' : 'ホームから外しました', g.name || '名前のない宝石', 'MY JEWEL');
+  };
+  const cp = $('#mgcopy', node);
+  if (cp) cp.onclick = () => { audio.select(); openEditor({ ...g, id: '', name: g.name ? `${g.name.slice(0, 13)} 2` : '' }, () => showMyGems(back)); };
   let armed = false;
-  openSheet(`
-    <div class="sht-head"><b>${nameOf(g)}</b><small>MY JEWEL</small></div>
-    <div class="mg-sbig"><img src="${gemIcon(id)}" alt=""><button class="mg-loupe" id="mgview" aria-label="眺める">${LOUPE}</button></div>
-    <div class="sht-acts mg-acts">
-      <button class="btn small primary" id="mgedit">作り直す</button>
-      <button class="btn small" id="mghome">${home ? 'ホームから外す' : 'ホームに飾る'}</button>
-      ${myGems().length < MY_MAX ? '<button class="btn small" id="mgcopy">複製</button>' : ''}
-      <button class="btn small" id="mgdel">消す</button>
-    </div>`, (sh, close) => {
-    const img = $('.mg-sbig img', sh);
-    setTimeout(() => mountLiveGem(img, id), 60);
-    $('#mgview', sh).onclick = () => { audio.select(); openGemView(id, () => mountLiveGem(img, id)); };
-    $('#mgedit', sh).onclick = () => { audio.select(); close(); openEditor(g, () => showMyGems(back)); };
-    $('#mghome', sh).onclick = () => {
-      audio.select();
-      save.myHome = home ? null : id;
-      persist();
-      close();
-      toast(home ? 'ホームから外しました' : 'ホームに飾りました', g.name || '名前のない宝石', 'MY JEWEL');
-      showMyGems(back);
-    };
-    const cp = $('#mgcopy', sh);
-    if (cp) cp.onclick = () => { audio.select(); close(); const c = { ...g, id: '', name: g.name ? `${g.name.slice(0, 13)} 2` : '' }; openEditor(c, () => showMyGems(back)); };
-    $('#mgdel', sh).onclick = (e) => {
-      if (!armed) { armed = true; e.currentTarget.textContent = 'もう一度押すと消す'; audio.tap(); return; }
-      audio.whoosh();
-      deleteMyGem(id);
-      close();
-      showMyGems(back);
-    };
-  });
+  $('#mgdel', node).onclick = (e) => {
+    if (!armed) { armed = true; e.currentTarget.textContent = 'もう一度押して消す'; e.currentTarget.classList.add('warn'); audio.tap(); return; }
+    audio.whoosh();
+    deleteMyGem(id);
+    showMyGems(back);
+  };
 }
 
 // ---------------------------------------------------------------- 作る
