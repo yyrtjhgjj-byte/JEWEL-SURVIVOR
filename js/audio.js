@@ -344,6 +344,17 @@ class AudioEngine {
       this.tone(mtof(note + 12), 0.06, { type: 'triangle', vol: 0.03, when: 0.01 });
     });
   }
+  // 宝石どうしが当たる音（砂場）。k は強さ 0〜1。高さを何通りか録音しておく
+  clink(k = 0.5) {
+    if (!this.throttle('clink', 40)) return;
+    const note = 88 + [0, 2, 4, 7, 9, 12][(Math.random() * 6) | 0];
+    const v = k > 0.6 ? 2 : k > 0.3 ? 1 : 0;
+    this.sample(`clink${note}_${v}`, 0.14, () => {
+      const vol = [0.025, 0.045, 0.07][v];
+      this.tone(mtof(note), 0.1, { type: 'sine', vol });
+      this.tone(mtof(note) * 2.76, 0.05, { type: 'sine', vol: vol * 0.5 });
+    });
+  }
   coin() {
     if (!this.throttle('coin', 50)) return;
     this.sample('coin', 0.32, () => {

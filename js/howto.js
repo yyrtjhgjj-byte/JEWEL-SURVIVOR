@@ -48,7 +48,7 @@ export const HELP_GROUPS = [
   { id: 'run', en: 'RUN', jp: 'ラン', ids: ['basics', 'levelup', 'gear', 'elements', 'items', 'flow', 'fever', 'artifacts'] },
   { id: 'stage', en: 'STAGE', jp: 'ステージ', ids: ['jewels', 'stages', 'bossrush', 'training'] },
   { id: 'power', en: 'POWER', jp: '強化', ids: ['workshop', 'mining'] },
-  { id: 'jewel', en: 'JEWEL', jp: '宝石', ids: ['polish', 'collection', 'beasts', 'auction', 'legends', 'slot'] },
+  { id: 'jewel', en: 'JEWEL', jp: '宝石', ids: ['polish', 'collection', 'beasts', 'auction', 'legends', 'slot', 'sandbox'] },
   { id: 'biz', en: 'BUSINESS', jp: '経営', ids: ['biz'] },
   { id: 'more', en: 'ARCHIVE', jp: '記録・その他', ids: ['records', 'save', 'rebirth'] },
 ];
@@ -379,6 +379,23 @@ export function helpTopics() {
         { h: '会社の資金で払う', p: '経営を始めていると、会社の資金でも払えます。配当と同じ換算でコインに直し、1 日の上限はありません（会社の運転資金は残します）。上に、所持コインと、会社の資金で払える額が出ます。' },
         { h: 'ミニゲームの工程', p: '「磨く」「割る」「彫る」の工程は、研磨と同じ針のミニゲームです。精度 60% 以上で成功し、次の工程へ進みます。失敗したときは払った分は戻らず、もう一度払うとやり直せます（始める前の「やめる」なら、払ったコインや会社の資金に返ります）。' },
         { h: '完成すると', p: '名石 1 つにつき与ダメージ +1% です。カット・カラット・色は本物どおりです。' },
+      ],
+    },
+    sandbox: {
+      en: 'SANDBOX', jp: '宝石の砂場', icon: () => gemIcon('opal'),
+      lead: '宝石をたくさん出して、かき混ぜて遊べます。コインも報酬もありません。',
+      parts: [
+        { h: '遊び方', rows: [
+          [null, '出す', '押している間、指のところから宝石が出ます。'],
+          [null, 'かき混ぜる', '指でなぞると、まわりの宝石を押しのけます。'],
+          [null, 'はじく', '押したところから宝石を吹き飛ばします。'],
+        ] },
+        { h: '選べること', rows: [
+          [null, '宝石', '出す宝石を 1 種類か、ランダムから選びます。'],
+          [null, '大きさ', '次に出す宝石の大きさです（小・中・大）。'],
+          [null, '重力', '下・傾き（端末を傾けた向き）・なし を切り替えます。'],
+          [null, '全部消す', '出した宝石をすべて消します。'],
+        ], note: '出せる数には上限があります（低負荷モードでは少なめ）。' },
       ],
     },
     slot: {
