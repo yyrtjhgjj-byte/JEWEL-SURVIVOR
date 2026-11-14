@@ -325,6 +325,7 @@
 - autoRes で画質を段階的に下げる。パーティクル・リング・稲妻・ダメージ数字には上限がある（fx.js）。
 - モーダルの間は盤面を 1 回だけ描いて使い回す。
 - 毎フレーム描くものに shadowBlur を使わない（ぼかしは絵を 1 度だけ作って使い回す）。
+- ゲームのキャンバスは不透明（main.js の getContext の `alpha: false`。毎フレーム全面を塗るので、透明な部分を作らない。clearRect で抜くと黒になる）。ラン中ずっと動く CSS のアニメーションは transform で動かす（経験値バーの虹は `#xpfill::before` をずらす。background-position を動かすと毎フレーム描き直しになる）。
 
 **宝石を追加するとき**
 1. data.js の `GEMS`、gem-gl.js の `GEM_LOOK`（基本はその宝石で一般的なカット。見た目の好みが優先）と画像の書き出し（tools/test/gem-bake.js。sw.js の宝石の一覧にも足す）、ゲーム中の小さな絵の gem-art.js の `GEM_CUT`
@@ -340,7 +341,7 @@
 ## 6. リリース手順
 
 1. 作業ブランチはセッションで指定されたもの。main に取り込むときに origin/main から作り直すので、先に `git status` で未コミットの新規ファイルを確認する。
-2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v238`）。新しいファイルは `ASSETS` にも足す。
+2. sw.js の `CACHE` の版数を 1 つ上げる（現在 `jewel-survivor-v239`）。新しいファイルは `ASSETS` にも足す。
 3. `node --check` と、変えた箇所だけのテスト。
 4. 取り込み：
    ```sh
