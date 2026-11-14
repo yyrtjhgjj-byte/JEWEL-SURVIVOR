@@ -2069,3 +2069,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .zitem.zstage .zname { flex-wrap: nowrap; white-space: nowrap; overflow: hidden; }
 .sht-text { font-size: var(--t3); line-height: 1.7; color: #cfcbe2; }
 .sp-lore { font-family: var(--font-jp); font-size: 12px; line-height: 1.7; color: var(--muted); margin: 0 0 8px; }
+/* 設定の項目の小さな説明 */
+.setting > span small { display: block; font-weight: 500; font-size: var(--t4); color: var(--muted); margin-top: 2px; }
+/* 低負荷モード（設定。html.lite）：重なる画面のぼかしと、背景の光の動きを止める */
+html.lite .screen.dim { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(4, 4, 10, 0.9); }
+html.lite .rays, html.lite .sl-rays { animation: none !important; }
+html.lite .medal-art .medal.m-gold:not(.off)::after { animation: none; }
