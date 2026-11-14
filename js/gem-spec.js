@@ -423,6 +423,7 @@ export function openSpec(kind, id) {
           <img src="${gemIcon(gem, 96)}" alt="">
           <div><div class="sp-name">${g.jp}<span class="en">${g.en}</span></div>${wordTag(gem)}<p class="sp-lead">${head}</p></div>
         </div>
+        ${g.lore ? `<p class="sp-lore">${g.lore}</p>` : ''}
         ${isW ? weaponBody(id) : charmBody(id)}
       </div>
     </div>`);
