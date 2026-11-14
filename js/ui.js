@@ -890,6 +890,15 @@ function shopEffect(it, lv) {
   const [, label, sign, num, suf] = m;
   return label + sign + +(parseFloat(num) * lv).toFixed(2) + suf;
 }
+// 行に出す効果：今の値と、次のレベルの値（「攻撃範囲 +3.5% → +7%」）。最大なら今の値だけ
+function shopEffectNext(it, lv) {
+  if (lv >= it.max || it.max === 1) return shopEffect(it, lv);
+  const m = it.t.match(/^(.*?)([+-]?)(\d+(?:\.\d+)?)(.*)$/);
+  if (!m) return it.t;
+  const [, label, sign, num, suf] = m;
+  const v = (n) => (n ? sign : '') + +(parseFloat(num) * n).toFixed(2) + suf;
+  return `${label}${v(lv)}<span class="lr-next"> → ${v(lv + 1)}</span>`;
+}
 const lvPips = (lv, max) => `<span class="pips ${lv >= max ? 'max' : ''}">${Array.from({ length: max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</span>`;
 
 // upper = true で上位工房（工房をすべて最大にすると解放）
@@ -993,7 +1002,7 @@ export function showShop(upper = false) {
       return `<div class="lrow ${lv >= it.max && upOff[it.id] ? 'off' : ''}" data-id="${it.id}" role="button" tabindex="0">
         <img class="lr-ico" src="${shopIcon(it.id, 72)}" alt="">
         <div class="lr-mid"><div class="lr-line"><b class="lr-name">${it.name}</b><small class="lr-lv">LV ${lv}/${it.max}</small></div>
-          <div class="lr-line">${lvPips(lv, it.max)}<span class="lr-val">${shopEffect(it, lv)}</span></div></div>
+          <div class="lr-line">${lvPips(lv, it.max)}<span class="lr-val">${shopEffectNext(it, lv)}</span></div></div>
         ${btnHTML(it, lv)}</div>`;
     }).join('');
   };
@@ -1276,7 +1285,7 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
         <button class="tab ${tab === 'arts' ? 'on' : ''}" data-t="arts">秘宝</button>
         <button class="tab ${tab === 'stages' ? 'on' : ''}" data-t="stages">ステージ</button>
       </div>`}
-      <div class="zlist ${tab === 'trophy' || tab === 'enemies' ? '' : 'ztight'}" id="zl"></div>
+      <div class="zlist ${tab === 'arts' || tab === 'stages' ? 'ztight' : ''}" id="zl"></div>
     </div>`);
   show(node);
   $('#back', node).onclick = () => { audio.tap(); showHub('archive'); };
@@ -1288,12 +1297,13 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
       const g = GEMS[w.gem];
       const seen = save.seen.weapons[id] || save.unlocked[id];
       const evoSeen = save.seen.evos[id];
-      // 1 行：宝石・ジュエルパワー・ウェポン名と働き（押すとくわしいページ。伝承と進化もそこに出す）
-      const card = el(`<div class="lrow zrow ${seen ? 'tap' : 'unk'}" style="--ec:${elemColor(w.gem)}">
-        <span class="zr-ped"><img src="${gemIcon(w.gem, 72)}" alt=""></span>
-        <div class="lr-mid"><div class="lr-line"><b class="lr-name">${g.jp}</b>${wordTag(w.gem)}${evoSeen ? '<i class="zr-evo">EVO</i>' : ''}</div>
-          <div class="lr-line"><span class="lr-sub">${seen ? `${w.name} — ${w.desc}` : '未発見'}</span></div></div>
-        ${seen ? '<span class="zr-go">›</span>' : ''}</div>`);
+      const card = el(`<div class="zitem gemcard ${seen ? 'tap' : 'unk'}" style="--ec:${elemColor(w.gem)}">
+        <div class="gem-ped"><img src="${gemIcon(w.gem, 96)}"></div>
+        <div><div class="zname">${g.jp}<span class="en">${g.en}</span></div>${wordTag(w.gem)}
+          <div class="ztext"><b>${seen ? w.name : '???'}</b> — ${seen ? w.desc : '未発見'}</div>
+          <div class="ztext">${seen ? g.lore : ''}</div>
+          <div class="zevo">EVOLUTION：${evoSeen ? w.evo.name : '???'}<span class="nw">（Lv${WEAPON_MAX} ＋ ${GEMS[w.evo.with].jp}）</span></div>
+        </div></div>`);
       // 見たことのある武器は、押すとくわしいページを開く
       if (seen) card.onclick = () => { audio.tap(); openSpec('weapon', id); };
       zl.appendChild(card);
@@ -1304,11 +1314,13 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
       const g = GEMS[p.gem];
       const seen = save.seen.passives[id];
       const evoFor = WEAPON_IDS.filter((w) => WEAPONS[w].evo.with === id).map((w) => (save.seen.weapons[w] || save.unlocked[w] ? WEAPONS[w].name : '???'));
-      const card = el(`<div class="lrow zrow ${seen ? 'tap' : 'unk'}" style="--ec:${elemColor(p.gem)}">
-        <span class="zr-ped"><img src="${gemIcon(p.gem, 72)}" alt=""></span>
-        <div class="lr-mid"><div class="lr-line"><b class="lr-name">${g.jp}</b>${wordTag(p.gem)}</div>
-          <div class="lr-line"><span class="lr-sub">${seen ? `${p.t}（最大 Lv${p.max}）` : '未発見'}</span></div></div>
-        ${seen ? '<span class="zr-go">›</span>' : ''}</div>`);
+      const card = el(`<div class="zitem gemcard ${seen ? 'tap' : 'unk'}" style="--ec:${elemColor(p.gem)}">
+        <div class="gem-ped"><img src="${gemIcon(p.gem, 96)}"></div>
+        <div><div class="zname">${g.jp}<span class="en">${g.en}</span></div>${wordTag(p.gem)}
+          <div class="ztext">${seen ? `${p.t}（最大Lv${p.max}）` : '未発見'}</div>
+          <div class="ztext">${seen ? g.lore || '' : ''}</div>
+          ${evoFor.length ? `<div class="zevo">進化素材：${evoFor.map((n) => `<span class="nw">${n}</span>`).join(' ／ ')}</div>` : ''}
+        </div></div>`);
       if (seen) card.onclick = () => { audio.tap(); openSpec('charm', id); };
       zl.appendChild(card);
     }
@@ -1396,7 +1408,7 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
     const unlockText = (a) => (a.unlock ? ` ＋ ${GEMS[a.unlock].jp} 解放` : '');
     const row = (a) => {
       const ok = save.achievements[a.id], k = MEDALS[a.m][0];
-      return `<button class="arow ${ok ? '' : 'todo'}" data-id="${a.id}"><span class="medal m-${k} ${ok ? '' : 'off'}"></span>
+      return `<button class="arow t-${k} ${ok ? 'done' : 'todo'}" data-id="${a.id}"><span class="medal m-${k} ${ok ? '' : 'off'}"></span>
         <span class="ar-mid"><b class="ar-name">${a.name}</b><span class="ar-t">${a.t}</span></span><span class="ar-rw">${coinIco}${fmt(a.coins)}</span></button>`;
     };
     const detail = (a) => {
