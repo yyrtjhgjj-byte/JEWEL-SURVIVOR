@@ -79,7 +79,7 @@ export function mergeLives(P, N) {
   R.upperShop = !!(P.upperShop || N.upperShop);
   R.rank = rankFromXp(rankXp(P.rank) + rankXp(N.rank));
   R.lastBackup = Math.max(num(P.lastBackup), num(N.lastBackup));
-  for (const k of ['biz', 'login', 'settings', 'slot']) { const v = N[k] === undefined ? P[k] : N[k]; R[k] = v === undefined ? undefined : clone(v); }
+  for (const k of ['biz', 'login', 'settings', 'slot', 'myGems', 'myHome']) { const v = N[k] === undefined ? P[k] : N[k]; R[k] = v === undefined ? undefined : clone(v); }
   // 伝説の宝石：進んでいる方を残し、もう片方に払った分は戻す（コインはコインへ、会社の資金で払った分は会社へ）
   const PL = P.legends || {}, NL = N.legends || {};
   const prog = (x) => (x ? (x.done ? 1e9 : num(x.step)) : -1);
@@ -109,6 +109,8 @@ function freshLife(id, n) {
   const d = defaults();
   d.biz = save.biz;
   d.slot = save.slot;
+  d.myGems = save.myGems;
+  d.myHome = save.myHome;
   d.login = save.login;
   d.settings = save.settings;
   d.lastBackup = save.lastBackup;

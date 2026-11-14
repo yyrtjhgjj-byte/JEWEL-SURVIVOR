@@ -2115,3 +2115,40 @@ html.ultra #xpfill::before { animation: none; }
 .sb-row { display: flex; gap: 6px; align-items: stretch; }
 .sb-btn { flex: none; padding: 0 10px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line2); color: var(--text); font: 700 12px var(--font-jp); white-space: nowrap; }
 .sb-stage #sbo { pointer-events: none; }
+
+/* ---------------------------------------------------------------- ジュエル・アトリエ（mygems-ui.js） */
+.mg-screen { gap: 10px; }
+.mg-screen > * { flex-shrink: 0; }
+.mg-count { display: flex; align-items: baseline; gap: 3px; min-width: 88px; justify-content: flex-end; font-family: var(--font); }
+.mg-count b { font-size: 18px; color: var(--text); }
+.mg-count small { font-size: 11px; color: var(--muted); }
+.mg-grid { width: 100%; max-width: 560px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mg-tile { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 6px 9px; background: var(--panel); border: 1px solid var(--line2); border-radius: 14px; color: var(--text); }
+.mg-tile.home { border-color: color-mix(in srgb, var(--c) 70%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--c) 30%, transparent); }
+.mg-art { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: radial-gradient(60% 60% at 50% 45%, color-mix(in srgb, var(--c) 18%, transparent), transparent 75%); }
+.mg-art img { width: 86%; height: 86%; object-fit: contain; }
+.mg-name { max-width: 100%; font: 700 11.5px var(--font-jp); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mg-pin { position: absolute; top: 6px; left: 6px; font: 700 9px var(--font); letter-spacing: 0.1em; font-style: normal; padding: 1px 5px; border-radius: 6px; background: color-mix(in srgb, var(--c) 30%, #000); color: #fff; }
+.mg-new { justify-content: center; border-style: dashed; color: var(--muted); }
+.mg-plus { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 34px; color: var(--muted); }
+.mg-sbig { position: relative; width: 180px; height: 180px; margin: 4px auto 8px; }
+.mg-sbig img, .mg-sbig canvas { width: 100%; height: 100%; object-fit: contain; }
+.mg-loupe { position: absolute; right: 0; bottom: 0; width: 38px; height: 38px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line2); color: var(--text); display: flex; align-items: center; justify-content: center; }
+.mg-loupe svg { width: 20px; height: 20px; }
+.mg-acts { flex-wrap: wrap; }
+.mg-edit { gap: 8px; overflow: hidden; padding-bottom: calc(var(--safe-b) + 10px); }
+.mg-edit > * { flex-shrink: 0; }
+.mg-prev { width: 100%; max-width: 560px; height: min(34vh, 260px); display: flex; align-items: center; justify-content: center; border-radius: 16px; background: radial-gradient(55% 60% at 50% 45%, color-mix(in srgb, var(--c, #888) 14%, #0b0b12), #050508 80%); border: 1px solid var(--line); }
+.mg-big { height: 92%; aspect-ratio: 1; object-fit: contain; }
+.mg-edit canvas.mg-big { height: 92%; width: auto; }
+.mg-ctl { flex: 1 1 auto !important; min-height: 0; width: 100%; max-width: 560px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 2px 8px; }
+.mg-h { margin: 12px 0 6px; font: 700 12px var(--font-jp); color: var(--muted); letter-spacing: 0.08em; }
+.mg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mg-chips .chip { padding: 7px 11px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line2); color: var(--muted); font: 700 12px var(--font-jp); }
+.mg-chips .chip.on { color: #fff; border-color: color-mix(in srgb, var(--c, #fff) 70%, #fff); background: color-mix(in srgb, var(--c, #fff) 22%, var(--panel)); }
+.mg-sl { --track: none; }
+.mg-sl.hue input::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+.mg-sl.grad input::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--track); }
+.mg-sl.hue input::-webkit-slider-thumb, .mg-sl.grad input::-webkit-slider-thumb { margin-top: -7px; }
+.mg-name-in { width: 100%; padding: 11px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line2); color: var(--text); font: 15px var(--font-jp); }
+.mg-foot { width: 100%; max-width: 560px; display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }

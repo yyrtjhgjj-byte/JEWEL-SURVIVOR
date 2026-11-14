@@ -6,7 +6,8 @@ import {
   ACHIEVEMENTS, GACHA_COST, GACHA10_COST, GACHA100_COST, GACHA100_UR, GACHA_TABLE, EXCHANGE, AWAKEN_MAX, LIMIT_BREAK, charmLbText, charmLbMax,
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickaxeIcon } from './render.js';
-import { mountLiveGem } from './gem-gl.js';
+import { mountLiveGem, GEM_LOOK } from './gem-gl.js';
+import { registerMyGems, myGem } from './mygems.js';
 import { diagCrashes, diagLaunches, diagNotes, clearDiag } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter, FINALE_STAGES, stageTag, rushStep } from './stages.js';
@@ -151,7 +152,7 @@ export function haptic() {
 }
 
 // ------------------------------------------------------------------ 共通パーツ
-function gemColor(id) { return GEMS[id].rainbow ? '#e6d4ff' : GEMS[id].glow || GEMS[id].color; }
+function gemColor(id) { const G = GEMS[id]; if (!G) { const L = GEM_LOOK[id]; return (L && L.meta && L.meta.color) || '#ffffff'; } return G.rainbow ? '#e6d4ff' : G.glow || G.color; }
 function wordTag(gemId) {
   const c = gemColor(gemId);
   return `<span class="word-tag" style="color:${c};border-color:${c}66;background:${c}14">${GEMS[gemId].word}</span>${elemTag(gemId)}`;
@@ -317,6 +318,9 @@ export function openHelp(spec) {
 // 袋はセーブに残すので、アプリを開き直しても偏らない。下のメニューのホームのアイコンも同じ宝石
 export let homeGem = 'ruby';
 function nextHomeGem() {
+  // ジュエル・アトリエで「ホームに飾る」にした宝石があれば、それをずっと出す
+  registerMyGems();
+  if (save.myHome && myGem(save.myHome)) { homeGem = save.myHome; return; }
   let bag = (save.homeBag || []).filter((id) => GEMS[id]);
   if (!bag.length) {
     bag = Object.keys(GEMS);
@@ -332,7 +336,8 @@ export function showTitle() {
   audio.playBgm('title');
   nextHomeGem();
   const cid = homeGem;
-  const g = GEMS[cid];
+  const mine = !GEMS[cid] && myGem(cid);
+  const g = GEMS[cid] || { jp: (mine && mine.name) || '名前のない宝石', en: 'MY JEWEL', word: 'ORIGINAL' };
   const node = el(`
     <div class="screen title-screen" data-nav="home">
       <div class="title-top">${rankChip()}${coinPill()}</div>

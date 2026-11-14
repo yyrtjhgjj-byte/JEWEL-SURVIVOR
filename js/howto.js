@@ -48,7 +48,7 @@ export const HELP_GROUPS = [
   { id: 'run', en: 'RUN', jp: 'ラン', ids: ['basics', 'levelup', 'gear', 'elements', 'items', 'flow', 'fever', 'artifacts'] },
   { id: 'stage', en: 'STAGE', jp: 'ステージ', ids: ['jewels', 'stages', 'bossrush', 'training'] },
   { id: 'power', en: 'POWER', jp: '強化', ids: ['workshop', 'mining'] },
-  { id: 'jewel', en: 'JEWEL', jp: '宝石', ids: ['polish', 'collection', 'beasts', 'auction', 'legends', 'slot', 'sandbox'] },
+  { id: 'jewel', en: 'JEWEL', jp: '宝石', ids: ['polish', 'collection', 'beasts', 'auction', 'legends', 'slot', 'mygems', 'sandbox'] },
   { id: 'biz', en: 'BUSINESS', jp: '経営', ids: ['biz'] },
   { id: 'more', en: 'ARCHIVE', jp: '記録・その他', ids: ['records', 'save', 'rebirth'] },
 ];
@@ -379,6 +379,25 @@ export function helpTopics() {
         { h: '会社の資金で払う', p: '経営を始めていると、会社の資金でも払えます。配当と同じ換算でコインに直し、1 日の上限はありません（会社の運転資金は残します）。上に、所持コインと、会社の資金で払える額が出ます。' },
         { h: 'ミニゲームの工程', p: '「磨く」「割る」「彫る」の工程は、研磨と同じ針のミニゲームです。精度 60% 以上で成功し、次の工程へ進みます。失敗したときは払った分は戻らず、もう一度払うとやり直せます（始める前の「やめる」なら、払ったコインや会社の資金に返ります）。' },
         { h: '完成すると', p: '名石 1 つにつき与ダメージ +1% です。カット・カラット・色は本物どおりです。' },
+      ],
+    },
+    mygems: {
+      en: 'JEWEL ATELIER', jp: 'ジュエル・アトリエ', icon: () => gemIcon('tourmaline'),
+      lead: 'カット・色・質感を選んで、自分だけの宝石を作れます。作るのは無料で、棚に 30 個まで並べられます。',
+      parts: [
+        { id: 'make', h: '作り方', steps: ['「新しく作る」を押す', '種類（透明な石・丸く磨いた石）とカットを選ぶ', '色と質感をスライダーで決め、名前を付けて「作る」'],
+          note: '上の見本は、選ぶたびにその場で描き直されます。「ランダム」で、名前以外をでたらめに決められます。' },
+        { h: '選べること', rows: [
+          [null, '色', '色合い・鮮やかさ・濃さ。透明な石はバイカラー（2 色目）にもできます。'],
+          [null, '質感', '透明な石は、輝き（屈折率）・ファイア（虹色の光の強さ）・にごり（乳白）。'],
+          [null, '模様', '丸く磨いた石は、単色・縞・斑・遊色（オパールのような虹色）・シラー（中から浮かぶ光）。縞・斑・シラーは 2 色目も選べます。'],
+        ] },
+        { h: '作った宝石', rows: [
+          [null, '眺める', '棚の宝石を押して、虫眼鏡で鑑賞モードを開けます。'],
+          [null, 'ホームに飾る', 'ホーム画面の宝石が、その宝石になります（外すと元に戻ります）。'],
+          [null, '宝石の砂場', '砂場の宝石の一覧に並び、出して遊べます。'],
+          [null, '作り直す・複製・消す', '棚の宝石を押すと選べます。'],
+        ], note: '作った宝石は、転生しても そのまま残ります。' },
       ],
     },
     sandbox: {
