@@ -1302,7 +1302,7 @@ export function showZukan(tab = save.tabs.zukan, ch = save.tabs.zukanCh) {
     }
     paintScenes(scenes);
   } else {
-    // 実績はメダル（data.js の m で 銅・銀・金・プラチナ）。上に達成率の輪とメダルごとの数（押すとそのメダルだけに絞る）、
+    // 実績はメダル（data.js の m で ブロンズ・カッパー・シルバー・ゴールド）。上に達成率の輪とメダルごとの数（押すとそのメダルだけに絞る）、
     // その下に取得の状態の絞り込みと並び替え（save.tabs.ach に覚える）
     const done = ACHIEVEMENTS.filter((a) => save.achievements[a.id]).length;
     const cnt = MEDALS.map(() => [0, 0]);
@@ -1363,7 +1363,7 @@ function monsterDetail(id, icon) {
   ov.onclick = (ev) => { if (ev.target === ov) ov.remove(); };
 }
 // 実績のメダル（data.js の ACHIEVEMENTS の m の順）
-const MEDALS = [['bronze', '銅'], ['silver', '銀'], ['gold', '金'], ['plat', 'プラチナ']];
+const MEDALS = [['bronze', 'ブロンズ'], ['copper', 'カッパー'], ['silver', 'シルバー'], ['gold', 'ゴールド']];
 
 // ================================================================== 設定
 export function lastBackupText() {

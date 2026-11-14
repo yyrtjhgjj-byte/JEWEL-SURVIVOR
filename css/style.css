@@ -670,32 +670,28 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .medal.sm { width: 22px; height: 22px; }
 .medal.sm::before { inset: 3px; border-width: 1px; }
 .medal.sm::after { inset: 6px; }
-.medal.m-bronze { --mg: radial-gradient(circle at 34% 28%, #ffd9b4, #c47a44 42%, #6a3618 100%); --mstar: #ffe2c4; }
+.medal.m-bronze { --mg: radial-gradient(circle at 34% 28%, #e8d3a0, #9a7a40 42%, #4a3614 100%); --mstar: #f0e2bc; }
+.medal.m-copper { --mg: radial-gradient(circle at 34% 28%, #ffd9c4, #d0704a 42%, #6a2a14 100%); --mstar: #ffe2d0; }
 .medal.m-silver { --mg: radial-gradient(circle at 34% 28%, #ffffff, #b9c3d2 42%, #59626f 100%); --mstar: #ffffff; --mglow: rgba(200,215,255,0.25); }
-.medal.m-gold { --mg: radial-gradient(circle at 34% 28%, #fff7cc, #f1bb3c 42%, #8a5a0e 100%); --mstar: #fff6d6; --mglow: rgba(255,200,80,0.35); }
-/* プラチナ：銀より明るく青白い地に、うっすら虹の照りと、光の筋がときどき流れる */
-.medal.m-plat { --mg: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.95) 50%, transparent 60%), conic-gradient(from 200deg at 50% 50%, rgba(255,190,230,0.22), rgba(170,220,255,0.26), rgba(210,190,255,0.22), rgba(190,255,235,0.2), rgba(255,190,230,0.22)), radial-gradient(circle at 34% 28%, #ffffff, #dde5ff 18%, #9cacdf 48%, #55618f 78%, #252a47 100%); background-size: 300% 100%, 100% 100%, 100% 100%; background-repeat: no-repeat; background-position: 100% 0, 0 0, 0 0; --mstar: #f4f7ff; --mglow: rgba(170,200,255,0.65); }
-.medal.m-plat:not(.off) { animation: medalShine 3.6s ease-in-out infinite; }
-@keyframes medalShine { 0%, 55% { background-position: 100% 0, 0 0, 0 0; } 100% { background-position: 0% 0, 0 0, 0 0; } }
+.medal.m-gold { --mg: radial-gradient(circle at 34% 28%, #fff7cc, #f1bb3c 42%, #8a5a0e 100%); --mstar: #fff6d6; --mglow: rgba(255,200,80,0.45); }
 .medal.off { filter: grayscale(1) brightness(0.32); box-shadow: inset 0 2px 2px rgba(255,255,255,0.3), inset 0 -3px 5px rgba(0,0,0,0.5); }
 /* 光を計算して描いたメダル（js/medal-art.js。描き終わると .medal-art が付く。それまでは上の仮の絵） */
 .medal-art .medal { background: var(--medal-img) center / 100% 100% no-repeat; box-shadow: 0 2px 6px rgba(0,0,0,0.7), 0 0 12px var(--mglow, transparent); animation: none; }
 .medal-art .medal::before { display: none; }
 .medal-art .medal.m-bronze { --medal-img: var(--medal-bronze); }
+.medal-art .medal.m-copper { --medal-img: var(--medal-copper); }
 .medal-art .medal.m-silver { --medal-img: var(--medal-silver); }
 .medal-art .medal.m-gold { --medal-img: var(--medal-gold); }
-.medal-art .medal.m-plat { --medal-img: var(--medal-plat); }
 .medal-art .medal::after { inset: 0; clip-path: none; filter: none; border-radius: 50%; background: none; }
-/* プラチナは光の筋がときどき流れる */
-.medal-art .medal.m-plat:not(.off)::after { background: linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.55) 50%, transparent 58%) no-repeat; background-size: 300% 100%; animation: medalSweep 3.6s ease-in-out infinite; mix-blend-mode: screen; }
+/* いちばん上の金は光の筋がときどき流れる */
+.medal-art .medal.m-gold:not(.off)::after { background: linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.55) 50%, transparent 58%) no-repeat; background-size: 300% 100%; animation: medalSweep 3.6s ease-in-out infinite; mix-blend-mode: screen; }
 @keyframes medalSweep { 0%, 55% { background-position: 100% 0; } 100% { background-position: 0% 0; } }
-.medal-art .medal.m-plat:not(.off) { animation: none; }
 .medal-art .medal.off { filter: grayscale(1) brightness(0.4); box-shadow: 0 2px 5px rgba(0,0,0,0.6); }
 .zitem.ach { align-items: center; }
-.zitem.ach.done.t-bronze { border-color: rgba(214,140,90,0.45); }
-.zitem.ach.done.t-silver { border-color: rgba(200,215,240,0.5); }
-.zitem.ach.done.t-gold { border-color: rgba(255,197,61,0.55); background: linear-gradient(90deg, rgba(255,197,61,0.1), transparent 60%), var(--panel); }
-.zitem.ach.done.t-plat { border-color: rgba(214,226,255,0.75); background: linear-gradient(90deg, rgba(190,210,255,0.16), transparent 60%), var(--panel); box-shadow: 0 0 14px rgba(180,205,255,0.22); }
+.zitem.ach.done.t-bronze { border-color: rgba(170,135,70,0.45); }
+.zitem.ach.done.t-copper { border-color: rgba(224,130,95,0.5); }
+.zitem.ach.done.t-silver { border-color: rgba(200,215,240,0.55); background: linear-gradient(90deg, rgba(200,215,240,0.08), transparent 60%), var(--panel); }
+.zitem.ach.done.t-gold { border-color: rgba(255,197,61,0.75); background: linear-gradient(90deg, rgba(255,197,61,0.14), transparent 60%), var(--panel); box-shadow: 0 0 14px rgba(255,197,61,0.22); }
 /* 絞り込みと並び替え：メダルの数の欄を押すとそのメダルだけ。下に取得の状態と並び */
 .ach-tiers > button { display: flex; align-items: center; gap: 6px; font-family: var(--font-jp); font-size: 12px; color: var(--text, #e8e6f2); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 3px 8px; text-align: left; white-space: nowrap; }
 .ach-tiers > button.on { background: rgba(255,255,255,0.08); border-color: var(--line); }

@@ -750,7 +750,7 @@ export const UPPER_SHOP = [
 const rushLaps = (s, id) => Math.floor(((s.bossRush || {})[id] || 0) / STAGE_BY_ID[id].events.filter((e) => e.type === 'boss').length);
 export const ACHIEVEMENTS = [
   // 並び順がそのまま実績の画面の順。同じ系統をまとめて、易しい順に並べる
-  // m：メダル（0 銅 ／ 1 銀 ／ 2 金 ／ 3 プラチナ）。報酬の額ではなく難しさで決める（プラチナはいちばんやり込んだ先だけ）
+  // m：メダル（0 ブロンズ ／ 1 カッパー ／ 2 シルバー ／ 3 ゴールド）。報酬の額ではなく難しさで決める（ゴールドはいちばんやり込んだ先だけ）
   // 撃破数
   { id: 'kill1', m: 0, name: 'ファーストブラッド', t: '敵を1体倒す', coins: 20, check: (r) => r.kills >= 1 },
   { id: 'kill100', m: 0, name: '100 KILLS', t: '1回のプレイで100体撃破', coins: 50, check: (r) => r.kills >= 100 },

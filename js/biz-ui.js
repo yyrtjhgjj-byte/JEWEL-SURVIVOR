@@ -1018,7 +1018,7 @@ function routePanel() {
       : `<div class="br-row"><b>？？？</b>${way(r, true)}<small>${r.hint}</small></div>`).join('')}</div>`;
 }
 // 本社のブランドの欄：売った石ごとの段階と、次の段階まで
-const MEDAL = ['', 'm-bronze', 'm-silver', 'm-gold', 'm-gold', 'm-plat'];
+const MEDAL = ['', 'm-bronze', 'm-copper', 'm-silver', 'm-gold', 'm-gold'];
 function brandPanel() {
   const st = ui.st;
   const list = Object.keys(st.brand).filter((g) => B.brandPts(st, g) > 0).map((g) => ({ g, lv: B.brandLv(st, g), p: B.brandPts(st, g) })).sort((a, b) => b.lv - a.lv || b.p - a.p);
