@@ -12,11 +12,11 @@ import { imgUrl } from './util.js';
 // 見た目の数値。mode：trace（透明）・cab（カボション）・facet（不透明なカット面）・tumble（丸く磨いた石）
 // t：長さ 1 進んだときに残る光の割合（RGB）、d：濃さ、pleo：横向きに進むときの色（多色性）、bi：バイカラーのもう一方の色
 // fog・fogD：乳白（中で散る光の色と濃さ）、kind：シェーダーの石の番号、ri：屈折率（不透明な石）
-// exp・fire：その石だけの明るさ・ファイア（省くと 1.2・1.6）、spin0：置く向き（度。旧アイコンの向きに合わせる）、spark：小さく鋭い照明（分散の強い石）、fill：照明のあいだの暗い空の明るさの倍率（中が黒く沈む石の地の色を見せる）
+// env：その石だけの照明（ENVS の名前）。exp・fire：その石だけの明るさ・ファイア（省くと 1.2・1.6）、spin0：置く向き（度。旧アイコンの向きに合わせる）、spark：小さく鋭い照明（分散の強い石）、fill：照明のあいだの暗い空の明るさの倍率（中が黒く沈む石の地の色を見せる）
 const T = (cut, ior, disp, t, d, ex) => ({ mode: 'trace', cut, ior, disp, t, d, ...ex });
 const C = (cut, kind, ri) => ({ mode: 'cab', cut, kind, ri });
 export const GEM_LOOK = {
-  diamond: T('brilliant', 2.42, 0.044, [0.98, 0.985, 1.0], 1, { exp: 0.6, fire: 0.7, spark: true }),
+  diamond: T('brilliant', 2.42, 0.044, [0.98, 0.985, 1.0], 1, { exp: 0.6, fire: 0.7, spark: true, env: 'diamond' }),
   topaz: T('brilliant', 1.62, 0.014, [1.0, 0.7, 0.12], 1.0),
   ruby: T('oval', 1.77, 0.018, [0.95, 0.07, 0.2], 1.2),
   sapphire: T('oval', 1.77, 0.018, [0.12, 0.25, 0.95], 1.2),
@@ -198,6 +198,9 @@ const ring = (n, el, r, I, off = 0) => Array.from({ length: n }, (_, i) => ({ az
 const ENV_FACET = { L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 2.6, 30, 7), ...ring(4, 18, 9, 3, 40)], 1.3), sky0: 0.016, sky1: 0.04, floor: 0.035, head: 16 };
 // 分散の強い石（spark）：小さな強い光をもっと小さく鋭くする（明るさの合計は同じ）。光が波長ごとに分かれて、ファイアが虹色に見える
 const ENV_SPARK = { ...ENV_FACET, L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 0.6, 565, 7), ...ring(4, 18, 9, 3, 40)], 1.3) };
+// ダイヤモンド：大きな箱を高さ交互に置く（6 つを同じ高さに並べると、テーブルの真ん中に箱が丸く白く写り込むため）
+const ENV_DIAMOND = { ...ENV_SPARK, L: lightsOf([...ring(3, 50, 13, 5, 15), ...ring(3, 36, 13, 5, 75), ...ring(12, 68, 0.6, 565, 7), ...ring(4, 18, 9, 3, 40)], 1.3) };
+const ENVS = { diamond: ENV_DIAMOND };
 const ENV_CAB = { L: lightsOf([{ az: 135, el: 50, r: 15, I: 5.5 }, { az: 35, el: 36, r: 9, I: 3 }, { az: 250, el: 28, r: 8, I: 2.4 }, { az: 200, el: 18, r: 10, I: 1.2 }], 1.7), sky0: 0.03, sky1: 0.08, floor: 0.015, head: 8 };
 
 // ---------------------------------------------------------------- シェーダー
@@ -611,7 +614,7 @@ function createRenderer(canvas) {
   const load = (id) => {
     const g = GEM_LOOK[id] || GEM_LOOK.ruby;
     gl.useProgram(prog);
-    const E = g.mode === 'cab' || g.mode === 'tumble' ? ENV_CAB : g.spark ? ENV_SPARK : ENV_FACET;
+    const E = ENVS[g.env] || (g.mode === 'cab' || g.mode === 'tumble' ? ENV_CAB : g.spark ? ENV_SPARK : ENV_FACET);
     const L = new Float32Array(24 * 4), Lc = new Float32Array(24 * 2);
     E.L.forEach((l, i) => { L.set([...l.dir, l.I], i * 4); Lc.set([l.c0, l.c1], i * 2); });
     gl.uniform4fv(uni.uL, L);
