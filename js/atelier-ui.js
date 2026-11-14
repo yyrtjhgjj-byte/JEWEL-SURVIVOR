@@ -139,7 +139,7 @@ function autoPolish(tier, count, box) {
     <div class="panel at-sum">
       <div class="label">自動研磨 — ${R.name} ×${res.length}</div>
       <div class="sum-list"></div>
-      <button class="btn primary" id="ok">OK</button>
+      <div class="pfoot"><button class="btn primary" id="ok">OK</button></div>
     </div></div>`);
   const sl = $('.sum-list', ov);
   // 同じ宝石はまとめて表示
@@ -535,7 +535,7 @@ function gemDetail(id) {
       <div class="gd-next">${next.length ? next.join('<br>') : '練度は最大です'}</div>
       ${g.lore ? `<div class="gd-lore">${has ? g.lore : ''}</div>` : ''}
       ${factsHtml(id, has)}
-      <button class="btn" id="ok">閉じる</button>
+      <div class="pfoot"><button class="btn" id="ok">閉じる</button></div>
     </div></div>`);
   $('#screens').appendChild(ov);
   $('#ok', ov).onclick = () => { audio.tap(); ov.remove(); };
@@ -565,6 +565,7 @@ function renderBeasts(box) {
       <span class="bn">${BEASTS[id].name}</span>
       <span class="bl">${lv ? `Lv ${lv}` : '未召喚'}</span>
       <span class="bh"><img src="${gemIcon(id, 32)}">${n}</span>
+      ${n >= BEAST_COST ? `<b class="mn-badge">${lv ? '強化' : '召喚'}</b>` : ''}
     </button>`);
     cell.onclick = () => { audio.tap(); beastDetail(id); };
     grid.appendChild(cell);
@@ -585,8 +586,8 @@ function beastDetail(id) {
       <div class="rrow2"><span>効果</span><b>${now}</b></div>
       <div class="rrow2"><span>${lv ? '強化後' : '召喚後'}</span><b>${next}</b></div>
       <div class="rrow2"><span>${g.jp}の所持数</span><b>${n}</b></div>
-      <button class="btn big primary" id="bup" ${n >= BEAST_COST ? '' : 'disabled'}>${lv ? '強化' : '召喚'}<span class="sub">${g.jp} ×${BEAST_COST}</span></button>
-      <button class="btn" id="ok">閉じる</button>
+      <div class="pfoot"><button class="btn big primary" id="bup" ${n >= BEAST_COST ? '' : 'disabled'}>${lv ? '強化' : '召喚'}<span class="sub">${g.jp} ×${BEAST_COST}</span></button>
+      <button class="btn" id="ok">閉じる</button></div>
     </div></div>`);
   $('#screens').appendChild(ov);
   const close = () => { ov.remove(); reopen('beasts'); };
@@ -658,7 +659,7 @@ function auctionTabs(box, black) {
   if (!upperLv('blackAuction')) return;
   const t = el(`<div class="tabs sub">
     <button class="tab ${black ? '' : 'on'}" data-t="auction">オークション</button>
-    <button class="tab ${black ? 'on' : ''}" data-t="auction2">裏オークション</button>
+    <button class="tab ${black ? 'on' : ''}" data-t="auction2">裏オークション${!black && save.auction2 && save.auction2.lots && save.auction2.lots[save.auction2.cur] && !save.auction2.seen ? '<i class="tab-new">NEW</i>' : ''}</button>
   </div>`);
   t.querySelectorAll('.tab').forEach((b) => (b.onclick = () => { audio.tap(); showAtelier(b.dataset.t); }));
   box.appendChild(t);
@@ -668,6 +669,8 @@ function auctionTabs(box, black) {
 function renderAuction(box, black) {
   if (black && !upperLv('blackAuction')) black = false;
   const sess = currentSession(black);
+  // 開いた回は NEW の印を消す（ハブのカードと下のメニュー）
+  sess.seen = true;
   persist();
   const R = rivalsOf(black);
   const lot = sess.lots[sess.cur];

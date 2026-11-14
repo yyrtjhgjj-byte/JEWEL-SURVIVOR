@@ -838,6 +838,27 @@ Object.assign(ICON, {
     gemlet(ctx, 20, 30, 6, '#b8a8e0', '#ffffff', '#4a3a7a', 6);
     star(ctx, -32, -6, 3); star(ctx, 34, -10, 2.6, '#ffd6f5'); star(ctx, 0, -40, 3.4, '#ffe39a');
   },
+  // 宝箱の自動回収：金の磁石に引き寄せられて飛んでくる宝箱
+  chestAuto(ctx) {
+    halo(ctx, 0, 4, 46, 'rgba(255,200,90,0.32)');
+    // 飛んでくる軌跡
+    ctx.strokeStyle = 'rgba(255,230,150,0.55)'; ctx.lineWidth = 2; ctx.setLineDash([4, 5]);
+    for (const [y, l] of [[6, 30], [16, 22], [-4, 18]]) { ctx.beginPath(); ctx.moveTo(-4 - l, y); ctx.lineTo(-6, y); ctx.stroke(); }
+    ctx.setLineDash([]);
+    chestAt(ctx, -12, 18, 46, false);
+    // 金の U 字磁石（右上。口を宝箱へ向ける）
+    ctx.save(); ctx.translate(26, -16); ctx.rotate(-Math.PI * 0.75);
+    ctx.lineCap = 'butt';
+    glow(ctx, '#ffd24a', 10);
+    ctx.strokeStyle = lin(ctx, -18, 0, 18, 0, [[0, '#7a5418'], [0.4, '#f7dd8c'], [0.55, '#fff6cf'], [1, '#8a6020']]);
+    ctx.lineWidth = 11;
+    ctx.beginPath(); ctx.moveTo(-14, -16); ctx.lineTo(-14, 0); ctx.arc(0, 0, 14, Math.PI, 0, true); ctx.lineTo(14, -16); ctx.stroke();
+    noGlow(ctx);
+    ctx.fillStyle = STEEL(ctx, -20, -8); ctx.fillRect(-19.5, -25, 11, 9);
+    ctx.fillStyle = STEEL(ctx, 8, 20); ctx.fillRect(8.5, -25, 11, 9);
+    ctx.restore();
+    star(ctx, 34, 26, 3, '#ffe39a'); star(ctx, -36, -24, 2.6, '#ffffff');
+  },
   // 裏オークション：闇に浮かぶ黒い木槌と紫の宝石
   blackAuction(ctx) {
     halo(ctx, 0, 0, 46, 'rgba(160,80,255,0.34)');

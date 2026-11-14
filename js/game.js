@@ -2,10 +2,10 @@
 //  ゲーム本体
 // =====================================================================
 import {
-  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, AREA_CAP, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, UPPER_SHOP, LIMIT_BREAK,
+  GEMS, WEAPONS, WEAPON_IDS, WEAPON_MAX, AREA_CAP, areaEff, PASSIVES, PASSIVE_IDS, MAX_WEAPONS, MAX_CHARMS, BASE_STATS, CHARACTERS, ENEMIES, SHOP, UPPER_SHOP, LIMIT_BREAK,
   charmLbMax, charmLbPer,
 } from './data.js';
-import { TAU, rand, randi, pick, chance, weightedPick, mix } from './util.js';
+import { TAU, rand, randi, pick, chance, weightedPick, mix, ease } from './util.js';
 import { STAGES, STAGE_BY_ID, heatMods, TIME_SCALE, rushStep } from './stages.js';
 import { AI, onEnemyKilled, thiefTick, spillEaten } from './enemies.js';
 import { Hazards } from './hazards.js';
@@ -18,7 +18,7 @@ import { rankCoinMul } from './rank.js';
 const CAM_SCALE = +new URLSearchParams(location.search).get('cam') || 1; // 試し用：?cam=0.8
 import { ELEMENTS, recalcElements, procElement, elementVs, tickElements, elementMove, blindDt, touchMul, onElementHit, onElementKill, updateElements, earthGuard, earthBreak } from './elements.js';
 import { LOGIC, weaponStats, drawArea } from './weapons.js';
-import { enemySprite, drawPlayer, xpSprite, itemSprite, roughSprite, backgroundTile, starSprite, dotSprite, softSprite } from './render.js';
+import { enemySprite, drawPlayer, xpSprite, itemSprite, roughSprite, backgroundTile, starSprite, dotSprite, softSprite, gemSprite } from './render.js';
 import { audio, FEVER_TEMPO } from './audio.js';
 import { diagNote } from './diag.js';
 import { save } from './save.js';
@@ -92,6 +92,10 @@ const BOSS_HP = 2.7;
 export const CHAOS = 5;
 // ボスが生きている間の雑魚の同時出現数と出現ペースの倍率（ボス戦に集中できるように）
 const BOSS_TRASH = 0.5;
+// 画面の外の敵へのダメージの倍率（damage）
+const OFFSCREEN_DMG = 0.5;
+// 賢者の石の完成の演出の長さ（秒。ウロボロスの撃破からクリア画面まで）
+const STONE_FX = 4;
 const BREAK_NEED = 0.42;
 const BREAK_GROW = 1.5;
 // ブレイクゲージのたまりやすさ（どの距離でも同じ倍率。ブレイクしやすすぎたため 0.85 倍に。ユーザーの指定）
@@ -488,7 +492,7 @@ export class Game {
         this.fx.text(this.player.x + rand(-8, 8), this.player.y - 26, '+' + v, { size: 15, color: '#5dff9a', life: 0.7 });
         if (this.artSet.has('grail')) {
           // 回復量に応じた衝撃波
-          const R = (90 + Math.min(60, v * 2)) * this.stats.area;
+          const R = (90 + Math.min(60, v * 2)) * areaEff(this.stats.area);
           this.aoe(this.player.x, this.player.y, R, v * 60 * this.stats.might, null, { kb: 140 });
           this.fx.ring(this.player.x, this.player.y, 10, R, 0.35, '#5dff9a', 5);
         }
@@ -1465,6 +1469,8 @@ export class Game {
   damage(e, amount, o = {}) {
     if (!e.alive) return 0;
     const p = this.player;
+    // 画面の外の敵へのダメージは半分（育ちきると画面の外で倒れてしまい、倒すところが見えないため）。当たった体の位置で見る
+    if (!this.inView(e, e.r || 0)) amount *= OFFSCREEN_DMG;
     if (e.shareTo) {
       // HP を共有する敵（アザトースの奏者）：ダメージは代表の 1 体へ
       e.flash = 0.08;
@@ -1702,6 +1708,12 @@ export class Game {
     this.slowT = 1.2;
     audio.bossDie();
     setTimeout(() => audio.bigWin(), 400);
+    // ウロボロス：蛇の輪が中心へ縮んで、賢者の石が結晶する（描画は render の stoneFx。時間は実時間）
+    if (e.ai === 'ouroboros') {
+      const r = e.ring;
+      this.stoneFx = { x: r ? r.cx : e.x, y: r ? r.cy : e.y, R: r ? r.R : 220, t0: performance.now() };
+      audio.evolve();
+    }
     // 渾沌は七つ目の穴（口）が開いて死ぬ
     this.hooks.banner(e.ai === 'konton' ? '七日ニシテ渾沌死ス' : e.ai === 'ouroboros' ? '賢者の石、成れり' : 'BOSS DEFEATED', 'victory', ENEMIES[e.type].name + ' 撃破');
     // BOSS モードは宝箱を拾わず、撃破の演出のあとそのまま BOSS TREASURE の画面を開く
@@ -1742,8 +1754,65 @@ export class Game {
       setTimeout(() => {
         if (this.state === 'over') return;
         this.pendingClear = true;
-      }, 2800);
+      }, e.ai === 'ouroboros' ? STONE_FX * 1000 : 2800);
     }
+  }
+
+  // 賢者の石の完成（ウロボロスの撃破）：金の輪が中心へ縮み、赤い石が結晶して光を放つ
+  drawStoneFx(ctx) {
+    const f = this.stoneFx;
+    const t = (performance.now() - f.t0) / 1000;
+    if (t > STONE_FX) { this.stoneFx = null; return; }
+    const fade = Math.min(1, (STONE_FX - t) / 0.6);
+    ctx.save();
+    // 画面を暗くして、いちばん上に出す（雑魚やダメージの数字に埋もれないように）
+    const p = this.player;
+    ctx.globalAlpha = 0.6 * Math.min(1, t / 0.5) * fade;
+    ctx.fillStyle = '#05020a';
+    ctx.fillRect(p.x - this.viewW, p.y - this.viewH, this.viewW * 2, this.viewH * 2);
+    // 石は画面の中に収める
+    const mx = this.viewW / 2 - 90, my = this.viewH / 2 - 120;
+    ctx.translate(Math.max(p.x - mx, Math.min(p.x + mx, f.x)), Math.max(p.y - my, Math.min(p.y + my, f.y)));
+    ctx.globalCompositeOperation = 'lighter';
+    // 1) 蛇の輪：0.9 秒で中心へ縮む金の輪と、輪から中心へ吸い込まれる光の粒
+    const k = Math.min(1, t / 0.9);
+    if (k < 1) {
+      const R = f.R * (1 - ease.outCubic(k));
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = '#ffd24a';
+      ctx.lineWidth = 10 * (1 - k) + 2;
+      ctx.beginPath(); ctx.arc(0, 0, Math.max(1, R), 0, TAU); ctx.stroke();
+      const dot = softSprite('#ffe9a0');
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * TAU + t * 2.4, rr = R * (0.6 + 0.4 * ((i * 7) % 5) / 5);
+        ctx.drawImage(dot, Math.cos(a) * rr - 10, Math.sin(a) * rr - 10, 20, 20);
+      }
+    }
+    // 2) 石：輪が閉じるころに現れ、光の筋が回る
+    const g = Math.max(0, (t - 0.7) / 0.5);
+    if (g > 0) {
+      const pop = g < 1 ? ease.outBack(g) : 1 + 0.06 * Math.sin(t * 6);
+      ctx.globalAlpha = fade * 0.9;
+      ctx.rotate(t * 0.5);
+      ctx.fillStyle = 'rgba(255,80,60,0.5)';
+      for (let i = 0; i < 12; i++) {
+        const len = (240 + 70 * Math.sin(t * 3 + i)) * Math.min(1, g);
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(i / 12 * TAU - 0.07) * len, Math.sin(i / 12 * TAU - 0.07) * len);
+        ctx.lineTo(Math.cos(i / 12 * TAU + 0.07) * len, Math.sin(i / 12 * TAU + 0.07) * len);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.rotate(-t * 0.5);
+      const st = starSprite('#ff6a5a');
+      const hs = 150 * pop;
+      ctx.drawImage(st, -hs, -hs, hs * 2, hs * 2);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = fade;
+      const spr = gemSprite('ruby', 44);
+      const L = spr.logical * 1.7 * pop;
+      ctx.drawImage(spr, -L / 2, -L / 2, L, L);
+    }
+    ctx.restore();
   }
 
   // ---------------------------------------------------------------- 秘宝
@@ -1931,6 +2000,7 @@ export class Game {
     // フィーバー中は回収範囲が 10 秒かけて外側へ広がる（近い石から順に少しずつ集まる）
     const mR = 62 * this.stats.magnet * (this.feverT > 0 ? 2 : 1) + (this.feverT > 0 ? (1 - this.feverT / (this.feverDur || 10)) * 1500 : 0);
     const mR2 = mR * mR;
+    const autoChest = this.stats.chestAuto > 0;
     const farItem2 = (this.viewR * 3) ** 2;
     let keep = 0;
     const list = this.pickups;
@@ -1949,7 +2019,8 @@ export class Game {
       // 遠くに取り残したコイン・回復などは消す（エンドレスで溜まり続けないように）
       if (!isChest && pk.kind !== 'rough' && pk.kind !== 'xp' && d2 > farItem2) continue;
       // ペクトライトのしずくは、出たところが見えるように少し長く地面に残してから吸い寄せる
-      if (!isChest && pk.t > (pk.kind === 'dew' ? 0.7 : 0.25) && (d2 < mR2 || pk.vac)) {
+      // 上位工房「宝箱の自動回収」：落ちたところが見えるように少し置いてから、どこにあっても飛んでくる
+      if (isChest ? autoChest && pk.t > 0.8 : pk.t > (pk.kind === 'dew' ? 0.7 : 0.25) && (d2 < mR2 || pk.vac)) {
         pk.vac = true;
         const d = Math.sqrt(d2) || 1;
         pk.sp = (pk.sp || 120) + 900 * dt;
@@ -2555,9 +2626,8 @@ export class Game {
     for (const a of this.areas) if (this.inView(a, a.r)) drawArea(ctx, a, this.time);
     for (const w of this.weapons) if (w.id === 'angelite') LOGIC.angelite.draw(this, w, w.s, ctx);
 
-    // アイテム
-    for (const pk of this.pickups) {
-      if (!this.inView(pk, 30)) continue;
+    // アイテム（宝箱だけは自機の攻撃に埋もれないよう、あとで敵弾の下に描く）
+    const drawPickup = (pk) => {
       const bob = Math.sin(this.time * 5 + pk.x * 0.1) * 2;
       let spr;
       if (pk.kind === 'xp') spr = xpSprite(pk.value);
@@ -2580,7 +2650,8 @@ export class Game {
         ctx.globalCompositeOperation = 'source-over';
       }
       ctx.drawImage(spr, pk.x - L2 / 2, pk.y - L2 / 2 + bob, L2, L2);
-    }
+    };
+    for (const pk of this.pickups) if (pk.kind !== 'chest' && pk.kind !== 'bigchest' && this.inView(pk, 30)) drawPickup(pk);
 
     this.fx.drawBelow(ctx);
     this.hazards.drawObjects(ctx);
@@ -2802,6 +2873,9 @@ export class Game {
       }
     }
 
+    // 宝箱（自機の攻撃・レーザーより上、敵弾より下）
+    for (const pk of this.pickups) if ((pk.kind === 'chest' || pk.kind === 'bigchest') && this.inView(pk, 30)) drawPickup(pk);
+
     // てきの たま
     ctx.globalCompositeOperation = 'lighter';
     for (const b of this.ebullets) {
@@ -2834,6 +2908,7 @@ export class Game {
     }
 
     this.fx.drawTexts(ctx, this.time);
+    if (this.stoneFx) this.drawStoneFx(ctx);
 
     // HP バー
     if (this.state !== 'dying') {

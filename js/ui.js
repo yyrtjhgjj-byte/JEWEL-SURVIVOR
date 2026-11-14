@@ -1115,7 +1115,7 @@ export function showExchange(onClose) {
     <div class="panel exch">
       <div class="exch-head"><span>EXCHANGE <small>交換所</small></span><span class="dustv">ジェムダスト <b id="xd"></b></span>${helpBtn('mining#exchange', 'sm')}</div>
       <div id="xl"></div>
-      <button class="btn" id="xok">閉じる</button>
+      <div class="pfoot"><button class="btn" id="xok">閉じる</button></div>
     </div></div>`);
   const render = () => {
     $('#xd', ov).textContent = fmt(save.dust || 0);
@@ -1844,8 +1844,8 @@ export function levelUp(g, done) {
     autoPicked(g, c);
     audio.select();
     const evolved = g.applyChoice(c);
-    if (evolved) evolveScene(evolved, done);
-    else done(true);
+    if (evolved) evolveQuiet(g, evolved);
+    done(true);
     return;
   }
   haptic();
@@ -1976,6 +1976,13 @@ export function levelUp(g, done) {
 }
 
 // ================================================================== 進化
+// オートコレクト：進化の画面は出さず、自機の上に名前だけ出す（宝箱は中身の一覧に進化も載るので文字は出さない）
+function evolveQuiet(g, w, text = true) {
+  const def = WEAPONS[w.id];
+  save.seen.evos[w.id] = true;
+  audio.evolve();
+  if (text) g.fx.text(g.player.x, g.player.y - 58, `EVOLUTION ${def.evo.name}`, { size: 14, color: '#fff', rainbow: true, life: 1.6, vy: -40 });
+}
 export function evolveScene(w, done) {
   const def = WEAPONS[w.id];
   save.seen.evos[w.id] = true;
@@ -2046,12 +2053,8 @@ function autoChest(g, big, done, plus) {
   lines.push({ str: `+${fmt(g.coins - c0)} COIN`, color: '#ffd24a' });
   lines.forEach((l, i) => g.fx.text(p.x, p.y - 40 - (lines.length - 1 - i) * 15, l.str, { size: 12, color: l.color, rainbow: l.rainbow, life: 1.4, vy: -40 }));
   audio.coin();
-  const evos = res.items.filter((c) => c.type === 'evo');
-  if (!evos.length) { done(true); return; }
-  (async () => {
-    for (const e of evos) await new Promise((r) => evolveScene(g.getWeapon(e.id), r));
-    done();
-  })();
+  for (const e of res.items.filter((c) => c.type === 'evo')) evolveQuiet(g, g.getWeapon(e.id), false);
+  done(true);
 }
 
 export function chest(g, big, done, plus = 0) {

@@ -4,19 +4,19 @@
 //  data-nav の無い画面（ジュエル選択・研磨の本番・リザルトなど）ではメニューを隠す
 //  新しい要素はハブのカード（HUBS）に足す
 // =====================================================================
-import { SHOP, UPPER_SHOP, ACHIEVEMENTS, ENEMIES } from './data.js';
+import { SHOP, UPPER_SHOP, ACHIEVEMENTS, ENEMIES, shopCost } from './data.js';
 import { gemIcon, roughIcon, shopIcon, pickaxeIcon, gavelIcon, enemyIcon } from './render.js';
 import { fmt } from './util.js';
 import { audio } from './audio.js';
 import { save } from './save.js';
 import { ROUGH, totalRough, collectionCount, COLLECTION_IDS } from './atelier.js';
-import { BEAST_IDS, beastLevel, beastIcon } from './beasts.js';
+import { BEAST_IDS, BEAST_COST, beastLevel, beastIcon, jewelStock } from './beasts.js';
 import { currentSession } from './auction.js';
 import { rankState, rankClass } from './rank.js';
 import { diagCrashes } from './diag.js';
 import {
   show, el, $, showTitle, showShop, showGacha, showZukan, showSettings, showRank, showExchange,
-  coinPill, rankStyle, rankColor, checkUpperShop, lastBackupText, homeGem, helpBtn,
+  coinPill, rankStyle, rankColor, checkUpperShop, lastBackupText, homeGem, helpBtn, upperLv,
 } from './ui.js';
 import { showAtelier } from './atelier-ui.js';
 import { showJukebox, trackList } from './jukebox.js';
@@ -85,8 +85,10 @@ export function refreshNav() {
     // アイコンと印は、中身が変わったときだけ書き換える（画像を作り直すと読み込み直しで一瞬消えるため）
     const ic = $('.mn-ic', b), icon = navIcon(id);
     if (ic.dataset.h !== icon) { ic.dataset.h = icon; ic.innerHTML = icon; }
+    // 宝石は磨いていない原石の数。ほかは、そのハブのカードに印があれば点（経営は bizBadge）
     const n = id === 'jewel' ? totalRough() : 0;
-    const badge = (n ? `<b class="mn-badge">${n > 99 ? '99+' : n}</b>` : '') + (id === 'biz' && bizBadge() ? '<b class="mn-badge dot"></b>' : '');
+    const dot = id === 'biz' ? bizBadge() : !n && HUB_BADGES[id] && Object.values(HUB_BADGES[id]()).some(Boolean);
+    const badge = (n ? `<b class="mn-badge">${n > 99 ? '99+' : n}</b>` : '') + (dot ? '<b class="mn-badge dot"></b>' : '');
     if (b.dataset.badge !== badge) {
       b.dataset.badge = badge;
       for (const old of b.querySelectorAll('.mn-badge')) old.remove();
@@ -99,6 +101,33 @@ export function refreshNav() {
 const img = (src) => `<img class="hc-ic" src="${src}" alt="">`;
 const glyph = (g) => `<span class="hc-ic hc-glyph">${g}</span>`;
 const maxed = (items, lv) => items.filter((it) => (lv[it.id] || 0) >= it.max).length;
+
+// ハブのカードの印。数（磨いていない原石・召喚／強化できる百獣）・NEW（まだ開いていないオークションの回）・点（買える強化がある）・FEVER。
+// 下のメニューの点もここから決める（refreshNav）
+const DOT = '•';
+const canBuy = (items, lv, cost) => items.some((it) => (lv[it.id] || 0) < it.max && save.coins >= cost(it, lv[it.id] || 0));
+const unseenAuction = () => {
+  const sess = currentSession(false);
+  if (sess.lots[sess.cur] && !sess.seen) return true;
+  const b = save.auction2;
+  return !!(upperLv('blackAuction') && b && b.lots && b.lots[b.cur] && !b.seen);
+};
+const HUB_BADGES = {
+  power: () => ({
+    workshop: canBuy(SHOP, save.upgrades, shopCost) ? DOT : '',
+    masterworks: save.upperShop && canBuy(UPPER_SHOP, save.upgrades2 || {}, (it, lv) => it.cost[lv]) ? DOT : '',
+  }),
+  jewel: () => {
+    const rough = totalRough();
+    const beasts = BEAST_IDS.filter((id) => jewelStock(id) >= BEAST_COST).length;
+    return {
+      polish: rough ? String(rough > 99 ? '99+' : rough) : '',
+      auction: unseenAuction() ? 'NEW' : '',
+      beasts: beasts ? String(beasts) : '',
+      slot: chapterCleared(2) && slotState().free ? 'FEVER' : '',
+    };
+  },
+};
 
 const HUBS = {
   power: { en: 'POWER', jp: '強化', cards: () => {
@@ -116,13 +145,13 @@ const HUBS = {
     const lot = sess.lots[sess.cur];
     const beasts = BEAST_IDS.filter((id) => beastLevel(id) > 0);
     return [
-      { id: 'polish', en: 'POLISH', jp: '研磨', c: '#e0b8ff', wide: true, icon: img(roughIcon('mystic', ROUGH.mystic.color, 120)), s: `原石 ${rough} 個`, badge: rough ? String(rough > 99 ? '99+' : rough) : '', go: () => showAtelier('polish') },
+      { id: 'polish', en: 'POLISH', jp: '研磨', c: '#e0b8ff', wide: true, icon: img(roughIcon('mystic', ROUGH.mystic.color, 120)), s: `原石 ${rough} 個`, go: () => showAtelier('polish') },
       { id: 'mining', en: 'MINING', jp: '採掘', c: '#c9a36a', icon: img(pickaxeIcon(96)), s: `ジェムダスト ${fmt(save.dust || 0)}`, go: showGacha },
-      { id: 'auction', en: 'AUCTION', jp: 'オークション', c: '#ffd24a', icon: img(gavelIcon(96)), s: lot ? `開催中 LOT ${sess.cur + 1} / ${sess.lots.length}` : 'この回は終了', badge: lot && sess.cur === 0 ? 'NEW' : '', go: () => showAtelier('auction') },
+      { id: 'auction', en: 'AUCTION', jp: 'オークション', c: '#ffd24a', icon: img(gavelIcon(96)), s: lot ? `開催中 LOT ${sess.cur + 1} / ${sess.lots.length}` : 'この回は終了', go: () => showAtelier('auction') },
       { id: 'collection', en: 'COLLECTION', jp: 'コレクション', c: '#ff4d6d', icon: img(gemIcon('ruby', 96)), s: `${collectionCount()} / ${COLLECTION_IDS.length} 種`, go: () => showAtelier('collection') },
       { id: 'beasts', en: 'BEASTS', jp: '百獣', c: '#7fd0ff', icon: img(beastIcon(beasts[0] || 'sapphire', 96)), s: `召喚 ${beasts.length} / ${BEAST_IDS.length}`, go: () => showAtelier('beasts') },
       { id: 'legends', en: 'LEGENDS', jp: '伝説の宝石', c: '#ffd24a', icon: img(gemIcon('emerald', 96)), locked: !chapterCleared(3), s: chapterCleared(3) ? legendCardText() : '第3章をクリアで解放', go: () => showLegends(() => showHub('jewel')) },
-      { id: 'slot', en: 'JEWEL SLOT', jp: 'ジュエル・スロット', c: '#ff7ac8', icon: img(gemIcon('diamond', 96)), locked: !chapterCleared(2), s: chapterCleared(2) ? `JACKPOT ${fmt(slotState().pool)}` : '第2章をクリアで解放', badge: chapterCleared(2) && slotState().free ? 'FEVER' : '', go: () => showSlot(() => showHub('jewel')) },
+      { id: 'slot', en: 'JEWEL SLOT', jp: 'ジュエル・スロット', c: '#ff7ac8', icon: img(gemIcon('diamond', 96)), locked: !chapterCleared(2), s: chapterCleared(2) ? `JACKPOT ${fmt(slotState().pool)}` : '第2章をクリアで解放', go: () => showSlot(() => showHub('jewel')) },
     ];
   } },
   archive: { en: 'ARCHIVE', jp: '記録', cards: () => {
@@ -155,11 +184,13 @@ const HUB_HELP = { power: '@power', jewel: '@jewel', archive: '@more', more: '@m
 export function showHub(cat) {
   const H = HUBS[cat];
   const cards = H.cards();
+  const bd = HUB_BADGES[cat] ? HUB_BADGES[cat]() : {};
+  for (const c of cards) if (!c.locked && bd[c.id]) c.badge = bd[c.id];
   const node = el(`<div class="screen hub-screen" data-nav="${cat}">
     <div class="topbar">${helpBtn(HUB_HELP[cat])}<h2><span class="en">${H.en}</span><span class="jp">${H.jp}</span></h2>${coinPill()}</div>
     <div class="hub-grid">${cards.map((c) => `<button class="hub-card ${c.wide ? 'wide' : ''} ${c.locked ? 'locked' : ''}" id="h-${c.id}" style="--c:${c.c}">
       ${c.icon}<div class="hc-t"><div class="hc-en">${c.en}</div><div class="hc-jp">${c.jp}</div><div class="hc-s">${c.s}</div></div>
-      ${c.badge ? `<b class="mn-badge">${c.badge}</b>` : ''}
+      ${c.badge ? `<b class="mn-badge ${c.badge === DOT ? 'dot' : ''}">${c.badge === DOT ? '' : c.badge}</b>` : ''}
     </button>`).join('')}</div>
   </div>`);
   show(node);

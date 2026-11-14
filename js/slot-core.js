@@ -8,11 +8,11 @@ export const SLOT_BETS = [10000, 100000, 1000000];
 // 絵柄：w は出やすさ。pay は同じ絵柄が 1 列に 3 つ並んだときの払い戻し（賭け金の何倍ぶんか）。
 // coins はコイン、dust はジェムダスト、rough は原石（その等級で何倍ぶんの数）。star はどこでも 3 つでフィーバー、jp は 1 列に 3 つでジャックポット
 export const SLOT_SYMS = [
-  { id: 'shard', w: 36, pay: { coins: 1.2 } },
-  { id: 'ruby', w: 22, pay: { coins: 3.5 } },
-  { id: 'sapphire', w: 16, pay: { dust: 6 } },
-  { id: 'diamond', w: 11, pay: { coins: 18 } },
-  { id: 'mystic', w: 7, pay: { rough: 'mystic', v: 25 } },
+  { id: 'shard', w: 36, pay: { coins: 1.5 } },
+  { id: 'ruby', w: 22, pay: { coins: 4.5 } },
+  { id: 'sapphire', w: 16, pay: { dust: 4 } },
+  { id: 'diamond', w: 11, pay: { coins: 24 } },
+  { id: 'mystic', w: 7, pay: { rough: 'mystic', v: 15 } },
   { id: 'star', w: 6 },
   { id: 'jp', w: 3.5 },
 ];
