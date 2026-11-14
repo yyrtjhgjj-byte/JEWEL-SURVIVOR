@@ -26,7 +26,7 @@ export const LOUPE = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10
 
 // onClose：閉じたあとに呼ぶ（下の画面の宝石を描き直すため）
 export function openGemView(id, onClose) {
-  const g = GEMS[id], look = GEM_LOOK[id];
+  const look = GEM_LOOK[id], g = GEMS[id] || (look && look.meta);
   if (!g || !look) return;
   const clear = look.mode === 'trace';
   const S = { yaw: 0, pitch: 0, zoom: 1, ...defaults(look), rock: true, drag: false, vx: 0, vy: 0, clock: 0, at: 0, dirty: true, still: false };

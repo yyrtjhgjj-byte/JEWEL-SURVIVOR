@@ -9,8 +9,8 @@ import { show, el, $, topbar, toast } from './ui.js';
 import { gemIcon } from './render.js';
 import { GEMS } from './data.js';
 import { GEM_LOOK, FS_TRACE, FS_POST, NW, applyLook } from './gem-gl.js';
+import { registerMyGems, myGemIds } from './mygems.js';
 
-const IDS = Object.keys(GEMS);
 const SIZES = { s: 0.3, m: 0.46, l: 0.7 };
 const TOOLS = [['pour', '出す'], ['stir', 'かき混ぜる'], ['blast', 'はじく']];
 const GRAV = [['down', '重力：下'], ['tilt', '重力：傾き'], ['off', '重力：なし']];
@@ -144,6 +144,10 @@ function compile(gl, vs, fs) {
 
 // ---------------------------------------------------------------- 画面
 export function showSandbox(back) {
+  // 宝石の一覧：ふつうの宝石と、ジュエル・アトリエで作った宝石
+  registerMyGems();
+  const IDS = [...Object.keys(GEMS), ...myGemIds()];
+  if (pick.gem !== 'random' && !IDS.includes(pick.gem)) pick.gem = 'random';
   const lite = !!(save.settings && save.settings.lite);
   const MAX = lite ? 500 : 1200;
   const node = el(`

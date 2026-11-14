@@ -38,6 +38,8 @@ export function defaults() {
     rough: { shard: 0, rough: 0, large: 0, mystic: 0 }, // 手持ちの原石
     dust: 0, // ジェムダスト（ガチャで貯まり、交換所で使う）
     auction: null, // オークションの出品（auction.js）
+    myGems: [], // ジュエル・アトリエで作った宝石（mygems.js）
+    myHome: null, // ホームに飾る作った宝石の id
     nextGem: {}, // 次に磨く原石の中身（等級ごと。atelier.js の nextGem）
     pickRough: {}, // 交換所の選べる原石（「宝石|等級」ごとの数。atelier.js の pickRoughs）
     jewels: {}, // コレクション { gemId: { n: 研磨数, best: 最高品質, ct: 最大カラット, have: 所持数 } }

@@ -71,7 +71,15 @@ const NW = 6;
 const PERSP = 0.12;
 
 // 書き出した画像の場所（起動のあとは読み込み済みの blob の URL。util.js の imgUrl）
-export const gemImage = (id) => imgUrl(`img/gems/${id}.webp`);
+// 自分で作った宝石（id が my_ で始まる）は書き出した画像が無いので、その場で描いて覚えておく（作り直したら forgetGemImage）
+const myImages = new Map();
+export function gemImage(id) {
+  if (!id.startsWith('my_')) return imgUrl(`img/gems/${id}.webp`);
+  let u = myImages.get(id);
+  if (!u && GEM_LOOK[id]) { try { u = bakeGem(id, 160); } catch (_) { u = ''; } myImages.set(id, u); }
+  return u || '';
+}
+export const forgetGemImage = (id) => myImages.delete(id);
 
 // ---------------------------------------------------------------- カットの形（平面の集合）
 const TAU = Math.PI * 2, D2R = Math.PI / 180;
@@ -216,7 +224,7 @@ uniform vec2 uRes; uniform float uSpan, uExp; uniform mat3 uR; uniform int uMode
 uniform vec4 uP[112]; uniform int uN;
 uniform vec3 uIor, uSig, uSig2, uPleo; uniform float uPleoOn, uBiOn, uBiAt;
 uniform vec2 uCau; uniform int uNW; uniform float uPersp;
-uniform vec3 uAbc; uniform float uFogD; uniform vec3 uFogL; uniform float uCarve;
+uniform vec3 uAbc; uniform float uFogD; uniform vec3 uFogL; uniform float uCarve; uniform vec3 uCab1, uCab2;
 uniform vec4 uL[24]; uniform vec2 uLc[24]; uniform int uNL; uniform vec4 uEnv; uniform vec2 uHead;
 
 float env(vec3 d){
@@ -316,6 +324,41 @@ vec3 labPal(float t){
 // 石ごとの見た目：albedo（地の色）・emit（光の効果）・gloss・tr（半透明）
 void stone(vec2 q, vec3 n, vec3 r, out vec3 alb, out vec3 emit, out float tr){
   float x = q.x, y = q.y; emit = vec3(0); tr = 0.;
+  // 自分で作った宝石（mygems.js）の模様：色は uCab1（地）と uCab2（2 色目・光）
+  if (uKind >= 20) {
+    float m = fbm(q * 2.5, 4, 301.);
+    if (uKind == 20) { alb = uCab1 * (.82 + .36 * m); tr = .25; }
+    else if (uKind == 21) {
+      float d = length(q - vec2(.35, .2)) + (fbm(q * 3., 3, 311.) - .5) * .35;
+      float b = .5 + .5 * sin(d * 24.);
+      alb = mix(uCab2, uCab1, smoothstep(.2, .8, b)) * (.9 + .2 * m); tr = .1;
+    } else if (uKind == 22) {
+      vec3 vo = vor(q * 5. + (vec2(fbm(q * 2., 3, 321.), fbm(q.yx * 2., 3, 322.)) - .5) * .8, 331.);
+      float sp = smoothstep(.42, .22, vo.x) * step(.45, vo.z);
+      alb = mix(uCab1 * (.8 + .35 * m), uCab2, sp); tr = .1;
+    } else if (uKind == 23) {
+      alb = uCab1 * (.85 + .2 * m);
+      float cover = 0.;
+      for (int L = 0; L < 2; L++) {
+        float sc = L == 0 ? 5. : 10., sd = L == 0 ? 11. : 23., w = L == 0 ? 1. : .75;
+        vec2 wq = q + (vec2(fbm(q * 2., 3, sd), fbm(q.yx * 2., 3, sd + 1.)) - .5) * .3;
+        vec3 vo = vor(wq * sc, sd);
+        float a1 = fract(vo.z * 7.13) * 6.283, a2 = fract(vo.z * 3.71);
+        float al, fs = layerFlash(normalize(vec3(cos(a1) * .9 * a2, sin(a1) * .9 * a2 + .25, 1.)), 34., al);
+        float inner = fbm(wq * 16., 3, sd + 5.);
+        float k = (fs * 8. + .015) * smoothstep(0., .08, vo.y - vo.x) * (.5 + inner) * w;
+        emit += spectral(fract(vo.z * 13.7) + (1. - al) * 1.5 + inner * .2) * k * 1.6;
+        cover = max(cover, min(1., k));
+      }
+      alb *= 1. - .45 * cover; tr = .4;
+    } else {
+      alb = uCab1 * (.5 + .2 * m);
+      float c = dot(n, normalize(vec3(-.45, .55, .7)));
+      float gl = exp(-pow((c - .88) / .1, 2.)) * 1.6 + exp(-pow((c - .7) / .18, 2.)) * .35;
+      emit = uCab2 * 1.6 * gl; tr = .55;
+    }
+    return;
+  }
   if (uKind == 0) {
     // オパール：白い地に、小さな斑ごとの遊色。斑ごとに中の格子の向きが違い、向きが合うと強く光って色が移ろう
     alb = mix(vec3(.8, .82, .86), vec3(.93, .93, .96), fbm(q * 3., 4, 3.));
@@ -608,13 +651,15 @@ export function applyLook(gl, uni, id) {
   } else {
     gl.uniform3fv(uni.uAbc, g.abc || (g.cut === 'cab' ? [0.92, 0.92, 0.62] : g.cut === 'sphere' ? [0.9, 0.9, 0.9] : [1.0, 0.76, 0.62]));
     gl.uniform3f(uni.uIor, g.ri, g.ri, g.ri);
+    gl.uniform3fv(uni.uCab1, g.c1 || [0, 0, 0]);
+    gl.uniform3fv(uni.uCab2, g.c2 || [0, 0, 0]);
   }
   return g;
 }
 
 // ---------------------------------------------------------------- 描く道具（キャンバス 1 枚に 1 つ）
 export { FS_TRACE, FS_POST, NW };
-const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uCau', 'uNW', 'uPersp', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL', 'uCarve'];
+const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uCau', 'uNW', 'uPersp', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL', 'uCarve', 'uCab1', 'uCab2'];
 
 function createRenderer(canvas) {
   const gl = canvas.getContext('webgl2', { premultipliedAlpha: true, antialias: false, alpha: true, depth: false, stencil: false, powerPreference: 'low-power' });
@@ -846,6 +891,14 @@ export function mountLiveGem(img, id, ctl = null) {
   live.t0 = performance.now();
   live.r.load(id);
   live.raf = requestAnimationFrame(tick);
+}
+
+// いま描いている宝石の見た目（GEM_LOOK）を変えたときに、描き直させる（ジュエル・アトリエの見本）。描いていなければ false
+export function reloadLiveGem(img, id) {
+  if (!live || live.img !== img || live.id !== id || !live.raf) return false;
+  live.r.load(id);
+  live.last = 0;
+  return true;
 }
 
 // その場で描く宝石が使えるか（WebGL2 が無い・作れなかった端末では false）
