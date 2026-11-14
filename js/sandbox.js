@@ -350,7 +350,9 @@ export function showSandbox(back) {
     e.preventDefault();
     cv.setPointerCapture(e.pointerId);
     const [x, y] = pos(e);
-    Object.assign(F, { on: true, sx: x, sy: y, p: null, acc: 1 });
+    Object.assign(F, { on: true, sx: x, sy: y, p: null, acc: 0 });
+    // 「出す」は押した瞬間にも少し出す（すぐ離しても出たのが見えるように）
+    if (pick.tool === 'pour') { const p = pourPoint(x, y); for (let k = 0; k < 4; k++) spawn(p); }
     if (pick.tool === 'blast') { const p = hitPoint(x, y); if (p) blast(p); }
   });
   cv.addEventListener('pointermove', (e) => { if (!F.on) return; const [x, y] = pos(e); F.sx = x; F.sy = y; });
