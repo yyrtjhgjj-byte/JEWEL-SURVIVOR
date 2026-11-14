@@ -78,6 +78,7 @@ export function initUI(a) {
   app = a;
   // 低負荷モード（設定）は html.lite で CSS と宝石の描き方を軽くする
   document.documentElement.classList.toggle('lite', !!save.settings.lite);
+  document.documentElement.classList.toggle('ultra', !!(save.settings.lite && save.settings.ultra));
   setupHaptic();
   setupWordBreaks();
   // ヘルプの ?：先に受けて、下の画面の押し方（バニッシュの選択など）には渡さない
@@ -1619,7 +1620,7 @@ export function showSettings(back, asOverlay, focus) {
         <div class="setting"><span>ダメージ表示</span><button class="switch ${save.settings.dmgNum ? 'on' : ''}" data-k="dmgNum"></button></div>
         <div class="setting"><span>画面の揺れ</span><button class="switch ${save.settings.shake ? 'on' : ''}" data-k="shake"></button></div>
         <div class="setting"><span>振動（iOS 18以降）</span><button class="switch ${save.settings.haptic ? 'on' : ''}" data-k="haptic"></button></div>
-        <div class="setting"><span>低負荷モード<small>画質と演出を下げて軽くする</small></span><button class="switch ${save.settings.lite ? 'on' : ''}" data-k="lite"></button></div>
+        <div class="setting"><span>軽量化<small>動きを軽くする</small></span><div class="tabs sub qseg" id="qseg">${[['off', 'オフ'], ['lite', '低負荷'], ['ultra', '超低負荷']].map(([k, n]) => `<button class="tab" data-q="${k}">${n}</button>`).join('')}</div></div>
         ${asOverlay ? '' : '<div class="setting"><span>セーブデータ削除</span><button class="btn small" id="reset">RESET</button></div>'}
       </div>
       ${asOverlay ? '' : `<div class="panel backup" id="sec-backup">
@@ -1649,13 +1650,26 @@ export function showSettings(back, asOverlay, focus) {
   $('#sfx', node).oninput = (e) => { save.settings.sfx = +e.target.value; audio.applyVolume(); audio.coin(); };
   // 指を離したときにも保存する（戻るを押す前にアプリが終了しても、音量が戻らないように）
   for (const id of ['#bgm', '#sfx']) $(id, node).onchange = () => persist();
+  // 軽量化：オフ・低負荷（lite）・超低負荷（lite と ultra）
+  const qseg = $('#qseg', node);
+  const qNow = () => (save.settings.ultra && save.settings.lite ? 'ultra' : save.settings.lite ? 'lite' : 'off');
+  const qMark = () => qseg.querySelectorAll('[data-q]').forEach((b) => b.classList.toggle('on', b.dataset.q === qNow()));
+  qMark();
+  qseg.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => {
+    save.settings.lite = b.dataset.q !== 'off';
+    save.settings.ultra = b.dataset.q === 'ultra';
+    document.documentElement.classList.toggle('lite', save.settings.lite);
+    document.documentElement.classList.toggle('ultra', save.settings.ultra);
+    audio.tap();
+    persist();
+    qMark();
+  }));
   node.querySelectorAll('.switch').forEach((sw) => (sw.onclick = () => {
     const k = sw.dataset.k;
     save.settings[k] = !save.settings[k];
     sw.classList.toggle('on', save.settings[k]);
     audio.tap();
     if (k === 'haptic') haptic();
-    if (k === 'lite') document.documentElement.classList.toggle('lite', save.settings.lite);
     persist();
   }));
   if (!asOverlay) { setupBackup(node); setupDiag(node); }

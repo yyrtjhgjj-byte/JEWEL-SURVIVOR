@@ -16,7 +16,7 @@ export function defaults() {
     achievements: {},
     seen: { weapons: {}, passives: {}, enemies: {}, evos: {} },
     kills: {},
-    settings: { bgm: 0.55, sfx: 0.8, haptic: true, dmgNum: true, shake: true, lite: false }, // lite：低負荷モード（main.js・game.js・gem-gl.js・CSS の html.lite）
+    settings: { bgm: 0.55, sfx: 0.8, haptic: true, dmgNum: true, shake: true, lite: false, ultra: false }, // lite：低負荷モード、ultra：超低負荷モード（lite と両方 true）（main.js・game.js・gem-gl.js・CSS の html.lite）
     endless: false,
     hyper: false, // ハイパーモード（ステージ選択の切り替え）
     hurry: false, // ハリーモード

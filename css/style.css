@@ -2069,6 +2069,10 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 html.lite .screen.dim { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(4, 4, 10, 0.9); }
 html.lite .rays, html.lite .sl-rays { animation: none !important; }
 html.lite .medal-art .medal.m-gold:not(.off)::after { animation: none; }
+/* 超低負荷モード：ラン中の経験値バーの虹の流れも止める */
+html.ultra #xpfill::before { animation: none; }
+.setting .qseg { margin: 0; flex: none; }
+.setting .qseg .tab { padding: 6px 9px; font-size: var(--t4); }
 /* 実績の行：取ったメダルの色で縁を光らせる（ゴールドは金色に） */
 .arow.done.t-bronze { border-color: rgba(170,135,70,0.5); }
 .arow.done.t-copper { border-color: rgba(224,130,95,0.55); }

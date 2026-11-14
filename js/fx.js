@@ -24,6 +24,8 @@ export class FX {
   // ----- パーティクル
   // kind: 'star' | 'dot' | 'conf' | 'smoke'
   add(x, y, vx, vy, life, size, color, kind = 'dot', extra) {
+    // 超低負荷モード（設定。game.js が ultra を立てる）は 60 個まで
+    if (this.ultra && this.parts.length >= 60) return;
     if (this.lite && this.parts.length >= 200) return; // 軽量モード（game.js の autoRes）では数を絞り、新しいものを捨てる
     if (this.parts.length >= MAX_PARTS) {
       // ふるいのを うわがき
@@ -36,6 +38,7 @@ export class FX {
   }
 
   burst(x, y, color, n = 10, speed = 160, life = 0.5, size = 10, kind = 'star') {
+    if (this.ultra) n = Math.ceil(n / 5);
     for (let i = 0; i < n; i++) {
       const a = rand(TAU), s = rand(0.3, 1) * speed;
       this.add(x, y, Math.cos(a) * s, Math.sin(a) * s, life * rand(0.6, 1.2), size * rand(0.6, 1.2), color, kind);
@@ -43,6 +46,7 @@ export class FX {
   }
 
   confetti(x, y, n = 30, speed = 300) {
+    if (this.ultra) n = Math.ceil(n / 5);
     for (let i = 0; i < n; i++) {
       const a = rand(TAU), s = rand(0.3, 1) * speed;
       this.add(x, y, Math.cos(a) * s, Math.sin(a) * s - 120, rand(0.9, 1.6), rand(4, 8), pick(RAINBOW), 'conf', { g: 420, drag: 0.96 });
@@ -51,7 +55,9 @@ export class FX {
 
   // くすみが キラキラに かわる（じょうか）演出
   purify(x, y, color, big = false) {
-    const n = big ? 22 : 4;
+    // 超低負荷モードでは、雑魚の撃破の光は出さない（ボス・エリートだけ少し）
+    if (this.ultra && !big) return;
+    const n = big ? (this.ultra ? 5 : 22) : 4;
     for (let i = 0; i < n; i++) {
       const a = rand(TAU), s = rand(40, big ? 320 : 150);
       this.add(x, y, Math.cos(a) * s, Math.sin(a) * s - 30, rand(0.35, 0.7), rand(6, big ? 18 : 11), i % 3 === 0 ? '#ffffff' : color, 'star');
@@ -62,7 +68,9 @@ export class FX {
   // ----- テキスト
   text(x, y, str, { color = '#fff', size = 16, stroke = 'rgba(0,0,0,0.75)', life = 0.7, vy = -60, crit = false, rainbow = false, pop = 1 } = {}) {
     if (!save.settings.dmgNum && !crit && !rainbow && typeof str === 'number') return;
-    if (this.texts.length >= (this.lite ? 20 : MAX_TEXTS)) {
+    // 超低負荷モードではダメージ・回復の数字を出さない（文字の知らせだけ）
+    if (this.ultra && typeof str === 'number') return;
+    if (this.texts.length >= (this.ultra ? 6 : this.lite ? 20 : MAX_TEXTS)) {
       // クリティカルじゃない ふるい すうじを すてる
       const idx = this.texts.findIndex((t) => !t.crit && !t.rainbow);
       if (idx >= 0) this.texts.splice(idx, 1);
@@ -75,12 +83,12 @@ export class FX {
   }
 
   ring(x, y, r0, r1, life, color, width = 4, fill = false) {
-    if (this.rings.length >= 150) return; // 数の上限（大量に重なると描画が重くなる）
+    if (this.rings.length >= (this.ultra ? 20 : 150)) return; // 数の上限（大量に重なると描画が重くなる）
     this.rings.push({ x, y, r0, r1, life, max: life, color, width, fill });
   }
 
   bolt(x0, y0, x1, y1, color = '#bff6ff', life = 0.22, width = 4) {
-    if (this.bolts.length >= 100) return;
+    if (this.bolts.length >= (this.ultra ? 15 : 100)) return;
     const pts = [];
     const n = 9;
     for (let i = 0; i <= n; i++) {
@@ -92,11 +100,12 @@ export class FX {
   }
 
   shake(mag) {
-    if (!save.settings.shake) return;
+    if (!save.settings.shake || this.ultra) return;
     this.shakeMag = Math.min(24, Math.max(this.shakeMag, mag));
   }
 
   screenFlash(a = 0.6, color = '#fff') {
+    if (this.ultra) a *= 0.35;
     this.flash = Math.max(this.flash, a);
     this.flashColor = color;
   }

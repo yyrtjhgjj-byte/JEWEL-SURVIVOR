@@ -221,6 +221,9 @@ export class Game {
     // 低負荷モード（設定）：最初から画質をいちばん下の段にして固定する（解像度 0.5 倍・演出を軽く）
     this.liteMode = !!save.settings.lite;
     if (this.liteMode) { this.quality = 2; this.resScale = 0.5; this.fx.lite = true; }
+    // 超低負荷モード（設定）：低負荷に加えて、パーティクル・数字・輪・稲妻・揺れ・アイテムの光を大きく減らす（fx.ultra）
+    this.ultraMode = this.liteMode && !!save.settings.ultra;
+    this.fx.ultra = this.ultraMode;
     this.grid = new Grid(64);
     this.enemies = [];
     this.projs = [];
@@ -2733,7 +2736,7 @@ export class Game {
         ctx.drawImage(softSprite('#6fe0ff'), pk.x - s, pk.y - s + bob, s * 2, s * 2);
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
-      } else if (pk.kind !== 'xp' && pk.kind !== 'coin') {
+      } else if (pk.kind !== 'xp' && pk.kind !== 'coin' && !this.ultraMode) {
         ctx.globalCompositeOperation = 'lighter';
         const st = starSprite(pk.kind === 'heart' ? '#ff7ab8' : pk.kind === 'rough' ? ROUGH[pk.value].color : '#ffe9a0');
         const s = 26 + Math.sin(this.time * 6) * 4;
