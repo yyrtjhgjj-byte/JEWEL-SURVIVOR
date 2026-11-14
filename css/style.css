@@ -2031,8 +2031,10 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .bs-acts .btn { width: 100%; }
 .bs-cost { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; font: 700 16px var(--font); color: #ffe39a; letter-spacing: 0.04em; }
 @media (prefers-reduced-motion: reduce) { .bsheet, .screen.dim.bs-over { transition: none; } }
-.lrow .lr-sub { font: 500 var(--t4) var(--font-jp); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; display: inline-flex; align-items: center; gap: 3px; }
-.lr-sub .coin-ico { width: 12px; height: 12px; }
+.lrow .lr-sub { display: block; font: 500 var(--t4) var(--font-jp); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.lr-sub .coin-ico { width: 12px; height: 12px; vertical-align: -2px; margin-right: 2px; }
+/* 1 行の中では、名前に自動で入る区切り（wbr）で折り返さない */
+.lrow wbr, .arow wbr { display: none; }
 /* 研磨の原石の行：研磨と自動の 2 つのボタン */
 .rough-row { cursor: default; }
 .rough-row .lbtn { min-width: 0; padding: 8px 10px; font-family: var(--font-jp); }
@@ -2046,3 +2048,22 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .rgrid .rrow span { font-size: var(--t4); }
 .rgrid .rrow b { font-size: 18px; font-variant-numeric: tabular-nums; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 .rgrid .rrow .new { margin-left: 0; }
+/* 図鑑の 1 行（ウェポン・チャーム・秘宝）。押すとくわしいページかシート */
+.zlist.ztight { gap: 6px; }
+.zrow { cursor: pointer; }
+.zrow.unk { cursor: default; }
+.zrow.unk .lr-name, .zrow.unk .lr-sub { color: var(--muted); }
+.zrow[style*="--ec"] { border-color: color-mix(in srgb, var(--ec) 40%, transparent); background: linear-gradient(100deg, color-mix(in srgb, var(--ec) 14%, transparent), transparent 46%), var(--panel); }
+.zr-ped { width: 42px; height: 42px; flex: none; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 50% 58%, color-mix(in srgb, var(--ec) 42%, transparent), transparent 70%); }
+.zr-ped img { width: 36px; height: 36px; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.6)); }
+.zrow.unk .zr-ped img { filter: brightness(0) drop-shadow(0 0 1px rgba(255,255,255,0.45)); }
+.zr-art { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 8px; border: 2px solid #8a6a2c; background: radial-gradient(circle at 50% 45%, rgba(255,220,140,0.18), rgba(10,8,14,0.9) 72%); }
+.zr-art img { width: 32px; height: 32px; }
+.zrow .lr-line .word-tag, .zrow .lr-line .etag { flex: none; margin: 0; font-size: 10px; padding: 0 6px; }
+.zr-evo { flex: none; font: 700 9px var(--font); letter-spacing: 0.1em; color: #d9b8ff; border: 1px solid rgba(217,184,255,0.45); border-radius: 4px; padding: 0 4px; font-style: normal; }
+.zr-go { flex: none; color: var(--muted); font: 700 20px var(--font); padding: 0 4px; }
+.zitem.zstage { padding: 10px 12px; cursor: pointer; }
+.zitem.zstage.unk { cursor: default; }
+.zitem.zstage .zname { flex-wrap: nowrap; white-space: nowrap; overflow: hidden; }
+.bs-text { font-size: var(--t3); line-height: 1.7; color: #cfcbe2; }
+.sp-lore { font-family: var(--font-jp); font-size: 12px; line-height: 1.7; color: var(--muted); margin: 0 0 8px; }
