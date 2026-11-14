@@ -66,7 +66,7 @@ let titleT = 0;
 let titlePattern = null; // 背景の模様（毎フレーム作り直さない）
 function renderTitle(dt) {
   titleT += dt;
-  const dpr = save.settings.lite ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const W = innerWidth, H = innerHeight;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#06060b';
