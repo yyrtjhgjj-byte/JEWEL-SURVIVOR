@@ -21,7 +21,8 @@ import { LEGENDS } from './legends-data.js';
 import { BEAST_IDS, beastIcon } from './beasts.js';
 
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+// 毎フレーム全面を塗るので不透明として扱う（後ろのページとの重ね合わせを省ける。見た目は変わらない）
+const ctx = canvas.getContext('2d', { alpha: false });
 const input = new Input(canvas, document.getElementById('joy'), document.getElementById('joyknob'));
 const params = new URLSearchParams(location.search);
 const DEBUG = {

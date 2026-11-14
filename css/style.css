@@ -381,9 +381,15 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
   height: 5px; border-radius: 3px; background: rgba(255,255,255,0.1); overflow: hidden;
 }
 #xpfill {
-  position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(0);
-  background: var(--prism); background-size: 200% 100%; animation: prismMove 3s linear infinite;
+  position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(0); overflow: hidden;
 }
+/* 虹の流れ：背景の位置を動かすとバーを毎フレーム描き直すので、虹を 2 回並べた帯を transform でずらす（見た目は同じ） */
+#xpfill::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 400%;
+  background: var(--prism); background-size: 50% 100%; background-repeat: repeat-x;
+  animation: xpFlow 3s linear infinite; will-change: transform;
+}
+@keyframes xpFlow { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 #hudtop {
   position: absolute; top: calc(var(--safe-t) + 16px); left: calc(var(--safe-l) + 10px); right: calc(var(--safe-r) + 10px);
   display: flex; align-items: flex-start; justify-content: space-between;
