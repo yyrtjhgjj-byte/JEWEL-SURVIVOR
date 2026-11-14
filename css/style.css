@@ -2091,3 +2091,27 @@ html.ultra #xpfill::before { animation: none; }
 .arow.done.t-gold { border-color: rgba(255,197,61,0.8); background: linear-gradient(90deg, rgba(255,197,61,0.14), transparent 60%), var(--panel); box-shadow: 0 0 14px rgba(255,197,61,0.22); }
 /* 工房の行の次のレベルの値 */
 .lrow .lr-next { color: var(--muted); font-weight: 500; }
+
+/* ---------------------------------------------------------------- 宝石の砂場（sandbox.js） */
+.sb-screen { gap: 8px; overflow: hidden; padding-bottom: calc(var(--safe-b) + 10px); }
+.sb-screen > * { flex-shrink: 0; }
+.sb-count { display: flex; align-items: baseline; gap: 3px; min-width: 88px; justify-content: flex-end; font-family: var(--font); }
+.sb-count b { font-size: 18px; color: var(--text); }
+.sb-count small { font-size: 11px; color: var(--muted); }
+.sb-stage { position: relative; flex: 1 1 auto !important; min-height: 0; width: 100%; max-width: 640px; border-radius: 16px; overflow: hidden; background: #06060a; border: 1px solid var(--line); }
+.sb-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+.sb-ctl { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 6px; }
+.sb-seg { display: flex; gap: 4px; padding: 3px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.sb-seg button { flex: 1; padding: 8px 4px; border-radius: 9px; color: var(--muted); font: 700 13px var(--font-jp); background: none; border: 0; }
+.sb-seg button.on { background: rgba(143, 232, 255, 0.16); color: #bff3ff; box-shadow: inset 0 0 0 1px rgba(143, 232, 255, 0.5); }
+.sb-seg.sm { flex: 1; }
+.sb-seg.sm button { padding: 7px 2px; font-size: 12px; }
+.sb-gems { display: flex; gap: 4px; overflow-x: auto; padding: 2px 1px 4px; scrollbar-width: none; }
+.sb-gems::-webkit-scrollbar { display: none; }
+.sb-gems button { flex: none; width: 40px; height: 40px; padding: 4px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+.sb-gems button img { width: 100%; height: 100%; object-fit: contain; }
+.sb-gems button.sb-rnd { width: auto; padding: 0 10px; font: 700 12px var(--font-jp); color: var(--muted); }
+.sb-gems button.on { border-color: #8fe8ff; box-shadow: 0 0 10px rgba(143, 232, 255, 0.35); color: #bff3ff; }
+.sb-row { display: flex; gap: 6px; align-items: stretch; }
+.sb-btn { flex: none; padding: 0 10px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line2); color: var(--text); font: 700 12px var(--font-jp); white-space: nowrap; }
+.sb-stage #sbo { pointer-events: none; }

@@ -173,7 +173,7 @@ function lump() {
   }
   return P;
 }
-const CUTS = {
+export const CUTS = {
   point, lump,
   brilliant: () => brilliant(OUT.round()), oval: () => brilliant(OUT.oval()), cushion: () => brilliant(OUT.cushion(), { tableIn: 0.4 }),
   pear: () => brilliant(OUT.pear(), { tableIn: 0.34, rot: Math.PI / 8 }), trillion: () => brilliant(OUT.trillion(), { mains: 6, tableIn: 0.36, rot: Math.PI / 2 }),
