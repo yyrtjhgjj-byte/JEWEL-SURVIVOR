@@ -62,8 +62,8 @@ function reopen(tab) {
 function renderPolish(box) {
   box.innerHTML = '';
   // チュートリアル：一度も開いていなければ枠を虹色に光らせる
-  // 一度開いたあとは小さな行にする
-  const tut = el(save.seen.polishTut ? '<button class="chip tut-chip">TUTORIAL　研磨の練習</button>' : '<button class="btn tut-btn fresh">TUTORIAL<span class="sub">研磨のチュートリアル</span></button>');
+  // 練習のボタンは、使ったあとも同じ大きさ（小さくすると下の行の位置がずれて押し間違える）。まだ使っていないときだけ虹色の枠
+  const tut = el(`<button class="btn tut-btn ${save.seen.polishTut ? '' : 'fresh'}">TUTORIAL<span class="sub">${save.seen.polishTut ? '研磨の練習' : '研磨のチュートリアル'}</span></button>`);
   tut.onclick = () => {
     audio.select();
     save.seen.polishTut = true;
@@ -667,6 +667,9 @@ function auctionTabs(box, black) {
   box.appendChild(t);
 }
 
+// 競りに入るのに要るコイン（始めの値の、いちばん小さい上乗せ）。足りなければ参加のボタンを押せなくする
+const joinNeed = (lot) => Math.ceil(startPrice(lot) * 1.05);
+const canJoin = (lot) => save.coins >= joinNeed(lot);
 // カタログ：この回の 3 点と、ライバル。今の品は「競りに参加」か「見送る」
 function renderAuction(box, black) {
   if (black && !upperLv('blackAuction')) black = false;
@@ -692,12 +695,13 @@ function renderAuction(box, black) {
     <div class="label" style="margin-top:6px">RIVALS${lot ? `　・　LOT ${sess.cur + 1} への気配` : ''}</div>
     <div class="seats">${R.map((r) => rivalSeat(sess, lot, r)).join('')}</div>
     <div class="rrow2"><span>所持コイン</span><b>${fmt(save.coins)}</b></div>
-    ${lot ? `<div class="cat-btns"><button class="btn" id="auc-pass">見送る</button><button class="btn big primary" id="auc-go">競りに参加</button></div>`
+    ${lot ? `<div class="cat-btns"><button class="btn" id="auc-pass">見送る</button>${canJoin(lot) ? '<button class="btn big primary" id="auc-go">競りに参加</button>' : `<button class="btn big auc-short" disabled>コイン不足<span class="sub">${fmt(joinNeed(lot))} コインから参加できます</span></button>`}</div>`
     : '<div class="at-note" style="text-align:center">この回は終わりました。ランを 1 回終えると、次の回が開かれます</div>'}
   </div>
   <div class="at-note">ライバルは回ごとに予算を持っていて、落札するたびに財布が減ります。「本命」の品にはお金を惜しみません。見送った品は、ライバルどうしで競り落とします。</div>`);
   if (!lot) return;
-  $('#auc-go', box).onclick = () => { audio.select(); startBidding(sess, lot, black); };
+  const go = $('#auc-go', box);
+  if (go) go.onclick = () => { audio.select(); startBidding(sess, lot, black); };
   $('#auc-pass', box).onclick = () => {
     audio.tap();
     const res = settleWithoutYou(sess, lot, black);

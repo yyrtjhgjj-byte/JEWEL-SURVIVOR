@@ -8,7 +8,7 @@ import {
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickaxeIcon } from './render.js';
 import { mountLiveGem, GEM_LOOK } from './gem-gl.js';
 import { registerMyGems, myGem } from './mygems.js';
-import { diagCrashes, diagLaunches, diagNotes, clearDiag } from './diag.js';
+import { diagCrashes, diagLaunches, diagNotes, clearDiag, diagNote } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter, FINALE_STAGES, stageTag, rushStep } from './stages.js';
 import { fmt, fmtTime, pick, todayStr } from './util.js';
@@ -63,7 +63,8 @@ export function openSheet(html, bind) {
 export function fitText(root) {
   for (const box of root.querySelectorAll('.fit')) {
     const t = box.firstElementChild;
-    if (!t) continue;
+    // まだ画面に置かれていない（幅 0）ときは測れないので、文字を縮めない
+    if (!t || !box.clientWidth) continue;
     t.style.fontSize = '';
     let fs = parseFloat(getComputedStyle(t).fontSize);
     const lines = +(box.dataset.lines || 2), lh = fs * 1.25;
@@ -561,7 +562,7 @@ export function showStageSelect() {
     const g = k === 'w' ? WEAPONS[id].gem : PASSIVES[id].gem;
     const on = list.includes(id);
     const pw = pairs[id];
-    return `<button class="rp ${on ? 'on' : ''} ${!on && list.length >= max ? 'full' : ''} ${pw ? 'pair' : ''}" data-k="${k}" data-id="${id}" ${pw ? `style="--pc:${gemColor(pw)}"` : ''}><img src="${gemIcon(g, 72)}"><span>${GEMS[g].jp}</span>${pw ? `<img class="rp-w" src="${gemIcon(pw, 32)}" alt="">` : ''}</button>`;
+    return `<button class="rp ${on ? 'on' : ''} ${!on && list.length >= max ? 'full' : ''} ${pw ? 'pair' : ''}" data-k="${k}" data-id="${id}" ${pw ? `style="--pc:${gemColor(pw)}"` : ''}><img src="${gemIcon(g, 72)}"><span class="fit" data-lines="1"><b>${GEMS[g].jp}</b></span>${pw ? `<img class="rp-w" src="${gemIcon(pw, 32)}" alt="">` : ''}</button>`;
   }).join('');
   const pairsOf = (ws) => Object.fromEntries(ws.filter((w) => WEAPONS[w] && WEAPONS[w].evo).map((w) => [WEAPONS[w].evo.with, WEAPONS[w].gem]));
   const renderRush = () => {
@@ -573,6 +574,7 @@ export function showStageSelect() {
       <div class="rush-pick">${pickHTML(WEAPON_IDS, lo.w, MAX_WEAPONS, 'w')}</div>
       <div class="rp-head"><span>CHARM</span><b>${lo.p.length} / ${MAX_CHARMS}</b></div>
       <div class="rush-pick">${pickHTML(PASSIVE_IDS, lo.p, MAX_CHARMS, 'p', pairsOf(lo.w))}</div>`;
+    fitText($('#opts', node));
     node.querySelectorAll('.rp').forEach((b) => (b.onclick = () => {
       const arr = b.dataset.k === 'w' ? lo.w : lo.p, max = b.dataset.k === 'w' ? MAX_WEAPONS : MAX_CHARMS;
       const i = arr.indexOf(b.dataset.id);
@@ -649,6 +651,7 @@ export function showStageSelect() {
       <div class="rush-pick">${pickHTML(PASSIVE_IDS, ids(L.p), L.mp, 'p', pairsOf(ids(L.w)))}</div>
       ${trBulk(L.p, 'p')}
       <div class="tr-list">${L.p.map((it) => trRow(it, 'p')).join('')}</div>`;
+    fitText($('#opts', node));
     node.querySelectorAll('.rp').forEach((b) => (b.onclick = () => {
       const k = b.dataset.k, arr = k === 'w' ? L.w : L.p, max = k === 'w' ? L.mw : L.mp;
       const i = arr.findIndex((x) => x.id === b.dataset.id);
@@ -1970,12 +1973,21 @@ function autoPicked(g, c) {
   g.fx.text(p.x, p.y - 40 - (k - 1) * 15, `${info.name} ${info.lv}`, { size: 13, color: RAR_TEXT[info.rar], rainbow: info.rar === 'UR', life: 1.2, vy: -40 });
 }
 
+// 選んだ強化を反映する。反映の途中で何か起きても画面は閉じられるようにして、動作の記録に残す
+// （レベルアップの画面が、カードが消えたまま閉じなくなったという報告があった）
+function safeApply(g, c) {
+  try { return g.applyChoice(c); } catch (e) {
+    console.error(e);
+    try { diagNote({ kind: 'choice', why: String((e && e.message) || e).slice(0, 160), c: JSON.stringify(c).slice(0, 120) }); } catch (_) { /* 記録できなくても進める */ }
+    return null;
+  }
+}
 export function levelUp(g, done) {
   if (g.autoOn) {
     const c = g.autoChoice(g.rollChoices());
     autoPicked(g, c);
     audio.select();
-    const evolved = g.applyChoice(c);
+    const evolved = safeApply(g, c);
     if (evolved) evolveQuiet(g, evolved);
     done(true);
     return;
@@ -2030,7 +2042,7 @@ export function levelUp(g, done) {
           audio.heal();
           haptic();
           cardsEl.querySelectorAll('.card').forEach((x) => x.classList.add(x === card ? 'chosen' : 'notchosen'));
-          g.applyChoice(c);
+          safeApply(g, c);
           setTimeout(() => { node.remove(); done(); }, 420);
         };
         cardEls.push(card);
@@ -2055,7 +2067,7 @@ export function levelUp(g, done) {
         audio.select();
         haptic();
         cardsEl.querySelectorAll('.card').forEach((x) => x.classList.add(x === card ? 'chosen' : 'notchosen'));
-        const evolved = g.applyChoice(c);
+        const evolved = safeApply(g, c);
         setTimeout(() => {
           node.remove();
           if (evolved) evolveScene(evolved, done);

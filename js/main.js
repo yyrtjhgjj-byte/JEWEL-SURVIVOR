@@ -554,9 +554,11 @@ if (DEBUG.autostart) {
   startGame(DEBUG.autostart in GEMS ? DEBUG.autostart : 'ruby', { endless: params.has('endless'), hyper: params.has('hyper'), hurry: params.has('hurry'), chaos: params.has('chaos'), artifact: params.get('art'), stageId: DEBUG.stage, heat: DEBUG.heat, rush });
 } else {
   UI.showTitle();
+  // 中断したランがあれば再開の画面が出るので、落ちた知らせは出さない（再開の画面に重なって意味がわかりにくい）
+  const hadRun = !!save.pendingRun;
   recoverPendingRun(); // 再開の確認はタイトル（ログインボーナス）の上に出す
   if (upperRefund) setTimeout(() => UI.toast('上位工房の入れ替えに伴い返金', `+${upperRefund.toLocaleString()} コイン`, 'MASTERWORKS'), 900);
-  if (crashed) setTimeout(() => UI.toast('前回は途中で終了しました', '設定の「動作の記録」に残しました', 'DIAGNOSTIC'), 1500);
+  if (crashed && !hadRun) setTimeout(() => UI.toast('前回は途中で終了しました', '設定の「動作の記録」に残しました', 'DIAGNOSTIC'), 1500);
 }
 
 // 宝石と百獣の絵を起動のあとに読み込んで blob の URL にし（util.js の preloadImages）、絵にしたものを持ち続ける
