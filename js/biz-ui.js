@@ -2,13 +2,15 @@
 //  経営の画面：世界地図をスクロールして、地名のピンを押すと下から操作の板（シート）が上がる
 //  仕組みは biz.js、データは biz-data.js、地図の形は biz-map.js
 // =====================================================================
-import { save, persist, pastLife } from './save.js';
+import { save, persist, avgRunCoins } from './save.js';
 import { audio } from './audio.js';
 import { fmt, todayStr } from './util.js';
 import { show, el, $, coinPill, refreshCoinPill, haptic, getApp, toast, gemColor, openHelp } from './ui.js';
 import { gemIcon, coinIcon, roughIcon } from './render.js';
 import { mountLiveGem } from './gem-gl.js';
 import { GEMS } from './data.js';
+import { STAGES } from './stages.js';
+import { LEGENDS, legendTotal, legendsDone } from './legends-data.js';
 import { gradeBadge, polishMini } from './atelier-ui.js';
 import { refreshNav } from './menu.js';
 import * as B from './biz.js';
@@ -33,11 +35,7 @@ export function usd(n) {
 const ctf = (n) => (n < 10 ? n.toFixed(2) : n < 1000 ? n.toFixed(1) : n < 1e6 ? fmt(n) : (n / 1e6).toFixed(2) + 'M');
 const minf = (m) => { m = Math.max(0, Math.ceil(m)); return m < 60 ? `${m} 分` : `${Math.floor(m / 60)} 時間${m % 60 ? ` ${m % 60} 分` : ''}`; };
 // 1 ランの平均コイン（転生中は前世の分も入れる。まっさらからでも配当が出るように）
-const avgRun = () => {
-  const P = pastLife(), ps = (P && P.stats) || {};
-  const runs = (save.stats.runs || 0) + (ps.runs || 0);
-  return runs ? ((save.stats.runCoins || 0) + (ps.runCoins || 0)) / runs : 0;
-};
+const avgRun = avgRunCoins;
 const metaAch = () => { const a = getApp(); if (a && a.checkMetaAchievements) a.checkMetaAchievements(); };
 
 // 施設の種類のアイコン（線で描く）
@@ -518,7 +516,8 @@ function cutPanel(pid, f) {
 function factBoss(pid, f) {
   const st = ui.st, exs = Object.keys(EXCHANGES).filter((id) => EXCHANGES[id].r <= st.rank && !EXCHANGES[id].show);
   return `<div class="bs-h">工場長の売り先</div>
-    <div class="bs-pick"><button class="bs-prow ${f.out === 'stock' ? 'on' : ''}" data-act="factOut" data-id="${pid}" data-v="stock"><span>${icon('hq')}在庫にためる</span></button>
+    <div class="bs-pick"><button class="bs-prow ${f.out === 'best' ? 'on' : ''}" data-act="factOut" data-id="${pid}" data-v="best"><span>${icon('exchange')}いちばん高い取引所</span><small>そのつど選ぶ</small></button>
+    <button class="bs-prow ${f.out === 'stock' ? 'on' : ''}" data-act="factOut" data-id="${pid}" data-v="stock"><span>${icon('hq')}在庫にためる</span></button>
     ${exs.map((ex) => `<button class="bs-prow ${f.out === ex ? 'on' : ''}" data-act="factOut" data-id="${pid}" data-v="${ex}"><span>${icon('exchange')}${exName(ex)}</span><small>相場の ${Math.round(EXCHANGES[ex].mul * 100)}%</small></button>`).join('')}
     ${Object.keys(LABS).filter((id) => B.labOpen(st, id)).map((id) => `<button class="bs-prow ${f.out === 'lab:' + id ? 'on' : ''}" data-act="factOut" data-id="${pid}" data-v="lab:${id}"><span>${icon('lab')}${PLACES[id].name}で鑑定</span><small>品質 A 以上</small></button>`).join('')}</div>`;
 }
@@ -1033,7 +1032,7 @@ function brandPanel() {
 function vaultPanel() {
   const st = ui.st, list = st.vault;
   return `<div class="bs-rows"><div><span>飾っている名石</span><b>${list.length} / ${FIND.vaultCap}</b></div><div><span>配当の上限</span><b>+${Math.round(B.vaultBonus(st) * 100)}%</b></div></div>
-    ${list.length ? `<div class="bs-vault">${list.map((f) => `<button class="bv-item" data-act="vaultOpen" data-id="${f.id}"><img src="${gemIcon(f.gem)}" alt=""><b>${f.name}</b><small>${f.lent > Date.now() ? '展示中' : `${GEMS[f.gem].jp}・${f.ct.toFixed(2)} ct`}</small>${gradeBadge(f.g)}</button>`).join('')}</div>` : '<div class="bs-note">鉱区でときどき名石が見つかります。飾ると配当の上限が上がります</div>'}`;
+    ${list.length ? `<div class="bs-vault">${list.map((f) => `<button class="bv-item${f.lent > Date.now() ? ' lent' : ''}" data-act="vaultOpen" data-id="${f.id}" style="--c:${gemColor(f.gem)}"><span class="bv-case"><img src="${gemIcon(f.gem)}" alt=""><i class="bv-ped"></i></span><span class="bv-plate"><b>${f.name}</b><small>${f.lent > Date.now() ? '展示に貸し出し中' : `${GEMS[f.gem].jp}・${f.ct.toFixed(2)} ct`}</small></span>${gradeBadge(f.g)}</button>`).join('')}</div>` : '<div class="bs-note">鉱区でときどき名石が見つかります。飾ると配当の上限が上がります</div>'}`;
 }
 
 function hqSheet() {
@@ -1076,6 +1075,7 @@ function hqSheet() {
     <div class="bs-h">配当</div>
     <div class="bs-rows"><div><span>今日の配当</span><b>${fmt(cap - left)} / ${fmt(cap)} コイン</b></div><div><span>換算</span><b>1 コイン = ${usd(rate)}</b></div></div>
     <div class="bs-acts">${pay > 0 ? `<button class="btn small primary" data-act="div">受け取る<span class="sub">＋${fmt(pay)} コイン・${usd(pay * rate)}</span></button>` : `<button class="btn small" disabled>${left ? '資金が足りません' : '今日の分は受け取りました'}</button>`}</div>
+    ${legendBlock(avg)}
     <div class="bs-h">出資</div>
     <div class="bs-rows"><div><span>換算</span><b>1 コイン = ${usd(irate)}</b></div></div>
     <div class="bs-acts">${[100, 1000, 10000].map((n) => `<button class="btn small" data-act="invest" data-n="${n}" ${save.coins >= n ? '' : 'disabled'}>${fmt(n)} コイン<span class="sub">＋${usd(n * irate)}</span></button>`).join('')}</div>
@@ -1087,6 +1087,29 @@ function hqSheet() {
       <div><span>累計の出資</span><b>${fmt(st.invested)} コイン</b></div>
     </div>
     <div class="bs-acts"><button class="btn small" data-act="tut">チュートリアルをもう一度</button></div>`;
+}
+
+// 伝説の宝石：会社の資金で払える額と進み具合（第3章をクリアしてから）
+const legendsOpen = () => STAGES.filter((x) => x.chapter === 3).every((x) => (save.stages[x.id] || {}).cleared);
+function legendBlock(avg) {
+  if (!legendsOpen()) return '';
+  const st = ui.st, can = B.legendAvail(st, avg);
+  let left = 0, next = null;
+  for (const L of LEGENDS) {
+    const g = (save.legends || {})[L.id] || { step: 0 };
+    if (g.done) continue;
+    const c = L.steps[g.step || 0].cost;
+    left += legendTotal(L) - (g.paid || 0);
+    if (!next || c < next.c) next = { L, c };
+  }
+  return `<div class="bs-h">伝説の宝石</div>
+    <div class="bs-rows">
+      <div><span>完成</span><b>${legendsDone(save)} / ${LEGENDS.length}</b></div>
+      <div><span>会社の資金で払える額</span><b>${fmt(can)} コイン分</b></div>
+      ${next ? `<div><span>次に安い工程（${next.L.name}）</span><b>${fmt(next.c)} コイン${can >= next.c ? '・払えます' : ''}</b></div><div><span>のこり全部</span><b>${fmt(left)} コイン</b></div>` : ''}
+      ${st.legendPaid ? `<div><span>これまでに会社が払った額</span><b>${fmt(st.legendPaid)} コイン分</b></div>` : ''}
+    </div>
+    <div class="bs-acts"><button class="btn small primary" data-act="legends">伝説の宝石を開く</button></div>`;
 }
 
 // ---------------------------------------------------------------- 操作
@@ -1102,6 +1125,7 @@ function onSheetClick(e) {
     case 'help': { audio.tap(); const S = ui.sheet; openHelp(`biz#${S.kind === 'hq' && HELP_PART[S.tab] ? HELP_PART[S.tab] : HELP_PART[S.kind] || 'sell'}`); return; }
     case 'goto': { audio.tap(); const from = ui.sheet.kind; centerOn(d.p); openSheet(d.p, d.k); ui.sheet.back = from; renderSheet(); return; }
     case 'back': audio.tap(); openSheet(null, ui.sheet.back); return;
+    case 'legends': audio.tap(); persist(); import('./legends.js').then((m) => m.showLegends(() => showBiz())); return;
     case 'kind': ui.sheet.kind = d.k; ui.sheet.pick = null; $('#bzsheet', ui.node).scrollTop = 0; break;
     case 'tab': ui.sheet.tab = d.t; break;
     case 'pickShip': ui.sheet.pick = ui.sheet.pick === 'ship' ? null : 'ship'; break;

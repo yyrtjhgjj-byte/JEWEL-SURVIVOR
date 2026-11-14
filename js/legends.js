@@ -3,7 +3,8 @@
 //  中身（名石と工程と値段）は legends-data.js
 // =====================================================================
 import { LEGENDS, LEGEND_BY_ID, LEGEND_GAMES, LEGEND_PASS, LEGEND_DMG, legendTotal, legendsDone } from './legends-data.js';
-import { save, persist } from './save.js';
+import { save, persist, avgRunCoins } from './save.js';
+import * as B from './biz.js';
 import { coinIcon } from './render.js';
 import { gemImage, mountLiveGem } from './gem-gl.js';
 import { fmt } from './util.js';
@@ -16,6 +17,44 @@ export function legendState(id) {
   const st = save.legends[id] || (save.legends[id] = { step: 0, paid: 0, done: false });
   return st;
 }
+// 会社の資金（経営）：伝説の宝石に使える額（コイン換算）。経営を始めていなければ null
+function company() {
+  const st = save.biz;
+  if (!st) return null;
+  B.catchUp(st, Date.now());
+  return { st, avail: B.legendAvail(st, avgRunCoins()) };
+}
+// 工程を払う。src は 'coin' か 'biz'。払えたら払った記録（ミニゲームをやめたときの払い戻しに使う）を返す
+function payStep(L, cost, src) {
+  const st = legendState(L.id);
+  if (src === 'biz') {
+    const C = company();
+    const usd = C ? B.payLegend(C.st, avgRunCoins(), cost) : 0;
+    if (!usd && cost) return null;
+    st.paid += cost;
+    st.paidBiz = (st.paidBiz || 0) + cost;
+    st.usd = (st.usd || 0) + usd;
+    return { src, cost, usd };
+  }
+  if (save.coins < cost) return null;
+  save.coins -= cost;
+  st.paid += cost;
+  return { src, cost, usd: 0 };
+}
+function refundStep(L, rec) {
+  const st = legendState(L.id);
+  st.paid -= rec.cost;
+  if (rec.src === 'biz') {
+    if (save.biz) B.refundLegend(save.biz, rec.usd, rec.cost);
+    st.paidBiz = Math.max(0, (st.paidBiz || 0) - rec.cost);
+    st.usd = Math.max(0, (st.usd || 0) - rec.usd);
+  } else save.coins += rec.cost;
+}
+// 財布の欄：所持コインと、会社の資金（伝説の宝石に使える額）
+const walletHTML = () => {
+  const C = company();
+  return `<div class="lg-wallet"><div><span>所持コイン</span>${coinTag(save.coins)}</div>${C ? `<div><span>会社の資金</span>${coinTag(C.avail)}<small>分</small></div>` : ''}</div>`;
+};
 export const legendCardText = () => `完成 ${legendsDone(save)} / ${LEGENDS.length}`;
 const coinTag = (n) => `<span class="lg-coin"><img src="${coinIcon(40)}" alt="">${fmt(n)}</span>`;
 // 名石の絵：本物のカットで書き出した画像（gem-gl.js の GEM_LOOK の lg_〜）。詳細とお披露目はその場で描く
@@ -33,6 +72,7 @@ export function showLegends(back) {
     <div class="screen legends-screen" data-nav="jewel">
       ${topbar('LEGENDS', '伝説の宝石', coinPill(), 'legends')}
       <div class="lg-sum">完成 <b>${n}</b> / ${LEGENDS.length}<span>与ダメージ <b>+${Math.round(n * LEGEND_DMG * 100)}%</b></span></div>
+      ${walletHTML()}
       <div class="lg-list">${LEGENDS.map((L) => {
         const st = legendState(L.id), total = legendTotal(L), left = L.steps.slice(st.step).reduce((a, s) => a + s.cost, 0);
         return `<button class="lg-card ${st.done ? 'done' : ''}" data-id="${L.id}">
@@ -69,41 +109,48 @@ export function openLegend(id, back, afterShow) {
         </div>
       </div>
       <div class="lg-note">値段は、当時の額を今のドルに直したもの</div>
+      <div id="lgw"></div>
       <div class="lg-steps" id="lgs"></div>
     </div>`);
   show(node);
   $('#back', node).onclick = () => { audio.tap(); showLegends(back); };
-  let armed = -1;
+  // 高い支払いは同じボタンを 2 回押す（armed は「工程の番号:払い方」）
+  let armed = '';
   const render = () => {
+    $('#lgw', node).innerHTML = walletHTML();
+    const C = company();
     const box = $('#lgs', node);
     box.innerHTML = L.steps.map((s, i) => {
       const cls = st.done || i < st.step ? 'done' : i === st.step ? 'now' : 'next';
       const G = s.game && LEGEND_GAMES[s.game];
-      const can = save.coins >= s.cost;
+      const canC = save.coins >= s.cost, canB = !!C && C.avail >= s.cost;
+      const label = G ? `払って${G.jp}` : '払う';
+      const bt = (src, ok, name) => `<button class="btn small ${src === 'coin' ? 'primary' : ''} lg-pay" data-i="${i}" data-src="${src}" ${ok ? '' : 'disabled'}>${armed === `${i}:${src}` ? 'もう一度押すと払う' : `${name}で${label}`}</button>`;
+      const btns = !s.cost ? `<button class="btn small primary lg-pay" data-i="${i}" data-src="coin">進める</button>`
+        : `<div class="lg-pays">${bt('coin', canC, 'コイン')}${C ? bt('biz', canB, '会社の資金') : ''}</div>`;
       return `<div class="lg-step ${cls}">
         <div class="lg-y">${s.y || '—'}</div>
         <div class="lg-sb">
           <div class="lg-st"><b>${s.t}</b>${G ? `<span class="lg-gm">${G.jp}</span>` : ''}</div>
           <p>${s.d}</p>
           <div class="lg-cost">${coinTag(s.cost)}${s.est ? '<small>推定</small>' : ''}${cls === 'done' ? '<i class="lg-chk">✓</i>' : ''}</div>
-          ${cls === 'now' ? `<button class="btn small primary lg-pay" data-i="${i}" ${can ? '' : 'disabled'}>${armed === i ? 'もう一度押すと払う' : G ? `払って${G.jp}` : s.cost ? '払う' : '進める'}</button>` : ''}
+          ${cls === 'now' ? btns : ''}
         </div>
       </div>`;
     }).join('') + (st.done ? `<div class="lg-fin">完成<span>与ダメージ +${Math.round(LEGEND_DMG * 100)}%</span></div>` : '');
-    const pay = $('.lg-pay', box);
-    if (pay) pay.onclick = () => {
-      const i = +pay.dataset.i, s = L.steps[i];
-      if (st.done || i !== st.step || save.coins < s.cost) return;
-      if (s.cost >= BIG_PAY && armed !== i) { armed = i; audio.tap(); render(); return; }
-      armed = -1;
-      save.coins -= s.cost;
-      st.paid += s.cost;
+    box.querySelectorAll('.lg-pay').forEach((pay) => (pay.onclick = () => {
+      const i = +pay.dataset.i, s = L.steps[i], src = pay.dataset.src, key = `${i}:${src}`;
+      if (st.done || i !== st.step || pay.disabled) return;
+      if (s.cost >= BIG_PAY && armed !== key) { armed = key; audio.tap(); render(); return; }
+      armed = '';
+      const rec = payStep(L, s.cost, src);
+      if (!rec) return;
       persist();
       refreshCoinPill();
       if (s.cost) audio.coin(); else audio.select();
-      if (s.game) { playStep(L, i, back); return; }
+      if (s.game) { playStep(L, i, back, rec); return; }
       advance(L, back, render);
-    };
+    }));
   };
   render();
   mountLiveGem($('.lg-big img', node), lookId(L));
@@ -128,14 +175,13 @@ function advance(L, back, render) {
 }
 
 // ミニゲームの工程：合格（精度 LEGEND_PASS 以上）なら進む。不合格は払ったまま、もう一度払ってやり直す。始める前のやめるは返金
-function playStep(L, i, back) {
+function playStep(L, i, back, rec) {
   const s = L.steps[i], G = LEGEND_GAMES[s.game], st = legendState(L.id);
   audio.select();
   polishMini({
     tier: 'mystic', gemId: L.gem, en: G.en, jp: `${L.name}を${G.jp}`, R: G.R,
     quit: () => {
-      save.coins += s.cost;
-      st.paid -= s.cost;
+      refundStep(L, rec);
       persist();
       openLegend(L.id, back);
     },

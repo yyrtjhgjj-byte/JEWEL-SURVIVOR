@@ -115,6 +115,7 @@ export function migrateBiz(st) {
 // 時刻 now まで進める。60 秒刻み。放置の上限（ランクで伸びる）を超えた分は捨てる
 export function catchUp(st, now) {
   migrateBiz(st);
+  autoStaff(st);
   if (!(now > st.last)) { st.last = Math.min(st.last, now); return; }
   const cap = RANKS[st.rank - 1].off * HOUR;
   // 上限を超えて捨てた時間は lost に足す（留守中のまとめで知らせる）
@@ -267,7 +268,10 @@ function cut(st, fid, gem, g, origin, ctRough, t) {
   // 工場長：出来上がりを決めた取引所でそのまま売る。鑑定所なら品質 A 以上を鑑定に出す（費用が払えなければ在庫へ）
   const lab = f.boss && typeof f.out === 'string' && f.out.startsWith('lab:') ? f.out.slice(4) : null;
   const put = lab ? (k, c) => { if (!(c > 0 && labOk(k) && sendLab(st, lab, k, t, { n: c / BIZ_GEMS[gem].size, ct: c }))) addStock(st, k, c); }
-    : f.boss && EXCHANGES[f.out] && exOpen(st, f.out, t) ? (k, c) => sellNew(st, k, c, f.out) : (k, c) => addStock(st, k, c);
+    : f.boss && EXCHANGES[f.out] && exOpen(st, f.out, t) ? (k, c) => sellNew(st, k, c, f.out)
+      // 「いちばん高い取引所」：磨き上がるたびに、そのとき開いている取引所でいちばん高く売れるところへ
+      : f.boss && f.out === 'best' ? (k, c) => { const b = bestExchange(st, (ex) => rawSell(st, k, ex, { n: c / BIZ_GEMS[gem].size, ct: c })); if (b.id) sellNew(st, k, c, b.id); else addStock(st, k, c); }
+        : (k, c) => addStock(st, k, c);
   put(lotKey(gem, g, origin, treat ? 1 : 0), ct * (1 - u));
   if (u) put(lotKey(gem, g + 1, origin, treat ? 1 : 0), ct * u);
   st.stat.cut += ct / BIZ_GEMS[gem].size;
@@ -513,6 +517,33 @@ export function hireCrew(st, id) { const c = crewCost(st, id); if (!c || !pay(st
 export function setPolicy(st, id, pol) { if (['yield', 'normal', 'shine'].includes(pol)) st.factories[id].policy = pol; return true; }
 export function setTreat(st, id, on) { st.factories[id].treat = !!on; return true; }
 
+// ---------------------------------------------------------------- 自動運営
+// チュートリアルが終わったら、持っている施設にはすべて長（鉱山長・工場長・店長）が付き、放っておいても回る（ただで、ランクの制限もない）。
+// 工場長の売り先は「いちばん高い取引所」から始める。売り先や出荷先は、あとから自分で変えられる
+export function autoStaff(st) {
+  if (st.tut !== -1) return;
+  for (const id in st.mines) { const m = st.mines[id]; if (!m.boss) m.boss = true; if (!m.to || !st.factories[m.to]) m.to = nearFactory(st, id); }
+  for (const id in st.factories) { const f = st.factories[id]; if (!f.boss) { f.boss = true; if (!f.out || f.out === 'stock') f.out = 'best'; } }
+  for (const id in st.shops) if (!st.shops[id].boss) st.shops[id].boss = true;
+}
+
+// ---------------------------------------------------------------- 伝説の宝石への支払い
+// 会社の資金で、伝説の宝石の工程を払える。換算は配当と同じ率（divRate。工程の値段はコイン）で、1 日の上限はない。
+// 運転資金（そのランクの std）は残す。払った額（コイン換算）は legendPaid に積む
+export const legendAvail = (st, avgRun) => (st.earned > 0 ? Math.max(0, Math.floor((st.cash - RANKS[st.rank - 1].std) / divRate(st, avgRun))) : 0);
+export function payLegend(st, avgRun, coins) {
+  if (!(coins > 0) || legendAvail(st, avgRun) < coins) return 0;
+  const usd = coins * divRate(st, avgRun);
+  st.cash -= usd;
+  st.legendPaid = (st.legendPaid || 0) + coins;
+  return usd;
+}
+// 払い戻し（ミニゲームの工程を始める前にやめたとき・転生の合流）。払ったときの $ をそのまま戻す
+export function refundLegend(st, usd, coins) {
+  st.cash += usd;
+  st.legendPaid = Math.max(0, (st.legendPaid || 0) - coins);
+}
+
 // ---------------------------------------------------------------- 人を雇う
 // 鉱山長（自動で出荷）・工場長（出来上がりを売る）・店長（棚に並べる）
 const bossOf = (st, kind, id) => (kind === 'mine' ? st.mines : kind === 'factory' ? st.factories : st.shops)[id];
@@ -536,7 +567,7 @@ export function nearFactory(st, mineId) {
 }
 export function setMineTo(st, id, fid) { if (!st.factories[fid]) return false; st.mines[id].to = fid; return true; }
 export function setFactOut(st, id, out) {
-  const ok = out === 'stock' || (EXCHANGES[out] && EXCHANGES[out].r <= st.rank) || (out.startsWith('lab:') && LABS[out.slice(4)] && labOpen(st, out.slice(4)));
+  const ok = out === 'stock' || out === 'best' || (EXCHANGES[out] && EXCHANGES[out].r <= st.rank) || (out.startsWith('lab:') && LABS[out.slice(4)] && labOpen(st, out.slice(4)));
   if (!ok) return false;
   st.factories[id].out = out;
   return true;
