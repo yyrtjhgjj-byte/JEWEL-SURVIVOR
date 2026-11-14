@@ -218,6 +218,9 @@ export class Game {
     this.god = !!opts.god;
     this.noRender = !!opts.noRender;
     this.fx = new FX();
+    // 低負荷モード（設定）：最初から画質をいちばん下の段にして固定する（解像度 0.5 倍・演出を軽く）
+    this.liteMode = !!save.settings.lite;
+    if (this.liteMode) { this.quality = 2; this.resScale = 0.5; this.fx.lite = true; }
     this.grid = new Grid(64);
     this.enemies = [];
     this.projs = [];
@@ -516,6 +519,7 @@ export class Game {
   // 1 フレームの実時間の平均が 30 fps を切る状態が 2 秒続いたら 1 段下げ、50 fps を超える状態が 8 秒続いたら 1 段戻す
   autoRes(realDt) {
     if (realDt > 0.2) return; // 裏から戻った直後などは数えない
+    if (this.liteMode) { this.frameAvg = (this.frameAvg || 1 / 60) * 0.9 + realDt * 0.1; return; }
     this.frameAvg = (this.frameAvg || 1 / 60) * 0.9 + realDt * 0.1;
     const q = this.quality || 0;
     const up = q > 0 && this.frameAvg < 1 / 50, down = q < 2 && this.frameAvg > 1 / 33;

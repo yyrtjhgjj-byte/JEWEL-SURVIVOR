@@ -804,6 +804,8 @@ function tick(now) {
 // 別の img に付け直すと外れる
 export function mountLiveGem(img, id, ctl = null) {
   if (broken || !img || !GEM_LOOK[id]) return;
+  // 低負荷モード（html.lite）では、鑑賞モード（ctl）以外はその場で描かず画像のまま
+  if (!ctl && document.documentElement.classList.contains('lite')) return;
   if (!live) {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 1;

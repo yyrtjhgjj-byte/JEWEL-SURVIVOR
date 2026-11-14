@@ -66,7 +66,7 @@ let titleT = 0;
 let titlePattern = null; // 背景の模様（毎フレーム作り直さない）
 function renderTitle(dt) {
   titleT += dt;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = save.settings.lite ? 1 : Math.min(window.devicePixelRatio || 1, 2);
   const W = innerWidth, H = innerHeight;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#06060b';
@@ -132,6 +132,8 @@ let last = performance.now();
 function loop(now) {
   // 1 フレームの例外でループが止まり、ゲームが固まらないよう、次のフレームは先に予約しておく
   requestAnimationFrame(loop);
+  // 低負荷モード：1 秒に約 30 回だけ動かして描く（間の分は次の dt にまとめる）
+  if (save.settings.lite && now - last < 30) return;
   let dt = (now - last) / 1000;
   last = now;
   if (dt > 0.25) dt = 0.25;
@@ -535,7 +537,7 @@ const crashed = initDiag(() => {
     info.run = {
       stage: g.stage.id, time: Math.round(g.time), heat: g.heat, endless: g.endless, hyper: g.hyper, chaos: g.chaos, state: g.state, level: g.level,
       enemies: g.enemies.length, projs: g.projs.length, bullets: g.ebullets.length, pickups: g.pickups.length, parts: g.fx.parts.length,
-      areas: g.areas.length, quality: g.quality || 0, fps: Math.round(1 / (g.frameAvg || 1 / 60)),
+      areas: g.areas.length, quality: g.quality || 0, lite: !!save.settings.lite, fps: Math.round(1 / (g.frameAvg || 1 / 60)),
       boss: g.boss && g.boss.alive ? g.boss.type : null, auto: g.autoOn,
       weapons: g.weapons.map((w) => w.id + (w.evolved ? '*' : w.level)).join(','),
     };

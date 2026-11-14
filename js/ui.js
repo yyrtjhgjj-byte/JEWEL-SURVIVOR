@@ -76,6 +76,8 @@ export function fitText(root) {
 let app = null;
 export function initUI(a) {
   app = a;
+  // 低負荷モード（設定）は html.lite で CSS と宝石の描き方を軽くする
+  document.documentElement.classList.toggle('lite', !!save.settings.lite);
   setupHaptic();
   setupWordBreaks();
   // ヘルプの ?：先に受けて、下の画面の押し方（バニッシュの選択など）には渡さない
@@ -1605,6 +1607,7 @@ export function showSettings(back, asOverlay, focus) {
         <div class="setting"><span>ダメージ表示</span><button class="switch ${save.settings.dmgNum ? 'on' : ''}" data-k="dmgNum"></button></div>
         <div class="setting"><span>画面の揺れ</span><button class="switch ${save.settings.shake ? 'on' : ''}" data-k="shake"></button></div>
         <div class="setting"><span>振動（iOS 18以降）</span><button class="switch ${save.settings.haptic ? 'on' : ''}" data-k="haptic"></button></div>
+        <div class="setting"><span>低負荷モード<small>画質と演出を下げて軽くする</small></span><button class="switch ${save.settings.lite ? 'on' : ''}" data-k="lite"></button></div>
         ${asOverlay ? '' : '<div class="setting"><span>セーブデータ削除</span><button class="btn small" id="reset">RESET</button></div>'}
       </div>
       ${asOverlay ? '' : `<div class="panel backup" id="sec-backup">
@@ -1640,6 +1643,7 @@ export function showSettings(back, asOverlay, focus) {
     sw.classList.toggle('on', save.settings[k]);
     audio.tap();
     if (k === 'haptic') haptic();
+    if (k === 'lite') document.documentElement.classList.toggle('lite', save.settings.lite);
     persist();
   }));
   if (!asOverlay) { setupBackup(node); setupDiag(node); }
