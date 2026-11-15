@@ -1,7 +1,7 @@
 // =====================================================================
 //  研磨工房の画面（研磨ミニゲーム・一括研磨・コレクション）
 // =====================================================================
-import { GEMS } from './data.js';
+import { GEMS, CHARACTERS } from './data.js';
 import { GEM_FACTS } from './gem-facts.js';
 import { gemIcon, roughIcon, drawRough } from './render.js';
 import { fmt, rand } from './util.js';
@@ -12,7 +12,7 @@ import {
   mastery, nextMilestone, collectionStats, gemBonusText, statText, nextGem, rollCarat, applyPolish, autoGrade,
   collectionCount, pickRoughs, pickKey,
 } from './atelier.js';
-import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast, openSheet } from './ui.js';
+import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast, openSheet, firstHint } from './ui.js';
 import { showHub } from './menu.js';
 import { mountLiveGem, liveGemOk } from './gem-gl.js';
 import { openGemView, LOUPE } from './gem-view.js';
@@ -41,6 +41,7 @@ export function showAtelier(tab = 'polish') {
       <div id="at"></div>
     </div>`);
   show(node);
+  firstHint(node, tab === 'auction2' ? 'auction' : tab);
   $('#back', node).onclick = () => { audio.tap(); showHub('jewel'); };
   const box = $('#at', node);
   if (tab === 'polish') renderPolish(box);
@@ -475,8 +476,8 @@ function renderCollection(box) {
     const name = GEMS[id].jp;
     const cell = el(`<button class="coll-cell ${has ? '' : 'none'}" style="--c:${gemColor(id)}">
       <img src="${gemIcon(id, 80)}">
-      ${has ? `<span class="cq">${gradeBadge(rec.best)}<span class="cmv">${m}</span></span>` : ''}
-      ${rec && rec.have ? `<span class="chave">×${rec.have >= 100 ? '99+' : rec.have}</span>` : ''}
+      ${has ? `<span class="cq">${gradeBadge(rec.best)}<span class="cmv"><small>練</small>${m}</span></span>` : ''}
+      ${rec && rec.have ? `<span class="chave"><small>所持</small>${rec.have >= 100 ? '99+' : rec.have}</span>` : ''}
       <span class="cm ${name.length >= 9 ? 'xlong' : name.length >= 7 ? 'long' : ''}">${name}</span>
     </button>`);
     cell.onclick = () => { audio.tap(); gemDetail(id); };
@@ -532,6 +533,7 @@ function gemDetail(id) {
       <div class="rrow2"><span>練度</span><b>${m} / ${MASTERY_MAX} ${pips(m)}</b></div>
       <div class="rrow2"><span>ボーナス</span><b>${m ? gemBonusText(id, m) : '—'}</b></div>
       <div class="gd-next">${next.length ? next.join('<br>') : '練度は最大です'}</div>
+      ${CHARACTERS[id] && !save.unlocked[id] ? `<div class="gd-next gd-weapon">ウェポンの解放：${CHARACTERS[id].unlock}</div>` : ''}
       ${g.lore ? `<div class="gd-lore">${has ? g.lore : ''}</div>` : ''}
       ${factsHtml(id, has)}
       <div class="pfoot"><button class="btn" id="ok">閉じる</button></div>

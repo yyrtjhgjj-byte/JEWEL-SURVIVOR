@@ -5,7 +5,7 @@
 // 物理は位置ベース（PBD）の球。床と壁のある箱の中で転がり、止まりかけると平らな面を上か下に向けて寝る。
 import { save } from './save.js';
 import { audio } from './audio.js';
-import { show, el, $, topbar, toast } from './ui.js';
+import { show, el, $, topbar, toast, firstHint } from './ui.js';
 import { gemIcon } from './render.js';
 import { GEMS } from './data.js';
 import { GEM_LOOK, FS_TRACE, FS_POST, NW, applyLook } from './gem-gl.js';
@@ -165,6 +165,7 @@ export function showSandbox(back) {
       </div>
     </div>`);
   show(node);
+  firstHint(node, 'sandbox');
   let alive = true;
   $('#back', node).onclick = () => { audio.tap(); stop(); back(); };
 

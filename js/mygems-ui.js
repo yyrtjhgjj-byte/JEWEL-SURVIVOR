@@ -1,7 +1,7 @@
 // ジュエル・アトリエの画面：作った宝石の棚と、カット・色・質感を選んで作る画面
 import { save, persist } from './save.js';
 import { audio } from './audio.js';
-import { show, el, $, topbar, toast } from './ui.js';
+import { show, el, $, topbar, toast, firstHint } from './ui.js';
 import { gemIcon } from './render.js';
 import { GEM_LOOK, mountLiveGem, reloadLiveGem, forgetGemImage } from './gem-gl.js';
 import { openGemView, LOUPE } from './gem-view.js';
@@ -27,6 +27,7 @@ export function showMyGems(back) {
       </div>
     </div>`);
   show(node);
+  firstHint(node, 'mygems');
   $('#back', node).onclick = () => { audio.tap(); back(); };
   const nw = $('#mgnew', node);
   if (nw) nw.onclick = () => { audio.select(); openEditor(null, () => showMyGems(back)); };

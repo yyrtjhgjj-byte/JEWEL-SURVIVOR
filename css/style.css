@@ -445,8 +445,11 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .slotico b i { font-style: normal; font-size: 8px; color: #9fe8ff; margin-left: 1px; } /* リミットブレイクの回数 */
 /* 進化用のチャームを入手済みの武器（Lv8 にすれば進化できる） */
 .slotico.evok { border: 1.5px solid var(--gold); box-shadow: 0 0 6px rgba(255,197,61,0.55); }
-#bossbar { position: absolute; bottom: calc(var(--safe-b) + 36px); left: 50%; transform: translateX(-50%); width: min(80%, 420px); text-align: center; }
-#bossbar .bname { font-family: var(--font-jp); font-weight: 700; font-size: 12px; letter-spacing: 0.25em; color: #ffb3f0; margin-bottom: 4px; text-shadow: 0 0 10px rgba(255,61,220,0.8); }
+/* ボスの名前・HP・ブレイクは画面の上（タイムの下）。下は FEVER だけにする */
+#bossbar { position: absolute; top: calc(var(--safe-t) + 46px); left: 50%; transform: translateX(-50%); width: min(48%, 210px); text-align: center; }
+/* BOSS モードは下に FEVER が無く、上には周の表示があるので、ボスの帯は下のまま */
+#hud.rush #bossbar { top: auto; bottom: calc(var(--safe-b) + 36px); width: min(80%, 420px); }
+#bossbar .bname { font-family: var(--font-jp); font-weight: 700; font-size: 11px; letter-spacing: 0.12em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ffb3f0; margin-bottom: 4px; text-shadow: 0 0 10px rgba(255,61,220,0.8); }
 #bossbar .btrack { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); overflow: hidden; }
 #bossbar .bfill { height: 100%; background: linear-gradient(90deg, #c43dff, #ff2d55); transform-origin: 0 50%; }
 /* ブレイクゲージ（HP バーの下の細い線）。近くで戦っているときは明るく、ブレイク中は点滅 */
@@ -508,16 +511,18 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .banner.elite, .banner.swarm { color: #ffd98a; text-shadow: 0 0 18px rgba(255,150,40,0.9); font-size: min(6vw, 24px); }
 
 /* ------------------------------------------------------------------ トースト */
-#toasts { position: absolute; top: calc(var(--safe-t) + 138px); left: 0; right: 0; z-index: 40; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* 右の壁から生えてくる帯（実績などの知らせ）。右上の COMBO の下に積み、少しして右へ引っ込む */
+#toasts { position: absolute; top: calc(var(--safe-t) + 128px); right: 0; z-index: 40; pointer-events: none; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 78vw; }
 .toast {
-  background: rgba(14,13,22,0.92); border: 1px solid rgba(255,197,61,0.45); border-radius: 10px;
-  padding: 3px 10px; font-family: var(--font-jp); font-weight: 700; font-size: 11px; line-height: 1.3; color: #ffe39a;
-  box-shadow: 0 0 12px rgba(255,197,61,0.2);
-  animation: toastIn 3.2s cubic-bezier(.2,1.2,.4,1) forwards; max-width: 72%; text-align: center;
+  position: relative; background: linear-gradient(90deg, rgba(20,18,30,0.94), rgba(12,11,20,0.96)); border: 1px solid rgba(255,197,61,0.45); border-right: none; border-radius: 12px 0 0 12px;
+  padding: 5px calc(var(--safe-r) + 12px) 5px 14px; font-family: var(--font-jp); font-weight: 700; font-size: 11.5px; line-height: 1.3; color: #ffe39a; text-align: left;
+  box-shadow: -4px 0 14px rgba(255,197,61,0.18);
+  animation: toastIn 3.2s cubic-bezier(.2,1,.3,1) forwards;
 }
-.toast .label { color: var(--gold); font-size: 8px; letter-spacing: 0.1em; font-family: var(--font); margin-right: 6px; }
+.toast::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--gold); box-shadow: 0 0 8px rgba(255,197,61,0.7); }
+.toast .label { display: block; color: var(--gold); font-size: 8px; letter-spacing: 0.14em; font-family: var(--font); }
 .toast small { display: block; font-size: 9.5px; font-weight: 500; color: var(--muted); }
-@keyframes toastIn { 0% { transform: translateY(-60px); opacity: 0; } 10% { transform: none; opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
+@keyframes toastIn { 0% { transform: translateX(105%); } 9% { transform: none; } 88% { transform: none; opacity: 1; } 100% { transform: translateX(105%); opacity: 0.6; } }
 
 /* ------------------------------------------------------------------ リザルト */
 .result-screen { gap: 10px; }
@@ -2172,3 +2177,37 @@ html.ultra #xpfill::before { animation: none; }
 .mg-foot { width: 100%; max-width: 560px; display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
 .mg-acts .btn { white-space: nowrap; letter-spacing: 0.04em; }
 .mg-edit { --fill: var(--c, #ffffff); }
+
+/* レベルアップのカード：ウェポン／チャームの札と、宝石名の横の技の名前 */
+.card .ckind { display: inline-block; font: 700 10px var(--font-jp); letter-spacing: 0.04em; padding: 1px 6px; margin-right: 7px; border-radius: 6px; vertical-align: 1px; border: 1px solid currentColor; }
+.card .ckind.w { color: #ffb36b; }
+.card .ckind.p { color: #8fd8ff; }
+.card .cname:has(.csub) { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.card .csub { flex: 1; min-width: 0; font: 700 11px var(--font-jp); color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ポーズ画面の装備の一覧（押すと説明を開く） */
+.pl-list { display: flex; flex-direction: column; gap: 4px; width: min(340px, 82vw); max-height: 44vh; overflow-y: auto; -webkit-overflow-scrolling: touch; margin: 6px 0 4px; text-align: left; }
+.pl-row { flex: none; display: grid; grid-template-columns: 30px 1fr auto auto; align-items: center; column-gap: 8px; padding: 5px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); color: var(--text); text-align: left; }
+.pl-row.evo { border-color: rgba(255, 213, 102, 0.55); }
+.pl-ico { width: 30px; height: 30px; object-fit: contain; }
+.pl-n { min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.pl-n b { font: 700 13px var(--font-jp); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-n small { font: 10.5px var(--font-jp); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-row.p .pl-n b { color: #cfe9ff; }
+.pl-pair { width: 18px; height: 18px; object-fit: contain; filter: grayscale(1) brightness(0.45); }
+.pl-pair.on { filter: none; }
+.pl-lv { font: 700 12px var(--font); letter-spacing: 0.04em; color: var(--muted); white-space: nowrap; }
+.pl-row.evo .pl-lv { color: var(--gold); }
+.pl-lv i { font-style: normal; margin-left: 3px; color: #7fd0ff; }
+.pl-d { display: none; grid-column: 1 / -1; font: 11.5px/1.6 var(--font-jp); color: var(--text); padding: 4px 2px 2px; }
+.pl-row.open .pl-d { display: block; }
+/* コレクションのカードの数字の前の小さな字（所持・練度） */
+.coll-cell .cmv small, .coll-cell .chave small { font: 700 8.5px var(--font-jp); margin-right: 1px; opacity: 0.85; }
+.gd-weapon { color: #9fd8ff; }
+.hp-more { display: block; width: 100%; max-width: 560px; margin: 4px auto 10px; }
+
+/* 初めて開いた画面のひとこと（押すと閉じる） */
+.fhint { flex-shrink: 0; display: flex; align-items: center; gap: 10px; width: 100%; max-width: 560px; margin: 2px 0 8px; padding: 9px 12px; border-radius: 12px; text-align: left; background: color-mix(in srgb, var(--panel) 85%, #ffe39a 6%); border: 1px solid rgba(255, 227, 154, 0.35); color: #fff3d2; font: 500 12px/1.6 var(--font-jp); animation: fhintIn 0.35s ease-out; }
+.fhint span { flex: 1; }
+.fhint i { font-style: normal; color: var(--muted); font-size: 12px; }
+@keyframes fhintIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }

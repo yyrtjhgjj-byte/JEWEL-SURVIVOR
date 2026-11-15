@@ -239,6 +239,9 @@ export function showRank() {
 
 // ------------------------------------------------------------------ 遊び方
 // 一覧（ひとまわりの流れ ＋ 見出しごとの項目のカード）。カードを押すとその項目を同じ画面で開く
+// HOW TO PLAY の最初に出す項目と、「くわしく」を開いているか（アプリを開いている間だけ覚える）
+const HOWTO_FIRST = ['basics', 'levelup', 'items', 'flow', 'workshop'];
+let howtoMore = false;
 function showHowTo() {
   const node = el(`
     <div class="screen howto-screen" data-nav="home">
@@ -253,11 +256,17 @@ function showHowTo() {
       box.innerHTML = `<div class="panel">${helpTopicHTML(topic)}</div>`;
       node.scrollTop = 0;
     } else {
-      box.innerHTML = `<div class="panel hp-loop">${HOWTO_LOOP.map((s, i) => `<div class="hl-step"><i>${i + 1}</i><div><b>${s.t}</b><p>${s.b}</p></div></div>`).join('')}</div>${helpIndexHTML()}`;
+      // 最初は流れと「まず読む」項目だけ。残りは「くわしく」を開くと見出しごとに出す
+      const all = HELP_GROUPS.reduce((n, g) => n + g.ids.length, 0);
+      box.innerHTML = `<div class="panel hp-loop">${HOWTO_LOOP.map((s, i) => `<div class="hl-step"><i>${i + 1}</i><div><b>${s.t}</b><p>${s.b}</p></div></div>`).join('')}</div>
+        ${helpIndexHTML([{ en: 'FIRST', jp: 'まず読む', ids: HOWTO_FIRST }])}
+        <button class="btn hp-more" id="hmore">${howtoMore ? 'くわしくを閉じる' : `くわしく<span class="sub">全 ${all} 項目</span>`}</button>
+        ${howtoMore ? helpIndexHTML() : ''}`;
       node.scrollTop = y;
     }
   };
   box.addEventListener('click', (e) => {
+    if (e.target.closest('#hmore')) { audio.tap(); howtoMore = !howtoMore; y = node.scrollTop; render(); return; }
     const t = e.target.closest('[data-topic]');
     if (!t) return;
     audio.select();
@@ -270,6 +279,33 @@ function showHowTo() {
     if (topic) { topic = null; render(); } else showTitle();
   };
   render();
+}
+
+// 画面を初めて開いたときだけ出す、ひとことの吹き出し（そこで何をして、何がうれしいか）。出したら見た印を付け、押すと閉じる
+const HINTS = {
+  workshop: 'コインで強化すると、これからのランがずっと強くなります。',
+  masterworks: '工房をすべて最大にすると開く、さらに上の強化です。',
+  mining: 'コインで原石を掘ります。原石は「研磨」で宝石になります。',
+  exchange: '掘るたびに貯まるジェムダストを、原石や覚醒と交換できます。',
+  polish: '原石を磨くと宝石が手に入り、その宝石の練度が上がって、ランが少し強くなります。',
+  collection: '磨いた宝石の一覧です。押すと練度とボーナス、実在の宝石の話が見られます。',
+  beasts: '同じ宝石 10 個で百獣を召喚・強化すると、ランがずっと強くなります。',
+  auction: '良い宝石や原石の詰め合わせを、コインで競り落とせます。ランを終えるたびに新しい回が開きます。',
+  slot: 'コインを賭けて回します。コインのほか、ジェムダストや原石も出ます。',
+  legends: '実在の名石を、来歴どおりの工程を払って作ります。完成するごとに与ダメージ +1%。',
+  mygems: 'カット・色・質感を選んで、自分だけの宝石を作れます。作った宝石はホームに飾れます。',
+  sandbox: '押していると宝石が出ます。かき混ぜる・はじくも試してみてください。',
+};
+export function firstHint(node, key) {
+  const text = HINTS[key];
+  const seen = save.seen.hints || (save.seen.hints = {});
+  if (!text || seen[key]) return;
+  seen[key] = true;
+  persist();
+  const h = el(`<button class="fhint"><span>${text}</span><i>✕</i></button>`);
+  const top = node.querySelector('.topbar, .exch-head');
+  if (top) top.after(h); else node.prepend(h);
+  h.onclick = () => { audio.tap(); h.remove(); };
 }
 
 // ヘルプ（各画面の ?）：今の画面の上に重ねて項目を開く。下の「ほかの項目」で一覧へ、‹ で 1 つ前へ
@@ -433,7 +469,7 @@ export function showCharSelect() {
         </div>
         <div>
           <div class="name">${unlocked ? g.jp : '???'}</div>
-          <div class="sub"><span class="en">${g.en}</span>${wordTag(sel)}</div>
+          <div class="sub"><span class="en">${unlocked ? g.en : '???'}</span>${unlocked ? wordTag(sel) : ''}</div>
           <div class="cd-spec">
             <small>ウェポン</small><b>${w.name.replace('・', '・<wbr>')}</b>
             <small>特性</small>${c.perk.split(' / ').map((s) => `<b>${s}</b>`).join('')}${aw ? `<span class="cd-aw">覚醒 +${aw}　攻撃力 +${aw * 5}%</span>` : ''}
@@ -752,9 +788,13 @@ export function showStageSelect() {
   const markSel = (card) => list.querySelectorAll('.stage-card').forEach((c) => c.classList.toggle('sel', c === card));
   const render = () => {
     $('.help-btn', node).dataset.help = ch === 'boss' ? 'bossrush' : ch === 'train' ? 'training' : 'stages';
-    $('#chtabs', node).innerHTML = CHAPTERS.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${c.name}</button>`).join('') +
-      `<button class="tab ${ch === 'boss' ? 'on' : ''}" data-c="boss">BOSS</button>` +
-      `<button class="tab ${ch === 'train' ? 'on' : ''}" data-c="train">TRAINING</button>`;
+    // 章のタブは、開いた章と次の章（🔒）まで。BOSS・TRAINING は STAGE 1 をクリアしてから
+    const chOpen = (c) => STAGES.some((st) => st.chapter === c.no && stageUnlocked(st));
+    const shown = CHAPTERS.filter((c, i) => i === 0 || chOpen(c) || chOpen(CHAPTERS[i - 1]) || c.no === ch);
+    const extra = (save.stages[STAGES[0].id] || {}).cleared || kind(ch) !== 'stage';
+    $('#chtabs', node).innerHTML = shown.map((c) => `<button class="tab ${c.no === ch ? 'on' : ''}" data-c="${c.no}">${chOpen(c) ? c.name : `🔒 ${c.name}`}</button>`).join('') +
+      (extra ? `<button class="tab ${ch === 'boss' ? 'on' : ''}" data-c="boss">BOSS</button>` +
+      `<button class="tab ${ch === 'train' ? 'on' : ''}" data-c="train">TRAINING</button>` : '');
     $('#chtabs', node).querySelectorAll('.tab').forEach((b) => (b.onclick = () => {
       audio.tap();
       const was = ch;
@@ -929,9 +969,10 @@ export function showShop(upper = false) {
     <div class="screen" data-nav="power">
       ${upper ? topbar('MASTERWORKS', '上位工房', undefined, 'workshop#upper') : topbar('WORKSHOP', '工房 — 永続強化', undefined, 'workshop')}
       <div class="lrows" id="list"></div>
-      <div class="refund-row"><button class="btn small" id="refund"></button><span>最大まで上げた強化は ON／OFF を切り替えられます</span></div>
+      <div class="refund-row"><button class="btn small" id="refund"></button>${upper ? '<span>最大まで上げた強化は ON／OFF を切り替えられます</span>' : ''}</div>
     </div>`);
   show(node);
+  firstHint(node, upper ? 'masterworks' : 'workshop');
   $('#back', node).onclick = () => { audio.tap(); showHub('power'); };
   const list = $('#list', node);
   // 実際に払ったコイン（値段を変えても、払った分だけ返す。main.js で旧セーブから引き継ぐ）
@@ -956,6 +997,8 @@ export function showShop(upper = false) {
   // 強化する（最大なら ON／OFF を切り替える）。できたら true
   const act = (it) => {
     const lv = up[it.id] || 0;
+    // ON／OFF は上位工房だけ（工房は最大なら何もしない）
+    if (lv >= it.max && !upper) return false;
     if (lv >= it.max) {
       if (upOff[it.id]) delete upOff[it.id];
       else upOff[it.id] = true;
@@ -978,6 +1021,7 @@ export function showShop(upper = false) {
   // 行の右のボタン（買う・MAX ON／OFF）
   const btnHTML = (it, lv) => {
     const max = lv >= it.max;
+    if (max && !upper) return '<span class="lbtn max">MAX</span>';
     if (max) return `<button class="lbtn max ${upOff[it.id] ? 'off' : ''}" data-act>${upOff[it.id] ? 'OFF' : 'MAX ON'}</button>`;
     const cost = costOf(it, lv);
     return `<button class="lbtn gold" data-act ${save.coins < cost ? 'disabled' : ''}>${coinIco}${fmt(cost)}</button>`;
@@ -990,7 +1034,7 @@ export function showShop(upper = false) {
         <div class="sht-body"><div class="sht-kv"><span>今の効果</span><b>${shopEffect(it, lv)}</b></div>
           ${max ? '' : `<div class="sht-kv"><span>次のレベル</span><b class="up">${shopEffect(it, lv + 1)}</b></div>`}
           ${it.max > 1 ? `<div class="sht-note">1 レベルごとに ${it.t}</div>` : ''}</div>
-        <div class="sht-acts">${max ? `<button class="btn big primary" data-sact>${upOff[it.id] ? 'ON にする' : 'OFF にする'}</button>`
+        <div class="sht-acts">${max && !upper ? '' : max ? `<button class="btn big primary" data-sact>${upOff[it.id] ? 'ON にする' : 'OFF にする'}</button>`
           : `<button class="btn big primary" data-sact ${save.coins < cost ? 'disabled' : ''}>強化<span class="sht-cost">${coinIco}${fmt(cost)}</span></button>`}
           <button class="btn" data-close>閉じる</button></div>`;
     };
@@ -1008,7 +1052,7 @@ export function showShop(upper = false) {
     $('#refund', node).disabled = !v;
     list.innerHTML = ITEMS.map((it) => {
       const lv = up[it.id] || 0;
-      return `<div class="lrow ${lv >= it.max && upOff[it.id] ? 'off' : ''}" data-id="${it.id}" role="button" tabindex="0">
+      return `<div class="lrow ${upper && lv >= it.max && upOff[it.id] ? 'off' : ''}" data-id="${it.id}" role="button" tabindex="0">
         <img class="lr-ico" src="${shopIcon(it.id, 72)}" alt="">
         <div class="lr-mid"><div class="lr-line"><b class="lr-name">${it.name}</b><small class="lr-lv">LV ${lv}/${it.max}</small></div>
           <div class="lr-line">${lvPips(lv, it.max)}<span class="lr-val">${shopEffectNext(it, lv)}</span></div></div>
@@ -1061,6 +1105,7 @@ export function showGacha() {
       <div class="odds">UR 3%：秘石 ／ SSR 10%：大原石 ／ SR 27%：原石 ／ R 60%：原石の欠片 ×2<br>掘るたびにジェムダスト（UR 10 ／ SSR 5 ／ SR 2 ／ R 1）が貯まり、交換所で秘石・大原石・覚醒と交換できます</div>
     </div>`);
   show(node);
+  firstHint(node, 'mining');
   $('#back', node).onclick = () => { audio.tap(); showHub('jewel'); };
   const btns = $('#gbtns', node);
   const altar = $('#altar', node);
@@ -1237,6 +1282,7 @@ export function showExchange(onClose) {
   };
   render();
   screens().appendChild(ov);
+  firstHint(ov, 'exchange');
   $('#xok', ov).onclick = () => { audio.tap(); ov.remove(); if (onClose) onClose(); };
 }
 
@@ -1886,17 +1932,19 @@ function choiceInfo(g, c) {
   if (c.type === 'wnew' || c.type === 'wup' || c.type === 'evo' || c.type === 'lb') {
     const def = WEAPONS[c.id];
     const gem = GEMS[def.gem];
-    const word = `${gem.jp}「${gem.word}」`;
+    // 名前は宝石名を大きく、技の名前を小さく（sub）
+    const word = `ジュエルパワー「${gem.word}」`;
+    const base = { icon: gemIcon(def.gem, 96), name: gem.jp, kind: 'w' };
     if (c.type === 'wnew') {
       const tags = (save.seen.weapons[c.id] ? '' : T_NEW) + evoTagForWeapon(g, def);
-      return { icon: gemIcon(def.gem, 96), name: def.name, lv: 'NEW', desc: def.desc, word, rar: g.choiceRar(c), tags };
+      return { ...base, sub: def.name, lv: 'NEW', desc: def.desc, word, rar: g.choiceRar(c), tags };
     }
     if (c.type === 'lb') {
       const w = g.getWeapon(c.id);
-      return { icon: gemIcon(def.gem, 96), name: w.evolved ? def.evo.name : def.name, lv: `LIMIT BREAK ${(w.lbN || 0) + 1}`, desc: LIMIT_BREAK[c.stat].t, word, rar: g.choiceRar(c), tags: '' };
+      return { ...base, sub: w.evolved ? def.evo.name : def.name, lv: `LIMIT BREAK ${(w.lbN || 0) + 1}`, desc: LIMIT_BREAK[c.stat].t, word, rar: g.choiceRar(c), tags: '' };
     }
     if (c.type === 'evo') {
-      return { icon: gemIcon(def.gem, 96), name: def.evo.name, lv: 'EVOLUTION', desc: def.evo.desc, word: `${def.name} ＋ ${GEMS[def.evo.with].jp}`, rar: g.choiceRar(c), tags: save.seen.evos[c.id] ? '' : T_NEW };
+      return { ...base, sub: def.evo.name, lv: 'EVOLUTION', desc: def.evo.desc, word: `${gem.jp} ＋ ${GEMS[def.evo.with].jp}`, rar: g.choiceRar(c), tags: save.seen.evos[c.id] ? '' : T_NEW };
     }
     const w = g.getWeapon(c.id);
     const next = Math.min(WEAPON_MAX, w.level + (c.double ? 2 : 1));
@@ -1904,7 +1952,7 @@ function choiceInfo(g, c) {
     const real = (t) => t.replace(/ダメージ \+(\d+)/g, (_, n) => `ダメージ +${Math.round(n * (def.dmgMul || 1))}`);
     let desc = real(def.levels[w.level - 1].t);
     if (c.double && def.levels[w.level]) desc += ' ／ ' + real(def.levels[w.level].t);
-    return { icon: gemIcon(def.gem, 96), name: def.name, lv: `LV ${w.level} → ${next}${next >= WEAPON_MAX ? ' MAX' : ''}`, desc, word, rar: g.choiceRar(c), tags: evoTagForWeapon(g, def) };
+    return { ...base, sub: w.evolved ? def.evo.name : def.name, lv: `LV ${w.level} → ${next}${next >= WEAPON_MAX ? ' MAX' : ''}`, desc, word, rar: g.choiceRar(c), tags: evoTagForWeapon(g, def) };
   }
   if (c.type === 'pnew' || c.type === 'pup' || c.type === 'plb') {
     const P = PASSIVES[c.id];
@@ -1912,15 +1960,15 @@ function choiceInfo(g, c) {
     const word = `ジュエルパワー「${gem.word}」`;
     if (c.type === 'plb') {
       const p = g.getPassive(c.id);
-      return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LIMIT BREAK ${(p.lbN || 0) + 1}`, desc: charmLbText(c.id), word, rar: g.choiceRar(c), tags: '' };
+      return { icon: gemIcon(P.gem, 96), name: P.name, kind: 'p', lv: `LIMIT BREAK ${(p.lbN || 0) + 1}`, desc: charmLbText(c.id), word, rar: g.choiceRar(c), tags: '' };
     }
     if (c.type === 'pnew') {
       const evoTags = evoTagsForCharm(g, c.id, false);
-      return { icon: gemIcon(P.gem, 96), name: P.name, lv: 'NEW', desc: P.t, word, rar: g.choiceRar(c), tags: (save.seen.passives[c.id] ? '' : T_NEW) + evoTags };
+      return { icon: gemIcon(P.gem, 96), name: P.name, kind: 'p', lv: 'NEW', desc: P.t, word, rar: g.choiceRar(c), tags: (save.seen.passives[c.id] ? '' : T_NEW) + evoTags };
     }
     const p = g.getPassive(c.id);
     const next = Math.min(P.max, p.level + (c.double ? 2 : 1));
-    return { icon: gemIcon(P.gem, 96), name: P.name, lv: `LV ${p.level} → ${next}`, desc: P.t + (c.double ? ' ×2' : ''), word, rar: g.choiceRar(c), tags: evoTagsForCharm(g, c.id, true) };
+    return { icon: gemIcon(P.gem, 96), name: P.name, kind: 'p', lv: `LV ${p.level} → ${next}`, desc: P.t + (c.double ? ' ×2' : ''), word, rar: g.choiceRar(c), tags: evoTagsForCharm(g, c.id, true) };
   }
   if (c.type === 'coins') return { icon: coinIcon(96), name: 'コイン', lv: '', desc: `${c.value} コイン獲得`, word: '', rar: 'N' };
   return { icon: gemIcon('garnet', 96), name: '全回復', lv: '', desc: 'HPを全回復', word: '', rar: 'N' };
@@ -2052,7 +2100,7 @@ export function levelUp(g, done) {
       const info = choiceInfo(g, c);
       const card = el(`<button class="card r-${info.rar}">
         <img src="${info.icon}">
-        <div class="cbody"><div class="clv">${info.lv}${elemTag((WEAPONS[c.id] || PASSIVES[c.id] || {}).gem)}</div><div class="cname">${info.name}</div>
+        <div class="cbody"><div class="clv">${info.kind ? `<span class="ckind ${info.kind}">${info.kind === 'w' ? 'ウェポン' : 'チャーム'}</span>` : ''}${info.lv}${elemTag((WEAPONS[c.id] || PASSIVES[c.id] || {}).gem)}</div><div class="cname">${info.name}${info.sub ? `<small class="csub">${info.sub}</small>` : ''}</div>
           ${info.tags ? `<div class="ctags">${info.tags}</div>` : ''}
           <div class="cdesc">${info.desc}</div><div class="cword">${info.word}</div></div>
         <span class="ctag rarbadge r-${info.rar}">${info.rar}</span>
@@ -2190,7 +2238,7 @@ function autoChest(g, big, done, plus) {
   const more = tiles.length > 6 ? tiles.splice(5).reduce((a, t) => a + t.k, 0) : 0;
   const lines = tiles.map(({ c }) => {
     const def = c.type === 'wup' || c.type === 'evo' || c.type === 'lb' ? WEAPONS[c.id] : PASSIVES[c.id];
-    const name = c.type === 'evo' ? def.evo.name : c.type === 'lb' && g.getWeapon(c.id).evolved ? def.evo.name : def.name;
+    const name = GEMS[def.gem].jp;
     return { str: `${name} ${itemLabel(g, c)}`, color: c.type === 'evo' ? '#fff' : c.type === 'lb' || c.type === 'plb' ? RAR_TEXT.R : RAR_TEXT.N, rainbow: c.type === 'evo' };
   });
   if (more) lines.push({ str: `ほか ${more} 件の強化`, color: RAR_TEXT.N });
@@ -2338,6 +2386,21 @@ function elemSummary(g) {
   if (!ks.length) return '';
   return `<div class="pause-elems">${ks.map((k) => `<span style="--ec:${ELEMENTS[k].color}"><b>${ELEMENTS[k].jp}</b>${g.elemCnt[k]}${g.elemCnt[k] >= 2 ? `<i>×${elementMul(g.elemCnt[k])}</i>` : ''}</span>`).join('')}</div>`;
 }
+// ポーズ画面の装備の行：宝石名・技の名前（チャームはジュエルパワー）・レベル。押すと効果の説明を開く
+function loadRow(g, kind, it) {
+  const def = kind === 'w' ? WEAPONS[it.id] : PASSIVES[it.id];
+  const gem = GEMS[def.gem];
+  const evo = kind === 'w' && it.evolved;
+  const sub = kind === 'w' ? (evo ? def.evo.name : def.name) : `ジュエルパワー「${gem.word}」`;
+  const desc = kind === 'w' ? (evo ? def.evo.desc : def.desc) : def.t;
+  const max = kind === 'w' ? WEAPON_MAX : def.max;
+  const lv = evo ? 'EVO' : it.level >= max ? 'MAX' : `LV ${it.level}`;
+  // 進化前のウェポンは、進化の相方のチャーム（持っていれば明るく）
+  const pair = kind === 'w' && !evo && def.evo ? `<img class="pl-pair ${g.hasPassive(def.evo.with) ? 'on' : ''}" src="${gemIcon(def.evo.with, 32)}" alt="">` : '';
+  return `<button class="pl-row ${kind} ${evo ? 'evo' : ''}"><img class="pl-ico" src="${gemIcon(def.gem, 64)}" alt="">
+    <span class="pl-n"><b>${gem.jp}</b><small>${sub}</small></span>${pair}<span class="pl-lv">${lv}${it.lbN ? `<i>+${it.lbN}</i>` : ''}</span>
+    <span class="pl-d">${desc}</span></button>`;
+}
 export function pauseMenu(g, onResume, onQuit) {
   const node = el(`
     <div class="screen dim" style="justify-content:center;gap:14px">
@@ -2345,11 +2408,9 @@ export function pauseMenu(g, onResume, onQuit) {
       <div class="big-title" style="animation:none;color:#fff">PAUSED</div>
       <div class="panel" style="text-align:center">
         <div class="label">LOADOUT</div>
-        <div class="pause-build">
-          ${g.weapons.map((w) => `<div class="slotico ${w.evolved ? 'evo' : g.hasPassive(WEAPONS[w.id].evo.with) ? 'evok' : ''}"><img src="${gemIcon(WEAPONS[w.id].gem, 64)}"><b>${w.evolved ? '★' : w.level}${w.lbN ? `<i>+${w.lbN}</i>` : ''}</b></div>`).join('')}
-        </div>
-        <div class="pause-build">
-          ${g.passives.map((p) => `<div class="slotico"><img src="${gemIcon(PASSIVES[p.id].gem, 64)}"><b>${p.level}${p.lbN ? `<i>+${p.lbN}</i>` : ''}</b></div>`).join('')}
+        <div class="pl-list">
+          ${g.weapons.map((w) => loadRow(g, 'w', w)).join('')}
+          ${g.passives.map((p) => loadRow(g, 'p', p)).join('')}
         </div>
         ${elemSummary(g)}
         ${g.stats.overMight > 0.005 ? `<div class="hint">上限超過 → 攻撃力 +${Math.round(g.stats.overMight * 100)}%</div>` : ''}
@@ -2364,6 +2425,7 @@ export function pauseMenu(g, onResume, onQuit) {
       </div>
     </div>`);
   screens().appendChild(node);
+  node.querySelectorAll('.pl-row').forEach((r) => (r.onclick = () => { audio.tap(); r.classList.toggle('open'); }));
   $('#resume', node).onclick = () => { audio.tap(); node.remove(); onResume(); };
   $('#set', node).onclick = () => { audio.tap(); showSettings(null, true); };
   const as = $('#autosel', node);
@@ -2490,7 +2552,7 @@ export function results(res, cleared, extra) {
   for (const [id, v] of sorted) {
     const w = res.weapons.find((x) => x.id === id);
     const c = gemColor(WEAPONS[id].gem);
-    const r = el(`<div class="dmgrow"><img src="${gemIcon(WEAPONS[id].gem, 48)}"><div class="dn">${w && w.evolved ? WEAPONS[id].evo.name : WEAPONS[id].name}</div><div class="num">${fmt(v)}</div><div class="bar"><i style="background:${c};box-shadow:0 0 8px ${c}"></i></div></div>`);
+    const r = el(`<div class="dmgrow"><img src="${gemIcon(WEAPONS[id].gem, 48)}"><div class="dn">${GEMS[WEAPONS[id].gem].jp}</div><div class="num">${fmt(v)}</div><div class="bar"><i style="background:${c};box-shadow:0 0 8px ${c}"></i></div></div>`);
     dmgEl.appendChild(r);
     setTimeout(() => ($('.bar i', r).style.width = (v / total) * 100 + '%'), 300);
   }

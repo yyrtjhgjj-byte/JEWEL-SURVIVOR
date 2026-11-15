@@ -9,7 +9,7 @@ import { coinIcon } from './render.js';
 import { gemImage, mountLiveGem } from './gem-gl.js';
 import { fmt } from './util.js';
 import { audio } from './audio.js';
-import { show, el, $, topbar, coinPill, refreshCoinPill, haptic, getApp, guard } from './ui.js';
+import { show, el, $, topbar, coinPill, refreshCoinPill, haptic, getApp, guard, firstHint } from './ui.js';
 import { polishMini } from './atelier-ui.js';
 
 export function legendState(id) {
@@ -87,6 +87,7 @@ export function showLegends(back) {
       }).join('')}</div>
     </div>`);
   show(node);
+  firstHint(node, 'legends');
   $('#back', node).onclick = () => { audio.tap(); back(); };
   node.querySelectorAll('.lg-card').forEach((b) => (b.onclick = () => { audio.select(); openLegend(b.dataset.id, back); }));
 }
