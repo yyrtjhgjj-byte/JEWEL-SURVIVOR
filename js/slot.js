@@ -119,7 +119,9 @@ export function showSlot(back) {
   const node = el(`
     <div class="screen slot-screen" data-nav="jewel">
       ${topbar('SLOT', 'ジュエル・スロット', coinPill(), 'slot')}
-      <div class="sl-jpbox"><span>JACKPOT</span><b id="sljp">${fmt(st.pool)}</b></div>
+      <div class="sl-cab">
+      <div class="sl-marquee"><div class="sl-jpbox"><span>JACKPOT</span><b id="sljp">${fmt(st.pool)}</b></div></div>
+      <div class="sl-body">
       <div class="sl-machine" id="slm">
         ${tabs('l', TAB_L)}
         <div class="sl-reels" id="slreels">${[0, 1, 2].map((c) => `<div class="sl-reel"><div class="sl-strip" id="slr${c}"></div></div>`).join('')}
@@ -129,7 +131,10 @@ export function showSlot(back) {
         ${tabs('r', TAB_R)}
         <div class="sl-reachb" id="slreach">REACH!</div>
       </div>
-      <div class="sl-res" id="slres"></div>
+      <button class="sl-lever" id="sllever" aria-label="SPIN"><i class="sl-rod"></i><b class="sl-knob"></b><i class="sl-base"></i></button>
+      </div>
+      <div class="sl-tray"><div class="sl-res" id="slres"></div></div>
+      </div>
       <div class="dock sl-dock">
         <div class="sl-bets" id="slbets">${SLOT_BETS.map((b, i) => `<button class="btn small sl-bet" data-i="${i}">${b >= 1e6 ? `${b / 1e6}M` : `${b / 1e3}K`}</button>`).join('')}</div>
         <div class="sl-go"><button class="btn small sl-ten" id="slten">10 回</button><button class="btn big primary" id="slgo">SPIN</button></div>
@@ -194,6 +199,9 @@ export function showSlot(back) {
     if (!free && save.coins < bet) return false;
     if (free) st.free--;
     else { save.coins -= bet; st.pool += Math.round(bet * SLOT_JP.rate); }
+    // レバーを引く動き
+    const lv = $('#sllever', node);
+    if (lv) { lv.classList.remove('pull'); void lv.offsetWidth; lv.classList.add('pull'); }
     st.spins++;
     const grid = rollGrid();
     const res = judge(grid, bet, st.pool, free ? SLOT_FEVER.mul : 1);
@@ -483,5 +491,7 @@ export function showSlot(back) {
       <div class="sl-rc">${coinTag()}<b>${net >= 0 ? '+' : '−'}${fmt(Math.abs(net))}</b></div>${got.length ? `<div class="sl-rx">${got.join('')}</div>` : ''}`;
   }
   $('#slgo', node).onclick = () => run(1);
+  // 台のレバーを押しても 1 回まわす
+  $('#sllever', node).onclick = () => run(1);
   $('#slten', node).onclick = () => run(10);
 }

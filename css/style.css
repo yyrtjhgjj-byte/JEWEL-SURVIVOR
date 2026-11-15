@@ -1783,7 +1783,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 
 /* ---------------------------------------------------------------- ジュエル・スロット（slot.js） */
 /* リールのマスは幅と高さの両方で決める（低い画面でも、収支の帯とボタンが重ならないように） */
-.slot-screen { gap: 10px; --cs: max(56px, min(92px, calc((100vw - 96px) / 3), calc((100vh - 460px) / 3))); }
+.slot-screen { gap: 10px; }
 .slot-screen > * { flex-shrink: 0; }
 .sl-jpbox { display: flex; flex-direction: column; align-items: center; line-height: 1; padding: 2px 0; }
 .sl-jpbox span { font-size: 11px; font-weight: 700; letter-spacing: 0.35em; color: var(--gold); }
@@ -2222,3 +2222,23 @@ html.ultra #xpfill::before { animation: none; }
 .fm-n img { width: 18px; height: 18px; object-fit: contain; }
 .fm-n.up { color: #7dffb0; border-color: rgba(125, 255, 176, 0.45); }
 .fm-a { font-style: normal; color: var(--muted); font-size: 12px; }
+
+/* スロット台の筐体：電球の並ぶ天板（JACKPOT）・台の枠・右のレバー・下のコインの受け皿（結果の帯） */
+.slot-screen { --cs: max(56px, min(92px, calc((100vw - 120px) / 3), calc((100vh - 520px) / 3))); }
+.sl-cab { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0 0 10px; border-radius: 26px 26px 18px 18px; background: linear-gradient(180deg, #1c1626, #0d0b14 55%, #15111d); border: 1px solid rgba(255, 210, 61, 0.28); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+.sl-marquee { position: relative; align-self: stretch; margin: 0 0 10px; padding: 12px 16px 10px; border-radius: 26px 26px 10px 10px; background: radial-gradient(120% 140% at 50% 0%, #3a1d3c, #170f22 70%); border-bottom: 2px solid rgba(255, 210, 61, 0.45); overflow: hidden; }
+/* 天板のふちの電球：2 つの並びを交互に灯す */
+.sl-marquee::before, .sl-marquee::after { content: ''; position: absolute; left: 10px; right: 10px; height: 6px; background: radial-gradient(circle, #ffe9a8 0 2px, rgba(255, 200, 80, 0.55) 2.5px, transparent 3.5px) 0 0 / 14px 6px repeat-x; animation: slBulb 0.9s steps(1) infinite; }
+.sl-marquee::before { top: 3px; }
+.sl-marquee::after { bottom: 3px; animation-delay: 0.45s; }
+@keyframes slBulb { 0% { opacity: 1; } 50% { opacity: 0.25; } }
+html.lite .sl-marquee::before, html.lite .sl-marquee::after { animation: none; }
+.sl-body { position: relative; display: flex; align-items: center; gap: 6px; padding: 0 30px 0 12px; }
+.sl-lever { position: absolute; right: 2px; top: 50%; width: 24px; height: 120px; margin-top: -78px; padding: 0; border: 0; background: none; transform-origin: 50% 100%; }
+.sl-rod { position: absolute; left: 10px; top: 14px; bottom: 10px; width: 4px; border-radius: 2px; background: linear-gradient(90deg, #8a8a96, #f2f2f8 50%, #6c6c78); }
+.sl-knob { position: absolute; left: 1px; top: 0; width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffb3c4, #ff2d55 45%, #8a0f2a); box-shadow: 0 0 10px rgba(255, 45, 85, 0.55); }
+.sl-base { position: absolute; left: 3px; bottom: 0; width: 18px; height: 14px; border-radius: 4px; background: linear-gradient(#c79a2c, #6e4f10); }
+.sl-lever.pull { animation: slPull 0.45s ease-in-out; }
+@keyframes slPull { 0% { transform: none; } 40% { transform: scaleY(0.55); } 100% { transform: none; } }
+.sl-tray { align-self: stretch; margin: 10px 14px 0; border-radius: 14px; background: linear-gradient(180deg, #07060b, #120f19); border: 1px solid rgba(255, 210, 61, 0.35); box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.8); }
+.sl-tray .sl-res { min-height: 58px; padding: 6px 8px; }
