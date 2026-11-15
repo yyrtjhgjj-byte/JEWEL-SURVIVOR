@@ -8,7 +8,7 @@ import { gemIcon, roughIcon, coinIcon } from './render.js';
 import { ROUGH } from './atelier.js';
 import { fmt, rand, randi } from './util.js';
 import { audio, FEVER_TEMPO } from './audio.js';
-import { show, el, $, topbar, coinPill, refreshCoinPill, haptic, getApp, wait, countUp } from './ui.js';
+import { show, el, $, topbar, coinPill, refreshCoinPill, haptic, getApp, wait, countUp, firstHint } from './ui.js';
 
 export function slotState() {
   if (!save.slot || typeof save.slot !== 'object') save.slot = {};
@@ -138,6 +138,7 @@ export function showSlot(back) {
         <p class="sl-note">フィーバーは ${SLOT_FEVER.spins} 回ただで回せて、払い戻しが ${SLOT_FEVER.mul} 倍。ジャックポットは積み立て × 賭け金 ÷ ${fmt(SLOT_BETS[SLOT_BETS.length - 1])}（いちばん高い賭けで全額）と秘石。</p></div>
     </div>`);
   show(node);
+  firstHint(node, 'slot');
   let busy = false;
   // 最初の絵柄
   const first = rollGrid();

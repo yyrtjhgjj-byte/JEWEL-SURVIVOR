@@ -121,6 +121,8 @@ const kbWeight = (d, elite) => (d.boss ? 0.05 : Math.min(1, Math.pow(13 / d.r, 1
 const KILL_MILESTONES = [100, 250, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000];
 
 // 必要経験値。Lv15（2:00 ごろ）までの序盤はそのままに、そのあとの伸びを大きくしてある（1 レベルごとの増分が Lv15・30・60 を境に増える）
+// 始めたばかりの人の経験値の上乗せ（rookieXp）
+const ROOKIE_XP = 1.5, ROOKIE_T = 120;
 const xpFor = (l) => Math.round(1.25 * 1.75 * 1.8 * (3 + (l - 1) * 4 + Math.max(0, l - 15) * 8 + Math.max(0, l - 30) * 10 + Math.max(0, l - 60) * 10));
 
 // 正八面体の賢者の石（drawStoneBack）。S：中心から頂点までの長さ、rot：縦の軸まわりの回転。面ごとに光の向きで塗り、稜線を光らせる
@@ -323,7 +325,7 @@ export class Game {
     add(CHARACTERS[this.charId].stats);
     for (const it of SHOP) {
       const lv = save.upgrades[it.id] || 0;
-      if (lv && !save.upgradesOff[it.id]) add(it.per, lv); // 工房で無効にした強化は入れない
+      if (lv) add(it.per, lv);
     }
     for (const it of UPPER_SHOP) { // 上位工房
       const lv2 = (save.upgrades2 || {})[it.id] || 0;
@@ -2132,7 +2134,7 @@ export class Game {
     const p = this.player;
     switch (pk.kind) {
       case 'xp': {
-        const v = pk.value * this.stats.growth * (this.feverT > 0 ? 2 : 1) * this.hazards.xpMul();
+        const v = pk.value * this.stats.growth * (this.feverT > 0 ? 2 : 1) * this.hazards.xpMul() * this.rookieXp();
         this.gainXp(v);
         audio.pickup();
         if (pk.value >= 20) this.fx.burst(p.x, p.y, '#ff9ec7', 6, 120, 0.4, 8);
@@ -2186,6 +2188,11 @@ export class Game {
     }
   }
 
+  // 始めたばかりの人（工房の強化がまだ 1 つもない）は、最初の 2 分だけ経験値を多めに（苦戦はしつつ、最初のレベルアップを早く）
+  rookieXp() {
+    if (this._rookie === undefined) this._rookie = !this.train && !this.rush && !this.chaos && SHOP.every((it) => !(save.upgrades[it.id] || 0));
+    return this._rookie && this.time < ROOKIE_T ? ROOKIE_XP : 1;
+  }
   gainXp(v) {
     this.xp += v;
     while (this.xp >= this.xpNext) {

@@ -11,7 +11,7 @@ import { audio } from './audio.js';
 import { save } from './save.js';
 import { ROUGH, totalRough, collectionCount, COLLECTION_IDS } from './atelier.js';
 import { BEAST_IDS, BEAST_COST, beastLevel, beastIcon, jewelStock } from './beasts.js';
-import { currentSession } from './auction.js';
+import { currentSession, startPrice } from './auction.js';
 import { rankState, rankClass } from './rank.js';
 import { diagCrashes } from './diag.js';
 import {
@@ -109,11 +109,13 @@ const maxed = (items, lv) => items.filter((it) => (lv[it.id] || 0) >= it.max).le
 // 下のメニューの点もここから決める（refreshNav）
 const DOT = '•';
 const canBuy = (items, lv, cost) => items.some((it) => (lv[it.id] || 0) < it.max && save.coins >= cost(it, lv[it.id] || 0));
+// まだ開いていないオークションの回。今の品に参加できるコインがあるときだけ（手の届かない品で NEW を出さない）
+const reach = (lot) => lot && save.coins >= Math.ceil(startPrice(lot) * 1.05);
 const unseenAuction = () => {
   const sess = currentSession(false);
-  if (sess.lots[sess.cur] && !sess.seen) return true;
+  if (reach(sess.lots[sess.cur]) && !sess.seen) return true;
   const b = save.auction2;
-  return !!(upperLv('blackAuction') && b && b.lots && b.lots[b.cur] && !b.seen);
+  return !!(upperLv('blackAuction') && b && b.lots && reach(b.lots[b.cur]) && !b.seen);
 };
 const HUB_BADGES = {
   power: () => ({
