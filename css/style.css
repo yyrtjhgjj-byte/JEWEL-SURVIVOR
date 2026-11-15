@@ -447,8 +447,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .slotico.evok { border: 1.5px solid var(--gold); box-shadow: 0 0 6px rgba(255,197,61,0.55); }
 /* ボスの名前・HP・ブレイクは画面の上（タイムの下）。下は FEVER だけにする */
 #bossbar { position: absolute; top: calc(var(--safe-t) + 46px); left: 50%; transform: translateX(-50%); width: min(48%, 210px); text-align: center; }
-/* BOSS モードは下に FEVER が無く、上には周の表示があるので、ボスの帯は下のまま */
-#hud.rush #bossbar { top: auto; bottom: calc(var(--safe-b) + 36px); width: min(80%, 420px); }
+/* BOSS モード：ボスの帯はふつうと同じ上。周の表示はタイムの下ではなく、左上の KILL・COIN の下（ボスの帯と重ならないように） */
+#hud.rush #rushlap { left: 0; top: 40px; transform: none; font-size: 12px; }
 #bossbar .bname { font-family: var(--font-jp); font-weight: 700; font-size: 11px; letter-spacing: 0.12em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ffb3f0; margin-bottom: 4px; text-shadow: 0 0 10px rgba(255,61,220,0.8); }
 #bossbar .btrack { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); overflow: hidden; }
 #bossbar .bfill { height: 100%; background: linear-gradient(90deg, #c43dff, #ff2d55); transform-origin: 0 50%; }
@@ -2211,3 +2211,14 @@ html.ultra #xpfill::before { animation: none; }
 .fhint span { flex: 1; }
 .fhint i { font-style: normal; color: var(--muted); font-size: 12px; }
 @keyframes fhintIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+/* ハブのカードの「使うもの → もらえるもの」 */
+.hc-f { font: 700 10.5px var(--font-jp); color: color-mix(in srgb, var(--c) 70%, #fff); letter-spacing: 0.02em; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* HOW TO PLAY のつながりの図 */
+.fm-map { display: flex; flex-direction: column; gap: 7px; }
+.fm-h { font: 700 12px var(--font-jp); color: var(--muted); letter-spacing: 0.1em; margin-bottom: 2px; }
+.fm-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 5px; }
+.fm-n { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px 3px 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); font: 700 11.5px var(--font-jp); white-space: nowrap; }
+.fm-n:not(:has(img)) { padding-left: 8px; }
+.fm-n img { width: 18px; height: 18px; object-fit: contain; }
+.fm-n.up { color: #7dffb0; border-color: rgba(125, 255, 176, 0.45); }
+.fm-a { font-style: normal; color: var(--muted); font-size: 12px; }

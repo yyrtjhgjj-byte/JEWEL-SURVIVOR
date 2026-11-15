@@ -6,7 +6,7 @@
 import { MAX_WEAPONS, MAX_CHARMS, WEAPON_MAX, GACHA_COST, GACHA10_COST, GACHA100_COST, GACHA100_UR, CHARM_LB_MAX, AWAKEN_MAX, GEMS } from './data.js';
 import { ARTIFACT_MAX, ARTIFACTS } from './artifacts.js';
 import { ELEMENTS, GEM_ELEMENT } from './elements.js';
-import { gemIcon, roughIcon, shopIcon, pickaxeIcon, gavelIcon, enemyIcon, artifactIcon, itemSprite, xpSprite } from './render.js';
+import { gemIcon, roughIcon, shopIcon, pickaxeIcon, gavelIcon, enemyIcon, artifactIcon, itemSprite, xpSprite, coinIcon } from './render.js';
 import { ROUGH } from './atelier.js';
 import { beastIcon } from './beasts.js';
 import { BREAK_TIME, RUSH_GAP } from './game.js';
@@ -52,6 +52,24 @@ export const HELP_GROUPS = [
   { id: 'biz', en: 'BUSINESS', jp: '経営', ids: ['biz'] },
   { id: 'more', en: 'ARCHIVE', jp: '記録・その他', ids: ['records', 'save', 'rebirth'] },
 ];
+
+// つながりの図（HOW TO PLAY の「くわしく」の先頭）：ランで得たものが、どこで何に変わり、どう強くなるか
+export function flowMapHTML() {
+  const n = (src, t, cls = '') => `<span class="fm-n ${cls}">${src ? `<img src="${src}" alt="">` : ''}${t}</span>`;
+  const a = '<i class="fm-a">→</i>';
+  const coin = coinIcon(40), rough = roughIcon('rough', ROUGH.rough.color, 40), strong = n('', '強くなる', 'up');
+  const rows = [
+    [n(gemIcon('ruby'), 'ラン'), a, n(coin, 'コイン'), n(rough, '原石')],
+    [n(coin, 'コイン'), a, n(shopIcon('might', 40), '工房・上位工房'), a, strong],
+    [n(rough, '原石'), a, n(roughIcon('mystic', ROUGH.mystic.color, 40), '研磨'), a, n(gemIcon('sapphire'), '宝石'), a, n('', '練度・百獣'), a, strong],
+    [n(coin, 'コイン'), a, n(pickaxeIcon(40), '採掘'), a, n(rough, '原石'), n('', 'ジェムダスト')],
+    [n('', 'ジェムダスト'), a, n('', '交換所'), a, n(rough, '原石'), n('', '覚醒'), a, strong],
+    [n(coin, 'コイン'), a, n(gavelIcon(40), 'オークション'), a, n(gemIcon('emerald'), '宝石・原石')],
+    [n(coin, 'コイン'), a, n(gemIcon('emerald'), '伝説の宝石'), a, strong],
+    [n(coin, 'コイン'), '<i class="fm-a">⇄</i>', n('', '経営（会社の資金）')],
+  ];
+  return `<div class="panel fm-map"><div class="fm-h">つながり</div>${rows.map((r) => `<div class="fm-row">${r.join('')}</div>`).join('')}</div>`;
+}
 
 // 項目の中身。part は { id, h, p（文）, steps（手順）, rows（[絵, 名前, 説明]）, list（短い箇条）, html } を上から順に出す
 // 絵や数値を使うので、初めて開いたときに作る
