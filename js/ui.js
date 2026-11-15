@@ -14,7 +14,7 @@ import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter, FINALE
 import { fmt, fmtTime, pick, todayStr } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState, RANK_CLASSES } from './rank.js';
-import { RARITY_ORDER, HOWTO_LOOP, HELP_GROUPS, helpTopicHTML, helpIndexHTML } from './howto.js';
+import { RARITY_ORDER, HOWTO_LOOP, HELP_GROUPS, helpTopicHTML, helpIndexHTML, flowMapHTML } from './howto.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough, GRADES, COLLECTION_IDS, pickKey, pickRoughs } from './atelier.js';
@@ -261,7 +261,7 @@ function showHowTo() {
       box.innerHTML = `<div class="panel hp-loop">${HOWTO_LOOP.map((s, i) => `<div class="hl-step"><i>${i + 1}</i><div><b>${s.t}</b><p>${s.b}</p></div></div>`).join('')}</div>
         ${helpIndexHTML([{ en: 'FIRST', jp: 'まず読む', ids: HOWTO_FIRST }])}
         <button class="btn hp-more" id="hmore">${howtoMore ? 'くわしくを閉じる' : `くわしく<span class="sub">全 ${all} 項目</span>`}</button>
-        ${howtoMore ? helpIndexHTML() : ''}`;
+        ${howtoMore ? flowMapHTML() + helpIndexHTML() : ''}`;
       node.scrollTop = y;
     }
   };

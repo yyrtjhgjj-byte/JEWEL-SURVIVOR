@@ -138,10 +138,10 @@ const HUBS = {
   power: { en: 'POWER', jp: '強化', cards: () => {
     const open = checkUpperShop();
     return [
-      { id: 'workshop', en: 'WORKSHOP', jp: '工房', c: '#ffd24a', wide: true, icon: img(shopIcon('might', 120)), s: `最大 ${maxed(SHOP, save.upgrades)} / ${SHOP.length}`, go: () => showShop(false) },
-      { id: 'masterworks', en: 'MASTERWORKS', jp: '上位工房', c: '#b45cff', icon: img(shopIcon('crit', 96)), locked: !open,
+      { id: 'workshop', f: 'コイン → 永続強化', en: 'WORKSHOP', jp: '工房', c: '#ffd24a', wide: true, icon: img(shopIcon('might', 120)), s: `最大 ${maxed(SHOP, save.upgrades)} / ${SHOP.length}`, go: () => showShop(false) },
+      { id: 'masterworks', f: 'コイン → さらに上の強化', en: 'MASTERWORKS', jp: '上位工房', c: '#b45cff', icon: img(shopIcon('crit', 96)), locked: !open,
         s: open ? `最大 ${maxed(UPPER_SHOP, save.upgrades2 || {})} / ${UPPER_SHOP.length}` : '工房の強化をすべて最大にすると解放', go: () => showShop(true) },
-      { id: 'exchange', en: 'EXCHANGE', jp: '交換所・覚醒', c: '#ff9f1c', icon: glyph('✦'), s: `ジェムダスト ${fmt(save.dust || 0)}`, go: () => showExchange(() => showHub('power')) },
+      { id: 'exchange', f: 'ジェムダスト → 原石・覚醒', en: 'EXCHANGE', jp: '交換所・覚醒', c: '#ff9f1c', icon: glyph('✦'), s: `ジェムダスト ${fmt(save.dust || 0)}`, go: () => showExchange(() => showHub('power')) },
     ];
   } },
   jewel: { en: 'JEWEL', jp: '宝石', cards: () => {
@@ -150,13 +150,13 @@ const HUBS = {
     const lot = sess.lots[sess.cur];
     const beasts = BEAST_IDS.filter((id) => beastLevel(id) > 0);
     return [
-      { id: 'polish', en: 'POLISH', jp: '研磨', c: '#e0b8ff', wide: true, icon: img(roughIcon('mystic', ROUGH.mystic.color, 120)), s: `原石 ${rough} 個`, go: () => showAtelier('polish') },
-      { id: 'mining', en: 'MINING', jp: '採掘', c: '#c9a36a', icon: img(pickaxeIcon(96)), s: `ジェムダスト ${fmt(save.dust || 0)}`, go: showGacha },
-      { id: 'auction', en: 'AUCTION', jp: 'オークション', c: '#ffd24a', icon: img(gavelIcon(96)), s: lot ? `開催中 LOT ${sess.cur + 1} / ${sess.lots.length}` : 'この回は終了', go: () => showAtelier('auction') },
-      { id: 'collection', en: 'COLLECTION', jp: 'コレクション', c: '#ff4d6d', icon: img(gemIcon('ruby', 96)), s: `${collectionCount()} / ${COLLECTION_IDS.length} 種`, go: () => showAtelier('collection') },
-      { id: 'beasts', en: 'BEASTS', jp: '百獣', c: '#7fd0ff', icon: img(beastIcon(beasts[0] || 'sapphire', 96)), s: `召喚 ${beasts.length} / ${BEAST_IDS.length}`, go: () => showAtelier('beasts') },
-      { id: 'slot', en: 'JEWEL SLOT', jp: 'ジュエル・スロット', c: '#ff7ac8', icon: img(gemIcon('diamond', 96)), locked: !chapterCleared(2), s: chapterCleared(2) ? `JACKPOT ${fmt(slotState().pool)}` : '第2章をクリアで解放', go: () => showSlot(() => showHub('jewel')) },
-      { id: 'legends', en: 'LEGENDS', jp: '伝説の宝石', c: '#ffd24a', icon: img(gemIcon('emerald', 96)), locked: !chapterCleared(3), s: chapterCleared(3) ? legendCardText() : '第3章をクリアで解放', go: () => showLegends(() => showHub('jewel')) },
+      { id: 'polish', f: '原石 → 宝石・練度', en: 'POLISH', jp: '研磨', c: '#e0b8ff', wide: true, icon: img(roughIcon('mystic', ROUGH.mystic.color, 120)), s: `原石 ${rough} 個`, go: () => showAtelier('polish') },
+      { id: 'mining', f: 'コイン → 原石・ジェムダスト', en: 'MINING', jp: '採掘', c: '#c9a36a', icon: img(pickaxeIcon(96)), s: `ジェムダスト ${fmt(save.dust || 0)}`, go: showGacha },
+      { id: 'auction', f: 'コイン → 宝石・原石', en: 'AUCTION', jp: 'オークション', c: '#ffd24a', icon: img(gavelIcon(96)), s: lot ? `開催中 LOT ${sess.cur + 1} / ${sess.lots.length}` : 'この回は終了', go: () => showAtelier('auction') },
+      { id: 'collection', f: '練度 → 永続ボーナス', en: 'COLLECTION', jp: 'コレクション', c: '#ff4d6d', icon: img(gemIcon('ruby', 96)), s: `${collectionCount()} / ${COLLECTION_IDS.length} 種`, go: () => showAtelier('collection') },
+      { id: 'beasts', f: '宝石 10 個 → 永続ボーナス', en: 'BEASTS', jp: '百獣', c: '#7fd0ff', icon: img(beastIcon(beasts[0] || 'sapphire', 96)), s: `召喚 ${beasts.length} / ${BEAST_IDS.length}`, go: () => showAtelier('beasts') },
+      { id: 'slot', f: 'コイン → コイン・ダスト・原石', en: 'JEWEL SLOT', jp: 'ジュエル・スロット', c: '#ff7ac8', icon: img(gemIcon('diamond', 96)), locked: !chapterCleared(2), s: chapterCleared(2) ? `JACKPOT ${fmt(slotState().pool)}` : '第2章をクリアで解放', go: () => showSlot(() => showHub('jewel')) },
+      { id: 'legends', f: 'コイン → 与ダメージ +1%', en: 'LEGENDS', jp: '伝説の宝石', c: '#ffd24a', icon: img(gemIcon('emerald', 96)), locked: !chapterCleared(3), s: chapterCleared(3) ? legendCardText() : '第3章をクリアで解放', go: () => showLegends(() => showHub('jewel')) },
       { id: 'mygems', en: 'JEWEL ATELIER', jp: 'ジュエル・アトリエ', c: '#ffb3e6', icon: img(gemIcon((registerMyGems(), (myGems()[0] || {}).id) || 'tourmaline', 96)), s: `${myGems().length} / ${MY_MAX}`, go: () => showMyGems(() => showHub('jewel')) },
       { id: 'sandbox', en: 'SANDBOX', jp: '宝石の砂場', c: '#8fe8ff', icon: img(gemIcon('opal', 96)), s: `${COLLECTION_IDS.length} 種`, go: () => showSandbox(() => showHub('jewel')) },
     ];
@@ -196,7 +196,7 @@ export function showHub(cat) {
   const node = el(`<div class="screen hub-screen" data-nav="${cat}">
     <div class="topbar">${helpBtn(HUB_HELP[cat])}<h2><span class="en">${H.en}</span><span class="jp">${H.jp}</span></h2>${coinPill()}</div>
     <div class="hub-grid">${cards.map((c) => `<button class="hub-card ${c.wide ? 'wide' : ''} ${c.locked ? 'locked' : ''}" id="h-${c.id}" style="--c:${c.c}">
-      ${c.icon}<div class="hc-t"><div class="hc-en">${c.en}</div><div class="hc-jp">${c.jp}</div><div class="hc-s">${c.s}</div></div>
+      ${c.icon}<div class="hc-t"><div class="hc-en">${c.en}</div><div class="hc-jp">${c.jp}</div>${c.f ? `<div class="hc-f">${c.f}</div>` : ''}<div class="hc-s">${c.s}</div></div>
       ${c.badge ? `<b class="mn-badge ${c.badge === DOT ? 'dot' : ''}">${c.badge === DOT ? '' : c.badge}</b>` : ''}
     </button>`).join('')}</div>
   </div>`);
