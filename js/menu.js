@@ -30,12 +30,12 @@ import { STAGES } from './stages.js';
 const chapterCleared = (ch) => STAGES.filter((st) => st.chapter === ch).every((st) => (save.stages[st.id] || {}).cleared);
 
 export const NAV = [
-  { id: 'home', jp: 'ホーム', en: 'HOME', c: '#b45cff' },
-  { id: 'power', jp: '強化', en: 'POWER', c: '#ffd24a' },
-  { id: 'jewel', jp: '宝石', en: 'JEWEL', c: '#e0b8ff' },
+  { id: 'home', jp: 'ホーム', en: 'HOME', c: '#f6f4fb' },
+  { id: 'power', jp: '強化', en: 'POWER', c: '#ffc53d' },
+  { id: 'jewel', jp: '宝石', en: 'JEWEL', c: '#c07bff' },
   { id: 'biz', jp: '経営', en: 'BUSINESS', c: '#4ade9a' },
-  { id: 'archive', jp: '記録', en: 'ARCHIVE', c: '#7fd0ff' },
-  { id: 'more', jp: 'その他', en: 'MORE', c: '#9a93b0' },
+  { id: 'archive', jp: '記録', en: 'ARCHIVE', c: '#6fc8ff' },
+  { id: 'more', jp: 'その他', en: 'MORE', c: '#b3acc8' },
 ];
 
 let navEl = null;
@@ -188,10 +188,13 @@ export function showHub(cat) {
   const cards = H.cards();
   const bd = HUB_BADGES[cat] ? HUB_BADGES[cat]() : {};
   for (const c of cards) if (!c.locked && bd[c.id]) c.badge = bd[c.id];
-  const node = el(`<div class="screen hub-screen" data-nav="${cat}">
-    <div class="topbar">${helpBtn(HUB_HELP[cat])}<h2><span class="en">${H.en}</span><span class="jp">${H.jp}</span></h2>${coinPill()}</div>
-    <div class="hub-grid">${cards.map((c) => `<button class="hub-card ${c.wide ? 'wide' : ''} ${c.locked ? 'locked' : ''}" id="h-${c.id}" style="--c:${c.c}">
-      ${c.icon}<div class="hc-t"><div class="hc-en">${c.en}</div><div class="hc-jp">${c.jp}</div>${c.f ? `<div class="hc-f">${c.f}</div>` : ''}<div class="hc-s">${c.s}</div></div>
+  // 差し色はカテゴリの 1 色（下のメニューと同じ）。先頭のカードだけ白く大きく、残りは左右に互い違いの行
+  const acc = NAV.find((n) => n.id === cat).c;
+  const node = el(`<div class="screen hub-screen" data-nav="${cat}" style="--acc:${acc}">
+    <div class="hub-top">${helpBtn(HUB_HELP[cat])}${coinPill()}</div>
+    <div class="hub-head"><h1>${H.jp}</h1><div class="hh-en">${H.en}</div></div>
+    <div class="hub-list">${cards.map((c, i) => `<button class="hub-card ${i === 0 ? 'lead' : ''} ${c.locked ? 'locked' : ''}" id="h-${c.id}">
+      ${c.icon}<span class="hc-t"><b class="hc-jp">${c.jp}</b>${c.f ? `<span class="hc-f">${c.f}</span>` : ''}<span class="hc-s">${c.s}</span></span>
       ${c.badge ? `<b class="mn-badge ${c.badge === DOT ? 'dot' : ''}">${c.badge === DOT ? '' : c.badge}</b>` : ''}
     </button>`).join('')}</div>
   </div>`);
