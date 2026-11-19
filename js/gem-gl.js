@@ -8,6 +8,19 @@
 // =====================================================================
 
 import { imgUrl } from './util.js';
+import { diagNote } from './diag.js';
+
+// 描けなかった理由を動作の記録に残す（同じ理由は 1 分に 1 回まで）
+const glSeen = new Map();
+function glNote(what, msg = '') {
+  const key = what + msg;
+  const now = Date.now();
+  if (now - (glSeen.get(key) || 0) < 60000) return;
+  glSeen.set(key, now);
+  try { diagNote({ kind: 'gl', what, msg: String(msg).slice(0, 300) }); } catch (_) { /* 記録できなくても続ける */ }
+}
+// シェーダーが通らない端末（何度作っても同じなので、その場で描くのをやめる）
+let shaderBad = false;
 
 // 見た目の数値。mode：trace（透明）・cab（カボション）・facet（不透明なカット面）・tumble（丸く磨いた石）
 // t：長さ 1 進んだときに残る光の割合（RGB）、d：濃さ、pleo：横向きに進むときの色（多色性）、bi：バイカラーのもう一方の色
@@ -76,10 +89,33 @@ const myImages = new Map();
 export function gemImage(id) {
   if (!id.startsWith('my_')) return imgUrl(`img/gems/${id}.webp`);
   let u = myImages.get(id);
-  if (!u && GEM_LOOK[id]) { try { u = bakeGem(id, 160); } catch (_) { u = ''; } myImages.set(id, u); }
+  if (!u && GEM_LOOK[id]) {
+    // アイコンの大きさなら 1.5 倍・1 点で十分（2 倍・4 点で描くと重く、何枚も続けると iPhone は GPU の時間切れで WebGL を失う）
+    try { u = bakeGem(id, 160, 0, 0, null, 1.5, 1); } catch (_) { u = ''; }
+    // 描けなかったときは覚えない（WebGL が戻ったら描き直す）
+    if (u) myImages.set(id, u);
+  }
   return u || '';
 }
 export const forgetGemImage = (id) => myImages.delete(id);
+// すぐ出せる画像があるか（自分で作った宝石は描き終えているか）
+export const hasGemImage = (id) => !id.startsWith('my_') || myImages.has(id);
+// まだ描いていない宝石の画像を、1 枚ずつ間をあけて描く（描けたら onEach(id, url)）。描く数を返す
+export function prepareGemImages(ids, onEach) {
+  const todo = ids.filter((id) => !hasGemImage(id));
+  let i = 0;
+  const step = () => {
+    if (i >= todo.length) return;
+    const id = todo[i++];
+    const u = gemImage(id);
+    if (u && onEach) onEach(id, u);
+    setTimeout(step, 40);
+  };
+  if (todo.length) setTimeout(step, 40);
+  return todo.length;
+}
+// 描いている間の空の画像
+export const BLANK_GEM = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 // ---------------------------------------------------------------- カットの形（平面の集合）
 const TAU = Math.PI * 2, D2R = Math.PI / 180;
@@ -663,7 +699,7 @@ const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 
 
 function createRenderer(canvas) {
   const gl = canvas.getContext('webgl2', { premultipliedAlpha: true, antialias: false, alpha: true, depth: false, stencil: false, powerPreference: 'low-power' });
-  if (!gl) return null;
+  if (!gl) { glNote('context'); return null; }
   const compile = (s, type) => {
     const sh = gl.createShader(type);
     gl.shaderSource(sh, s);
@@ -686,6 +722,9 @@ function createRenderer(canvas) {
     post = link(FS_POST);
   } catch (e) {
     console.warn('gem-gl', e);
+    if (gl.isContextLost()) { glNote('lost-at-start'); return null; }
+    shaderBad = true;
+    glNote('shader', e && e.message);
     return null;
   }
   const uni = {}, upost = {};
@@ -791,6 +830,18 @@ function viewMat(yawDeg, pitchDeg, M) {
 // WebGL が使えない・失われたときは画像のまま
 let live = null;
 let broken = false;
+// WebGL を作れなかったとき：少し待ってからもう一度試す（iPhone は一時的に作れないことがある）
+let retryAt = 0, fails = 0;
+
+// 失われたら画像に戻し、少し待って作り直す
+function lostLive() {
+  glNote('lost');
+  const back = live && live.img;
+  const backId = live && live.id;
+  const backCtl = live && live.ctl;
+  dropLive();
+  if (back && back.isConnected) setTimeout(() => { if (back.isConnected) mountLiveGem(back, backId, backCtl); }, 500);
+}
 
 function dropLive() {
   if (!live) return;
@@ -814,6 +865,8 @@ function tick(now) {
   if (!L) return;
   L.raf = 0;
   if (!L.img || !L.img.isConnected) { stopLive(); return; }
+  // 失われたのに知らせが来ないことがある（裏に回っている間など）。画像に戻して作り直す
+  if (L.r.gl.isContextLost()) { lostLive(); return; }
   L.raf = requestAnimationFrame(tick);
   if (document.hidden || now - L.last < 30) return;
   // 鑑賞画面（ctl）：動いていないあいだは描かない。止まったら 1 度だけ細かく描く
@@ -855,21 +908,31 @@ function tick(now) {
 // 別の img に付け直すと外れる
 export function mountLiveGem(img, id, ctl = null) {
   if (broken || !img || !GEM_LOOK[id]) return;
+  if (!live && performance.now() < retryAt) {
+    setTimeout(() => { if (img.isConnected && !live) mountLiveGem(img, id, ctl); }, retryAt - performance.now() + 50);
+    return;
+  }
   // 低負荷モード（html.lite）では、鑑賞モード（ctl）以外はその場で描かず画像のまま
   if (!ctl && document.documentElement.classList.contains('lite')) return;
   if (!live) {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 1;
     const r = createRenderer(canvas);
-    if (!r) { broken = true; return; }
+    if (!r) {
+      canvas.width = canvas.height = 1;
+      if (shaderBad) { broken = true; return; }
+      // 3 秒・6 秒…と間をあけて（30 秒まで）、画像が画面にある間は試し直す
+      const wait = Math.min(30000, 3000 * 2 ** Math.min(fails++, 4));
+      retryAt = performance.now() + wait;
+      setTimeout(() => { if (img.isConnected && !live) mountLiveGem(img, id, ctl); }, wait + 50);
+      return;
+    }
+    retryAt = 0;
+    fails = 0;
     // iOS は裏に回したときなどに WebGL を失うことがある。そのときは画像に戻し、次に表示するときに作り直す
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
-      const back = live && live.img;
-      const backId = live && live.id;
-      const backCtl = live && live.ctl;
-      dropLive();
-      if (back && back.isConnected) setTimeout(() => mountLiveGem(back, backId, backCtl), 500);
+      if (live && live.canvas === canvas) lostLive();
     });
     live = { canvas, r, img: null, id: null, ctl: null, raf: 0, last: 0, t0: 0, scale: 1, ss: 1, slow: 0, fast: 0, shown: false };
   }
@@ -902,23 +965,31 @@ export function reloadLiveGem(img, id) {
 }
 
 // その場で描く宝石が使えるか（WebGL2 が無い・作れなかった端末では false）
-export const liveGemOk = () => !broken;
+export const liveGemOk = () => !broken && !shaderBad;
 
 // ---------------------------------------------------------------- 画像の書き出し（tools/gem-bake.html から使う）
 let baker = null;
 // o は draw と同じ（確かめるための比べる画像用。省くとアイコンと同じ）
-export function bakeGem(id, size, rockT = 0, rockS = 0, o = null) {
+// scale・ss は描く大きさの倍率と 1 画素あたりの点の数（省くと 2 倍・4 点）
+export function bakeGem(id, size, rockT = 0, rockS = 0, o = null, scale = 2, ss = 2) {
+  // 失われていたら作り直す（失われたまま描くと空の絵になる）
+  if (baker && baker.gl.isContextLost()) { baker.canvas.width = baker.canvas.height = 1; baker = null; }
   if (!baker) {
     const canvas = document.createElement('canvas');
-    baker = createRenderer(canvas);
-    baker.canvas = canvas;
+    const r = createRenderer(canvas);
+    if (!r) { canvas.width = canvas.height = 1; throw new Error('gem-gl: no renderer'); }
+    r.canvas = canvas;
+    baker = r;
   }
   baker.load(id);
-  baker.draw(size * 2, rockT, rockS, 2, o);
+  baker.draw(Math.round(size * scale), rockT, rockS, ss, o);
+  if (baker.gl.isContextLost()) throw new Error('gem-gl: context lost');
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const x = c.getContext('2d');
   x.imageSmoothingQuality = 'high';
   x.drawImage(baker.canvas, 0, 0, size, size);
-  return c.toDataURL('image/webp', 0.9);
+  const url = c.toDataURL('image/webp', 0.9);
+  c.width = c.height = 1;
+  return url;
 }

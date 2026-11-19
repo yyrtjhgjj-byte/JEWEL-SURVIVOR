@@ -3,7 +3,7 @@ import { save, persist } from './save.js';
 import { audio } from './audio.js';
 import { show, el, $, topbar, toast, firstHint } from './ui.js';
 import { gemIcon } from './render.js';
-import { GEM_LOOK, mountLiveGem, reloadLiveGem, forgetGemImage } from './gem-gl.js';
+import { GEM_LOOK, mountLiveGem, reloadLiveGem, forgetGemImage, hasGemImage, prepareGemImages, BLANK_GEM } from './gem-gl.js';
 import { openGemView, LOUPE } from './gem-view.js';
 import {
   MY_MAX, CLEAR_CUTS, CAB_CUTS, PATTERNS, usesColor2, blankGem, lookOf, myGems, myGem, registerMyGems, saveMyGem, deleteMyGem, hsv,
@@ -22,11 +22,13 @@ export function showMyGems(back) {
       ${topbar('JEWEL ATELIER', 'ジュエル・アトリエ', `<div class="mg-count"><b>${list.length}</b><small>/ ${MY_MAX}</small></div>`, 'mygems')}
       <div class="mg-grid">
         ${list.map((g) => `<button class="mg-tile ${save.myHome === g.id ? 'home' : ''}" data-id="${g.id}" style="--c:${GEM_LOOK[g.id].meta.color}">
-          <span class="mg-art"><img src="${gemIcon(g.id)}" alt=""></span><span class="mg-name">${nameOf(g)}</span>${save.myHome === g.id ? '<i class="mg-pin">HOME</i>' : ''}</button>`).join('')}
+          <span class="mg-art"><img src="${hasGemImage(g.id) ? gemIcon(g.id) : BLANK_GEM}" data-g="${g.id}" alt=""></span><span class="mg-name">${nameOf(g)}</span>${save.myHome === g.id ? '<i class="mg-pin">HOME</i>' : ''}</button>`).join('')}
         ${list.length < MY_MAX ? '<button class="mg-tile mg-new" id="mgnew"><span class="mg-plus">＋</span><span class="mg-name">新しく作る</span></button>' : ''}
       </div>
     </div>`);
   show(node);
+  // 絵は 1 枚ずつ描いて差し込む（まとめて描くと iPhone は WebGL を失う）
+  prepareGemImages(list.map((g) => g.id), (id, u) => { const im = node.querySelector(`img[data-g="${id}"]`); if (im) im.src = u; });
   firstHint(node, 'mygems');
   $('#back', node).onclick = () => { audio.tap(); back(); };
   const nw = $('#mgnew', node);

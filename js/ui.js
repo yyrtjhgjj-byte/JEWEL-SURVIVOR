@@ -1616,7 +1616,8 @@ function diagRow(c) {
   const when = `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const r = c.run;
   const where = r ? `${STAGE_BY_ID[r.stage] ? stageTag(STAGE_BY_ID[r.stage]) : r.stage} ${fmtTime(r.time)}・敵 ${r.enemies}` : (c.screen || '-');
-  const what = c.kind === 'audio' ? '<i class="dg-kind">音の立て直し</i>' : c.kind === 'weapon' ? `<i class="dg-kind">${WEAPONS[c.id] ? GEMS[WEAPONS[c.id].gem].jp : c.id}が止まった</i>` : '';
+  const GL = { context: '宝石の描画を作れない', lost: '宝石の描画が失われた', 'lost-at-start': '宝石の描画が失われた', shader: '宝石の描画の失敗' };
+  const what = c.kind === 'gl' ? `<i class="dg-kind">${GL[c.what] || '宝石の描画'}</i>` : c.kind === 'audio' ? '<i class="dg-kind">音の立て直し</i>' : c.kind === 'weapon' ? `<i class="dg-kind">${WEAPONS[c.id] ? GEMS[WEAPONS[c.id].gem].jp : c.id}が止まった</i>` : '';
   return `<div class="dg-row"><b>${when}</b><span>${what}${where}</span><small>起動から ${Math.round(c.up / 60)} 分</small></div>`;
 }
 
