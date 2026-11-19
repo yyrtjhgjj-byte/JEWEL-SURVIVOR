@@ -418,6 +418,8 @@ window.addEventListener('keydown', (e) => {
 
 // 旧バージョンのセーブの移行。起動時と、バックアップの読み込み時に行う。工房の返金額（上位工房の入れ替えの分）を返す
 function migrateSave() {
+  // ジュエル・アトリエ（自分で作る宝石）を外したので、作った宝石の記録を消す
+  if ('myGems' in save || 'myHome' in save) { delete save.myGems; delete save.myHome; persist(); }
   // 経営の配当の上限に使う「ランで得たコインの累計」：記録を始める前のセーブは、累計のコインで代える
   if (!save.migrated.runCoins) {
     save.migrated.runCoins = true;

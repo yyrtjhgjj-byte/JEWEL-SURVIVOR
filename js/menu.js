@@ -24,9 +24,6 @@ import { showBiz, bizBadge } from './biz-ui.js';
 import { showRebirth, rebirthCardText } from './rebirth.js';
 import { showSlot, slotState } from './slot.js';
 import { showLegends, legendCardText } from './legends.js';
-import { showSandbox } from './sandbox.js';
-import { showMyGems } from './mygems-ui.js';
-import { myGems, registerMyGems, MY_MAX } from './mygems.js';
 import { STAGES } from './stages.js';
 
 // その章のステージをすべてクリアしたか（ジュエル・スロットは第2章、伝説の宝石は第3章で開く）
@@ -157,8 +154,6 @@ const HUBS = {
       { id: 'beasts', f: '宝石 10 個 → 永続ボーナス', en: 'BEASTS', jp: '百獣', c: '#7fd0ff', icon: img(beastIcon(beasts[0] || 'sapphire', 96)), s: `召喚 ${beasts.length} / ${BEAST_IDS.length}`, go: () => showAtelier('beasts') },
       { id: 'slot', f: 'コイン → コイン・ダスト・原石', en: 'JEWEL SLOT', jp: 'ジュエル・スロット', c: '#ff7ac8', icon: img(gemIcon('diamond', 96)), locked: !chapterCleared(2), s: chapterCleared(2) ? `JACKPOT ${fmt(slotState().pool)}` : '第2章をクリアで解放', go: () => showSlot(() => showHub('jewel')) },
       { id: 'legends', f: 'コイン → 与ダメージ +1%', en: 'LEGENDS', jp: '伝説の宝石', c: '#ffd24a', icon: img(gemIcon('emerald', 96)), locked: !chapterCleared(3), s: chapterCleared(3) ? legendCardText() : '第3章をクリアで解放', go: () => showLegends(() => showHub('jewel')) },
-      { id: 'mygems', en: 'JEWEL ATELIER', jp: 'ジュエル・アトリエ', c: '#ffb3e6', icon: img(gemIcon((registerMyGems(), (myGems()[0] || {}).id) || 'tourmaline', 96)), s: `${myGems().length} / ${MY_MAX}`, go: () => showMyGems(() => showHub('jewel')) },
-      { id: 'sandbox', en: 'SANDBOX', jp: '宝石の砂場', c: '#8fe8ff', icon: img(gemIcon('opal', 96)), s: `${COLLECTION_IDS.length} 種`, go: () => showSandbox(() => showHub('jewel')) },
     ];
   } },
   archive: { en: 'ARCHIVE', jp: '記録', cards: () => {

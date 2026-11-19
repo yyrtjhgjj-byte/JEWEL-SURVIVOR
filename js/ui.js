@@ -7,7 +7,6 @@ import {
 } from './data.js';
 import { gemIcon, coinIcon, roughIcon, artifactIcon, enemyIcon, shopIcon, pickaxeIcon } from './render.js';
 import { mountLiveGem, GEM_LOOK } from './gem-gl.js';
-import { registerMyGems, myGem } from './mygems.js';
 import { diagCrashes, diagLaunches, diagNotes, clearDiag, diagNote } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter, FINALE_STAGES, stageTag, rushStep } from './stages.js';
@@ -293,8 +292,6 @@ const HINTS = {
   auction: '良い宝石や原石の詰め合わせを、コインで競り落とせます。ランを終えるたびに新しい回が開きます。',
   slot: 'コインを賭けて回します。コインのほか、ジェムダストや原石も出ます。',
   legends: '実在の名石を、来歴どおりの工程を払って作ります。完成するごとに与ダメージ +1%。',
-  mygems: 'カット・色・質感を選んで、自分だけの宝石を作れます。作った宝石はホームに飾れます。',
-  sandbox: '押していると宝石が出ます。かき混ぜる・はじくも試してみてください。',
 };
 export function firstHint(node, key) {
   const text = HINTS[key];
@@ -355,9 +352,6 @@ export function openHelp(spec) {
 // 袋はセーブに残すので、アプリを開き直しても偏らない。下のメニューのホームのアイコンも同じ宝石
 export let homeGem = 'ruby';
 function nextHomeGem() {
-  // ジュエル・アトリエで「ホームに飾る」にした宝石があれば、それをずっと出す
-  registerMyGems();
-  if (save.myHome && myGem(save.myHome)) { homeGem = save.myHome; return; }
   let bag = (save.homeBag || []).filter((id) => GEMS[id]);
   if (!bag.length) {
     bag = Object.keys(GEMS);
@@ -373,8 +367,7 @@ export function showTitle() {
   audio.playBgm('title');
   nextHomeGem();
   const cid = homeGem;
-  const mine = !GEMS[cid] && myGem(cid);
-  const g = GEMS[cid] || { jp: (mine && mine.name) || '名前のない宝石', en: 'MY JEWEL', word: 'ORIGINAL' };
+  const g = GEMS[cid];
   const node = el(`
     <div class="screen title-screen" data-nav="home">
       <div class="title-top">${rankChip()}${coinPill()}</div>
