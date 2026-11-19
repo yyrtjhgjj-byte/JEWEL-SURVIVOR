@@ -8,7 +8,7 @@ import { audio } from './audio.js';
 import { show, el, $, topbar, toast, firstHint } from './ui.js';
 import { gemIcon } from './render.js';
 import { GEMS } from './data.js';
-import { GEM_LOOK, FS_TRACE, FS_POST, NW, applyLook } from './gem-gl.js';
+import { GEM_LOOK, FS_TRACE, FS_POST, NW, applyLook, hasGemImage, prepareGemImages, BLANK_GEM } from './gem-gl.js';
 import { registerMyGems, myGemIds } from './mygems.js';
 
 const SIZES = { s: 0.3, m: 0.46, l: 0.7 };
@@ -156,7 +156,7 @@ export function showSandbox(back) {
       <div class="sb-stage" id="sbst"><canvas id="sbc"></canvas><canvas id="sbo"></canvas></div>
       <div class="sb-ctl">
         <div class="sb-seg" id="sbtool">${TOOLS.map(([v, t]) => `<button data-v="${v}">${t}</button>`).join('')}</div>
-        <div class="sb-gems" id="sbgem"><button data-v="random" class="sb-rnd">ランダム</button>${IDS.map((id) => `<button data-v="${id}"><img src="${gemIcon(id)}" alt=""></button>`).join('')}</div>
+        <div class="sb-gems" id="sbgem"><button data-v="random" class="sb-rnd">ランダム</button>${IDS.map((id) => `<button data-v="${id}"><img src="${hasGemImage(id) ? gemIcon(id) : BLANK_GEM}" data-g="${id}" alt=""></button>`).join('')}</div>
         <div class="sb-row">
           <div class="sb-seg sm" id="sbsize"><button data-v="s">小</button><button data-v="m">中</button><button data-v="l">大</button></div>
           <button class="sb-btn" id="sbgrav"></button>
@@ -165,6 +165,7 @@ export function showSandbox(back) {
       </div>
     </div>`);
   show(node);
+  prepareGemImages(IDS, (id, u) => { const im = node.querySelector(`img[data-g="${id}"]`); if (im) im.src = u; });
   firstHint(node, 'sandbox');
   let alive = true;
   $('#back', node).onclick = () => { audio.tap(); stop(); back(); };
