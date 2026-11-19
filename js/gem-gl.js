@@ -630,8 +630,13 @@ export { FS_TRACE, FS_POST, NW };
 const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uCau', 'uNW', 'uPersp', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL', 'uCarve'];
 
 function createRenderer(canvas) {
+  // 描けなかったときの手がかり（作れなかった理由・失った理由のメッセージ）
+  let why = '';
+  canvas.addEventListener('webglcontextcreationerror', (e) => { why = e.statusMessage || ''; });
+  canvas.addEventListener('webglcontextlost', (e) => { why = why || e.statusMessage || 'lost'; });
   const gl = canvas.getContext('webgl2', { premultipliedAlpha: true, antialias: false, alpha: true, depth: false, stencil: false, powerPreference: 'low-power' });
-  if (!gl) { glNote('context'); return null; }
+  if (!gl) { glNote('context', why); return null; }
+  const lost0 = gl.isContextLost();
   const compile = (s, type) => {
     const sh = gl.createShader(type);
     gl.shaderSource(sh, s);
@@ -648,13 +653,19 @@ function createRenderer(canvas) {
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
     return p;
   };
-  let prog, post;
+  // 小さい方（にじみ）から作る。どこで失ったかを記録に残す
+  let prog, post, step = 'post';
+  const t0 = performance.now();
   try {
-    prog = link(FS_TRACE);
     post = link(FS_POST);
+    step = 'trace';
+    prog = link(FS_TRACE);
   } catch (e) {
     console.warn('gem-gl', e);
-    if (gl.isContextLost()) { glNote('lost-at-start'); return null; }
+    if (gl.isContextLost()) {
+      glNote('lost-at-start', `step=${step} ms=${Math.round(performance.now() - t0)} lost0=${lost0 ? 1 : 0} why=${why}`);
+      return null;
+    }
     shaderBad = true;
     glNote('shader', e && e.message);
     return null;
