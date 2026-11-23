@@ -208,7 +208,8 @@ function lightsOf(list, soft) {
   return list.map((l) => ({ dir: [Math.cos(l.el * D2R) * Math.cos(l.az * D2R), Math.cos(l.el * D2R) * Math.sin(l.az * D2R), Math.sin(l.el * D2R)], c0: Math.cos(l.r * D2R), c1: Math.cos(l.r * soft * D2R), I: l.I }));
 }
 const ring = (n, el, r, I, off = 0) => Array.from({ length: n }, (_, i) => ({ az: off + (i * 360) / n, el, r, I }));
-const ENV_FACET = { L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 2.6, 30, 7), ...ring(4, 18, 9, 3, 40)], 1.3), sky0: 0.016, sky1: 0.04, floor: 0.035, head: 16 };
+// flag：表の面で跳ね返る光だけに掛ける黒い板の広さ（度）。揺れて傾いた広い平らな面（エメラルドカットのテーブルなど）が照明の箱を丸ごと映して白く抜けないように
+const ENV_FACET = { L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 2.6, 30, 7), ...ring(4, 18, 9, 3, 40)], 1.3), sky0: 0.016, sky1: 0.04, floor: 0.035, head: 16, flag: 50 };
 // 分散の強い石（spark）：小さな強い光をもっと小さく鋭くする（明るさの合計は同じ）。光が波長ごとに分かれて、ファイアが虹色に見える
 const ENV_SPARK = { ...ENV_FACET, L: lightsOf([...ring(6, 42, 13, 5, 15), ...ring(12, 68, 0.6, 565, 7), ...ring(4, 18, 9, 3, 40)], 1.3) };
 // ダイヤモンド：大きな箱を高さ交互に置く（6 つを同じ高さに並べると、テーブルの真ん中に箱が丸く白く写り込むため）
