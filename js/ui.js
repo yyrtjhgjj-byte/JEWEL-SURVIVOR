@@ -2603,7 +2603,7 @@ export function results(res, cleared, extra) {
       const ach = $('#ach', node);
       ach.classList.remove('hidden');
       ach.innerHTML = '<div class="label">ACHIEVEMENTS UNLOCKED</div>' +
-        extra.newAch.map((a) => { const art = ARTIFACTS.find((x) => x.ach === a.id); return `<div>◆ ${a.name} <span class="muted">+${fmt(a.coins)}${a.unlock ? ` ／ ${GEMS[a.unlock].jp} 解放` : ''}${art ? ` ／ 秘宝「${art.name}」解放` : ''}</span></div>`; }).join('');
+        extra.newAch.map((a) => { const art = ARTIFACTS.find((x) => x.ach === a.id); return `<div>◆ ${a.name} <span class="muted"><span class="nw">+${fmt(a.coins)}</span>${a.unlock ? ` ／ <span class="nw">${GEMS[a.unlock].jp} 解放</span>` : ''}${art ? ` ／ <span class="nw">秘宝「${art.name}」解放</span>` : ''}</span></div>`; }).join('');
     }
   })();
 }

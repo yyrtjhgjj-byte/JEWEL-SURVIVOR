@@ -12,7 +12,7 @@ import {
   mastery, nextMilestone, collectionStats, gemBonusText, statText, nextGem, rollCarat, applyPolish, autoGrade,
   collectionCount, pickRoughs, pickKey,
 } from './atelier.js';
-import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast, openSheet, firstHint } from './ui.js';
+import { show, el, $, topbar, gemColor, wordTag, refreshCoinPill, guard, haptic, getApp, upperLv, toast, openSheet, firstHint, fitText } from './ui.js';
 import { showHub } from './menu.js';
 import { mountLiveGem, liveGemOk } from './gem-gl.js';
 import { openGemView, LOUPE } from './gem-view.js';
@@ -633,10 +633,12 @@ function lotArt(lot, size) {
   }
   return `<div class="lot-art" style="--c:${gemColor(lot.gem)}"><img src="${gemIcon(lot.gem, size)}"></div>`;
 }
-function lotName(lot) {
-  if (lot.kind === 'bundle') return `原石の詰め合わせ<small>${ROUGH_ORDER.filter((t) => lot.rough[t]).map((t) => `${ROUGH[t].short} ×${lot.rough[t]}`).join('　')}</small>`;
+// fit：カタログの狭い列では、名前を 1 行に収める（単語の途中で折れないよう、入らなければ字を小さくする）
+function lotName(lot, fit = false) {
+  const nm = (t) => (fit ? `<span class="fit" data-lines="1"><b>${t}</b></span>` : t);
+  if (lot.kind === 'bundle') return `${nm('原石の詰め合わせ')}<small>${ROUGH_ORDER.filter((t) => lot.rough[t]).map((t) => `<span class="nw">${ROUGH[t].short} ×${lot.rough[t]}</span>`).join('　')}</small>`;
   const g = GEMS[lot.gem];
-  return `${g.jp}<small>${gradeBadge(lot.grade)} <span class="rv-ct">${lot.ct.toFixed(2)} ct</span></small>`;
+  return `${nm(g.jp)}<small>${gradeBadge(lot.grade)} <span class="rv-ct">${lot.ct.toFixed(2)} ct</span></small>`;
 }
 // 研磨コレクションに対して新しいか（未所持・最高品質・最大カラットの更新）
 function lotTags(lot) {
@@ -683,7 +685,7 @@ function renderAuction(box, black) {
   const lot = sess.lots[sess.cur];
   const tab = black ? 'auction2' : 'auction';
   const status = (l, i) => (l.state === 'won' ? `<b class="ls won">落札 ${fmt(l.price)}</b>`
-    : l.state === 'lost' ? `<b class="ls lost">${R.find((r) => r.id === l.winner).name}が ${fmt(l.price)} で落札</b>`
+    : l.state === 'lost' ? `<b class="ls lost">${R.find((r) => r.id === l.winner).name}が<br>${fmt(l.price)}&nbsp;で落札</b>`
       : l.state === 'unsold' ? '<b class="ls">流れた</b>' : i === sess.cur ? '<b class="ls now">NOW</b>' : '<b class="ls">これから</b>');
   box.innerHTML = '';
   auctionTabs(box, black);
@@ -691,7 +693,7 @@ function renderAuction(box, black) {
     <div class="label">${black ? 'BLACK MARKET' : 'AUCTION'}　・　${lot ? `LOT ${sess.cur + 1} / ${sess.lots.length}` : '閉会'}</div>
     <div class="cat-lots">${sess.lots.map((l, i) => `<div class="cat-lot ${i === sess.cur ? 'cur' : ''} ${l.state}">
       <span class="cat-no">LOT ${i + 1}</span>${lotArt(l, 72)}
-      <div class="cat-body"><div class="cat-name">${lotName(l)}</div><div class="cat-est">予想 ${fmt(r100(l.est * 0.8))} 〜 ${fmt(r100(l.est * 1.3))}</div><div class="rv-tags">${l.state === 'open' ? lotTags(l) : ''}</div></div>
+      <div class="cat-body"><div class="cat-name">${lotName(l, true)}</div><div class="cat-est">予想 ${fmt(r100(l.est * 0.8))} 〜 ${fmt(r100(l.est * 1.3))}</div><div class="rv-tags">${l.state === 'open' ? lotTags(l) : ''}</div></div>
       ${status(l, i)}
     </div>`).join('')}</div>
     <div class="label" style="margin-top:6px">RIVALS${lot ? `　・　LOT ${sess.cur + 1} への気配` : ''}</div>
@@ -701,6 +703,7 @@ function renderAuction(box, black) {
     : '<div class="at-note" style="text-align:center">この回は終わりました。ランを 1 回終えると、次の回が開かれます</div>'}
   </div>
   <div class="at-note">ライバルは回ごとに予算を持っていて、落札するたびに財布が減ります。「本命」の品にはお金を惜しみません。見送った品は、ライバルどうしで競り落とします。</div>`);
+  fitText(box);
   if (!lot) return;
   const go = $('#auc-go', box);
   if (go) go.onclick = () => { audio.select(); startBidding(sess, lot, black); };

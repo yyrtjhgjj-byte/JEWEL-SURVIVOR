@@ -216,9 +216,9 @@ export function showRebirth(back) {
       <div class="panel rb-panel">
         <p class="rb-lead">今のデータを「前世」としてしまい、まっさらから遊び直します。前世とは、いつでも合わせられます。</p>
         <div class="rb-h">まっさらに戻るもの</div>
-        <p class="rb-p">コイン・工房・ステージ・ジュエル・宝石と原石・百獣・実績・図鑑・ユーザーランク など</p>
+        <p class="rb-p rb-list">コイン・工房・ステージ・ジュエル・宝石と原石・百獣・実績・図鑑・ユーザーランク など</p>
         <div class="rb-h">そのまま続くもの</div>
-        <p class="rb-p">経営・ログインボーナス・設定・スロット</p>
+        <p class="rb-p rb-list">経営・ログインボーナス・設定・スロット</p>
       </div>
       <div class="panel rb-panel"><div class="rb-h">今のデータ</div>${rows(save)}</div>
       <button class="btn big primary rb-go" id="rb-go" ${busy ? 'disabled' : ''}>転生する</button>`}
