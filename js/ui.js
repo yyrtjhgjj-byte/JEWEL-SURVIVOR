@@ -40,12 +40,16 @@ function show(node) {
   const prev = s.querySelector(':scope > .screen:not(.dim)');
   const redraw = prev && prev.dataset.nav === node.dataset.nav && prev.className.replace(/\s*has-nav/, '') === node.className && !!prev.querySelector('.topbar') === !!node.querySelector('.topbar');
   if (redraw) node.classList.add('redraw');
-  // どの画面から来たかを覚え、来た元へ戻るときはその画面を離れたときの位置に戻す
+  // たどってきた画面の順（新しい順）を覚え、前に通った画面へ戻るときは、その画面を離れたときの位置に戻す
+  // （間にミニゲームなどの画面を挟んでも戻せるように、来た元を 1 つではなく順に持つ）
   const key = screenKey(node);
   node.dataset.key = key;
   if (prev && prev.dataset.key) scrollMem.set(prev.dataset.key, prev.scrollTop);
-  node.dataset.from = redraw ? prev.dataset.from || '' : prev ? prev.dataset.key || '' : '';
-  const backY = !redraw && prev && prev.dataset.from === key ? scrollMem.get(key) || 0 : 0;
+  const SEP = '\u0001';
+  const trail = prev && prev.dataset.key ? [prev.dataset.key, ...(prev.dataset.trail ? prev.dataset.trail.split(SEP) : [])] : [];
+  const back = redraw ? -1 : trail.indexOf(key);
+  node.dataset.trail = (redraw ? (prev.dataset.trail || '').split(SEP).filter(Boolean) : back > 0 ? trail.slice(back + 1) : trail.slice(0, 8)).join(SEP);
+  const backY = back > 0 ? scrollMem.get(key) || 0 : 0;
   s.innerHTML = '';
   if (node.dataset.nav) node.classList.add('has-nav');
   // 差し色は画面に 1 色：決めていない画面は、メニューのカテゴリの色にする
