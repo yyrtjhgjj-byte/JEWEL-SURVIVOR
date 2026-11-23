@@ -31,11 +31,21 @@ function el(html) {
 }
 const screens = () => $('#screens');
 // 画面を切り替える。data-nav（カテゴリ）のある画面では下のメニューを出す（menu.js）
+// 画面ごとのスクロールの位置（詳細などを開いて「‹」で戻ったとき、元の位置に戻す）
+const scrollMem = new Map();
+const screenKey = (n) => n.className.replace(/\b(has-nav|redraw)\b/g, '').replace(/\s+/g, ' ').trim() + '|' + ((n.querySelector('.topbar h2, .hub-head h1') || {}).textContent || '');
 function show(node) {
   const s = screens();
   // 同じ画面を描き直す（タブの切り替え・操作のあと）ときは、出てくる動きをかけない（毎回透明から出るとチラつく）
   const prev = s.querySelector(':scope > .screen:not(.dim)');
-  if (prev && prev.dataset.nav === node.dataset.nav && prev.className.replace(/\s*has-nav/, '') === node.className && !!prev.querySelector('.topbar') === !!node.querySelector('.topbar')) node.classList.add('redraw');
+  const redraw = prev && prev.dataset.nav === node.dataset.nav && prev.className.replace(/\s*has-nav/, '') === node.className && !!prev.querySelector('.topbar') === !!node.querySelector('.topbar');
+  if (redraw) node.classList.add('redraw');
+  // どの画面から来たかを覚え、来た元へ戻るときはその画面を離れたときの位置に戻す
+  const key = screenKey(node);
+  node.dataset.key = key;
+  if (prev && prev.dataset.key) scrollMem.set(prev.dataset.key, prev.scrollTop);
+  node.dataset.from = redraw ? prev.dataset.from || '' : prev ? prev.dataset.key || '' : '';
+  const backY = !redraw && prev && prev.dataset.from === key ? scrollMem.get(key) || 0 : 0;
   s.innerHTML = '';
   if (node.dataset.nav) node.classList.add('has-nav');
   // 差し色は画面に 1 色：決めていない画面は、メニューのカテゴリの色にする
@@ -44,6 +54,11 @@ function show(node) {
   s.appendChild(node);
   syncNav(node.dataset.nav, node);
   fitTitles(node);
+  if (backY) {
+    node.scrollTop = backY;
+    // 中身を後から足す画面は、描き終わってからもう一度合わせる
+    requestAnimationFrame(() => { if (node.isConnected && Math.abs(node.scrollTop - backY) > 1) node.scrollTop = backY; });
+  }
   return node;
 }
 // 見出しが枠に入りきらないときは、切らずに文字を小さくする（上の帯の日本語・ハブの見出し）

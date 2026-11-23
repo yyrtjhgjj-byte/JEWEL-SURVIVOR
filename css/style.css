@@ -189,10 +189,6 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .title-hero .word b { display: inline-block; font-family: var(--font-disp); font-weight: 400; font-size: min(8vw, 30px); letter-spacing: 0.06em; color: #fff; white-space: nowrap; }
 .title-hero .word small { display: block; margin: 4px 0 0; color: #8d8aa6; font: 700 12px var(--font); letter-spacing: 0.24em; }
 .title-hero .word small i { font-style: normal; font-family: var(--font-jp); font-weight: 900; letter-spacing: 0.04em; color: var(--acc); }
-/* 宝石の下地の帯（ホーム・伝説の宝石・宝石と百獣の詳細で共通）：宝石の色の破片 */
-.lgd-band { background: var(--acc); }
-.gem-detail .gd-top::before, .beast-detail .bd-art::before { background: var(--c); }
-.lgd-band::after { content: ''; position: absolute; inset: 0; background: linear-gradient(118deg, rgba(255,255,255,0.3) 0 20%, transparent 20% 46%, rgba(0,0,0,0.16) 46% 66%, transparent 66%); }
 .title-menu { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 420px; align-self: center; align-items: stretch; margin: 8px 0 4px; }
 .title-menu #t-play { height: 70px; padding: 0; line-height: 1; font-size: 38px; letter-spacing: 0.16em; }
 .credit { font-family: var(--font-jp); font-size: 10px; color: rgba(141,138,166,0.8); text-align: center; margin-top: 8px; line-height: 1.6; }
@@ -2253,7 +2249,6 @@ html.lite .sl-marquee::before, html.lite .sl-marquee::after { animation: none; }
 /* 伝説の宝石の詳細（UI 3.0）：差し色の帯の上に名石、名前の札、下地のある仕様の表、工程の進み具合 */
 .legend-screen { gap: 12px; }
 .lgd-hero { position: relative; width: calc(100% + 32px); max-width: 552px; margin: -4px -16px 0; height: 228px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; overflow: hidden; }
-.lgd-band { position: absolute; left: 0; right: 0; top: 34px; height: 120px; clip-path: polygon(0 22%, 62% 0, 100% 10%, 100% 74%, 40% 100%, 0 84%); }
 .legend-screen .lg-big { position: absolute; left: 50%; top: 8px; width: 160px; height: 160px; margin-left: -80px; filter: drop-shadow(0 10px 14px rgba(0,0,0,0.6)); }
 .lgd-name { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; align-self: flex-start; margin: 0 0 4px 16px; max-width: calc(100% - 32px); transform: rotate(-3deg); }
 .lgd-name b { font: 400 22px/1.25 var(--font-disp); background: #000; color: #fff; padding: 3px 14px 6px 12px; word-break: keep-all; text-wrap: balance; clip-path: polygon(0 0, 100% 6%, calc(100% - 10px) 100%, 4px 94%); }
@@ -2296,15 +2291,12 @@ html.lite .sl-marquee::before, html.lite .sl-marquee::after { animation: none; }
 .legend-screen .lg-fin { font-family: var(--font-disp); font-weight: 400; color: var(--acc); }
 /* 宝石・百獣・敵の詳細（UI 3.0）：絵の後ろに色の帯、名前は太い書体の札 */
 .gem-detail .gd-top { position: relative; margin: -4px -6px 8px; padding: 10px 6px 12px; isolation: isolate; }
-.gem-detail .gd-top::before { content: ''; position: absolute; z-index: -1; left: -14px; top: 14px; width: 132px; bottom: 10px; clip-path: polygon(0 12%, 100% 0, 84% 100%, 0 90%); }
 .gem-detail .gd-top img, .gem-detail .gd-top canvas { width: 96px; height: 96px; }
 .gem-detail .gd-name, .beast-detail .gd-name { font: 400 24px/1.2 var(--font-disp); transform: rotate(-3deg); transform-origin: left bottom; }
 .gem-detail .gd-en { display: inline-block; margin: 4px 0 6px; padding: 1px 9px; background: var(--c); color: #07060c; font-weight: 700; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
 .gem-detail .gd-loupe { border-radius: 0; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); }
 .gem-detail .gd-trivia { border-radius: 0; }
 .beast-detail .bd-art { position: relative; isolation: isolate; width: 100%; height: 190px; display: flex; justify-content: center; }
-.beast-detail .bd-art::before { content: ''; position: absolute; z-index: -1; left: -18px; right: -18px; top: 46px; height: 104px; clip-path: polygon(0 22%, 62% 0, 100% 10%, 100% 74%, 40% 100%, 0 84%); }
-.beast-detail .bd-art.none::before { filter: brightness(0.35) saturate(0.4); }
 .beast-detail .bd-art img { width: 190px; height: 190px; filter: drop-shadow(0 10px 12px rgba(0,0,0,0.6)); }
 .beast-detail .gd-name { transform-origin: center; }
 .mon-detail { border-radius: 0; }
@@ -2329,3 +2321,21 @@ html.lite .sl-marquee::before, html.lite .sl-marquee::after { animation: none; }
 .cat-name .fit > b { display: inline-block; font: inherit; }
 .ls { white-space: nowrap; }
 .rb-list { word-break: keep-all; }
+
+/* 伝説の宝石・宝石・百獣の詳細の絵：ホームと同じく、上から差す光と足元の光の輪（差し色は宝石の色）。名前は中央に白い字 */
+.lgd-hero::before { content: ''; position: absolute; left: 50%; top: -10px; width: min(80vw, 320px); height: 190px; transform: translateX(-50%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--acc) 0%, transparent), color-mix(in srgb, var(--acc) 18%, transparent));
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%); pointer-events: none; }
+.lgd-hero::after { content: ''; position: absolute; left: 50%; top: 168px; width: min(64vw, 250px); height: 38px; transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--acc) 40%, transparent), transparent); pointer-events: none; }
+.legend-screen .lg-big { z-index: 1; }
+.lgd-name { align-items: center; align-self: center; margin: 0 0 2px; transform: none; text-align: center; }
+.lgd-name b { background: none; padding: 0; clip-path: none; font-size: 24px; letter-spacing: 0.04em; }
+.lgd-name small { background: none; clip-path: none; color: #8d8aa6; padding: 0; margin: 4px 0 0; letter-spacing: 0.24em; }
+.gem-detail .gd-top::before { content: ''; position: absolute; z-index: -1; left: 2px; top: 74px; width: 100px; height: 26px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 45%, transparent), transparent); }
+.beast-detail .bd-art::before { content: ''; position: absolute; z-index: -1; left: 50%; top: 0; width: 230px; height: 190px; transform: translateX(-50%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 0%, transparent), color-mix(in srgb, var(--c) 18%, transparent)); clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%); }
+.beast-detail .bd-art.none::before { filter: saturate(0); opacity: 0.5; }
+/* カラット：数字ごとに字の幅が違う書体なので、枠を中身の幅に合わせ、数字と ct を折り返さない */
+.lgd-spec { grid-template-columns: auto minmax(0, 1fr); }
+.lgd-spec .lgd-ct b { white-space: nowrap; font-variant-numeric: tabular-nums; }
