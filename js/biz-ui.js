@@ -4,7 +4,7 @@
 // =====================================================================
 import { save, persist, avgRunCoins } from './save.js';
 import { audio } from './audio.js';
-import { fmt, todayStr } from './util.js';
+import { fmt, todayStr, patch } from './util.js';
 import { show, el, $, coinPill, refreshCoinPill, haptic, getApp, toast, gemColor, openHelp } from './ui.js';
 import { gemIcon, coinIcon, roughIcon } from './render.js';
 import { mountLiveGem } from './gem-gl.js';
@@ -377,23 +377,6 @@ function renderSheet() {
   tpl.innerHTML = html;
   patch(sh, tpl.content);
   sh.scrollTop = top;
-}
-// 変わったところだけ書き換える（同じ img を作り直すと、読み込み直しで一瞬消えるため）
-function patch(dst, src) {
-  const a = dst.childNodes, b = src.childNodes;
-  let i = 0;
-  for (; i < b.length; i++) {
-    const n = b[i], o = a[i];
-    if (!o) { dst.appendChild(n.cloneNode(true)); continue; }
-    if (o.nodeType !== n.nodeType || o.nodeName !== n.nodeName) { dst.replaceChild(n.cloneNode(true), o); continue; }
-    if (n.nodeType === 3) { if (o.data !== n.data) o.data = n.data; continue; }
-    if (n.nodeType !== 1) continue;
-    for (const at of [...o.attributes]) if (!n.hasAttribute(at.name)) o.removeAttribute(at.name);
-    for (const at of [...n.attributes]) if (o.getAttribute(at.name) !== at.value) o.setAttribute(at.name, at.value);
-    if (n.nodeName === 'BUTTON') o.disabled = n.hasAttribute('disabled');
-    patch(o, n);
-  }
-  while (a.length > b.length) dst.removeChild(a[a.length - 1]);
 }
 const btn = (act, label, cost, attrs = '', cls = '') => {
   const ok = cost == null || ui.st.cash >= cost;

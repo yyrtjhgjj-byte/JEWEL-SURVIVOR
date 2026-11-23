@@ -10,14 +10,14 @@ import { mountLiveGem, GEM_LOOK } from './gem-gl.js';
 import { diagCrashes, diagLaunches, diagNotes, clearDiag, diagNote } from './diag.js';
 import { ARTIFACTS, ARTIFACT_BY_ID, artifactUnlocked, unlockedArtifacts } from './artifacts.js';
 import { STAGES, STAGE_BY_ID, HEAT_MAX, heatMods, CHAPTERS, enemyChapter, FINALE_STAGES, stageTag, rushStep } from './stages.js';
-import { fmt, fmtTime, pick, todayStr } from './util.js';
+import { fmt, fmtTime, pick, todayStr, setHTML } from './util.js';
 import { ELEMENTS, elemOf, elementMul } from './elements.js';
 import { rankClass, rankNeed, rankCoinMul, rankState, RANK_CLASSES } from './rank.js';
 import { RARITY_ORDER, HOWTO_LOOP, HELP_GROUPS, helpTopicHTML, helpIndexHTML, flowMapHTML } from './howto.js';
 import { audio } from './audio.js';
 import { save, persist, resetSave, exportSave, parseBackup, importSave } from './save.js';
 import { ROUGH, ROUGH_IDS, totalRough, GRADES, COLLECTION_IDS, pickKey, pickRoughs } from './atelier.js';
-import { syncNav, refreshNav, showHub } from './menu.js';
+import { syncNav, refreshNav, showHub, NAV } from './menu.js';
 import { stageScene, stageSceneCached } from './scene-art.js';
 import { showcaseBack, showcaseFront } from './case-art.js';
 import { openSpec } from './gem-spec.js';
@@ -33,12 +33,32 @@ const screens = () => $('#screens');
 // 画面を切り替える。data-nav（カテゴリ）のある画面では下のメニューを出す（menu.js）
 function show(node) {
   const s = screens();
+  // 同じ画面を描き直す（タブの切り替え・操作のあと）ときは、出てくる動きをかけない（毎回透明から出るとチラつく）
+  const prev = s.querySelector(':scope > .screen:not(.dim)');
+  if (prev && prev.dataset.nav === node.dataset.nav && prev.className.replace(/\s*has-nav/, '') === node.className && !!prev.querySelector('.topbar') === !!node.querySelector('.topbar')) node.classList.add('redraw');
   s.innerHTML = '';
   if (node.dataset.nav) node.classList.add('has-nav');
+  // 差し色は画面に 1 色：決めていない画面は、メニューのカテゴリの色にする
+  const nav = node.dataset.nav && NAV.find((n) => n.id === node.dataset.nav);
+  if (nav && !node.style.getPropertyValue('--acc')) node.style.setProperty('--acc', nav.c);
   s.appendChild(node);
   syncNav(node.dataset.nav, node);
+  fitTitles(node);
   return node;
 }
+// 見出しが枠に入りきらないときは、切らずに文字を小さくする（上の帯の日本語・ハブの見出し）
+function fitTitles(root) {
+  for (const t of root.querySelectorAll('.topbar h2 .jp, .hub-head h1')) {
+    t.style.fontSize = '';
+    if (!t.clientWidth) continue;
+    let fs = parseFloat(getComputedStyle(t).fontSize);
+    while (fs > 10 && t.scrollWidth > t.clientWidth + 0.5) {
+      fs -= 0.5;
+      t.style.fontSize = fs + 'px';
+    }
+  }
+}
+addEventListener('resize', () => { const s = document.getElementById('screens'); if (s) fitTitles(s); });
 // 押したときの手ごたえ：決定のボタンとハブの項目に光を走らせる（CSS の glint-go）
 document.addEventListener('pointerdown', (e) => {
   const t = e.target.closest && e.target.closest('.btn.primary, .hub-card');
@@ -189,7 +209,7 @@ function refreshCoinPill() {
 // help はヘルプの項目（'topic' か 'topic#part'、'@group' で見出しごとの一覧）
 function topbar(en, jp, right = coinPill(), help = '') {
   if (right === null) right = `<div style="width:${help ? 88 : 44}px;flex:none"></div>`;
-  return `<div class="topbar ${help ? 'has-help' : ''}"><button class="iconbtn" id="back" aria-label="戻る">‹</button>${help ? helpBtn(help) : ''}<h2><span class="en ${en.length > 10 ? 'long' : ''}">${en}</span><span class="jp">${jp}</span></h2>${right}</div>`;
+  return `<div class="topbar ${help ? 'has-help' : ''}"><button class="iconbtn" id="back" aria-label="戻る">‹</button>${help ? helpBtn(help) : ''}<h2><span class="en ${en.length > 10 ? 'long' : ''}">${en}</span><span class="jp ${jp.length > 9 ? 'xlong' : jp.length > 6 ? 'long' : ''}">${jp}</span></h2>${right}</div>`;
 }
 // 四角に ? のボタン。押すと data-help の項目を開く（initUI でまとめて受ける）
 export const helpBtn = (help, cls = '') => `<button class="iconbtn help-btn ${cls}" data-help="${help}" aria-label="ヘルプ">?</button>`;
@@ -384,7 +404,6 @@ export function showTitle() {
       <div class="title-top">${rankChip()}${coinPill()}</div>
       <div class="logo" aria-label="JEWEL SURVIVOR"><div class="l1">${chars('JEWEL')}</div><div class="l2">${chars('SURVIVOR')}</div></div>
       <div class="title-hero">
-        <div class="th-band"></div><div class="th-rays"></div>
         <div class="th-gem"><img src="${gemIcon(cid, 160)}" alt=""></div>
         <div class="word"><b>${g.jp}</b><small>${g.en} / <i>${g.word}</i></small></div>
       </div>
@@ -401,6 +420,7 @@ export function showTitle() {
   tap('#t-howto', showHowTo);
   loginBonus();
   // 宝石をその場で描く（最初の 1 回はシェーダーの準備に少しかかるので、画面を出してから）
+  $('.th-gem', node).style.setProperty('--dir', Math.random() < 0.5 ? 1 : -1);
   setTimeout(() => mountLiveGem($('.title-hero img', node), cid), 80);
 }
 
@@ -461,11 +481,12 @@ export function showCharSelect() {
     const w = WEAPONS[c.weapon];
     const unlocked = !!save.unlocked[sel];
     const aw = save.awaken[sel] || 0;
-    $('#detail', node).innerHTML = `
+    // 変わったところだけ書き換える（額縁の手前の枠は共通なので作り直さない。宝石はその場で描くキャンバスが隣に入るので、包みの中に置く）
+    setHTML($('#detail', node), `
       <div class="char-detail">
         <div class="showcase ${unlocked ? '' : 'locked'}">
           <img class="sc-back" src="${showcaseBack(gemColor(sel), !unlocked)}" alt="">
-          <img class="sc-gem" src="${gemIcon(sel, 200)}" alt="">
+          <span class="sc-gw"><img class="sc-gem" src="${gemIcon(sel, 200)}" alt=""></span>
           <img class="sc-front" src="${showcaseFront()}" alt="">
           <i class="sc-spark" style="left:39px;top:49px"></i><i class="sc-spark" style="left:72px;top:80px;animation-delay:.9s"></i><i class="sc-spark" style="left:80px;top:36px;animation-delay:1.7s"></i>
           ${aw ? `<span class="sc-aw">★${aw}</span>` : ''}
@@ -479,7 +500,7 @@ export function showCharSelect() {
           </div>
         </div>
       </div>
-      <div class="lore">${unlocked ? g.lore : '🔒 解放条件：' + (c.unlock || '???')}</div>`;
+      <div class="lore">${unlocked ? g.lore : '🔒 解放条件：' + (c.unlock || '???')}</div>`);
     $('#go', node).disabled = !unlocked;
     if (unlocked) mountLiveGem($('.sc-gem', node), sel);
   };
@@ -607,12 +628,12 @@ export function showStageSelect() {
   const renderRush = () => {
     const best = rushBest(rsel);
     const lap = best ? Math.floor(best / rushPer(rsel)) : 0;
-    $('#opts', node).innerHTML = `${artHTML()}
+    setHTML($('#opts', node), `${artHTML()}
       ${best ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHECKPOINT<small>最高記録の ${best + 1} 体目（${lap + 1} 周目${lap ? ` ×${rushStep(STAGE_BY_ID[rsel]) ** lap}` : ''}）から。BOSS TREASURE ×${best + 1} を開けた状態で始める</small></span><button class="switch ${save.rushFromBest ? 'on' : ''}" id="rfrom"></button></div>` : ''}
       <div class="rp-head"><span>WEAPON</span><b>${lo.w.length} / ${MAX_WEAPONS}</b></div>
       <div class="rush-pick">${pickHTML(WEAPON_IDS, lo.w, MAX_WEAPONS, 'w')}</div>
       <div class="rp-head"><span>CHARM</span><b>${lo.p.length} / ${MAX_CHARMS}</b></div>
-      <div class="rush-pick">${pickHTML(PASSIVE_IDS, lo.p, MAX_CHARMS, 'p', pairsOf(lo.w))}</div>`;
+      <div class="rush-pick">${pickHTML(PASSIVE_IDS, lo.p, MAX_CHARMS, 'p', pairsOf(lo.w))}</div>`);
     fitText($('#opts', node));
     node.querySelectorAll('.rp').forEach((b) => (b.onclick = () => {
       const arr = b.dataset.k === 'w' ? lo.w : lo.p, max = b.dataset.k === 'w' ? MAX_WEAPONS : MAX_CHARMS;
@@ -639,7 +660,8 @@ export function showStageSelect() {
   const trLbMax = (it, k) => (k === 'w' ? 10 : charmLbMax(it.id));
   // まとめて：LV と LB を最小・最大に、ウェポンは進化も（LB と進化は最大レベルでだけ効くので、最大レベルにもする）
   const trBulk = (arr, k) => {
-    if (!arr.length) return '';
+    // 空でも同じ場所に要素を置く（無くなると後ろの並びがずれて、描き直しで絵を作り直してしまう）
+    if (!arr.length) return `<div class="tr-bulk" data-k="${k}" style="display:none"></div>`;
     const all = (f) => arr.every(f);
     const lvMin = all((it) => it.lv <= 1), lvMax = all((it) => it.lv >= trMax(it, k));
     const lbMin = all((it) => !it.lb), lbFull = all((it) => it.lv >= trMax(it, k) && (it.lb || 0) >= trLbMax(it, k));
@@ -679,7 +701,7 @@ export function showStageSelect() {
     const ids = (arr) => arr.map((x) => x.id);
     const L = trLists(), ch = trChaos();
     const allBtn = (k, n, max) => (ch ? `<button class="rp-all" data-all="${k}">${n >= max ? 'すべて外す' : 'すべて選ぶ'}</button>` : '');
-    $('#opts', node).innerHTML = `${artHTML()}
+    setHTML($('#opts', node), `${artHTML()}
       <div class="toggle-row" style="margin-bottom:10px"><span>HP 25%<small>自機の HP を 25% に固定する</small></span><button class="switch ${tc.low ? 'on' : ''}" id="tlow"></button></div>
       ${chaosOpen() ? `<div class="toggle-row" style="margin-bottom:10px"><span>CHAOS<small>ウェポン・チャームを全部持てる<br>的の HP ×${CHAOS}</small></span><button class="switch ${ch ? 'on' : ''}" id="tchaos"></button></div>` : ''}
       <div class="rp-head"><span>WEAPON</span>${allBtn('w', L.w.length, L.mw)}<b>${L.w.length} / ${L.mw}</b></div>
@@ -689,7 +711,7 @@ export function showStageSelect() {
       <div class="rp-head"><span>CHARM</span>${allBtn('p', L.p.length, L.mp)}<b>${L.p.length} / ${L.mp}</b></div>
       <div class="rush-pick">${pickHTML(PASSIVE_IDS, ids(L.p), L.mp, 'p', pairsOf(ids(L.w)))}</div>
       ${trBulk(L.p, 'p')}
-      <div class="tr-list">${L.p.map((it) => trRow(it, 'p')).join('')}</div>`;
+      <div class="tr-list">${L.p.map((it) => trRow(it, 'p')).join('')}</div>`);
     fitText($('#opts', node));
     node.querySelectorAll('.rp').forEach((b) => (b.onclick = () => {
       const k = b.dataset.k, arr = k === 'w' ? L.w : L.p, max = k === 'w' ? L.mw : L.mp;
@@ -769,13 +791,13 @@ export function showStageSelect() {
     const h = Math.min(maxHeat, hs[sel] ?? 0);
     const m = heatMods(h);
     const coinMul = 1 + (0.3 + 0.06 * upperLv('heatCoin')) * h;
-    $('#opts', node).innerHTML = `${artHTML()}
+    setHTML($('#opts', node), `${artHTML()}
       <div class="toggle-row"><span>HEAT<small>${rec.cleared ? `敵HP ×${m.hp.toFixed(2)} ／ 敵攻撃 ×${m.dmg.toFixed(2)} ／ 獲得コイン ×${coinMul.toFixed(1)}` : 'このステージをクリアすると解放'}</small></span>
         <div class="heat-ctl"><button class="iconbtn" id="hm" ${h <= 0 ? 'disabled' : ''}>−</button><b class="heat-val h${h}">${h}</b><button class="iconbtn" id="hp" ${h >= maxHeat ? 'disabled' : ''}>＋</button></div></div>
       ${rec.cleared ? `<div class="toggle-row" style="margin-top:10px"><span>ENDLESS<small>最終ボス撃破後も続行（敵が際限なく強化）</small></span><button class="switch ${save.endless ? 'on' : ''}" id="en"></button></div>
       <div class="toggle-row" style="margin-top:10px"><span>HYPER<small>自機・敵の移動速度 ×1.65、敵弾 ×1.2、獲得コイン ×1.5</small></span><button class="switch ${save.hyper ? 'on' : ''}" id="hy"></button></div>
       <div class="toggle-row" style="margin-top:10px"><span>HURRY<small>ステージの時間が 2 倍速で進む</small></span><button class="switch ${save.hurry ? 'on' : ''}" id="hu"></button></div>` : ''}
-      ${rec.cleared && chaosOpen() ? `<div class="toggle-row" style="margin-top:10px"><span>CHAOS<small>全装備で開始<br>強化・宝箱・敵の強さ ×${CHAOS}${chaosNote(sel)}</small></span><button class="switch ${save.chaos ? 'on' : ''}" id="ch"></button></div>` : ''}`;
+      ${rec.cleared && chaosOpen() ? `<div class="toggle-row" style="margin-top:10px"><span>CHAOS<small>全装備で開始<br>強化・宝箱・敵の強さ ×${CHAOS}${chaosNote(sel)}</small></span><button class="switch ${save.chaos ? 'on' : ''}" id="ch"></button></div>` : ''}`);
     const hm = $('#hm', node), hp = $('#hp', node);
     hm.onclick = () => { hs[sel] = Math.max(0, h - 1); audio.tap(); persist(); renderOpts(); };
     hp.onclick = () => { hs[sel] = Math.min(maxHeat, h + 1); audio.tap(); persist(); renderOpts(); };
@@ -942,14 +964,15 @@ function shopEffect(it, lv) {
   const [, label, sign, num, suf] = m;
   return label + sign + +(parseFloat(num) * lv).toFixed(2) + suf;
 }
-// 行に出す効果：今の値と、次のレベルの値（「攻撃範囲 +3.5% → +7%」）。最大なら今の値だけ
+// 行に出す効果：今の値と、次のレベルの値（「攻撃範囲 +3.5% → +7%」）。最大なら今の値だけ、Lv0 なら次の値だけ
 function shopEffectNext(it, lv) {
-  if (lv >= it.max || it.max === 1) return shopEffect(it, lv);
+  if (it.max === 1) return it.t;
+  if (lv >= it.max) return shopEffect(it, lv);
   const m = it.t.match(/^(.*?)([+-]?)(\d+(?:\.\d+)?)(.*)$/);
   if (!m) return it.t;
   const [, label, sign, num, suf] = m;
   const v = (n) => (n ? sign : '') + +(parseFloat(num) * n).toFixed(2) + suf;
-  return `${label}${v(lv)}<span class="lr-next"> → ${v(lv + 1)}</span>`;
+  return lv ? `${label}${v(lv)}<span class="lr-next"> → ${v(lv + 1)}</span>` : `${label}<span class="lr-next">→ ${v(1)}</span>`;
 }
 const lvPips = (lv, max) => `<span class="pips ${lv >= max ? 'max' : ''}">${Array.from({ length: max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</span>`;
 
@@ -1053,14 +1076,14 @@ export function showShop(upper = false) {
     const v = spent();
     $('#refund', node).innerHTML = `全額返金 ${coinIco}${fmt(v)}`;
     $('#refund', node).disabled = !v;
-    list.innerHTML = ITEMS.map((it) => {
+    setHTML(list, ITEMS.map((it) => {
       const lv = up[it.id] || 0;
       return `<div class="lrow ${upper && lv >= it.max && upOff[it.id] ? 'off' : ''}" data-id="${it.id}" role="button" tabindex="0">
         <img class="lr-ico" src="${shopIcon(it.id, 72)}" alt="">
-        <div class="lr-mid"><div class="lr-line"><b class="lr-name">${it.name}</b><small class="lr-lv">LV ${lv}/${it.max}</small></div>
-          <div class="lr-line">${lvPips(lv, it.max)}<span class="lr-val">${shopEffectNext(it, lv)}</span></div></div>
+        <div class="lr-mid"><div class="lr-line"><b class="lr-name">${it.name}</b>${lvPips(lv, it.max)}</div>
+          <div class="lr-line"><span class="lr-val">${shopEffectNext(it, lv)}</span></div></div>
         ${btnHTML(it, lv)}</div>`;
-    }).join('');
+    }).join(''));
   };
   list.addEventListener('click', (e) => {
     const row = e.target.closest('.lrow');
@@ -1245,44 +1268,49 @@ export function showExchange(onClose) {
       <div id="xl"></div>
       <div class="pfoot"><button class="btn" id="xok">閉じる</button></div>
     </div></div>`);
+  // 交換できるもの（押したときの中身）。行は変わったところだけ書き換える
+  const acts = {};
   const render = () => {
     $('#xd', ov).textContent = fmt(save.dust || 0);
-    const xl = $('#xl', ov);
-    xl.innerHTML = '';
-    const row = (icon, name, sub, cost, can, fn) => {
-      const r = el(`<div class="exch-row"><img src="${icon}"><div class="xb"><div class="xn">${name}</div><div class="xs">${sub}</div></div>
-        <button class="btn small gold" ${can && (save.dust || 0) >= cost ? '' : 'disabled'}>${cost}</button></div>`);
-      $('button', r).onclick = () => {
-        if ((save.dust || 0) < cost || !can) return;
-        save.dust -= cost;
-        fn();
-        persist();
-        audio.levelUp();
-        haptic();
-        render();
-      };
-      xl.appendChild(r);
+    const dust = save.dust || 0;
+    let html = '';
+    const row = (key, icon, name, sub, cost, can) => {
+      html += `<div class="exch-row"><img src="${icon}"><div class="xb"><div class="xn">${name}</div><div class="xs">${sub}</div></div>
+        <button class="btn small gold" data-x="${key}" ${can && dust >= cost ? '' : 'disabled'}>${cost}</button></div>`;
     };
     for (const t of ['mystic', 'large']) {
-      row(roughIcon(t, ROUGH[t].color, 72), ROUGH[t].name, `所持 ${save.rough[t] || 0}`, EXCHANGE[t], true, () => { save.rough[t] = (save.rough[t] || 0) + 1; });
+      acts[t] = { cost: EXCHANGE[t], fn: () => { save.rough[t] = (save.rough[t] || 0) + 1; } };
+      row(t, roughIcon(t, ROUGH[t].color, 72), ROUGH[t].name, `所持 ${save.rough[t] || 0}`, EXCHANGE[t], true);
     }
     // 選べる原石：押すと宝石を選ぶ画面を開き、選んでから交換する
-    xl.appendChild(el('<div class="exch-label">選べる原石（中身の宝石を選べる）</div>'));
+    html += '<div class="exch-label">選べる原石（中身の宝石を選べる）</div>';
     for (const t of ROUGH_IDS.slice().reverse()) {
-      const cost = EXCHANGE.pick[t];
       const have = pickRoughs().filter((x) => x.tier === t).reduce((a, x) => a + x.n, 0);
-      const r = el(`<div class="exch-row"><img src="${roughIcon(t, ROUGH[t].color, 72)}"><div class="xb"><div class="xn">選べる${ROUGH[t].name}</div><div class="xs">所持 ${have}</div></div>
-        <button class="btn small gold" ${(save.dust || 0) >= cost ? '' : 'disabled'}>${cost}</button></div>`);
-      $('button', r).onclick = () => { audio.tap(); pickRoughDialog(t, render); };
-      xl.appendChild(r);
+      acts['p' + t] = { pick: t };
+      row('p' + t, roughIcon(t, ROUGH[t].color, 72), `選べる${ROUGH[t].name}`, `所持 ${have}`, EXCHANGE.pick[t], true);
     }
-    xl.appendChild(el('<div class="exch-label">覚醒（攻撃力 +5% ／ 最大 5 段階）</div>'));
+    html += '<div class="exch-label">覚醒（攻撃力 +5% ／ 最大 5 段階）</div>';
     for (const id of CHAR_IDS) {
       if (!save.unlocked[id]) continue;
       const aw = save.awaken[id] || 0;
-      row(gemIcon(id, 72), GEMS[id].jp, aw >= AWAKEN_MAX ? '覚醒 MAX' : `覚醒 ★${aw} → ★${aw + 1}`, EXCHANGE.awaken, aw < AWAKEN_MAX, () => { save.awaken[id] = aw + 1; });
+      acts['a' + id] = { cost: EXCHANGE.awaken, can: aw < AWAKEN_MAX, fn: () => { save.awaken[id] = aw + 1; } };
+      row('a' + id, gemIcon(id, 72), GEMS[id].jp, aw >= AWAKEN_MAX ? '覚醒 MAX' : `覚醒 ★${aw} → ★${aw + 1}`, EXCHANGE.awaken, aw < AWAKEN_MAX);
     }
+    setHTML($('#xl', ov), html);
   };
+  $('#xl', ov).addEventListener('click', (e) => {
+    const b = e.target.closest('[data-x]');
+    if (!b || b.disabled) return;
+    const a = acts[b.dataset.x];
+    if (a.pick) { audio.tap(); pickRoughDialog(a.pick, render); return; }
+    if ((save.dust || 0) < a.cost || a.can === false) return;
+    save.dust -= a.cost;
+    a.fn();
+    persist();
+    audio.levelUp();
+    haptic();
+    render();
+  });
   render();
   screens().appendChild(ov);
   firstHint(ov, 'exchange');

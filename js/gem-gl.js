@@ -837,7 +837,8 @@ function tick(now) {
     if (still) L.last = 0;
   } else {
     const t = (now - L.t0) / 1000;
-    L.r.draw(W, 10 * Math.sin(t * 0.9), 14 * Math.cos(t * 0.6), L.ss);
+    // 出たときは画像と同じ真っ直ぐの向き（0）から揺れ始める。最初に揺れる向きは L.dir（mountLiveGem で決める）
+    L.r.draw(W, 10 * Math.sin(t * 0.9) * L.dir[0], 14 * Math.sin(t * 0.6) * L.dir[1], L.ss);
   }
   if (!L.shown) {
     L.shown = true;
@@ -877,7 +878,7 @@ export function mountLiveGem(img, id, ctl = null) {
       e.preventDefault();
       if (live && live.canvas === canvas) lostLive();
     });
-    live = { canvas, r, img: null, id: null, ctl: null, raf: 0, last: 0, t0: 0, scale: 1, ss: 1, slow: 0, fast: 0, shown: false };
+    live = { canvas, r, img: null, id: null, ctl: null, raf: 0, last: 0, t0: 0, scale: 1, ss: 1, slow: 0, fast: 0, shown: false, dir: [1, 1] };
   }
   if (live.img && live.img !== img) live.img.hidden = false;
   if (live.raf) cancelAnimationFrame(live.raf);
@@ -895,6 +896,7 @@ export function mountLiveGem(img, id, ctl = null) {
   live.shown = false;
   live.last = 0;
   live.t0 = performance.now();
+  live.dir = [Math.random() < 0.5 ? 1 : -1, Math.random() < 0.5 ? 1 : -1];
   live.r.load(id);
   live.raf = requestAnimationFrame(tick);
 }

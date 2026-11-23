@@ -89,3 +89,27 @@ export function preloadImages(paths) {
     .then((b) => { if (b) blobUrls[p] = URL.createObjectURL(b); })
     .catch(() => {})));
 }
+
+// 描き直し：作り直さず、変わったところだけ書き換える（img を作り直すと iPhone で一瞬消えてチラつく）
+export function patch(dst, src) {
+  const a = dst.childNodes, b = src.childNodes;
+  let i = 0;
+  for (; i < b.length; i++) {
+    const n = b[i], o = a[i];
+    if (!o) { dst.appendChild(n.cloneNode(true)); continue; }
+    if (o.nodeType !== n.nodeType || o.nodeName !== n.nodeName) { dst.replaceChild(n.cloneNode(true), o); continue; }
+    if (n.nodeType === 3) { if (o.data !== n.data) o.data = n.data; continue; }
+    if (n.nodeType !== 1) continue;
+    for (const at of [...o.attributes]) if (!n.hasAttribute(at.name)) o.removeAttribute(at.name);
+    for (const at of [...n.attributes]) if (o.getAttribute(at.name) !== at.value) o.setAttribute(at.name, at.value);
+    if (n.nodeName === 'BUTTON') o.disabled = n.hasAttribute('disabled');
+    patch(o, n);
+  }
+  while (a.length > b.length) dst.removeChild(a[a.length - 1]);
+}
+// 文字列の中身を、変わったところだけ書き換えて入れる
+export function setHTML(dst, html) {
+  const t = document.createElement('template');
+  t.innerHTML = html;
+  patch(dst, t.content);
+}
