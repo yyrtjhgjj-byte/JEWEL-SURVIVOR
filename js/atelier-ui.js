@@ -1,6 +1,7 @@
 // =====================================================================
 //  研磨工房の画面（研磨ミニゲーム・一括研磨・コレクション）
 // =====================================================================
+import { DMG_SHOW } from './legends-data.js';
 import { GEMS, CHARACTERS } from './data.js';
 import { GEM_FACTS } from './gem-facts.js';
 import { gemIcon, roughIcon, drawRough } from './render.js';
@@ -558,7 +559,8 @@ function renderBeasts(box) {
   const bs = beastStats();
   const sum = el(`<div class="panel coll-sum"><div class="coll-count"><b>${BEAST_IDS.filter((id) => beastLevel(id)).length}</b> / ${BEAST_IDS.length}<small>召喚</small></div>
     <button class="chip" id="bbonus">百獣のボーナス ›</button></div>`);
-  $('#bbonus', sum).onclick = () => { audio.tap(); bonusSheet('百獣のボーナス', bs); };
+  // 与ダメージは画面にだけ 5 倍で出す（legends-data.js の DMG_SHOW）
+  $('#bbonus', sum).onclick = () => { audio.tap(); bonusSheet('百獣のボーナス', bs.dmgUp ? { ...bs, dmgUp: bs.dmgUp * DMG_SHOW } : bs); };
   box.appendChild(sum);
   const grid = el('<div class="beast-grid"></div>');
   for (const id of BEAST_IDS) {

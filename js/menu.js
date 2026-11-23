@@ -153,7 +153,7 @@ const HUBS = {
       { id: 'collection', f: '練度 → 永続ボーナス', en: 'COLLECTION', jp: 'コレクション', c: '#ff4d6d', icon: img(gemIcon('ruby', 96)), s: `${collectionCount()} / ${COLLECTION_IDS.length} 種`, go: () => showAtelier('collection') },
       { id: 'beasts', f: '宝石 10 個 → 永続ボーナス', en: 'BEASTS', jp: '百獣', c: '#7fd0ff', icon: img(beastIcon(beasts[0] || 'sapphire', 96)), s: `召喚 ${beasts.length} / ${BEAST_IDS.length}`, go: () => showAtelier('beasts') },
       { id: 'slot', f: 'コイン → コイン・ダスト・原石', en: 'JEWEL SLOT', jp: 'ジュエル・スロット', c: '#ff7ac8', icon: img(gemIcon('diamond', 96)), locked: !chapterCleared(2), s: chapterCleared(2) ? `JACKPOT ${fmt(slotState().pool)}` : '第2章をクリアで解放', go: () => showSlot(() => showHub('jewel')) },
-      { id: 'legends', f: 'コイン → 与ダメージ +1%', en: 'LEGENDS', jp: '伝説の宝石', c: '#ffd24a', icon: img(gemIcon('emerald', 96)), locked: !chapterCleared(3), s: chapterCleared(3) ? legendCardText() : '第3章をクリアで解放', go: () => showLegends(() => showHub('jewel')) },
+      { id: 'legends', f: 'コイン → 与ダメージ +5%', en: 'LEGENDS', jp: '伝説の宝石', c: '#ffd24a', icon: img(gemIcon('emerald', 96)), locked: !chapterCleared(3), s: chapterCleared(3) ? legendCardText() : '第3章をクリアで解放', go: () => showLegends(() => showHub('jewel')) },
     ];
   } },
   archive: { en: 'ARCHIVE', jp: '記録', cards: () => {
