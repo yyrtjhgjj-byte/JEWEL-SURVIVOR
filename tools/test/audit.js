@@ -18,7 +18,7 @@ async function richSave(p) {
     const { persist } = await import('/js/save.js');
     const s = window.__save;
     s.login = { last: todayStr(), days: 12 };
-    s.coins = 3200000; s.dust = 40000;
+    s.coins = 123456789; s.dust = 422406;
     s.rough = { shard: 40, rough: 20, large: 6, mystic: 3 };
     for (const st of STAGES) s.stages[st.id] = { cleared: true, heat: 3, best: 420 };
     s.chaosOpen = true;
@@ -60,6 +60,27 @@ const PROBE = () => {
     for (let a = e.parentElement; a; a = a.parentElement) { const ac = getComputedStyle(a); if (ac.overflowX === 'auto' || ac.overflowX === 'scroll') { sc = true; break; } }
     if (!sc && (r.right > vw + 1 || r.left < -1) && r.width < vw * 1.5) out.push({ kind: 'offscreen', el: label(e), l: Math.round(r.left), r: Math.round(r.right) });
   }
+  // 単語の途中で行が折れている短い文字（名前・見出し・ラベル。「交換｜所」「アレキサンドライ｜ト」「422,4｜06」など）
+  const cls = (c) => (/[\u30a0-\u30ff\u31f0-\u31ff]/.test(c) ? 'k' : /[\u4e00-\u9fff々]/.test(c) ? 'h' : /[A-Za-z0-9,.%+]/.test(c) ? 'a' : '');
+  const walk = document.createTreeWalker(document.querySelector('#screens'), NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    const t = n.data;
+    // 文章（親の文字が長いもの）の折り返しは日本語のふつうの組み方なので見ない
+    if (t.trim().length < 2 || t.length > 24 || !n.parentElement || !vis(n.parentElement) || n.parentElement.textContent.length > 26) continue;
+    const rg = document.createRange();
+    let prevTop = null;
+    for (let i = 0; i < t.length; i++) {
+      rg.setStart(n, i); rg.setEnd(n, i + 1);
+      const rr = rg.getClientRects()[0];
+      if (!rr || !rr.width) continue;
+      if (prevTop !== null && rr.top > prevTop + 4) {
+        const a1 = t[i - 1], b1 = t[i];
+        if (cls(a1) && cls(a1) === cls(b1)) out.push({ kind: 'midbreak', el: label(n.parentElement), at: t.slice(0, i) + '|' + t.slice(i) });
+        break;
+      }
+      prevTop = rr.top;
+    }
+  }
   // 上の帯の部品どうしの重なり
   for (const tb of document.querySelectorAll('#screens .topbar, #screens .hub-top, #screens .title-top')) {
     const kids = [...tb.children].filter(vis);
@@ -69,12 +90,13 @@ const PROBE = () => {
       if (ox > 2 && oy > 2) out.push({ kind: 'overlap', el: label(kids[i]) + ' × ' + label(kids[j]) });
     }
   }
-  // ホームの名前の札と宝石
+  // ホームの名前と宝石（宝石の箱は周りに透明な余白と影があるので、内側 8 割で見る）
   const w = document.querySelector('.title-hero .word b'), gm = document.querySelector('.th-gem');
   if (w && gm) {
-    const a = w.getBoundingClientRect(), b = gm.getBoundingClientRect();
+    const a = w.getBoundingClientRect(), g0 = gm.getBoundingClientRect(), m = g0.width * 0.1;
+    const b = { left: g0.left + m, right: g0.right - m, top: g0.top + m, bottom: g0.bottom - m };
     const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-    if (ox > 4 && oy > 4) out.push({ kind: 'overlap', el: 'home plate × gem', ox: Math.round(ox), oy: Math.round(oy) });
+    if (ox > 4 && oy > 4) out.push({ kind: 'overlap', el: 'home name × gem', ox: Math.round(ox), oy: Math.round(oy) });
   }
   // 決定のボタンや下のメニューに隠れて押せない最後の要素（画面の最後までスクロールしたときに見えるか）
   const scr = [...document.querySelectorAll('#screens > .screen')].pop();
@@ -114,6 +136,7 @@ const SCREENS = [
   ['polish', imp('atelier-ui', 'showAtelier', 'polish')],
   ['mining', `(async()=>{const M=await import('/js/menu.js');M.showHub('jewel');document.querySelector('#h-mining').click();})()`],
   ['auction', imp('atelier-ui', 'showAtelier', 'auction')],
+  ['auction-after', `(async()=>{(await import('/js/atelier-ui.js')).showAtelier('auction');for(let i=0;i<2;i++){await new Promise(r=>setTimeout(r,300));const b=document.querySelector('#auc-pass');if(b)b.click();}})()`],
   ['collection', imp('atelier-ui', 'showAtelier', 'collection')],
   ['gemdetail', `(async()=>{(await import('/js/atelier-ui.js')).showAtelier('collection');await new Promise(r=>setTimeout(r,400));document.querySelector('.coll-cell:not(.none)').click();})()`],
   ['beasts', imp('atelier-ui', 'showAtelier', 'beasts')],

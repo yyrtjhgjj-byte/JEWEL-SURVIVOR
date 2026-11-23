@@ -47,7 +47,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .evo-name, .card .cname, .zitem .zname, .sub-title, .banner, .toast .tt { text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; }
 /* 行の長さをそろえるのは短い文字（カードの説明・注記など）だけ。図鑑などの長い説明文にかけると不自然な位置で切れるので、ふつうに折り返す。
    text-wrap: pretty も全体にはかけない（iPhone の Safari では段落全体の行をそろえ直すので、balance と同じように見える） */
-.card .cdesc, #screens small, .evo-from { text-wrap: balance; }
+.card .cdesc, .evo-from { text-wrap: balance; }
+/* small は行をそろえるだけ（text-wrap: balance は折り返すかどうかまで上書きし、親の white-space: nowrap が効かなくなる） */
+#screens small { text-wrap-style: balance; }
 .nw { white-space: nowrap; } /* ひとかたまりで折り返す */
 #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
@@ -2317,3 +2319,13 @@ html.lite .sl-marquee::before, html.lite .sl-marquee::after { animation: none; }
 .jb-fever { border-radius: 0 !important; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
 /* ホームの遊び方のボタンは横いっぱい */
 .title-screen .howto-btn { align-self: stretch; }
+/* 単語の途中で折らない：オークションのカタログの名前（1 行に収める）、転生の一覧（・でだけ折る） */
+/* 交換所の見出し：1 行目に題名と ?、2 行目にジェムダスト（横に並べると 375px 幅で入らない） */
+.exch-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; row-gap: 2px; }
+.exch-head > span { white-space: nowrap; }
+.exch-head > .dustv { grid-row: 2; grid-column: 1 / -1; }
+.exch-head > .help-btn { grid-row: 1; grid-column: 2; }
+.cat-name .fit { display: block; white-space: nowrap; overflow: hidden; }
+.cat-name .fit > b { display: inline-block; font: inherit; }
+.ls { white-space: nowrap; }
+.rb-list { word-break: keep-all; }
