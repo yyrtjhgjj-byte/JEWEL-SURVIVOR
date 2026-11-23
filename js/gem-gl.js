@@ -230,8 +230,10 @@ uniform vec4 uP[112]; uniform int uN;
 uniform vec3 uIor, uSig, uSig2, uPleo; uniform float uPleoOn, uBiOn, uBiAt;
 uniform vec2 uCau; uniform int uNW; uniform float uPersp;
 uniform vec3 uAbc; uniform float uFogD; uniform vec3 uFogL; uniform float uCarve;
-uniform vec4 uL[24]; uniform vec2 uLc[24]; uniform int uNL; uniform vec4 uEnv; uniform vec2 uHead;
+uniform vec4 uL[24]; uniform vec2 uLc[24]; uniform int uNL; uniform vec4 uEnv; uniform vec2 uHead; uniform vec2 uFlag;
 
+// 表の面で跳ね返る光だけに掛ける黒い板（撮影でカメラのまわりを黒く囲うのと同じ。広い平らな面が照明を丸ごと映して白く抜けないように）
+float flagF(vec3 d){ if (uFlag.x > 1.) return 1.; return d.z > uFlag.x ? .1 : d.z > uFlag.y ? .1 + .9 * (uFlag.x - d.z) / (uFlag.x - uFlag.y) : 1.; }
 float env(vec3 d){
   float v = d.z > 0. ? uEnv.x + uEnv.y * d.z * d.z : uEnv.z * (1. + d.z * .5);
   for (int i = 0; i < 24; i++) { if (i >= uNL) break; float c = dot(d, uL[i].xyz); if (c > uLc[i].y) v += uL[i].w * (c >= uLc[i].x ? 1. : (c - uLc[i].y) / (uLc[i].x - uLc[i].y)); }
@@ -280,7 +282,8 @@ vec3 trace(vec3 ro, vec3 rd, vec3 rr, float ior, out bool hit){
   vec3 p = ro + rd * tin, n = uP[ni].xyz;
   if (uCarve > 0. && ni == 0) { float e = .004, h0 = carveH(p.xy); n = normalize(n - vec3(carveH(p.xy + vec2(e, 0)) - h0, carveH(p.xy + vec2(0, e)) - h0, 0) / e * .035 * uCarve); }
   float ci = -dot(n, rd), F = fres(ci, ior);
-  vec3 outv = vec3(F * env(uR * (rr + 2. * dot(-n, rr) * n)));
+  vec3 rw = uR * (rr + 2. * dot(-n, rr) * n);
+  vec3 outv = vec3(F * env(rw) * flagF(rw));
   float k = 1. / ior, ct = sqrt(max(0., 1. - k * k * (1. - ci * ci)));
   vec3 v = k * rd + (k * ci - ct) * n; vec3 T = vec3(1. - F);
   for (int b = 0; b < 8; b++) {
@@ -597,6 +600,9 @@ export function applyLook(gl, uni, id) {
   const fill = g.fill || 1;
   gl.uniform4f(uni.uEnv, E.sky0 * fill, E.sky1 * fill, E.floor * fill, 0);
   gl.uniform2f(uni.uHead, Math.cos(E.head * D2R), Math.cos(E.head * 1.4 * D2R));
+  // 表の面の反射に掛ける黒い板の広さ（度。0 なら掛けない）
+  const flag = typeof window !== 'undefined' && window.__gemFlag != null ? window.__gemFlag : g.flag != null ? g.flag : E.flag || 0;
+  gl.uniform2f(uni.uFlag, flag ? Math.cos(flag * D2R) : 2, flag ? Math.cos(flag * 1.3 * D2R) : 2);
   gl.uniform1i(uni.uMode, MODE[g.mode]);
   gl.uniform1i(uni.uKind, g.kind || 0);
   if (CUTS[g.cut]) {
@@ -627,7 +633,7 @@ export function applyLook(gl, uni, id) {
 
 // ---------------------------------------------------------------- 描く道具（キャンバス 1 枚に 1 つ）
 export { FS_TRACE, FS_POST, NW };
-const UNIFORMS = ['uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uCau', 'uNW', 'uPersp', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL', 'uCarve'];
+const UNIFORMS = ['uFlag', 'uRes', 'uSpan', 'uExp', 'uR', 'uMode', 'uKind', 'uSS', 'uP', 'uN', 'uIor', 'uCau', 'uNW', 'uPersp', 'uSig', 'uSig2', 'uPleo', 'uPleoOn', 'uBiOn', 'uBiAt', 'uAbc', 'uL', 'uLc', 'uNL', 'uEnv', 'uHead', 'uFogD', 'uFogL', 'uCarve'];
 
 function createRenderer(canvas) {
   // 描けなかったときの手がかり（作れなかった理由・失った理由のメッセージ）

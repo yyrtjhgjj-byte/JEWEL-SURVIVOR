@@ -2,7 +2,7 @@
 //  伝説の宝石の画面：名石の一覧 → 来歴の工程（1 つずつ払って進める。割る・磨く・彫るはミニゲーム）→ 完成のお披露目
 //  中身（名石と工程と値段）は legends-data.js
 // =====================================================================
-import { LEGENDS, LEGEND_BY_ID, LEGEND_GAMES, LEGEND_PASS, LEGEND_DMG, legendTotal, legendsDone } from './legends-data.js';
+import { LEGENDS, LEGEND_BY_ID, LEGEND_GAMES, LEGEND_PASS, LEGEND_DMG, legendTotal, legendsDone, dmgShowPct } from './legends-data.js';
 import { save, persist, avgRunCoins } from './save.js';
 import * as B from './biz.js';
 import { coinIcon } from './render.js';
@@ -73,7 +73,7 @@ export function showLegends(back) {
   const node = el(`
     <div class="screen legends-screen" data-nav="jewel">
       ${topbar('LEGENDS', '伝説の宝石', coinPill(), 'legends')}
-      <div class="lgd-purse lg-top"><div class="lg-sum">完成 <b>${n}</b> / ${LEGENDS.length}<span>与ダメージ <b>+${Math.round(n * LEGEND_DMG * 100)}%</b></span></div>
+      <div class="lgd-purse lg-top"><div class="lg-sum">完成 <b>${n}</b> / ${LEGENDS.length}<span>与ダメージ <b>+${dmgShowPct(n * LEGEND_DMG)}%</b></span></div>
       ${walletHTML()}</div>
       <div class="lg-list">${LEGENDS.map((L) => {
         const st = legendState(L.id), total = legendTotal(L), left = L.steps.slice(st.step).reduce((a, s) => a + s.cost, 0);
@@ -144,7 +144,7 @@ export function openLegend(id, back, afterShow) {
           ${cls === 'now' ? btns : ''}
         </div>
       </div>`;
-    }).join('') + (st.done ? `<div class="lg-fin">完成<span>与ダメージ +${Math.round(LEGEND_DMG * 100)}%</span></div>` : '');
+    }).join('') + (st.done ? `<div class="lg-fin">完成<span>与ダメージ +${dmgShowPct(LEGEND_DMG)}%</span></div>` : '');
     box.querySelectorAll('.lg-pay').forEach((pay) => (pay.onclick = () => {
       const i = +pay.dataset.i, s = L.steps[i], src = pay.dataset.src, key = `${i}:${src}`;
       if (st.done || i !== st.step || pay.disabled) return;
@@ -232,7 +232,7 @@ function complete(L) {
       <div><span>カット</span><b>${wbr(L.cut)}</b></div>
       <div><span>カラット</span><b>${L.ct} ct</b></div>
       ${L.value ? `<div><span>値打ち</span><b>${L.value}</b></div>` : ''}
-      <div><span>完成した名石</span><b>${legendsDone(save)} / ${LEGENDS.length}・与ダメージ +${Math.round(legendsDone(save) * LEGEND_DMG * 100)}%</b></div>
+      <div><span>完成した名石</span><b>${legendsDone(save)} / ${LEGENDS.length}・与ダメージ +${dmgShowPct(legendsDone(save) * LEGEND_DMG)}%</b></div>
     </div>
     <button class="btn big primary" id="lgok">OK</button>
   </div>`);

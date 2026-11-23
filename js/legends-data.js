@@ -17,6 +17,9 @@ export const LEGEND_GAMES = {
 export const LEGEND_PASS = 0.6;
 // 完成した名石 1 つにつき与ダメージ
 export const LEGEND_DMG = 0.01;
+// 画面に出す与ダメージ（百獣・伝説の宝石）は実際の 5 倍（ユーザーの希望。別枠の掛け算で効きは大きいのに、+1% では手ごたえがないため）
+export const DMG_SHOW = 5;
+export const dmgShowPct = (v) => Math.round(v * DMG_SHOW * 100);
 
 export const LEGENDS = [
   {
