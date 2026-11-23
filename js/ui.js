@@ -39,6 +39,14 @@ function show(node) {
   syncNav(node.dataset.nav, node);
   return node;
 }
+// 押したときの手ごたえ：決定のボタンとハブの項目に光を走らせる（CSS の glint-go）
+document.addEventListener('pointerdown', (e) => {
+  const t = e.target.closest && e.target.closest('.btn.primary, .hub-card');
+  if (!t || t.disabled) return;
+  t.classList.remove('glint-go');
+  void t.offsetWidth;
+  t.classList.add('glint-go');
+}, true);
 function clearScreens() { screens().innerHTML = ''; syncNav(null); }
 function guard(node, ms = 450) {
   node.style.pointerEvents = 'none';
@@ -351,6 +359,7 @@ export function openHelp(spec) {
 // ホームの宝石：全種（武器・チャーム）を袋に入れて、ホームを開くたびに 1 つずつ取り出す（全部出たら混ぜ直す）。
 // 袋はセーブに残すので、アプリを開き直しても偏らない。下のメニューのホームのアイコンも同じ宝石
 export let homeGem = 'ruby';
+let titleIntro = true;
 function nextHomeGem() {
   let bag = (save.homeBag || []).filter((id) => GEMS[id]);
   if (!bag.length) {
@@ -368,22 +377,23 @@ export function showTitle() {
   nextHomeGem();
   const cid = homeGem;
   const g = GEMS[cid];
+  // ロゴの文字が落ちてくるのは起動して最初の 1 回だけ
+  const chars = (s) => (titleIntro ? [...s].map((c, i) => `<span style="--i:${i}">${c}</span>`).join('') : s);
   const node = el(`
-    <div class="screen title-screen" data-nav="home">
+    <div class="screen title-screen ${titleIntro ? 'intro' : ''}" data-nav="home" style="--acc:${gemColor(cid)}">
       <div class="title-top">${rankChip()}${coinPill()}</div>
-      <div class="logo">
-        <div class="main">JEWEL<br>SURVIVOR</div>
-        <div class="line"></div>
-      </div>
+      <div class="logo" aria-label="JEWEL SURVIVOR"><div class="l1">${chars('JEWEL')}</div><div class="l2">${chars('SURVIVOR')}</div></div>
       <div class="title-hero">
-        <img src="${gemIcon(cid, 160)}" alt="" style="filter:drop-shadow(0 0 24px ${gemColor(cid)})">
-        <div class="word">${g.jp}<small>${g.en} — ${g.word}</small></div>
+        <div class="th-band"></div><div class="th-rays"></div>
+        <div class="th-gem"><img src="${gemIcon(cid, 160)}" alt=""></div>
+        <div class="word"><b>${g.jp}</b><small>${g.en} / <i>${g.word}</i></small></div>
       </div>
       <div class="title-menu">
         <button class="btn big primary" id="t-play">START</button>
-        <button class="btn howto-btn" id="t-howto">HOW TO PLAY<span class="sub">遊び方</span></button>
+        <button class="btn howto-btn" id="t-howto">遊び方</button>
       </div>
     </div>`);
+  titleIntro = false;
   show(node);
   const tap = (id, fn) => $(id, node).addEventListener('click', () => { audio.unlock(); audio.tap(); fn(); });
   tap('#t-play', showCharSelect);
