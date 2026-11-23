@@ -120,6 +120,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
   animation: screenIn 0.22s ease-out;
 }
 @keyframes screenIn { from { opacity: 0; transform: translateY(8px); } }
+.screen.redraw { animation: none; }
 .screen.dim { animation-name: screenFade; }
 @keyframes screenFade { from { opacity: 0; } }
 .screen.has-nav { bottom: var(--nav-h); --safe-b: 0px; }
@@ -162,32 +163,36 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 @keyframes bump { 50% { transform: scale(1.12); } }
 
 /* ------------------------------------------------------------------ タイトル */
-.title-screen { justify-content: flex-start; align-items: stretch; overflow: hidden; }
+.title-screen { justify-content: flex-start; align-items: stretch; overflow-x: hidden; overflow-y: auto; }
 .title-top { position: absolute; top: calc(var(--safe-t) + 12px); right: calc(var(--safe-r) + 14px); left: calc(var(--safe-l) + 14px); display: flex; gap: 8px; align-items: center; justify-content: flex-end; z-index: 2; }
-/* ロゴ：斜めに置いた白い JEWEL と、縁だけの SURVIVOR */
-.logo { margin-top: calc(56px + 2vh); align-self: flex-start; transform: rotate(-7deg); transform-origin: left top; font-family: var(--font); font-weight: 700; line-height: 0.84; pointer-events: none; }
-.logo .l1 { font-size: min(22vw, 12vh, 96px); color: #fff; }
-.logo .l2 { font-size: min(14vw, 7.6vh, 60px); margin-left: 0.45em; color: transparent; -webkit-text-stroke: 1.5px #fff; letter-spacing: 0.03em; }
+/* ロゴ：中央に小さく 1 行（JEWEL は白、SURVIVOR は灰） */
+.logo { margin-top: calc(60px + 1vh); align-self: center; text-align: center; font-family: var(--font); font-weight: 700; line-height: 1; pointer-events: none; }
+.logo .l1, .logo .l2 { display: inline; font-size: min(7.4vw, 30px); color: #fff; letter-spacing: 0.32em; }
+.logo .l2 { color: #8d8aa6; margin-left: 0.3em; }
 .logo span { display: inline-block; }
 .title-screen.intro .logo span { animation: logoDrop 0.5s cubic-bezier(0.2, 1.3, 0.3, 1) both; animation-delay: calc(var(--i) * 35ms + 80ms); }
 @keyframes logoDrop { from { opacity: 0; transform: translateY(-34px) rotate(-12deg); } }
-/* 宝石：宝石の色の破片の帯の上に大きく置く */
+/* ホーム：照らされた 1 粒（試作の案 B「陳列」）。ロゴは小さく 1 行、宝石を真ん中に大きく、上から光、足元に光の輪、名前は中央 */
 .title-hero { position: relative; flex: 1 1 auto; min-height: 200px; margin: 0 calc(-16px - var(--safe-r)) 0 calc(-16px - var(--safe-l)); }
-.th-band { position: absolute; left: 0; right: 0; top: calc(50% - 82px); height: 164px; background: var(--acc); clip-path: polygon(0 26%, 58% 0, 100% 8%, 100% 70%, 44% 100%, 0 86%); }
-.th-band::after { content: ''; position: absolute; inset: 0; background: linear-gradient(118deg, rgba(255,255,255,0.3) 0 20%, transparent 20% 46%, rgba(0,0,0,0.16) 46% 66%, transparent 66%); }
-.th-rays { position: absolute; left: 62%; top: 46%; width: 520px; height: 520px; margin: -260px 0 0 -260px; pointer-events: none;
-  background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.12) 0deg 4deg, transparent 4deg 22deg);
-  -webkit-mask: radial-gradient(circle, #000 8%, transparent 58%); mask: radial-gradient(circle, #000 8%, transparent 58%); animation: thSpin 30s linear infinite; }
-@keyframes thSpin { to { transform: rotate(360deg); } }
-.th-gem { position: absolute; left: 58%; top: 46%; width: min(46vw, 24vh, 190px); aspect-ratio: 1; margin: calc(min(46vw, 24vh, 190px) / -2) 0 0 calc(min(46vw, 24vh, 190px) / -2); animation: thBob 3.4s ease-in-out infinite; }
-@keyframes thBob { 0%, 100% { transform: rotate(9deg); } 50% { transform: translateY(-7px) rotate(6deg); } }
-.th-gem img, .th-gem canvas { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(10px 12px 0 rgba(0, 0, 0, 0.85)); }
-.title-hero .word { position: absolute; left: calc(14px + var(--safe-l)); top: calc(50% + 30px); transform: rotate(-11deg); transform-origin: left; pointer-events: none; }
-.title-hero .word b { display: inline-block; font-family: var(--font-disp); font-weight: 400; font-size: min(8.4vw, 32px); background: #000; color: #fff; padding: 3px 14px 6px 12px; clip-path: polygon(0 0, 100% 6%, calc(100% - 10px) 100%, 4px 94%); }
-.title-hero .word small { display: table; margin: 4px 0 0 8px; padding: 1px 8px; background: var(--acc); color: #000; font: 700 12px var(--font); letter-spacing: 0.16em; }
-.title-hero .word small i { font-style: normal; font-family: var(--font-jp); font-weight: 900; letter-spacing: 0.04em; }
+.title-hero::before { content: ''; position: absolute; left: 50%; top: -6%; width: min(88vw, 360px); height: 78%; transform: translateX(-50%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--acc) 0%, transparent), color-mix(in srgb, var(--acc) 16%, transparent));
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%); pointer-events: none; }
+.title-hero::after { content: ''; position: absolute; left: 50%; top: 66%; width: min(70vw, 280px); height: 46px; transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--acc) 38%, transparent), transparent); pointer-events: none; }
+.th-gem { position: absolute; left: 50%; top: 40%; width: min(60vw, 30vh, 250px); aspect-ratio: 1; margin: calc(min(60vw, 30vh, 250px) / -2) 0 0 calc(min(60vw, 30vh, 250px) / -2); z-index: 1; animation: thBob 6.8s ease-in-out infinite; }
+/* 出たときは真っ直ぐ。左右どちらへ先に揺れるかは --dir（ui.js が 1 か -1 を入れる） */
+@keyframes thBob { 0%, 100% { transform: none; } 25% { transform: translateY(-4px) rotate(calc(var(--dir, 1) * 4deg)); } 50% { transform: translateY(-7px); } 75% { transform: translateY(-4px) rotate(calc(var(--dir, 1) * -4deg)); } }
+.th-gem img, .th-gem canvas { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.75)); }
+.title-hero .word { position: absolute; left: 0; right: 0; bottom: 4%; text-align: center; z-index: 1; pointer-events: none; }
+.title-hero .word b { display: inline-block; font-family: var(--font-disp); font-weight: 400; font-size: min(8vw, 30px); letter-spacing: 0.06em; color: #fff; white-space: nowrap; }
+.title-hero .word small { display: block; margin: 4px 0 0; color: #8d8aa6; font: 700 12px var(--font); letter-spacing: 0.24em; }
+.title-hero .word small i { font-style: normal; font-family: var(--font-jp); font-weight: 900; letter-spacing: 0.04em; color: var(--acc); }
+/* 宝石の下地の帯（ホーム・伝説の宝石・宝石と百獣の詳細で共通）：宝石の色の破片 */
+.lgd-band { background: var(--acc); }
+.gem-detail .gd-top::before, .beast-detail .bd-art::before { background: var(--c); }
+.lgd-band::after { content: ''; position: absolute; inset: 0; background: linear-gradient(118deg, rgba(255,255,255,0.3) 0 20%, transparent 20% 46%, rgba(0,0,0,0.16) 46% 66%, transparent 66%); }
 .title-menu { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 420px; align-self: center; align-items: stretch; margin: 8px 0 4px; }
-.title-menu #t-play { height: 70px; font-size: 38px; letter-spacing: 0.16em; }
+.title-menu #t-play { height: 70px; padding: 0; line-height: 1; font-size: 38px; letter-spacing: 0.16em; }
 .credit { font-family: var(--font-jp); font-size: 10px; color: rgba(141,138,166,0.8); text-align: center; margin-top: 8px; line-height: 1.6; }
 
 /* ------------------------------------------------------------------ キャラ選択 */
@@ -558,6 +563,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .rrow.show { animation: rowIn 0.3s cubic-bezier(.2,1.2,.4,1) forwards; }
 @keyframes rowIn { to { opacity: 1; transform: none; } }
 .rrow .new { font-size: 9px; letter-spacing: 0.15em; background: var(--prism); background-size: 200%; animation: prismMove 1.5s linear infinite; color: #fff; padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+/* 低い画面では表を詰めて、獲得コインが下のボタンに隠れないようにする */
+@media (max-height: 700px) { .result-head { margin-top: 2px; } .rrow { padding: 5px 2px; } .rrow b { font-size: 17px; } }
 .rcoins { display: flex; align-items: center; gap: 10px; font-size: 38px; font-weight: 700; color: #ffe39a; text-shadow: 0 0 20px rgba(255,197,61,0.6); }
 /* 名前と数字を上の段、棒は下の段に横いっぱい（数字の桁が増えても棒の長さがそろう） */
 .dmgrow { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-areas: 'ic dn num' 'ic bar bar'; align-items: center; column-gap: 8px; margin: 7px 0; font-family: var(--font-jp); font-size: 12px; }
@@ -1432,7 +1439,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 /* 見出し：太い日本語を傾け、差し色の帯に英語 */
 .hub-head { position: relative; height: 96px; margin: 2px 0 6px; pointer-events: none; }
 .hub-head h1 { position: absolute; left: 0; top: 6px; margin: 0; font-family: var(--font-disp); font-weight: 400; font-size: min(17vw, 70px); line-height: 1; transform: rotate(-5deg); text-shadow: 5px 5px 0 var(--acc); z-index: 1; white-space: nowrap; color: #fff; }
-.hh-en { position: absolute; right: -16px; top: 24px; width: 54%; height: 52px; background: var(--acc); color: #07060c; display: flex; align-items: center; justify-content: flex-end; padding-right: 30px; font: 700 26px var(--font); letter-spacing: 0.16em; clip-path: polygon(16% 0, 100% 0, 100% 100%, 0 82%); transform: rotate(-5deg); }
+.hh-en { position: absolute; right: -12px; top: 24px; width: 54%; height: 52px; background: var(--acc); color: #07060c; display: flex; align-items: center; justify-content: flex-end; padding-right: 30px; font: 700 26px var(--font); letter-spacing: 0.16em; clip-path: polygon(16% 0, 100% 0, 100% 100%, 0 82%); transform: rotate(-5deg); }
 /* 項目：先頭は白い大きな破片、残りは角を切った暗い行を左右に互い違い */
 .hub-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 6px; }
 .hub-card { --c: var(--acc); position: relative; display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 12px; min-height: 76px; padding: 8px 20px 8px 10px; background: #15131d; color: var(--text); text-align: left; border: 0; overflow: hidden; cursor: pointer; transition: transform 0.08s, filter 0.08s;
@@ -2179,7 +2186,7 @@ html.ultra #xpfill::before { animation: none; }
 .fm-a { font-style: normal; color: var(--muted); font-size: 12px; }
 
 /* スロット台の筐体：電球の並ぶ天板（JACKPOT）・台の枠・右のレバー・下のコインの受け皿（結果の帯） */
-.slot-screen { --cs: max(56px, min(92px, calc((100vw - 120px) / 3), calc((100vh - 520px) / 3))); }
+.slot-screen { --cs: max(56px, min(92px, calc((100vw - 150px) / 3), calc((100vh - 520px) / 3))); }
 .sl-cab { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0 0 10px; border-radius: 26px 26px 18px 18px; background: linear-gradient(180deg, #1c1626, #0d0b14 55%, #15111d); border: 1px solid rgba(255, 210, 61, 0.28); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 .sl-marquee { position: relative; align-self: stretch; margin: 0 0 10px; padding: 12px 16px 10px; border-radius: 26px 26px 10px 10px; background: radial-gradient(120% 140% at 50% 0%, #3a1d3c, #170f22 70%); border-bottom: 2px solid rgba(255, 210, 61, 0.45); overflow: hidden; }
 /* 天板のふちの電球：2 つの並びを交互に灯す */
@@ -2197,3 +2204,116 @@ html.lite .sl-marquee::before, html.lite .sl-marquee::after { animation: none; }
 @keyframes slPull { 0% { transform: none; } 40% { transform: scaleY(0.55); } 100% { transform: none; } }
 .sl-tray { align-self: stretch; margin: 10px 14px 0; border-radius: 14px; background: linear-gradient(180deg, #07060b, #120f19); border: 1px solid rgba(255, 210, 61, 0.35); box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.8); }
 .sl-tray .sl-res { min-height: 58px; padding: 6px 8px; }
+
+/* ===================== UI 3.0（案 A）：中の画面の部品 =====================
+   並び・中身・ユーザーが残した見せ方（工房の「今 → 次」、実績のメダル色の縁、コレクションのルースケース、ステージの色の選択枠）はそのまま。
+   角を面取りし（宝石の切子）、見出しは太い字を少し傾け、差し色は画面の --acc 1 色だけにする */
+.iconbtn { border: 0; border-radius: 0; background: #1b1925; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); font-family: var(--font); font-weight: 700; font-size: 20px; }
+.iconbtn:active { transform: scale(0.94); background: #26232f; }
+/* 上の帯：日本語を太く傾けて主に、英語は小さく添える */
+.topbar h2 { display: flex; flex-direction: column-reverse; align-items: center; gap: 2px; }
+.topbar h2 .jp, .topbar.has-help h2 .jp { font-family: var(--font-disp); font-weight: 400; font-size: 21px; letter-spacing: 0.02em; color: #fff; transform: rotate(-3deg); text-shadow: 2px 2px 0 var(--acc); white-space: nowrap; }
+.topbar h2 .en, .topbar.has-help h2 .en, .topbar.has-help h2 .en.long { font-size: 11px; letter-spacing: 0.32em; color: var(--muted); font-weight: 700; }
+/* パネル・一覧の行・実績の行：右下の角を切る */
+.panel { border-radius: 0; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%); }
+.lrow, .arow { border-radius: 0; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%); }
+.arow.done.t-gold { box-shadow: inset 0 0 14px rgba(255, 197, 61, 0.22); }
+/* 値段・MAX のボタン：平行四辺形 */
+.lbtn { border-radius: 0; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+/* チップとタブ：平行四辺形。選んでいるものは白地に黒い字 */
+.chip { border-radius: 0; border-color: transparent; background: #1b1925; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); padding: 6px 13px; }
+.chip.on { background: #f6f4fb; color: #07060c; border-color: transparent; }
+.tabs { border-radius: 0; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); padding: 4px 10px; }
+.tab { border-radius: 0; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.tab.on { background: #f6f4fb; color: #07060c; }
+/* 一覧の小見出し：差し色の小さな菱形を前に */
+.lhead::before { content: ''; flex: none; width: 7px; height: 7px; margin-right: 2px; background: var(--acc); transform: rotate(45deg) translateY(-1px); align-self: center; }
+/* 下から上がるシート：上の辺を斜めに切り、差し色の細い線 */
+.bsheet { border-radius: 0; border-top: 0; padding-top: 22px; clip-path: polygon(0 18px, 62% 0, 100% 12px, 100% 100%, 0 100%); }
+.bsheet::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 22px; background: var(--acc); clip-path: polygon(0 18px, 62% 0, 100% 12px, 100% 15px, 62% 3px, 0 21px); pointer-events: none; }
+.sht-grab { display: none; }
+.sht-x { top: 20px; border: 0; border-radius: 0; background: #1b1925; clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px); }
+.sht-kv { border-radius: 0; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+/* ふつうのボタン：角を切る（決定のボタンは白地のまま） */
+.btn:not(.primary) { border-radius: 0; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+/* 上の帯の日本語が長いときは小さく（はみ出す分は … で切る） */
+.topbar h2 { min-width: 0; }
+.topbar h2 .jp { max-width: 100%; overflow: hidden; text-overflow: ellipsis; padding: 0 3px 3px 0; }
+.topbar h2 .jp.long { font-size: 17px; }
+.topbar h2 .jp.xlong { font-size: 14px; }
+/* 見出しは切らずに縮める（ui.js の fitTitles） */
+.topbar h2 .jp { text-overflow: clip; }
+/* ハブとホームの中の重なり（傾けた見出しの z-index など）を、上に重ねて開く画面より前に出さない */
+.hub-screen, .title-screen { isolation: isolate; }
+/* 残っていた角の丸いカードも右下を切り落とす。外側へ光る縁（選んだステージの色の光など）を切らないよう、切り抜きは箱の外まで広げる */
+.fhint, .lg-card, .zitem, .stage-card, .cat-lot, .jb-row { border-radius: 0; clip-path: polygon(-30px -30px, calc(100% + 30px) -30px, calc(100% + 30px) calc(100% - 42px), calc(100% - 42px) calc(100% + 30px), -30px calc(100% + 30px)); }
+.coll-cell, .beast-cell { border-radius: 0; clip-path: polygon(-30px -30px, calc(100% + 30px) -30px, calc(100% + 30px) calc(100% - 39px), calc(100% - 39px) calc(100% + 30px), -30px calc(100% + 30px)); }
+/* 伝説の宝石の詳細（UI 3.0）：差し色の帯の上に名石、名前の札、下地のある仕様の表、工程の進み具合 */
+.legend-screen { gap: 12px; }
+.lgd-hero { position: relative; width: calc(100% + 32px); max-width: 552px; margin: -4px -16px 0; height: 228px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; overflow: hidden; }
+.lgd-band { position: absolute; left: 0; right: 0; top: 34px; height: 120px; clip-path: polygon(0 22%, 62% 0, 100% 10%, 100% 74%, 40% 100%, 0 84%); }
+.legend-screen .lg-big { position: absolute; left: 50%; top: 8px; width: 160px; height: 160px; margin-left: -80px; filter: drop-shadow(0 10px 14px rgba(0,0,0,0.6)); }
+.lgd-name { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; align-self: flex-start; margin: 0 0 4px 16px; max-width: calc(100% - 32px); transform: rotate(-3deg); }
+.lgd-name b { font: 400 22px/1.25 var(--font-disp); background: #000; color: #fff; padding: 3px 14px 6px 12px; word-break: keep-all; text-wrap: balance; clip-path: polygon(0 0, 100% 6%, calc(100% - 10px) 100%, 4px 94%); }
+.lgd-name small { font: 700 11px var(--font); letter-spacing: 0.18em; background: var(--acc); color: #07060c; padding: 2px 10px; margin-left: 10px; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
+.lgd-spec { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 6px; width: 100%; max-width: 520px; }
+.lgd-spec > div { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px 9px; background: #14121c; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%); min-width: 0; }
+.lgd-spec > div.w { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 12px; }
+.lgd-spec span { flex: none; font: 700 10.5px var(--font-jp); color: var(--muted); letter-spacing: 0.06em; }
+.lgd-spec .w span { width: 6em; white-space: nowrap; }
+.lgd-spec b { font: 700 13.5px/1.5 var(--font-jp); color: var(--text); word-break: keep-all; overflow-wrap: anywhere; text-wrap: pretty; }
+.lgd-spec .lgd-ct { background: #f6f4fb; }
+.lgd-spec .lgd-ct span { color: #57536a; }
+.lgd-spec .lgd-ct b { font: 400 26px/1.1 var(--font-disp); color: #07060c; }
+.lgd-spec .lgd-ct small { font: 700 12px var(--font); margin-left: 3px; }
+.lgd-prog { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding-bottom: 6px; margin-bottom: 2px; border-bottom: 1px solid var(--line); }
+.lgd-pt { font: 700 12px var(--font); color: var(--muted); display: flex; align-items: baseline; gap: 4px; }
+.lgd-pt span { font-family: var(--font-jp); font-size: 11px; }
+.lgd-pt b { font: 400 20px var(--font-disp); color: var(--text); }
+.lgd-seg { display: flex; gap: 4px; }
+.lgd-seg i { flex: 1; height: 8px; background: rgba(255,255,255,0.1); clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%); }
+.lgd-seg i.on { background: var(--acc); }
+.lgd-seg i.now { background: #f6f4fb; }
+.lgd-left { font: 12px var(--font-jp); color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.lgd-left b { color: var(--gold); letter-spacing: 0.12em; }
+.lgd-purse { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 9px; background: #14121c; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%); }
+.lgd-purse .lg-wallet { justify-content: flex-start; }
+.lgd-purse .lg-note { margin: 0; text-align: left; font-size: 10.5px; }
+/* 工程：年の札は平行四辺形、今の工程は差し色の縁、済んだ工程は控えめに */
+.legend-screen .lg-step::before { left: 23px; top: 24px; background: rgba(255,255,255,0.12); }
+.legend-screen .lg-step.done::before { background: var(--acc); }
+.legend-screen .lg-y { width: 48px; height: 22px; border: 0; border-radius: 0; background: #1b1925; color: var(--muted); clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); font-family: var(--font); }
+.legend-screen .lg-step.done .lg-y { background: var(--acc); color: #07060c; }
+.legend-screen .lg-step.now .lg-y { background: #f6f4fb; color: #07060c; }
+.legend-screen .lg-sb { border: 0; border-radius: 0; background: #14121c; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+.legend-screen .lg-step.now .lg-sb { background: #1d1a28; box-shadow: inset 3px 0 0 var(--acc); }
+.legend-screen .lg-step.done .lg-sb p { color: var(--muted); }
+.legend-screen .lg-step.next .lg-sb { filter: brightness(0.62); }
+.legend-screen .lg-gm { border-radius: 0; background: var(--acc); color: #07060c; clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); }
+.legend-screen .lg-chk { color: var(--acc); }
+.legend-screen .lg-fin { font-family: var(--font-disp); font-weight: 400; color: var(--acc); }
+/* 宝石・百獣・敵の詳細（UI 3.0）：絵の後ろに色の帯、名前は太い書体の札 */
+.gem-detail .gd-top { position: relative; margin: -4px -6px 8px; padding: 10px 6px 12px; isolation: isolate; }
+.gem-detail .gd-top::before { content: ''; position: absolute; z-index: -1; left: -14px; top: 14px; width: 132px; bottom: 10px; clip-path: polygon(0 12%, 100% 0, 84% 100%, 0 90%); }
+.gem-detail .gd-top img, .gem-detail .gd-top canvas { width: 96px; height: 96px; }
+.gem-detail .gd-name, .beast-detail .gd-name { font: 400 24px/1.2 var(--font-disp); transform: rotate(-3deg); transform-origin: left bottom; }
+.gem-detail .gd-en { display: inline-block; margin: 4px 0 6px; padding: 1px 9px; background: var(--c); color: #07060c; font-weight: 700; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
+.gem-detail .gd-loupe { border-radius: 0; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); }
+.gem-detail .gd-trivia { border-radius: 0; }
+.beast-detail .bd-art { position: relative; isolation: isolate; width: 100%; height: 190px; display: flex; justify-content: center; }
+.beast-detail .bd-art::before { content: ''; position: absolute; z-index: -1; left: -18px; right: -18px; top: 46px; height: 104px; clip-path: polygon(0 22%, 62% 0, 100% 10%, 100% 74%, 40% 100%, 0 84%); }
+.beast-detail .bd-art.none::before { filter: brightness(0.35) saturate(0.4); }
+.beast-detail .bd-art img { width: 190px; height: 190px; filter: drop-shadow(0 10px 12px rgba(0,0,0,0.6)); }
+.beast-detail .gd-name { transform-origin: center; }
+.mon-detail { border-radius: 0; }
+.mon-detail .zname { font: 400 21px/1.25 var(--font-disp); }
+.mon-detail .zname .en { font-family: var(--font-jp); font-weight: 700; }
+/* 伝説の宝石の一覧の上：完成の数と財布を下地のある 1 枚に（背景の星が文字に重ならないように） */
+.lg-top { gap: 6px; }
+.lg-top .lg-sum { justify-content: flex-start; }
+/* 宝石の詳細の帯は宝石の後ろだけ（名前の札に掛からないように） */
+/* 角を切る：採掘の確率の注記、ジュークボックスの FEVER */
+.odds { border-radius: 0; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+.jb-fever { border-radius: 0 !important; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+/* ホームの遊び方のボタンは横いっぱい */
+.title-screen .howto-btn { align-self: stretch; }

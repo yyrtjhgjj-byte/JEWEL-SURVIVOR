@@ -62,6 +62,8 @@ const lookId = (L) => `lg_${L.id}`;
 // 名前は「・」のあとで折り返す
 const wbr = (t) => String(t).replace(/・/g, '・<wbr>');
 const icon = (L, cls = 'lg-ic') => `<span class="${cls}"><img src="${gemImage(lookId(L))}" alt=""></span>`;
+// 詳細の差し色（名石の色。無色のダイヤモンドは白い石が帯に埋もれないよう青みの鋼色）
+const LG_ACC = { delong: '#ff2d55', starindia: '#4f7dff', kohinoor: '#8fb4cc', mughal: '#12c46e', regent: '#8fb4cc', hope: '#3d6fe0', cullinan: '#8fb4cc', sunrise: '#ff2d55', pinkstar: '#ff6fb5' };
 // 高い支払いは 2 回押す
 const BIG_PAY = 1000000;
 
@@ -71,8 +73,8 @@ export function showLegends(back) {
   const node = el(`
     <div class="screen legends-screen" data-nav="jewel">
       ${topbar('LEGENDS', '伝説の宝石', coinPill(), 'legends')}
-      <div class="lg-sum">完成 <b>${n}</b> / ${LEGENDS.length}<span>与ダメージ <b>+${Math.round(n * LEGEND_DMG * 100)}%</b></span></div>
-      ${walletHTML()}
+      <div class="lgd-purse lg-top"><div class="lg-sum">完成 <b>${n}</b> / ${LEGENDS.length}<span>与ダメージ <b>+${Math.round(n * LEGEND_DMG * 100)}%</b></span></div>
+      ${walletHTML()}</div>
       <div class="lg-list">${LEGENDS.map((L) => {
         const st = legendState(L.id), total = legendTotal(L), left = L.steps.slice(st.step).reduce((a, s) => a + s.cost, 0);
         return `<button class="lg-card ${st.done ? 'done' : ''}" data-id="${L.id}">
@@ -96,21 +98,23 @@ export function showLegends(back) {
 export function openLegend(id, back, afterShow) {
   const L = LEGEND_BY_ID[id];
   const st = legendState(id);
+  const total = L.steps.length;
   const node = el(`
-    <div class="screen legend-screen" data-nav="jewel">
-      ${topbar(L.en, L.name, coinPill(), 'legends')}
-      <div class="lg-head">${icon(L, 'lg-big')}
-        <div class="lg-rows">
-          <div><span>宝石</span><b>${wbr(L.stone)}</b></div>
-          <div><span>カット</span><b>${wbr(L.cut)}</b></div>
-          <div><span>カラット</span><b>${L.ct} ct</b></div>
-          <div><span>色</span><b>${wbr(L.color)}</b></div>
-          <div><span>今ある場所</span><b>${L.home}</b></div>
-          ${L.value ? `<div><span>値打ち</span><b>${L.value}</b></div>` : ''}
-        </div>
+    <div class="screen legend-screen" data-nav="jewel" style="--acc:${LG_ACC[L.id] || '#c07bff'}">
+      ${topbar('LEGEND', '伝説の宝石', coinPill(), 'legends')}
+      <div class="lgd-hero">
+        <div class="lgd-band"></div>${icon(L, 'lg-big')}
+        <div class="lgd-name"><b>${wbr(L.name)}</b><small>${L.en}</small></div>
       </div>
-      <div class="lg-note">値段は、当時の額を今のドルに直したもの</div>
-      <div id="lgw"></div>
+      <div class="lgd-spec">
+        <div class="lgd-ct"><span>カラット</span><b>${L.ct}<small>ct</small></b></div>
+        <div><span>宝石</span><b>${wbr(L.stone)}</b></div>
+        <div class="w"><span>カット</span><b>${wbr(L.cut)}</b></div>
+        <div class="w"><span>色</span><b>${wbr(L.color)}</b></div>
+        <div class="w"><span>今ある場所</span><b>${L.home}</b></div>
+        ${L.value ? `<div class="w"><span>値打ち</span><b>${L.value}</b></div>` : ''}
+      </div>
+      <div class="lgd-purse"><div class="lgd-prog" id="lgp"></div><div id="lgw"></div><div class="lg-note">値段は、当時の額を今のドルに直したもの</div></div>
       <div class="lg-steps" id="lgs"></div>
     </div>`);
   show(node);
@@ -119,6 +123,8 @@ export function openLegend(id, back, afterShow) {
   let armed = '';
   const render = () => {
     $('#lgw', node).innerHTML = walletHTML();
+    const left = L.steps.slice(st.step).reduce((x, y) => x + y.cost, 0);
+    $('#lgp', node).innerHTML = `<div class="lgd-pt"><span>工程</span><b>${st.done ? total : st.step}</b>/ ${total}</div><div class="lgd-seg">${L.steps.map((_, i) => `<i class="${st.done || i < st.step ? 'on' : i === st.step ? 'now' : ''}"></i>`).join('')}</div><div class="lgd-left">${st.done ? '<b>完成</b>' : `のこり ${coinTag(left)}`}</div>`;
     const C = company();
     const box = $('#lgs', node);
     box.innerHTML = L.steps.map((s, i) => {
