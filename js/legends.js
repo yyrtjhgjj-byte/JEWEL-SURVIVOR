@@ -62,7 +62,7 @@ const lookId = (L) => `lg_${L.id}`;
 // 名前は「・」のあとで折り返す
 const wbr = (t) => String(t).replace(/・/g, '・<wbr>');
 const icon = (L, cls = 'lg-ic') => `<span class="${cls}"><img src="${gemImage(lookId(L))}" alt=""></span>`;
-// 詳細の差し色（名石の色。無色のダイヤモンドは白い石が帯に埋もれないよう青みの鋼色）
+// 詳細の差し色（名石の色。無色のダイヤモンドは青みの鋼色）
 const LG_ACC = { delong: '#ff2d55', starindia: '#4f7dff', kohinoor: '#8fb4cc', mughal: '#12c46e', regent: '#8fb4cc', hope: '#3d6fe0', cullinan: '#8fb4cc', sunrise: '#ff2d55', pinkstar: '#ff6fb5' };
 // 高い支払いは 2 回押す
 const BIG_PAY = 1000000;
@@ -103,7 +103,7 @@ export function openLegend(id, back, afterShow) {
     <div class="screen legend-screen" data-nav="jewel" style="--acc:${LG_ACC[L.id] || '#c07bff'}">
       ${topbar('LEGEND', '伝説の宝石', coinPill(), 'legends')}
       <div class="lgd-hero">
-        <div class="lgd-band"></div>${icon(L, 'lg-big')}
+        ${icon(L, 'lg-big')}
         <div class="lgd-name"><b>${wbr(L.name)}</b><small>${L.en}</small></div>
       </div>
       <div class="lgd-spec">
