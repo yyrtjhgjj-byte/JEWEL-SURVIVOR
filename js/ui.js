@@ -1637,7 +1637,7 @@ function setupBackup(node) {
     try {
       data = parseBackup(await f.text());
     } catch (e) {
-      alert('読み込めませんでした。\n' + (e.message.includes('JEWEL') ? e.message : 'ファイルが壊れているか、形式が違います。'));
+      alert('読み込めませんでした。\n' + (e.user ? e.message : 'ファイルが壊れているか、形式が違います。'));
       return;
     }
     const clears = Object.values(data.stages || {}).filter((x) => x && x.cleared).length;
