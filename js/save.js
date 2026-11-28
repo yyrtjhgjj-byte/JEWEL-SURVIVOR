@@ -134,19 +134,61 @@ export function clearPast() {
 // ---------------------------------------------------------------- バックアップ
 const APP = 'jewel-survivor';
 
+// バックアップのファイルは読めない文字列にして、点検の値を付ける（書き換えたファイルは読み込まない。ユーザーの希望）。
+// 形は「JSB2.乱数.本体.点検の値」。本体は JSON を乱数から作った列と XOR して base64 にしたもの、点検の値は鍵・乱数・JSON から求める
+const SEAL = 'JSB2';
+const SEAL_KEY = 'jewel-survivor/backup/7f3a9c';
+// 古い形（中身が見える JSON）のバックアップを読み込めるのはこの日まで（新しい形で書き出し直してもらうための猶予）
+const OLD_BACKUP_UNTIL = Date.parse('2027-01-01T00:00:00+09:00');
+const backupError = (m) => Object.assign(new Error(m), { user: true });
+function hash53(str, seed = 0) {
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+// 乱数から作る列と XOR する（同じ乱数なら 2 回かけると元に戻る）
+function xorBytes(bytes, nonce) {
+  let x = parseInt(hash53(SEAL_KEY + nonce).slice(0, 8), 36) >>> 0 || 1;
+  const out = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; x >>>= 0; out[i] = bytes[i] ^ (x & 255); }
+  return out;
+}
+function toB64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
+function fromB64(b64) { const s = atob(b64); const out = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i); return out; }
+function sealBackup(json) {
+  const nonce = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  return [SEAL, nonce, toB64(xorBytes(new TextEncoder().encode(json), nonce)), hash53(SEAL_KEY + nonce + json, 7)].join('.');
+}
+function openBackup(text) {
+  const [tag, nonce, body, check] = text.trim().split('.');
+  if (tag !== SEAL || !nonce || !body || !check) throw backupError('JEWEL SURVIVOR のバックアップファイルではありません');
+  let json;
+  try { json = new TextDecoder('utf-8', { fatal: true }).decode(xorBytes(fromB64(body), nonce)); } catch (e) { throw backupError('書き換えられたバックアップは読み込めません'); }
+  if (hash53(SEAL_KEY + nonce + json, 7) !== check) throw backupError('書き換えられたバックアップは読み込めません');
+  return JSON.parse(json);
+}
+
 // 書き出し用の文字列
 export function exportSave() {
   // 中断したランは入れない（読み込んだあとに、古いランを再開・精算できてしまわないように）。転生中なら前世も入れる
   const { pendingRun, ...data } = save;
-  return JSON.stringify({ app: APP, version: 1, exportedAt: new Date().toISOString(), data, ...(past ? { past } : {}) });
+  return sealBackup(JSON.stringify({ app: APP, version: 2, exportedAt: new Date().toISOString(), data, ...(past ? { past } : {}) }));
 }
 
-// 読み込んだ文字列を解析。正しくなければ例外
+// 読み込んだ文字列を解析。正しくなければ例外（画面に出す理由は e.user の付いた例外の文）
 export function parseBackup(text) {
-  const obj = JSON.parse(text);
+  let obj;
+  if (text.trim().startsWith(SEAL + '.')) obj = openBackup(text);
+  else {
+    // 古い形（中身が見える JSON）は猶予の日まで
+    if (Date.now() >= OLD_BACKUP_UNTIL) throw backupError('古い形式のバックアップは読み込めません');
+    try { obj = JSON.parse(text); } catch (e) { throw backupError('JEWEL SURVIVOR のバックアップファイルではありません'); }
+  }
   const data = obj && obj.app === APP ? obj.data : obj;
   if (!data || typeof data !== 'object' || typeof data.coins !== 'number' || !data.unlocked) {
-    throw new Error('JEWEL SURVIVOR のバックアップファイルではありません');
+    throw backupError('JEWEL SURVIVOR のバックアップファイルではありません');
   }
   // 前世は importSave で受け取る（セーブの中身には混ぜない）
   Object.defineProperty(data, 'pastLife', { value: (obj && obj.app === APP && obj.past) || null, enumerable: false });
